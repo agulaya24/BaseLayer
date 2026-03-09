@@ -1,0 +1,69 @@
+# Base Layer Lexicon Schema v1.0
+# Standardizes the CONTAINER (structure), not the CONTENTS (personal)
+# Used by authoring prompts, provenance tracing, and layer validation
+
+element_types:
+  axiom:
+    id_prefix: "A"
+    layer: anchors
+    required_fields:
+      - id          # A1, A2, ...
+      - name        # UPPERCASE short name (e.g., COHERENCE)
+      - definition  # Directive-embedded description (the axiom text)
+      - active_when # Detection trigger
+    optional_fields:
+      - contested   # true/false — is this axiom under review?
+      - thin_data   # true/false — fewer than 3 independent facts
+      - provenance  # list of fact IDs that produced this axiom
+      - false_positive  # When this axiom fires incorrectly
+
+  prediction:
+    id_prefix: "P"
+    layer: predictions
+    required_fields:
+      - id          # P1, P2, ...
+      - name        # UPPERCASE short name (e.g., ANALYSIS-PARALYSIS)
+      - trigger     # What activates this pattern
+      - detection   # Observable signatures (2+ domains required)
+      - directive   # What the AI should do when pattern activates
+    optional_fields:
+      - false_positive   # When pattern appears active but isn't
+      - pathological     # What happens when pattern is unchecked
+      - parked           # true if single-domain, awaiting cross-domain validation
+      - provenance       # list of fact IDs
+
+  context_mode:
+    id_prefix: "C"
+    layer: core
+    required_fields:
+      - id          # C1, C2, ...
+      - domain      # What context this covers
+      - directives  # How AI should behave in this context
+    optional_fields:
+      - provenance  # list of fact IDs
+
+  meta_section:
+    id_prefix: "M"
+    layer: core
+    required_fields:
+      - id          # M1, M2, ...
+      - name        # Section name (e.g., COMMUNICATION_APPROACH)
+      - content     # Full text
+
+# Tags for annotation
+tags:
+  - CONTESTED     # Under active review/debate
+  - THIN_DATA     # Fewer than 3 independent supporting facts
+  - PARKED        # Single-domain, awaiting cross-domain validation
+  - DERIVED       # Derived from other elements, not independently observed
+
+# Cross-reference syntax
+cross_reference:
+  format: "see {id}"           # e.g., "see A3"
+  compound: "{id}+{id}"       # e.g., "A3+A5"
+  dependency: "depends on {id}" # e.g., "depends on A1"
+
+# Provenance format (inline in layer markdown)
+provenance:
+  format: "provenance: [{fact_ids}]"  # e.g., "provenance: [F-1204, F-2891]"
+  fact_id_format: "F-{id}"            # e.g., F-1204 (maps to memory_facts.id)

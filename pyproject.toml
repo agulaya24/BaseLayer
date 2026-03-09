@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "baselayer"
+version = "0.1.0"
+description = "Personal AI memory system - your AI should know you"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Aarik Gulaya"},
+]
+
+dependencies = [
+    "anthropic~=0.45",
+    "chromadb~=0.6",
+    "sentence-transformers~=3.0",
+    "numpy~=1.26",
+    "python-docx~=0.8",
+    "requests~=2.31",
+    "httpx>=0.24",
+    "mcp[cli]~=1.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+]
+
+[project.scripts]
+baselayer = "baselayer.cli:main"
+baselayer-mcp = "baselayer.mcp_server:main"
+
+[tool.setuptools]
+packages = ["baselayer"]
+
+[tool.setuptools.package-dir]
+baselayer = "scripts"

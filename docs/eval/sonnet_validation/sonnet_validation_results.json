@@ -1,0 +1,223 @@
+{
+  "meta": {
+    "started": "2026-03-08T08:45:54.111376",
+    "model": "claude-sonnet-4-20250514",
+    "total_facts": 212,
+    "identity_facts": 135,
+    "completed": "2026-03-08T08:49:02.050017",
+    "qwen_comparison": {
+      "compression_peak": "20%",
+      "temporal_direction": "no effect (early=late=random)",
+      "best_cross_type": "biographical (26.7%)",
+      "tier_winner": "identity-only (2.5x better)"
+    }
+  },
+  "experiments": {
+    "1_compression_saturation": [
+      {
+        "label": "split_10pct",
+        "train_count": 13,
+        "test_count": 122,
+        "scores": {
+          "m1_coverage": 0.1969,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 3.65,
+          "composite": 23.35,
+          "chars": 1916
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF\n\n## CORE PERSONALITY\nThis person is a pragmatic innovator who values efficiency, honesty, and systematic improvement. He approaches problems with methodical analysis and dislikes su",
+        "split_pct": 10
+      },
+      {
+        "label": "split_20pct",
+        "train_count": 27,
+        "test_count": 108,
+        "scores": {
+          "m1_coverage": 0.1906,
+          "prediction_rate": 0.0093,
+          "m3_pattern_density": 4.81,
+          "composite": 25.07,
+          "chars": 1872
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF\n\n## CORE PERSONALITY\nThis person is a methodical self-improver who values practical wisdom over empty platitudes. He approaches life systematically, documenting conversations and st",
+        "split_pct": 20
+      },
+      {
+        "label": "split_50pct",
+        "train_count": 67,
+        "test_count": 68,
+        "scores": {
+          "m1_coverage": 0.2112,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 3.8,
+          "composite": 24.15,
+          "chars": 2106
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF\n\n## CORE PERSONALITY\nThis person is a systematic self-improver who aspires to moral perfection through disciplined tracking of thirteen virtues in a personal logbook. He struggles w",
+        "split_pct": 50
+      }
+    ],
+    "2_temporal_direction": [
+      {
+        "label": "early_to_late",
+        "train_count": 67,
+        "test_count": 68,
+        "scores": {
+          "m1_coverage": 0.2062,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 1.34,
+          "composite": 20.25,
+          "chars": 2247
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF\n\n## CORE IDENTITY & VALUES\nThis person is a pragmatic colonial American leader who values time above all else and prioritizes practical wisdom over theoretical knowledge. He identif"
+      },
+      {
+        "label": "late_to_early",
+        "train_count": 68,
+        "test_count": 67,
+        "scores": {
+          "m1_coverage": 0.216,
+          "prediction_rate": 0.0299,
+          "m3_pattern_density": 1.74,
+          "composite": 22.0,
+          "chars": 2295
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF\n\n## CORE IDENTITY\nThis person is a methodical self-improver who prioritizes public benefit over personal gain. He operates as a practical philosopher, combining intellectual curiosi"
+      },
+      {
+        "label": "middle_to_edges",
+        "train_count": 68,
+        "test_count": 67,
+        "scores": {
+          "m1_coverage": 0.2324,
+          "prediction_rate": 0.0299,
+          "m3_pattern_density": 2.55,
+          "composite": 23.87,
+          "chars": 2350
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF\n\n## COMMUNICATION STYLE\nWhen engaging in debate, expect this person to employ logical reasoning and the Socratic method to systematically dismantle opposing arguments. He excels at "
+      },
+      {
+        "label": "random_baseline",
+        "train_count": 67,
+        "test_count": 68,
+        "scores": {
+          "m1_coverage": 0.1888,
+          "prediction_rate": 0.0147,
+          "m3_pattern_density": 1.34,
+          "composite": 19.93,
+          "chars": 2242
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF\n\n## CORE IDENTITY & VALUES\nThis person embodies practical idealism - combining moral aspiration with pragmatic action. He believes virtue requires active habit formation, not mere c"
+      }
+    ],
+    "3_cross_type": [
+      {
+        "label": "type_biographical_predicts_others",
+        "train_count": 65,
+        "test_count": 70,
+        "scores": {
+          "m1_coverage": 0.1896,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 1.61,
+          "composite": 20.01,
+          "chars": 2477
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF: COLONIAL POLYMATH & INSTITUTION BUILDER\n\n## CORE IDENTITY\nThis person identifies as \"youngest son of youngest son for five generations\" - a self-made individual who transforms perc"
+      },
+      {
+        "label": "type_positional_predicts_others",
+        "train_count": 39,
+        "test_count": 96,
+        "scores": {
+          "m1_coverage": 0.1827,
+          "prediction_rate": 0.0104,
+          "m3_pattern_density": 1.59,
+          "composite": 19.95,
+          "chars": 2518
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF: ENLIGHTENMENT PRAGMATIST\n\n## CORE WORLDVIEW\nThis person operates from Deist principles, viewing God as the fountain of wisdom while emphasizing rational governance and natural law."
+      },
+      {
+        "label": "type_behavioral_predicts_others",
+        "train_count": 20,
+        "test_count": 115,
+        "scores": {
+          "m1_coverage": 0.2027,
+          "prediction_rate": 0.0087,
+          "m3_pattern_density": 4.92,
+          "composite": 25.7,
+          "chars": 1831
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF\n\n## COMMUNICATION STYLE\nWhen engaging in discussion, this person employs the Socratic method—asking probing questions rather than making declarative statements. He avoids dogmatic o"
+      },
+      {
+        "label": "type_preference_predicts_others",
+        "train_count": 11,
+        "test_count": 124,
+        "scores": {
+          "m1_coverage": 0.1896,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 5.19,
+          "composite": 25.37,
+          "chars": 1927
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF: PRACTICAL PHILOSOPHER & EXPERIMENTER\n\n## CORE IDENTITY\nThis person embodies practical wisdom combined with scientific curiosity. He seeks moral improvement through reason while pur"
+      },
+      {
+        "label": "all_types_baseline",
+        "train_count": 67,
+        "test_count": 68,
+        "scores": {
+          "m1_coverage": 0.2407,
+          "prediction_rate": 0.0147,
+          "m3_pattern_density": 2.87,
+          "composite": 24.29,
+          "chars": 2443
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF: COLONIAL POLYMATH & CIVIC REFORMER\n\n## CORE IDENTITY\nThis person embodies systematic self-improvement and public service. He identifies as \"youngest son of youngest son for five ge"
+      }
+    ],
+    "4_tier_comparison": [
+      {
+        "label": "identity_only",
+        "train_count": 67,
+        "test_count": 68,
+        "scores": {
+          "m1_coverage": 0.1973,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 2.57,
+          "composite": 21.74,
+          "chars": 2728
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF: Colonial Polymath & Pragmatic Reformer\n\n## CORE PERSONALITY\nThis person embodies intellectual curiosity paired with practical application. He approaches problems systematically thr"
+      },
+      {
+        "label": "non_identity_tiers",
+        "train_count": 67,
+        "test_count": 68,
+        "scores": {
+          "m1_coverage": 0.1796,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 4.54,
+          "composite": 23.99,
+          "chars": 2425
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF: 18th Century Colonial Polymath\n\n## CORE IDENTITY\nThis person embodies the quintessential colonial American Renaissance figure - a self-made intellectual, entrepreneur, and civic le"
+      },
+      {
+        "label": "mixed_tiers",
+        "train_count": 66,
+        "test_count": 68,
+        "scores": {
+          "m1_coverage": 0.1715,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 3.77,
+          "composite": 22.52,
+          "chars": 2917
+        },
+        "brief_preview": "# Behavioral Brief: Colonial Polymath & Civic Leader\n\n## Core Personality\nThis person embodies intellectual curiosity paired with practical application. He approaches problems systematically, favoring"
+      }
+    ]
+  }
+}

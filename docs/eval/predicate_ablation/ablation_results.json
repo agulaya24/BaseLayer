@@ -1,0 +1,1278 @@
+{
+  "meta": {
+    "subject": "franklin",
+    "total_facts": 135,
+    "started": "2026-03-08T06:16:18.386238",
+    "completed": "2026-03-08T06:22:22.144328"
+  },
+  "experiments": {
+    "0_baseline": {
+      "condition": "production_baseline",
+      "train_count": 135,
+      "held_out_count": 0,
+      "brief_chars": 9144,
+      "brief_tokens_est": 2286,
+      "scores": {
+        "m1_embedding_coverage": 0.1983,
+        "m2_cross_prediction": 0.0148,
+        "m3_pattern_density": 2.19,
+        "m4_specificity": 0.9975,
+        "m5_efficiency": 0.0867,
+        "composite": 22.0
+      },
+      "composite": 22.0,
+      "brief_preview": "Benjamin Franklin is a Philadelphia printer who measures his worth through systematic industry and public benefit rather than social elevation or personal gain. He views himself as a craftsman who adv"
+    },
+    "1_fact_type": [
+      {
+        "condition": "type_biographical",
+        "train_count": 65,
+        "held_out_count": 70,
+        "brief_chars": 1648,
+        "brief_tokens_est": 412,
+        "scores": {
+          "m1_embedding_coverage": 0.2004,
+          "m2_cross_prediction": 0.0,
+          "m3_pattern_density": 9.1,
+          "m4_specificity": 0.9954,
+          "m5_efficiency": 0.4864,
+          "composite": 34.05
+        },
+        "composite": 34.05,
+        "predicate_dist": {
+          "excels_at": 13,
+          "founded": 8,
+          "experienced": 6,
+          "works_at": 6,
+          "friends_with": 5,
+          "studies": 3,
+          "mentored_by": 3,
+          "builds": 3,
+          "attended": 2,
+          "struggles_with": 2,
+          "avoided": 1,
+          "owns": 1,
+          "married_to": 1,
+          "received": 1,
+          "manages": 1,
+          "raised_in": 1,
+          "lost": 1,
+          "raised_by": 1,
+          "collaborates_with": 1,
+          "advocated_for": 1,
+          "identifies_as": 1,
+          "aspires_to": 1,
+          "received_recognition_from": 1,
+          "conflicts_with": 1
+        },
+        "type_dist": {
+          "biographical": 65
+        },
+        "brief_preview": "**ANCHORS:** This person operates from deep pragmatic empiricism—testing ideas through direct experience rather than accepting authority. He views institutions as tools to be built, reformed, or bypas"
+      },
+      {
+        "condition": "type_positional",
+        "train_count": 39,
+        "held_out_count": 96,
+        "brief_chars": 1708,
+        "brief_tokens_est": 427,
+        "scores": {
+          "m1_embedding_coverage": 0.1652,
+          "m2_cross_prediction": 0.0,
+          "m3_pattern_density": 2.34,
+          "m4_specificity": 0.9955,
+          "m5_efficiency": 0.3869,
+          "composite": 22.01
+        },
+        "composite": 22.01,
+        "predicate_dist": {
+          "values": 13,
+          "believes": 11,
+          "prioritizes": 6,
+          "ascribes": 3,
+          "aspires_to": 2,
+          "dislikes": 2,
+          "identifies_as": 1,
+          "avoids": 1
+        },
+        "type_dist": {
+          "positional": 39
+        },
+        "brief_preview": "**ANCHORS:** This person operates from deistic principles where divine wisdom guides rational inquiry, but practical virtue requires deliberate habit formation over mere philosophical conviction. He v"
+      },
+      {
+        "condition": "type_behavioral",
+        "train_count": 20,
+        "held_out_count": 115,
+        "brief_chars": 1764,
+        "brief_tokens_est": 441,
+        "scores": {
+          "m1_embedding_coverage": 0.1882,
+          "m2_cross_prediction": 0.0087,
+          "m3_pattern_density": 3.4,
+          "m4_specificity": 0.9953,
+          "m5_efficiency": 0.4268,
+          "composite": 24.93
+        },
+        "composite": 24.93,
+        "predicate_dist": {
+          "practices": 11,
+          "avoids": 5,
+          "enjoys": 1,
+          "struggles_with": 1,
+          "studies": 1,
+          "maintains": 1
+        },
+        "type_dist": {
+          "behavioral": 20
+        },
+        "brief_preview": "**ANCHORS:** This person operates from deep intellectual humility, viewing knowledge as provisional and requiring constant testing. He believes in systematic self-improvement through methodical tracki"
+      },
+      {
+        "condition": "type_preference",
+        "train_count": 11,
+        "held_out_count": 124,
+        "brief_chars": 1719,
+        "brief_tokens_est": 429,
+        "scores": {
+          "m1_embedding_coverage": 0.1958,
+          "m2_cross_prediction": 0.0161,
+          "m3_pattern_density": 3.49,
+          "m4_specificity": 0.9952,
+          "m5_efficiency": 0.4564,
+          "composite": 25.7
+        },
+        "composite": 25.7,
+        "predicate_dist": {
+          "interested_in": 5,
+          "dislikes": 3,
+          "practices": 2,
+          "values": 1
+        },
+        "type_dist": {
+          "preference": 11
+        },
+        "brief_preview": "**ANCHORS:**\nThis person operates from deep pragmatic principles—moral philosophy must translate to practical wisdom, knowledge serves utility, and self-improvement drives all pursuits. He views life "
+      }
+    ],
+    "2_predicate_group": [
+      {
+        "condition": "group_epistemic",
+        "train_count": 40,
+        "held_out_count": 95,
+        "brief_chars": 1713,
+        "brief_tokens_est": 428,
+        "scores": {
+          "m1_embedding_coverage": 0.1808,
+          "m2_cross_prediction": 0.0,
+          "m3_pattern_density": 0.58,
+          "m4_specificity": 0.9953,
+          "m5_efficiency": 0.4224,
+          "composite": 20.17
+        },
+        "composite": 20.17,
+        "predicate_dist": {
+          "values": 14,
+          "believes": 11,
+          "avoids": 6,
+          "prioritizes": 6,
+          "struggles_with": 3
+        },
+        "type_dist": {
+          "positional": 31,
+          "behavioral": 6,
+          "preference": 1,
+          "biographical": 2
+        },
+        "brief_preview": "**ANCHORS:** This person operates from Deist principles viewing God as wisdom's source while prioritizing practical virtue over speculative conviction. He values time as the ultimate resource and beli"
+      },
+      {
+        "condition": "group_capability",
+        "train_count": 26,
+        "held_out_count": 109,
+        "brief_chars": 1859,
+        "brief_tokens_est": 464,
+        "scores": {
+          "m1_embedding_coverage": 0.1766,
+          "m2_cross_prediction": 0.0,
+          "m3_pattern_density": 1.08,
+          "m4_specificity": 0.9953,
+          "m5_efficiency": 0.3806,
+          "composite": 20.54
+        },
+        "composite": 20.54,
+        "predicate_dist": {
+          "practices": 13,
+          "excels_at": 13
+        },
+        "type_dist": {
+          "behavioral": 11,
+          "biographical": 13,
+          "preference": 2
+        },
+        "brief_preview": "**ANCHORS:** This person operates from empirical observation over theoretical speculation, believing practical experimentation reveals truth. He values systematic self-improvement through measurable t"
+      },
+      {
+        "condition": "group_experiential",
+        "train_count": 17,
+        "held_out_count": 118,
+        "brief_chars": 1784,
+        "brief_tokens_est": 446,
+        "scores": {
+          "m1_embedding_coverage": 0.1456,
+          "m2_cross_prediction": 0.0,
+          "m3_pattern_density": 2.8,
+          "m4_specificity": 0.9954,
+          "m5_efficiency": 0.3265,
+          "composite": 21.61
+        },
+        "composite": 21.61,
+        "predicate_dist": {
+          "founded": 8,
+          "experienced": 6,
+          "builds": 3
+        },
+        "type_dist": {
+          "biographical": 17
+        },
+        "brief_preview": "**ANCHORS:** This person operates from deep pragmatic optimism—believing complex problems yield to systematic organization and collaborative effort. He views setbacks as data points rather than defeat"
+      },
+      {
+        "condition": "group_relational",
+        "train_count": 12,
+        "held_out_count": 123,
+        "brief_chars": 1702,
+        "brief_tokens_est": 425,
+        "scores": {
+          "m1_embedding_coverage": 0.1569,
+          "m2_cross_prediction": 0.0,
+          "m3_pattern_density": 3.53,
+          "m4_specificity": 0.9954,
+          "m5_efficiency": 0.3692,
+          "composite": 23.37
+        },
+        "composite": 23.37,
+        "predicate_dist": {
+          "friends_with": 5,
+          "mentored_by": 3,
+          "married_to": 1,
+          "collaborates_with": 1,
+          "advocated_for": 1,
+          "conflicts_with": 1
+        },
+        "type_dist": {
+          "biographical": 12
+        },
+        "brief_preview": "**ANCHORS:**\nThis person operates from deep pragmatic principles: merit over birthright, collaborative advancement over zero-sum competition, and systematic improvement through disciplined experimenta"
+      },
+      {
+        "condition": "group_preference",
+        "train_count": 11,
+        "held_out_count": 124,
+        "brief_chars": 1607,
+        "brief_tokens_est": 401,
+        "scores": {
+          "m1_embedding_coverage": 0.1885,
+          "m2_cross_prediction": 0.0161,
+          "m3_pattern_density": 3.11,
+          "m4_specificity": 0.9951,
+          "m5_efficiency": 0.4701,
+          "composite": 24.91
+        },
+        "composite": 24.91,
+        "predicate_dist": {
+          "interested_in": 5,
+          "dislikes": 5,
+          "enjoys": 1
+        },
+        "type_dist": {
+          "preference": 8,
+          "behavioral": 1,
+          "positional": 2
+        },
+        "brief_preview": "**ANCHORS:**\nThis person operates from Enlightenment rationalism—truth emerges through systematic inquiry and logical discourse. He views practical wisdom as superior to abstract theorizing, demanding"
+      },
+      {
+        "condition": "group_identity_markers",
+        "train_count": 13,
+        "held_out_count": 122,
+        "brief_chars": 1666,
+        "brief_tokens_est": 416,
+        "scores": {
+          "m1_embedding_coverage": 0.1923,
+          "m2_cross_prediction": 0.0,
+          "m3_pattern_density": 2.4,
+          "m4_specificity": 0.995,
+          "m5_efficiency": 0.4623,
+          "composite": 23.55
+        },
+        "composite": 23.55,
+        "predicate_dist": {
+          "works_at": 6,
+          "aspires_to": 3,
+          "identifies_as": 2,
+          "owns": 1,
+          "manages": 1
+        },
+        "type_dist": {
+          "biographical": 10,
+          "positional": 3
+        },
+        "brief_preview": "**ANCHORS:** This person operates from deep pragmatic principles—viewing moral perfection as achievable through systematic effort, believing public service creates lasting value, and treating writing "
+      }
+    ],
+    "3_individual_predicate": [
+      {
+        "condition": "pred_values",
+        "train_count": 14,
+        "held_out_count": 121,
+        "brief_chars": 1553,
+        "brief_tokens_est": 388,
+        "scores": {
+          "m1_embedding_coverage": 0.1786,
+          "m2_cross_prediction": 0.0,
+          "m3_pattern_density": 3.86,
+          "m4_specificity": 0.9948,
+          "m5_efficiency": 0.4603,
+          "composite": 25.18
+        },
+        "composite": 25.18,
+        "predicate_dist": {
+          "values": 14
+        },
+        "type_dist": {
+          "positional": 13,
+          "preference": 1
+        },
+        "brief_preview": "**ANCHORS:** This person operates from deep pragmatic principles: time as ultimate currency, reputation earned through visible industry, and governance through voluntary participation rather than coer"
+      },
+      {
+        "condition": "pred_practices",
+        "train_count": 13,
+        "held_out_count": 122,
+        "brief_chars": 1649,
+        "brief_tokens_est": 412,
+        "scores": {
+          "m1_embedding_coverage": 0.1735,
+          "m2_cross_prediction": 0.0,
+          "m3_pattern_density": 2.43,
+          "m4_specificity": 0.9949,
+          "m5_efficiency": 0.4211,
+          "composite": 22.64
+        },
+        "composite": 22.64,
+        "predicate_dist": {
+          "practices": 13
+        },
+        "type_dist": {
+          "behavioral": 11,
+          "preference": 2
+        },
+        "brief_preview": "**ANCHORS:** This person operates from empirical skepticism—truth emerges through observation and testing, not assertion. He views human nature as improvable through systematic effort. Communication s"
+      },
+      {
+        "condition": "pred_excels_at",
+        "train_count": 13,
+        "held_out_count": 122,
+        "brief_chars": 1504,
+        "brief_tokens_est": 376,
+        "scores": {
+          "m1_embedding_coverage": 0.1925,
+          "m2_cross_prediction": 0.0082,
+          "m3_pattern_density": 1.99,
+          "m4_specificity": 0.9947,
+          "m5_efficiency": 0.512,
+          "composite": 23.4
+        },
+        "composite": 23.4,
+        "predicate_dist": {
+          "excels_at": 13
+        },
+        "type_dist": {
+          "biographical": 13
+        },
+        "brief_preview": "**ANCHORS:** This person operates from first principles, viewing complex systems as collections of improvable components. He believes practical experimentation reveals truth more reliably than theory "
+      },
+      {
+        "condition": "pred_believes",
+        "train_count": 11,
+        "held_out_count": 124,
+        "brief_chars": 1719,
+        "brief_tokens_est": 429,
+        "scores": {
+          "m1_embedding_coverage": 0.1672,
+          "m2_cross_prediction": 0.0081,
+          "m3_pattern_density": 2.33,
+          "m4_specificity": 0.9955,
+          "m5_efficiency": 0.3897,
+          "composite": 22.29
+        },
+        "composite": 22.29,
+        "predicate_dist": {
+          "believes": 11
+        },
+        "type_dist": {
+          "positional": 11
+        },
+        "brief_preview": "**ANCHORS:** This person operates from a Deist framework where divine wisdom flows through natural reason and practical experience. He views virtue as requiring active habit formation, not mere intell"
+      },
+      {
+        "condition": "pred_founded",
+        "train_count": 8,
+        "held_out_count": 127,
+        "brief_chars": 1524,
+        "brief_tokens_est": 381,
+        "scores": {
+          "m1_embedding_coverage": 0.2002,
+          "m2_cross_prediction": 0.0,
+          "m3_pattern_density": 3.94,
+          "m4_specificity": 0.9949,
+          "m5_efficiency": 0.5255,
+          "composite": 26.49
+        },
+        "composite": 26.49,
+        "predicate_dist": {
+          "founded": 8
+        },
+        "type_dist": {
+          "biographical": 8
+        },
+        "brief_preview": "**ANCHORS:**\nThis person operates from deep conviction that voluntary association drives societal progress. He believes practical knowledge must serve collective benefit and that institutions outlast "
+      },
+      {
+        "condition": "pred_experienced",
+        "train_count": 6,
+        "held_out_count": 129,
+        "brief_chars": 1717,
+        "brief_tokens_est": 429,
+        "scores": {
+          "m1_embedding_coverage": 0.1223,
+          "m2_cross_prediction": 0.0,
+          "m3_pattern_density": 2.33,
+          "m4_specificity": 0.9951,
+          "m5_efficiency": 0.2851,
+          "composite": 19.76
+        },
+        "composite": 19.76,
+        "predicate_dist": {
+          "experienced": 6
+        },
+        "type_dist": {
+          "biographical": 6
+        },
+        "brief_preview": "**ANCHORS:**\nThis person operates from deep mistrust of institutional promises, having been deceived by authority figures who failed to deliver on commitments. He views divergent interpretations of fo"
+      },
+      {
+        "condition": "pred_works_at",
+        "train_count": 6,
+        "held_out_count": 129,
+        "brief_chars": 1786,
+        "brief_tokens_est": 446,
+        "scores": {
+          "m1_embedding_coverage": 0.2073,
+          "m2_cross_prediction": 0.0,
+          "m3_pattern_density": 2.8,
+          "m4_specificity": 0.9954,
+          "m5_efficiency": 0.4648,
+          "composite": 24.77
+        },
+        "composite": 24.77,
+        "predicate_dist": {
+          "works_at": 6
+        },
+        "type_dist": {
+          "biographical": 6
+        },
+        "brief_preview": "**ANCHORS:**\nThis person operates from deep pragmatic empiricism—he trusts direct experience over theory and values practical utility above abstract principles. He views institutions as tools to be im"
+      },
+      {
+        "condition": "pred_avoids",
+        "train_count": 6,
+        "held_out_count": 129,
+        "brief_chars": 1645,
+        "brief_tokens_est": 411,
+        "scores": {
+          "m1_embedding_coverage": 0.2415,
+          "m2_cross_prediction": 0.031,
+          "m3_pattern_density": 2.43,
+          "m4_specificity": 0.9953,
+          "m5_efficiency": 0.5876,
+          "composite": 26.97
+        },
+        "composite": 26.97,
+        "predicate_dist": {
+          "avoids": 6
+        },
+        "type_dist": {
+          "behavioral": 5,
+          "positional": 1
+        },
+        "brief_preview": "**ANCHORS:** This person operates from deep humility and public service orientation. He views knowledge as communal property, rejects personal aggrandizement, and maintains strict ethical boundaries a"
+      },
+      {
+        "condition": "pred_prioritizes",
+        "train_count": 6,
+        "held_out_count": 129,
+        "brief_chars": 1594,
+        "brief_tokens_est": 398,
+        "scores": {
+          "m1_embedding_coverage": 0.2164,
+          "m2_cross_prediction": 0.0155,
+          "m3_pattern_density": 3.76,
+          "m4_specificity": 0.995,
+          "m5_efficiency": 0.5437,
+          "composite": 27.35
+        },
+        "composite": 27.35,
+        "predicate_dist": {
+          "prioritizes": 6
+        },
+        "type_dist": {
+          "positional": 6
+        },
+        "brief_preview": "**ANCHORS:** This person operates from deep institutional loyalty and fiduciary responsibility. He views monetary stability as foundational to social order and treats partnerships as sacred obligation"
+      },
+      {
+        "condition": "pred_interested_in",
+        "train_count": 5,
+        "held_out_count": 130,
+        "brief_chars": 1739,
+        "brief_tokens_est": 434,
+        "scores": {
+          "m1_embedding_coverage": 0.1812,
+          "m2_cross_prediction": 0.0,
+          "m3_pattern_density": 5.75,
+          "m4_specificity": 0.9954,
+          "m5_efficiency": 0.4175,
+          "composite": 27.91
+        },
+        "composite": 27.91,
+        "predicate_dist": {
+          "interested_in": 5
+        },
+        "type_dist": {
+          "preference": 5
+        },
+        "brief_preview": "**ANCHORS:** This person operates from empirical pragmatism—he believes wisdom emerges through direct experimentation and systematic observation rather than pure theory. He views moral philosophy as a"
+      },
+      {
+        "condition": "pred_friends_with",
+        "train_count": 5,
+        "held_out_count": 130,
+        "brief_chars": 1834,
+        "brief_tokens_est": 458,
+        "scores": {
+          "m1_embedding_coverage": 0.17,
+          "m2_cross_prediction": 0.0,
+          "m3_pattern_density": 2.73,
+          "m4_specificity": 0.9955,
+          "m5_efficiency": 0.3712,
+          "composite": 22.71
+        },
+        "composite": 22.71,
+        "predicate_dist": {
+          "friends_with": 5
+        },
+        "type_dist": {
+          "biographical": 5
+        },
+        "brief_preview": "**ANCHORS:**\nThis person operates through strategic relationship cultivation, viewing friendships as both genuine connections and practical alliances. He prioritizes collaborative partnerships over hi"
+      },
+      {
+        "condition": "pred_dislikes",
+        "train_count": 5,
+        "held_out_count": 130,
+        "brief_chars": 1640,
+        "brief_tokens_est": 410,
+        "scores": {
+          "m1_embedding_coverage": 0.1705,
+          "m2_cross_prediction": 0.0077,
+          "m3_pattern_density": 2.44,
+          "m4_specificity": 0.9948,
+          "m5_efficiency": 0.4159,
+          "composite": 22.7
+        },
+        "composite": 22.7,
+        "predicate_dist": {
+          "dislikes": 5
+        },
+        "type_dist": {
+          "preference": 3,
+          "positional": 2
+        },
+        "brief_preview": "**ANCHORS:**\nThis person operates from aesthetic and intellectual superiority, rejecting conventional markers of tradition, commerce, and social conformity. He views mundane trades, religious orthodox"
+      }
+    ],
+    "4_additive": [
+      {
+        "condition": "base_epistemic",
+        "train_count": 40,
+        "held_out_count": 95,
+        "brief_chars": 1792,
+        "brief_tokens_est": 448,
+        "scores": {
+          "m1_embedding_coverage": 0.1852,
+          "m2_cross_prediction": 0.0,
+          "m3_pattern_density": 1.67,
+          "m4_specificity": 0.9954,
+          "m5_efficiency": 0.4134,
+          "composite": 21.93
+        },
+        "composite": 21.93,
+        "predicate_dist": {
+          "values": 14,
+          "believes": 11,
+          "avoids": 6,
+          "prioritizes": 6,
+          "struggles_with": 3
+        },
+        "type_dist": {
+          "positional": 31,
+          "behavioral": 6,
+          "preference": 1,
+          "biographical": 2
+        },
+        "brief_preview": "**ANCHORS:** This person operates from Deist principles viewing God as wisdom's source while prioritizing practical virtue over speculative conviction. He values time as the ultimate resource and beli"
+      },
+      {
+        "condition": "additive_+capability",
+        "train_count": 66,
+        "held_out_count": 69,
+        "brief_chars": 1809,
+        "brief_tokens_est": 452,
+        "scores": {
+          "m1_embedding_coverage": 0.1997,
+          "m2_cross_prediction": 0.0,
+          "m3_pattern_density": 1.11,
+          "m4_specificity": 0.9953,
+          "m5_efficiency": 0.4418,
+          "composite": 21.82
+        },
+        "composite": 21.82,
+        "predicate_dist": {
+          "values": 14,
+          "practices": 13,
+          "excels_at": 13,
+          "believes": 11,
+          "avoids": 6,
+          "prioritizes": 6,
+          "struggles_with": 3
+        },
+        "type_dist": {
+          "positional": 31,
+          "behavioral": 17,
+          "preference": 3,
+          "biographical": 15
+        },
+        "brief_preview": "**ANCHORS:** This person operates from Deist principles viewing God as wisdom's fountain while prioritizing empirical observation over dogma. He treats time as the ultimate scarce resource, demanding ",
+        "delta_from_base": -0.11
+      },
+      {
+        "condition": "additive_+experiential",
+        "train_count": 57,
+        "held_out_count": 78,
+        "brief_chars": 1734,
+        "brief_tokens_est": 433,
+        "scores": {
+          "m1_embedding_coverage": 0.1892,
+          "m2_cross_prediction": 0.0,
+          "m3_pattern_density": 1.73,
+          "m4_specificity": 0.9952,
+          "m5_efficiency": 0.437,
+          "composite": 22.3
+        },
+        "composite": 22.3,
+        "predicate_dist": {
+          "values": 14,
+          "believes": 11,
+          "founded": 8,
+          "avoids": 6,
+          "prioritizes": 6,
+          "experienced": 6,
+          "struggles_with": 3,
+          "builds": 3
+        },
+        "type_dist": {
+          "positional": 31,
+          "behavioral": 6,
+          "preference": 1,
+          "biographical": 19
+        },
+        "brief_preview": "**ANCHORS:** This person operates from Deist principles viewing God as wisdom's source while prioritizing practical virtue over speculative conviction. He believes time is humanity's most precious res",
+        "delta_from_base": 0.37
+      },
+      {
+        "condition": "additive_+relational",
+        "train_count": 49,
+        "held_out_count": 86,
+        "brief_chars": 1867,
+        "brief_tokens_est": 466,
+        "scores": {
+          "m1_embedding_coverage": 0.1905,
+          "m2_cross_prediction": 0.0,
+          "m3_pattern_density": 2.14,
+          "m4_specificity": 0.9956,
+          "m5_efficiency": 0.4088,
+          "composite": 22.83
+        },
+        "composite": 22.83,
+        "predicate_dist": {
+          "values": 14,
+          "believes": 11,
+          "avoids": 6,
+          "prioritizes": 6,
+          "friends_with": 5,
+          "struggles_with": 3,
+          "mentored_by": 3,
+          "advocated_for": 1
+        },
+        "type_dist": {
+          "positional": 31,
+          "behavioral": 6,
+          "preference": 1,
+          "biographical": 11
+        },
+        "brief_preview": "**ANCHORS:** This person operates from Deist principles, viewing God as wisdom's source while relying on reason and natural law. He treats time as the ultimate scarce resource, demanding efficiency in",
+        "delta_from_base": 0.9
+      },
+      {
+        "condition": "additive_+preference",
+        "train_count": 51,
+        "held_out_count": 84,
+        "brief_chars": 1568,
+        "brief_tokens_est": 392,
+        "scores": {
+          "m1_embedding_coverage": 0.1875,
+          "m2_cross_prediction": 0.0,
+          "m3_pattern_density": 1.91,
+          "m4_specificity": 0.9947,
+          "m5_efficiency": 0.4783,
+          "composite": 22.7
+        },
+        "composite": 22.7,
+        "predicate_dist": {
+          "values": 14,
+          "believes": 11,
+          "avoids": 6,
+          "prioritizes": 6,
+          "interested_in": 5,
+          "dislikes": 5,
+          "struggles_with": 3,
+          "enjoys": 1
+        },
+        "type_dist": {
+          "positional": 33,
+          "behavioral": 7,
+          "preference": 9,
+          "biographical": 2
+        },
+        "brief_preview": "**ANCHORS:** This person operates from Deist principles viewing God as wisdom's source while prioritizing practical virtue over speculative conviction. He values time as the ultimate resource and beli",
+        "delta_from_base": 0.77
+      },
+      {
+        "condition": "additive_+identity",
+        "train_count": 51,
+        "held_out_count": 84,
+        "brief_chars": 1681,
+        "brief_tokens_est": 420,
+        "scores": {
+          "m1_embedding_coverage": 0.1787,
+          "m2_cross_prediction": 0.0,
+          "m3_pattern_density": 1.78,
+          "m4_specificity": 0.9951,
+          "m5_efficiency": 0.4255,
+          "composite": 21.9
+        },
+        "composite": 21.9,
+        "predicate_dist": {
+          "values": 14,
+          "believes": 11,
+          "avoids": 6,
+          "prioritizes": 6,
+          "works_at": 6,
+          "struggles_with": 3,
+          "aspires_to": 3,
+          "identifies_as": 2
+        },
+        "type_dist": {
+          "positional": 34,
+          "behavioral": 6,
+          "preference": 1,
+          "biographical": 10
+        },
+        "brief_preview": "**ANCHORS:** This person operates from Deist principles, viewing God as wisdom's source while relying on reason over dogma. He treats time as the ultimate scarce resource, demanding efficiency in all ",
+        "delta_from_base": -0.03
+      }
+    ],
+    "5_combinations": [
+      {
+        "condition": "combo_epistemic+capability",
+        "train_count": 66,
+        "held_out_count": 69,
+        "brief_chars": 1801,
+        "brief_tokens_est": 450,
+        "scores": {
+          "m1_embedding_coverage": 0.2227,
+          "m2_cross_prediction": 0.0,
+          "m3_pattern_density": 2.22,
+          "m4_specificity": 0.9954,
+          "m5_efficiency": 0.4949,
+          "composite": 24.67
+        },
+        "composite": 24.67,
+        "predicate_dist": {
+          "values": 14,
+          "practices": 13,
+          "excels_at": 13,
+          "believes": 11,
+          "avoids": 6,
+          "prioritizes": 6,
+          "struggles_with": 3
+        },
+        "type_dist": {
+          "positional": 31,
+          "behavioral": 17,
+          "biographical": 15,
+          "preference": 3
+        },
+        "brief_preview": "**ANCHORS:** This person operates from Deist principles viewing God as wisdom's source while prioritizing empirical observation over dogma. He treats time as the ultimate scarce resource, demanding ef"
+      },
+      {
+        "condition": "combo_epistemic+capability+preference",
+        "train_count": 71,
+        "held_out_count": 64,
+        "brief_chars": 1755,
+        "brief_tokens_est": 438,
+        "scores": {
+          "m1_embedding_coverage": 0.2053,
+          "m2_cross_prediction": 0.0,
+          "m3_pattern_density": 1.14,
+          "m4_specificity": 0.9953,
+          "m5_efficiency": 0.4687,
+          "composite": 22.22
+        },
+        "composite": 22.22,
+        "predicate_dist": {
+          "values": 14,
+          "practices": 13,
+          "excels_at": 13,
+          "believes": 11,
+          "avoids": 6,
+          "prioritizes": 6,
+          "dislikes": 5,
+          "struggles_with": 3
+        },
+        "type_dist": {
+          "positional": 33,
+          "behavioral": 17,
+          "biographical": 15,
+          "preference": 6
+        },
+        "brief_preview": "**ANCHORS:** This person operates from Deist principles viewing God as wisdom's source while prioritizing empirical observation over dogma. He treats time as the ultimate scarce resource, demanding ev"
+      },
+      {
+        "condition": "combo_top6_by_count",
+        "train_count": 65,
+        "held_out_count": 70,
+        "brief_chars": 1788,
+        "brief_tokens_est": 447,
+        "scores": {
+          "m1_embedding_coverage": 0.1957,
+          "m2_cross_prediction": 0.0,
+          "m3_pattern_density": 2.24,
+          "m4_specificity": 0.9954,
+          "m5_efficiency": 0.4378,
+          "composite": 23.33
+        },
+        "composite": 23.33,
+        "predicate_dist": {
+          "values": 14,
+          "practices": 13,
+          "excels_at": 13,
+          "believes": 11,
+          "founded": 8,
+          "prioritizes": 6
+        },
+        "type_dist": {
+          "biographical": 21,
+          "positional": 30,
+          "behavioral": 11,
+          "preference": 3
+        },
+        "brief_preview": "**ANCHORS:** This person operates from Deist principles viewing God as wisdom's fountain while believing practical virtue requires breaking contrary habits, not mere conviction. He treats time as the "
+      },
+      {
+        "condition": "combo_all_behavioral_type",
+        "train_count": 20,
+        "held_out_count": 115,
+        "brief_chars": 1838,
+        "brief_tokens_est": 459,
+        "scores": {
+          "m1_embedding_coverage": 0.2141,
+          "m2_cross_prediction": 0.0522,
+          "m3_pattern_density": 4.35,
+          "m4_specificity": 0.9955,
+          "m5_efficiency": 0.4664,
+          "composite": 28.68
+        },
+        "composite": 28.68,
+        "predicate_dist": {
+          "practices": 11,
+          "avoids": 5,
+          "enjoys": 1,
+          "struggles_with": 1,
+          "studies": 1,
+          "maintains": 1
+        },
+        "type_dist": {
+          "behavioral": 20
+        },
+        "brief_preview": "**ANCHORS:** This person operates from deep intellectual humility, viewing knowledge as provisional and requiring constant testing. He believes in systematic self-improvement through methodical tracki"
+      },
+      {
+        "condition": "combo_no_biographical",
+        "train_count": 70,
+        "held_out_count": 65,
+        "brief_chars": 1643,
+        "brief_tokens_est": 410,
+        "scores": {
+          "m1_embedding_coverage": 0.1719,
+          "m2_cross_prediction": 0.0,
+          "m3_pattern_density": 1.22,
+          "m4_specificity": 0.9947,
+          "m5_efficiency": 0.4193,
+          "composite": 20.75
+        },
+        "composite": 20.75,
+        "predicate_dist": {
+          "values": 14,
+          "practices": 13,
+          "believes": 11,
+          "avoids": 6,
+          "prioritizes": 6,
+          "interested_in": 5,
+          "dislikes": 5,
+          "ascribes": 3,
+          "aspires_to": 2,
+          "identifies_as": 1,
+          "enjoys": 1,
+          "struggles_with": 1,
+          "studies": 1,
+          "maintains": 1
+        },
+        "type_dist": {
+          "positional": 39,
+          "behavioral": 20,
+          "preference": 11
+        },
+        "brief_preview": "**ANCHORS:** This person operates from Deist principles, viewing God as wisdom's source while prioritizing empirical observation and experimentation. He values time as the ultimate resource and pursue"
+      },
+      {
+        "condition": "combo_all_identity",
+        "train_count": 135,
+        "held_out_count": 0,
+        "brief_chars": 1774,
+        "brief_tokens_est": 443,
+        "scores": {
+          "m1_embedding_coverage": 0.0,
+          "m2_cross_prediction": 0.0,
+          "m3_pattern_density": 3.38,
+          "m4_specificity": 0.9953,
+          "m5_efficiency": 0.0,
+          "composite": 15.02
+        },
+        "composite": 15.02,
+        "predicate_dist": {
+          "values": 14,
+          "practices": 13,
+          "excels_at": 13,
+          "believes": 11,
+          "founded": 8,
+          "experienced": 6,
+          "works_at": 6,
+          "avoids": 6,
+          "prioritizes": 6,
+          "interested_in": 5,
+          "friends_with": 5,
+          "dislikes": 5,
+          "studies": 4,
+          "ascribes": 3,
+          "mentored_by": 3,
+          "struggles_with": 3,
+          "builds": 3,
+          "aspires_to": 3,
+          "identifies_as": 2,
+          "attended": 2,
+          "avoided": 1,
+          "owns": 1,
+          "married_to": 1,
+          "received": 1,
+          "manages": 1,
+          "raised_in": 1,
+          "enjoys": 1,
+          "lost": 1,
+          "raised_by": 1,
+          "collaborates_with": 1,
+          "advocated_for": 1,
+          "maintains": 1,
+          "received_recognition_from": 1,
+          "conflicts_with": 1
+        },
+        "type_dist": {
+          "biographical": 65,
+          "positional": 39,
+          "behavioral": 20,
+          "preference": 11
+        },
+        "brief_preview": "**ANCHORS:** This person operates from deep pragmatic principles: time as ultimate resource, public benefit over personal glory, and systematic self-improvement through measurable virtue tracking. He "
+      }
+    ]
+  },
+  "rankings": [
+    {
+      "rank": 1,
+      "condition": "type_biographical",
+      "composite": 34.05,
+      "m1": 0.2004,
+      "facts": 65
+    },
+    {
+      "rank": 2,
+      "condition": "combo_all_behavioral_type",
+      "composite": 28.68,
+      "m1": 0.2141,
+      "facts": 20
+    },
+    {
+      "rank": 3,
+      "condition": "pred_interested_in",
+      "composite": 27.91,
+      "m1": 0.1812,
+      "facts": 5
+    },
+    {
+      "rank": 4,
+      "condition": "pred_prioritizes",
+      "composite": 27.35,
+      "m1": 0.2164,
+      "facts": 6
+    },
+    {
+      "rank": 5,
+      "condition": "pred_avoids",
+      "composite": 26.97,
+      "m1": 0.2415,
+      "facts": 6
+    },
+    {
+      "rank": 6,
+      "condition": "pred_founded",
+      "composite": 26.49,
+      "m1": 0.2002,
+      "facts": 8
+    },
+    {
+      "rank": 7,
+      "condition": "type_preference",
+      "composite": 25.7,
+      "m1": 0.1958,
+      "facts": 11
+    },
+    {
+      "rank": 8,
+      "condition": "pred_values",
+      "composite": 25.18,
+      "m1": 0.1786,
+      "facts": 14
+    },
+    {
+      "rank": 9,
+      "condition": "type_behavioral",
+      "composite": 24.93,
+      "m1": 0.1882,
+      "facts": 20
+    },
+    {
+      "rank": 10,
+      "condition": "group_preference",
+      "composite": 24.91,
+      "m1": 0.1885,
+      "facts": 11
+    },
+    {
+      "rank": 11,
+      "condition": "pred_works_at",
+      "composite": 24.77,
+      "m1": 0.2073,
+      "facts": 6
+    },
+    {
+      "rank": 12,
+      "condition": "combo_epistemic+capability",
+      "composite": 24.67,
+      "m1": 0.2227,
+      "facts": 66
+    },
+    {
+      "rank": 13,
+      "condition": "group_identity_markers",
+      "composite": 23.55,
+      "m1": 0.1923,
+      "facts": 13
+    },
+    {
+      "rank": 14,
+      "condition": "pred_excels_at",
+      "composite": 23.4,
+      "m1": 0.1925,
+      "facts": 13
+    },
+    {
+      "rank": 15,
+      "condition": "group_relational",
+      "composite": 23.37,
+      "m1": 0.1569,
+      "facts": 12
+    },
+    {
+      "rank": 16,
+      "condition": "combo_top6_by_count",
+      "composite": 23.33,
+      "m1": 0.1957,
+      "facts": 65
+    },
+    {
+      "rank": 17,
+      "condition": "additive_+relational",
+      "composite": 22.83,
+      "m1": 0.1905,
+      "facts": 49
+    },
+    {
+      "rank": 18,
+      "condition": "pred_friends_with",
+      "composite": 22.71,
+      "m1": 0.17,
+      "facts": 5
+    },
+    {
+      "rank": 19,
+      "condition": "pred_dislikes",
+      "composite": 22.7,
+      "m1": 0.1705,
+      "facts": 5
+    },
+    {
+      "rank": 20,
+      "condition": "additive_+preference",
+      "composite": 22.7,
+      "m1": 0.1875,
+      "facts": 51
+    },
+    {
+      "rank": 21,
+      "condition": "pred_practices",
+      "composite": 22.64,
+      "m1": 0.1735,
+      "facts": 13
+    },
+    {
+      "rank": 22,
+      "condition": "additive_+experiential",
+      "composite": 22.3,
+      "m1": 0.1892,
+      "facts": 57
+    },
+    {
+      "rank": 23,
+      "condition": "pred_believes",
+      "composite": 22.29,
+      "m1": 0.1672,
+      "facts": 11
+    },
+    {
+      "rank": 24,
+      "condition": "combo_epistemic+capability+preference",
+      "composite": 22.22,
+      "m1": 0.2053,
+      "facts": 71
+    },
+    {
+      "rank": 25,
+      "condition": "type_positional",
+      "composite": 22.01,
+      "m1": 0.1652,
+      "facts": 39
+    },
+    {
+      "rank": 26,
+      "condition": "production_baseline",
+      "composite": 22.0,
+      "m1": 0.1983,
+      "facts": 135
+    },
+    {
+      "rank": 27,
+      "condition": "base_epistemic",
+      "composite": 21.93,
+      "m1": 0.1852,
+      "facts": 40
+    },
+    {
+      "rank": 28,
+      "condition": "additive_+identity",
+      "composite": 21.9,
+      "m1": 0.1787,
+      "facts": 51
+    },
+    {
+      "rank": 29,
+      "condition": "additive_+capability",
+      "composite": 21.82,
+      "m1": 0.1997,
+      "facts": 66
+    },
+    {
+      "rank": 30,
+      "condition": "group_experiential",
+      "composite": 21.61,
+      "m1": 0.1456,
+      "facts": 17
+    },
+    {
+      "rank": 31,
+      "condition": "combo_no_biographical",
+      "composite": 20.75,
+      "m1": 0.1719,
+      "facts": 70
+    },
+    {
+      "rank": 32,
+      "condition": "group_capability",
+      "composite": 20.54,
+      "m1": 0.1766,
+      "facts": 26
+    },
+    {
+      "rank": 33,
+      "condition": "group_epistemic",
+      "composite": 20.17,
+      "m1": 0.1808,
+      "facts": 40
+    },
+    {
+      "rank": 34,
+      "condition": "pred_experienced",
+      "composite": 19.76,
+      "m1": 0.1223,
+      "facts": 6
+    },
+    {
+      "rank": 35,
+      "condition": "combo_all_identity",
+      "composite": 15.02,
+      "m1": 0.0,
+      "facts": 135
+    }
+  ]
+}

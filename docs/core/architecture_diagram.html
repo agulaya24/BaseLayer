@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memory System Architecture</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --border: #2a2d3a;
+    --text: #e2e4ea;
+    --text-muted: #8b8fa3;
+    --text-dim: #5c6078;
+
+    --layer1: #2563eb;
+    --layer1-bg: #1e2a4a;
+    --layer1-border: #3b6ee8;
+
+    --layer2: #7c3aed;
+    --layer2-bg: #2a1f4a;
+    --layer2-border: #8b5cf6;
+
+    --layer3: #d97706;
+    --layer3-bg: #3a2e1a;
+    --layer3-border: #f59e0b;
+
+    --layer4: #059669;
+    --layer4-bg: #1a3a2e;
+    --layer4-border: #10b981;
+
+    --layer5: #dc2626;
+    --layer5-bg: #3a1a1a;
+    --layer5-border: #ef4444;
+
+    --arrow: #4b5078;
+    --arrow-label: #a0a4b8;
+    --tier-bg: #14161e;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .page-container {
+    max-width: 1800px;
+    margin: 0 auto;
+    padding: 32px 40px;
+    display: flex;
+    gap: 36px;
+  }
+
+  /* ---- HEADER ---- */
+  .main-header {
+    text-align: center;
+    padding: 36px 40px 0;
+    max-width: 1800px;
+    margin: 0 auto;
+  }
+  .main-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: #fff;
+  }
+  .main-header .subtitle {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-top: 6px;
+  }
+
+  /* ---- MAIN COLUMN (layers + flow) ---- */
+  .main-col {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* ---- SIDEBAR (tiers) ---- */
+  .sidebar {
+    width: 340px;
+    flex-shrink: 0;
+  }
+
+  /* ---- SECTION TITLES ---- */
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    margin-bottom: 18px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* ============ LAYER BOXES ============ */
+  .layers-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    position: relative;
+  }
+
+  .layer-row {
+    display: flex;
+    align-items: stretch;
+    position: relative;
+  }
+
+  .layer-number {
+    width: 56px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 0;
+    position: relative;
+  }
+  .layer-number .num {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text-dim);
+  }
+
+  /* Vertical spine line */
+  .layer-number::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 2px;
+    background: var(--border);
+    z-index: 0;
+  }
+  .layer-row:first-child .layer-number::after { top: 50%; }
+  .layer-row:last-child .layer-number::after { bottom: 50%; }
+
+  .layer-number .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    z-index: 1;
+    border: 2px solid;
+  }
+
+  .layer-card {
+    flex: 1;
+    border: 1px solid;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 8px 0;
+    position: relative;
+    min-height: 90px;
+  }
+
+  .layer-card .card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .layer-card .card-title {
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .layer-card .card-status {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.08);
+  }
+  .layer-card .card-status.complete { color: #34d399; background: rgba(52,211,153,0.12); }
+  .layer-card .card-status.implemented { color: #60a5fa; background: rgba(96,165,250,0.12); }
+  .layer-card .card-status.active { color: #fbbf24; background: rgba(251,191,36,0.12); }
+
+  .layer-card .card-tech {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .layer-card .card-body {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.55;
+  }
+  .layer-card .card-body ul {
+    list-style: none;
+    padding: 0;
+  }
+  .layer-card .card-body li {
+    position: relative;
+    padding-left: 14px;
+    margin-bottom: 3px;
+  }
+  .layer-card .card-body li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 7px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--text-dim);
+  }
+
+  /* Per-layer colors */
+  .layer-1 .layer-card { background: var(--layer1-bg); border-color: var(--layer1-border); }
+  .layer-1 .card-title { color: #60a5fa; }
+  .layer-1 .dot { border-color: var(--layer1); background: var(--layer1-bg); }
+
+  .layer-2 .layer-card { background: var(--layer2-bg); border-color: var(--layer2-border); }
+  .layer-2 .card-title { color: #a78bfa; }
+  .layer-2 .dot { border-color: var(--layer2); background: var(--layer2-bg); }
+
+  .layer-3 .layer-card { background: var(--layer3-bg); border-color: var(--layer3-border); }
+  .layer-3 .card-title { color: #fbbf24; }
+  .layer-3 .dot { border-color: var(--layer3); background: var(--layer3-bg); }
+
+  .layer-4 .layer-card { background: var(--layer4-bg); border-color: var(--layer4-border); }
+  .layer-4 .card-title { color: #34d399; }
+  .layer-4 .dot { border-color: var(--layer4); background: var(--layer4-bg); }
+
+  .layer-5 .layer-card { background: var(--layer5-bg); border-color: var(--layer5-border); }
+  .layer-5 .card-title { color: #f87171; }
+  .layer-5 .dot { border-color: var(--layer5); background: var(--layer5-bg); }
+
+  /* ---- Sub-components inside Layer 3 ---- */
+  .sub-components {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+  }
+  .sub-chip {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 5px;
+    background: rgba(251,191,36,0.10);
+    color: #fbbf24;
+    border: 1px solid rgba(251,191,36,0.2);
+  }
+
+  /* ---- Brief blocks inside Layer 4 ---- */
+  .brief-blocks {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .brief-block {
+    flex: 1;
+    border: 1px solid rgba(16,185,129,0.25);
+    border-radius: 8px;
+    padding: 10px 12px;
+    background: rgba(16,185,129,0.05);
+  }
+  .brief-block .bb-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #34d399;
+    margin-bottom: 4px;
+  }
+  .brief-block .bb-tokens {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  .brief-block .bb-desc {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 3px;
+  }
+
+  /* ============ DATA FLOW SECTION ============ */
+  .data-flow-section {
+    margin-top: 36px;
+  }
+
+  .flow-canvas-wrapper {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 32px;
+    overflow: visible;
+  }
+
+  .flow-svg {
+    width: 100%;
+    height: auto;
+  }
+
+  /* ============ SIDEBAR TIERS ============ */
+  .tiers-container {
+    background: var(--tier-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 20px;
+  }
+
+  .tier-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .tier-item {
+    border: 1px solid var(--border);
+    padding: 16px 18px;
+    position: relative;
+  }
+  .tier-item:first-child { border-radius: 10px 10px 0 0; }
+  .tier-item:last-child { border-radius: 0 0 10px 10px; }
+  .tier-item + .tier-item { border-top: none; }
+
+  .tier-item .tier-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    margin-bottom: 4px;
+  }
+  .tier-item .tier-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+  .tier-item .tier-tokens {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+  }
+  .tier-item .tier-desc {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .tier-1 { background: rgba(220,38,38,0.06); }
+  .tier-1 .tier-label { color: #f87171; }
+  .tier-2 { background: rgba(5,150,105,0.06); }
+  .tier-2 .tier-label { color: #34d399; }
+  .tier-3 { background: rgba(124,58,237,0.06); }
+  .tier-3 .tier-label { color: #a78bfa; }
+  .tier-4 { background: rgba(37,99,235,0.06); }
+  .tier-4 .tier-label { color: #60a5fa; }
+
+  .consolidation-arrow {
+    text-align: center;
+    padding: 14px 0;
+    color: var(--text-dim);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .consolidation-arrow svg {
+    display: block;
+    margin: 0 auto 6px;
+  }
+
+  /* ---- Stats bar ---- */
+  .stats-bar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 24px;
+  }
+  .stat-chip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    flex: 1;
+    min-width: 100px;
+    text-align: center;
+  }
+  .stat-chip .stat-val {
+    font-size: 18px;
+    font-weight: 800;
+    color: #fff;
+  }
+  .stat-chip .stat-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  /* ---- Design constraints ---- */
+  .constraints {
+    margin-top: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+  }
+  .constraints h3 {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+  .constraint-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .constraint-item {
+    font-size: 12px;
+    color: var(--text-dim);
+    padding-left: 16px;
+    position: relative;
+  }
+  .constraint-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 6px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-dim);
+  }
+</style>
+</head>
+<body>
+
+<header class="main-header">
+  <h1>Memory System Architecture</h1>
+  <div class="subtitle">Personal AI Memory &mdash; 5-Layer Pipeline with Semantic Retrieval</div>
+</header>
+
+<div class="page-container">
+
+  <!-- ======================== MAIN COLUMN ======================== -->
+  <div class="main-col">
+
+    <div class="section-title">System Layers</div>
+
+    <div class="layers-grid">
+
+      <!-- LAYER 1 -->
+      <div class="layer-row layer-1">
+        <div class="layer-number"><div class="dot"></div></div>
+        <div class="layer-card">
+          <div class="card-header">
+            <span class="card-title">Layer 1: Ground Truth</span>
+            <span class="card-status complete">Complete</span>
+          </div>
+          <div class="card-tech">SQLite</div>
+          <div class="card-body">
+            <ul>
+              <li>1,831+ conversations, 34,400+ messages</li>
+              <li>Sources: ChatGPT export, Claude Code sessions, Claude web</li>
+              <li>Immutable ground truth &mdash; raw conversations never modified</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- LAYER 2 -->
+      <div class="layer-row layer-2">
+        <div class="layer-number"><div class="dot"></div></div>
+        <div class="layer-card">
+          <div class="card-header">
+            <span class="card-title">Layer 2: Semantic Memory</span>
+            <span class="card-status complete">Complete + Expanding</span>
+          </div>
+          <div class="card-tech">ChromaDB + MiniLM (384-dim)</div>
+          <div class="card-body">
+            <ul>
+              <li>message_embeddings (30K)</li>
+              <li>turn_pair_embeddings (13K)</li>
+              <li>summary_embeddings (pending)</li>
+              <li>fact_embeddings (4,704)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- LAYER 3 -->
+      <div class="layer-row layer-3">
+        <div class="layer-number"><div class="dot"></div></div>
+        <div class="layer-card">
+          <div class="card-header">
+            <span class="card-title">Layer 3: Memory Control</span>
+            <span class="card-status active">Active</span>
+          </div>
+          <div class="card-tech">Qwen 2.5 14B via Ollama (RTX 3080) &mdash; extraction only, NO narrative generation</div>
+          <div class="card-body">
+            <ul>
+              <li>Fact extraction (AUDN), scoring, embedding, fact selection</li>
+              <li>Contradiction detection: MiniLM filters &rarr; Opus 4.6 judges</li>
+            </ul>
+            <div class="sub-components">
+              <span class="sub-chip">3A Summarization</span>
+              <span class="sub-chip">3B Surprise Scoring</span>
+              <span class="sub-chip">3C Fact Extraction</span>
+              <span class="sub-chip">3D Active Probing</span>
+              <span class="sub-chip">3E Consolidation</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LAYER 4 -->
+      <div class="layer-row layer-4">
+        <div class="layer-number"><div class="dot"></div></div>
+        <div class="layer-card">
+          <div class="card-header">
+            <span class="card-title">Layer 4: Context Projection</span>
+            <span class="card-status implemented">Implemented</span>
+          </div>
+          <div class="card-tech">assemble_brief.py &mdash; no LLM in assembly path, all code-based</div>
+          <div class="card-body">
+            Brief assembled from three blocks (~1,500&ndash;2,600 tokens total):
+          </div>
+          <div class="brief-blocks">
+            <div class="brief-block">
+              <div class="bb-label">Block 1: Identity</div>
+              <div class="bb-tokens">~1,000&ndash;1,200 tokens</div>
+              <div class="bb-desc">Always-on. Authored in Claude Code sessions.</div>
+            </div>
+            <div class="brief-block">
+              <div class="bb-label">Block 2: Themes</div>
+              <div class="bb-tokens">~700&ndash;800 tokens</div>
+              <div class="bb-desc">Retrieved. 60% similarity + 40% importance.</div>
+            </div>
+            <div class="brief-block">
+              <div class="bb-label">Block 3: Episodes</div>
+              <div class="bb-tokens">~500&ndash;600 tokens</div>
+              <div class="bb-desc">Retrieved. 50% sim + 30% recency + 20% base.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LAYER 5 -->
+      <div class="layer-row layer-5">
+        <div class="layer-number"><div class="dot"></div></div>
+        <div class="layer-card">
+          <div class="card-header">
+            <span class="card-title">Layer 5: Reasoning Model</span>
+            <span class="card-status active">Active</span>
+          </div>
+          <div class="card-tech">Claude API &mdash; Sonnet for daily, Opus for complex</div>
+          <div class="card-body">
+            <ul>
+              <li>Stateless &mdash; all memory comes from injected brief</li>
+              <li>Claude Code for identity block authoring ($0 cost)</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /layers-grid -->
+
+    <!-- ======================== DATA FLOW ======================== -->
+    <div class="data-flow-section">
+      <div class="section-title">Data Flow</div>
+      <div class="flow-canvas-wrapper">
+        <svg class="flow-svg" viewBox="0 0 1100 640" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto" fill="#6b7094">
+              <polygon points="0 0, 10 3.5, 0 7" />
+            </marker>
+            <marker id="arrowhead-accent" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto" fill="#60a5fa">
+              <polygon points="0 0, 10 3.5, 0 7" />
+            </marker>
+            <marker id="arrowhead-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto" fill="#34d399">
+              <polygon points="0 0, 10 3.5, 0 7" />
+            </marker>
+            <marker id="arrowhead-amber" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto" fill="#fbbf24">
+              <polygon points="0 0, 10 3.5, 0 7" />
+            </marker>
+            <marker id="arrowhead-red" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto" fill="#f87171">
+              <polygon points="0 0, 10 3.5, 0 7" />
+            </marker>
+            <marker id="arrowhead-purple" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto" fill="#a78bfa">
+              <polygon points="0 0, 10 3.5, 0 7" />
+            </marker>
+
+            <!-- Glow filter -->
+            <filter id="glow">
+              <feGaussianBlur stdDeviation="2" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+
+          <style>
+            .flow-box { rx: 8; ry: 8; stroke-width: 1.5; }
+            .flow-label { font-family: 'Segoe UI', sans-serif; font-size: 13px; font-weight: 700; fill: #fff; }
+            .flow-sublabel { font-family: 'Segoe UI', sans-serif; font-size: 10px; fill: #8b8fa3; }
+            .flow-tech { font-family: 'Segoe UI', sans-serif; font-size: 10px; fill: #5c6078; }
+            .arrow-label { font-family: 'Segoe UI', sans-serif; font-size: 10px; fill: #a0a4b8; }
+            .arrow-latency { font-family: 'Segoe UI', sans-serif; font-size: 9px; fill: #fbbf24; font-weight: 700; }
+            .flow-arrow { stroke-width: 1.8; fill: none; }
+          </style>
+
+          <!-- ---- BOXES ---- -->
+          <!-- Raw Conversations (Source) -->
+          <rect x="30" y="30" width="160" height="56" class="flow-box" fill="#1a1d27" stroke="#3b6ee8"/>
+          <text x="110" y="54" class="flow-label" text-anchor="middle" fill="#60a5fa">Raw Conversations</text>
+          <text x="110" y="72" class="flow-tech" text-anchor="middle">ChatGPT, Claude Code, Claude Web</text>
+
+          <!-- Layer 1: SQLite -->
+          <rect x="290" y="30" width="160" height="56" class="flow-box" fill="#1e2a4a" stroke="#3b6ee8"/>
+          <text x="370" y="54" class="flow-label" text-anchor="middle" fill="#60a5fa">L1: Ground Truth</text>
+          <text x="370" y="72" class="flow-tech" text-anchor="middle">SQLite &bull; 34K+ messages</text>
+
+          <!-- Layer 2: ChromaDB -->
+          <rect x="570" y="30" width="180" height="56" class="flow-box" fill="#2a1f4a" stroke="#8b5cf6"/>
+          <text x="660" y="54" class="flow-label" text-anchor="middle" fill="#a78bfa">L2: Semantic Memory</text>
+          <text x="660" y="72" class="flow-tech" text-anchor="middle">ChromaDB &bull; MiniLM 384-dim</text>
+
+          <!-- Layer 3: Qwen -->
+          <rect x="290" y="145" width="200" height="70" class="flow-box" fill="#3a2e1a" stroke="#f59e0b"/>
+          <text x="390" y="170" class="flow-label" text-anchor="middle" fill="#fbbf24">L3: Memory Control</text>
+          <text x="390" y="186" class="flow-tech" text-anchor="middle">Qwen 2.5 14B via Ollama</text>
+          <text x="390" y="200" class="flow-tech" text-anchor="middle">Extract, Score, AUDN, Embed</text>
+
+          <!-- User Message -->
+          <rect x="30" y="290" width="150" height="50" class="flow-box" fill="#1a2a1e" stroke="#10b981" stroke-dasharray="5,3"/>
+          <text x="105" y="312" class="flow-label" text-anchor="middle" fill="#34d399">User Message</text>
+          <text x="105" y="328" class="flow-tech" text-anchor="middle">Incoming query</text>
+
+          <!-- Local Embedding -->
+          <rect x="260" y="290" width="140" height="50" class="flow-box" fill="#2a1f4a" stroke="#8b5cf6"/>
+          <text x="330" y="312" class="flow-label" text-anchor="middle" fill="#a78bfa">Embed Query</text>
+          <text x="330" y="328" class="flow-tech" text-anchor="middle">MiniLM local</text>
+
+          <!-- Retrieval from L2 -->
+          <rect x="490" y="290" width="180" height="50" class="flow-box" fill="#2a1f4a" stroke="#8b5cf6"/>
+          <text x="580" y="312" class="flow-label" text-anchor="middle" fill="#a78bfa">L2: Retrieve</text>
+          <text x="580" y="328" class="flow-tech" text-anchor="middle">Facts + Episodes by similarity</text>
+
+          <!-- Layer 4: Assemble Brief -->
+          <rect x="430" y="395" width="250" height="68" class="flow-box" fill="#1a3a2e" stroke="#10b981"/>
+          <text x="555" y="420" class="flow-label" text-anchor="middle" fill="#34d399">L4: Assemble Brief</text>
+          <text x="555" y="436" class="flow-tech" text-anchor="middle">assemble_brief.py &bull; No LLM</text>
+          <text x="555" y="450" class="flow-tech" text-anchor="middle">Identity + Themes + Episodes &rarr; ~1.5&ndash;2.6K tokens</text>
+
+          <!-- Layer 5: Claude -->
+          <rect x="430" y="520" width="250" height="56" class="flow-box" fill="#3a1a1a" stroke="#ef4444"/>
+          <text x="555" y="544" class="flow-label" text-anchor="middle" fill="#f87171">L5: Claude (Reasoning)</text>
+          <text x="555" y="560" class="flow-tech" text-anchor="middle">Sonnet daily &bull; Opus complex</text>
+
+          <!-- Response -->
+          <rect x="780" y="520" width="140" height="56" class="flow-box" fill="#1a2a1e" stroke="#10b981" stroke-dasharray="5,3"/>
+          <text x="850" y="544" class="flow-label" text-anchor="middle" fill="#34d399">Response</text>
+          <text x="850" y="560" class="flow-tech" text-anchor="middle">To user</text>
+
+          <!-- Async Processing -->
+          <rect x="820" y="290" width="200" height="50" class="flow-box" fill="#3a2e1a" stroke="#f59e0b" stroke-dasharray="5,3"/>
+          <text x="920" y="312" class="flow-label" text-anchor="middle" fill="#fbbf24">L3: Async Processing</text>
+          <text x="920" y="328" class="flow-tech" text-anchor="middle">Extract, score, link, embed</text>
+
+          <!-- ---- ARROWS ---- -->
+
+          <!-- Step 1: Raw conversations -> L1 -->
+          <line x1="190" y1="58" x2="286" y2="58" class="flow-arrow" stroke="#3b6ee8" marker-end="url(#arrowhead-accent)"/>
+          <text x="238" y="50" class="arrow-label" text-anchor="middle">1. Store</text>
+
+          <!-- Step 2: L1 -> L2 (embed) -->
+          <line x1="450" y1="58" x2="566" y2="58" class="flow-arrow" stroke="#8b5cf6" marker-end="url(#arrowhead-purple)"/>
+          <text x="508" y="50" class="arrow-label" text-anchor="middle">2. Embed</text>
+
+          <!-- Step 3: L1 -> L3 (extract) -->
+          <line x1="370" y1="90" x2="380" y2="141" class="flow-arrow" stroke="#f59e0b" marker-end="url(#arrowhead-amber)"/>
+          <text x="410" y="118" class="arrow-label" text-anchor="start">3. Extract facts</text>
+
+          <!-- Step 4: L3 -> L2 (store fact embeddings) -->
+          <path d="M 492 168 Q 570 120 650 90" class="flow-arrow" stroke="#8b5cf6" marker-end="url(#arrowhead-purple)"/>
+          <text x="590" y="120" class="arrow-label" text-anchor="middle">4. Store fact vectors</text>
+
+          <!-- Step 5: User message -> Embed query -->
+          <line x1="180" y1="315" x2="256" y2="315" class="flow-arrow" stroke="#a78bfa" marker-end="url(#arrowhead-purple)"/>
+          <text x="218" y="307" class="arrow-label" text-anchor="middle">5. Embed</text>
+          <text x="218" y="340" class="arrow-latency" text-anchor="middle">~10ms</text>
+
+          <!-- Step 6: Embed -> L2 Retrieve -->
+          <line x1="400" y1="315" x2="486" y2="315" class="flow-arrow" stroke="#8b5cf6" marker-end="url(#arrowhead-purple)"/>
+          <text x="443" y="307" class="arrow-label" text-anchor="middle">6. Query</text>
+
+          <!-- Step 7: L2 Retrieve -> L4 Assemble -->
+          <path d="M 580 344 Q 560 370 555 391" class="flow-arrow" stroke="#10b981" marker-end="url(#arrowhead-green)"/>
+          <text x="610" y="372" class="arrow-label" text-anchor="start">7. Retrieved content</text>
+          <text x="610" y="384" class="arrow-latency" text-anchor="start">~100ms</text>
+
+          <!-- Step 8: L4 -> L5 (brief + message) -->
+          <line x1="555" y1="467" x2="555" y2="516" class="flow-arrow" stroke="#ef4444" marker-end="url(#arrowhead-red)"/>
+          <text x="582" y="494" class="arrow-label" text-anchor="start">8. Brief + message</text>
+
+          <!-- Step 8b: User message directly to L5 as well -->
+          <path d="M 105 344 Q 105 548 426 548" class="flow-arrow" stroke="#10b981" stroke-dasharray="5,3" marker-end="url(#arrowhead-green)"/>
+          <text x="160" y="490" class="arrow-label" text-anchor="start" transform="rotate(-50,160,490)">User query</text>
+
+          <!-- L5 -> Response -->
+          <line x1="680" y1="548" x2="776" y2="548" class="flow-arrow" stroke="#f87171" marker-end="url(#arrowhead-red)"/>
+          <text x="728" y="540" class="arrow-label" text-anchor="middle">Response</text>
+          <text x="728" y="565" class="arrow-latency" text-anchor="middle">1&ndash;3s</text>
+
+          <!-- Step 9: Post-response async (Response -> Async L3) -->
+          <path d="M 850 516 Q 920 440 920 344" class="flow-arrow" stroke="#f59e0b" stroke-dasharray="5,3" marker-end="url(#arrowhead-amber)"/>
+          <text x="942" y="430" class="arrow-label" text-anchor="start">9. Async</text>
+          <text x="942" y="444" class="arrow-label" text-anchor="start">post-response</text>
+
+          <!-- Async -> L2 (update embeddings) -->
+          <path d="M 820 305 Q 760 250 710 90" class="flow-arrow" stroke="#8b5cf6" stroke-dasharray="5,3" marker-end="url(#arrowhead-purple)"/>
+          <text x="775" y="190" class="arrow-label" text-anchor="start">Update</text>
+          <text x="775" y="203" class="arrow-label" text-anchor="start">embeddings</text>
+
+          <!-- ---- LEGEND ---- -->
+          <rect x="30" y="555" width="300" height="72" rx="8" ry="8" fill="#14161e" stroke="#2a2d3a"/>
+          <text x="45" y="575" class="flow-tech" fill="#8b8fa3" font-weight="700" font-size="10">LEGEND</text>
+
+          <line x1="45" y1="592" x2="80" y2="592" stroke="#6b7094" stroke-width="1.8" marker-end="url(#arrowhead)"/>
+          <text x="88" y="596" class="flow-tech">Synchronous flow</text>
+
+          <line x1="175" y1="592" x2="210" y2="592" stroke="#6b7094" stroke-width="1.8" stroke-dasharray="5,3" marker-end="url(#arrowhead)"/>
+          <text x="218" y="596" class="flow-tech">Async / optional</text>
+
+          <rect x="45" y="606" width="16" height="10" rx="3" ry="3" fill="none" stroke="#10b981" stroke-dasharray="3,2"/>
+          <text x="68" y="615" class="flow-tech">External I/O</text>
+
+          <text x="165" y="615" class="arrow-latency">~10ms</text>
+          <text x="205" y="615" class="flow-tech">Latency annotation</text>
+
+        </svg>
+      </div>
+    </div>
+
+  </div><!-- /main-col -->
+
+  <!-- ======================== SIDEBAR ======================== -->
+  <div class="sidebar">
+
+    <div class="section-title">Four Memory Tiers</div>
+
+    <div class="tiers-container">
+      <div class="tier-stack">
+
+        <div class="tier-item tier-1">
+          <div class="tier-label">Tier 1</div>
+          <div class="tier-name">Core Identity</div>
+          <div class="tier-tokens">~1,000&ndash;1,200 tokens</div>
+          <div class="tier-desc">Always in context. Defines who you are. Authored manually in Claude Code sessions.</div>
+        </div>
+
+        <div class="tier-item tier-2">
+          <div class="tier-label">Tier 2</div>
+          <div class="tier-name">Thematic Patterns</div>
+          <div class="tier-tokens">~700&ndash;800 tokens</div>
+          <div class="tier-desc">Retrieved by topic similarity. Clusters of related facts and behaviors.</div>
+        </div>
+
+        <div class="tier-item tier-3">
+          <div class="tier-label">Tier 3</div>
+          <div class="tier-name">Episodic Summaries</div>
+          <div class="tier-tokens">~50K tokens searchable</div>
+          <div class="tier-desc">Conversation summaries. Searchable but not always loaded.</div>
+        </div>
+
+        <div class="tier-item tier-4">
+          <div class="tier-label">Tier 4</div>
+          <div class="tier-name">Raw Conversations</div>
+          <div class="tier-tokens">Infinite archive</div>
+          <div class="tier-desc">Ground truth. Never fed to LLM. Never deleted.</div>
+        </div>
+
+      </div>
+
+      <div class="consolidation-arrow">
+        <svg width="24" height="48" viewBox="0 0 24 48">
+          <defs>
+            <marker id="arr-up" markerWidth="8" markerHeight="6" refX="4" refY="0" orient="auto" fill="#5c6078">
+              <polygon points="0 6, 4 0, 8 6"/>
+            </marker>
+          </defs>
+          <line x1="12" y1="44" x2="12" y2="6" stroke="#5c6078" stroke-width="2" marker-end="url(#arr-up)"/>
+        </svg>
+        Information flows upward through consolidation<br/>
+        <span style="color:#5c6078;">Tier 4 &rarr; 3 &rarr; 2 &rarr; 1</span>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="section-title" style="margin-top: 28px;">System Stats</div>
+    <div class="stats-bar" style="flex-direction: column;">
+      <div style="display: flex; gap: 10px;">
+        <div class="stat-chip">
+          <div class="stat-val">1,831+</div>
+          <div class="stat-label">Conversations</div>
+        </div>
+        <div class="stat-chip">
+          <div class="stat-val">34.4K+</div>
+          <div class="stat-label">Messages</div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <div class="stat-chip">
+          <div class="stat-val">4,704</div>
+          <div class="stat-label">Extracted Facts</div>
+        </div>
+        <div class="stat-chip">
+          <div class="stat-val">~2.1K</div>
+          <div class="stat-label">Brief Tokens</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Design Constraints -->
+    <div class="constraints" style="margin-top: 20px;">
+      <h3>Design Constraints</h3>
+      <div class="constraint-list">
+        <div class="constraint-item">Silence does not equal irrelevance</div>
+        <div class="constraint-item">Knowledge is never deleted</div>
+        <div class="constraint-item">Time informs but does not decide</div>
+        <div class="constraint-item">Contradiction over decay</div>
+        <div class="constraint-item">No Qwen for narrative generation</div>
+        <div class="constraint-item">No LLM in brief assembly path</div>
+      </div>
+    </div>
+
+    <!-- Tech Stack -->
+    <div class="constraints" style="margin-top: 16px;">
+      <h3>Technology Stack</h3>
+      <div class="constraint-list">
+        <div class="constraint-item">SQLite &mdash; ground truth storage</div>
+        <div class="constraint-item">ChromaDB &mdash; vector store (MiniLM 384-dim)</div>
+        <div class="constraint-item">Qwen 2.5 14B &mdash; extraction via Ollama (RTX 3080)</div>
+        <div class="constraint-item">Claude API &mdash; reasoning (Sonnet / Opus)</div>
+        <div class="constraint-item">Claude Code &mdash; identity authoring ($0)</div>
+        <div class="constraint-item">Python &mdash; pipeline scripts</div>
+      </div>
+    </div>
+
+  </div><!-- /sidebar -->
+
+</div><!-- /page-container -->
+
+</body>
+</html>

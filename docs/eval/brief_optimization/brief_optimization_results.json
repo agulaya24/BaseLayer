@@ -1,0 +1,168 @@
+{
+  "meta": {
+    "started": "2026-03-08T09:12:20.007211",
+    "completed": "2026-03-08T09:15:25.324907"
+  },
+  "experiments": {
+    "franklin_length_sweep": [
+      {
+        "target_chars": 500,
+        "actual_chars": 1023,
+        "scores": {
+          "m1_coverage": 0.2343,
+          "prediction_rate": 0.0222,
+          "m3_pattern_density": 3.91,
+          "composite": 25.79,
+          "chars": 1023,
+          "tokens_est": 255,
+          "efficiency": 0.9187
+        }
+      },
+      {
+        "target_chars": 1000,
+        "actual_chars": 1553,
+        "scores": {
+          "m1_coverage": 0.2124,
+          "prediction_rate": 0.0148,
+          "m3_pattern_density": 0.64,
+          "composite": 19.83,
+          "chars": 1553,
+          "tokens_est": 388,
+          "efficiency": 0.5473
+        }
+      },
+      {
+        "target_chars": 1500,
+        "actual_chars": 2273,
+        "scores": {
+          "m1_coverage": 0.171,
+          "prediction_rate": 0.0074,
+          "m3_pattern_density": 1.32,
+          "composite": 19.01,
+          "chars": 2273,
+          "tokens_est": 568,
+          "efficiency": 0.3011
+        }
+      },
+      {
+        "target_chars": 2000,
+        "actual_chars": 3283,
+        "scores": {
+          "m1_coverage": 0.2093,
+          "prediction_rate": 0.0074,
+          "m3_pattern_density": 3.05,
+          "composite": 23.13,
+          "chars": 3283,
+          "tokens_est": 820,
+          "efficiency": 0.2552
+        }
+      },
+      {
+        "target_chars": 2500,
+        "actual_chars": 3936,
+        "scores": {
+          "m1_coverage": 0.219,
+          "prediction_rate": 0.0296,
+          "m3_pattern_density": 1.27,
+          "composite": 21.41,
+          "chars": 3936,
+          "tokens_est": 984,
+          "efficiency": 0.2226
+        }
+      },
+      {
+        "target_chars": 3500,
+        "actual_chars": 5156,
+        "scores": {
+          "m1_coverage": 0.211,
+          "prediction_rate": 0.0296,
+          "m3_pattern_density": 4.27,
+          "composite": 25.58,
+          "chars": 5156,
+          "tokens_est": 1289,
+          "efficiency": 0.1637
+        }
+      }
+    ],
+    "marks_length_sweep": [
+      {
+        "target_chars": 500,
+        "actual_chars": 939,
+        "scores": {
+          "m1_coverage": 0.3423,
+          "prediction_rate": 0.1544,
+          "m3_pattern_density": 5.0,
+          "composite": 35.05,
+          "chars": 939,
+          "tokens_est": 234,
+          "efficiency": 1.463
+        }
+      },
+      {
+        "target_chars": 1000,
+        "actual_chars": 1522,
+        "scores": {
+          "m1_coverage": 0.3703,
+          "prediction_rate": 0.2206,
+          "m3_pattern_density": 1.31,
+          "composite": 32.3,
+          "chars": 1522,
+          "tokens_est": 380,
+          "efficiency": 0.9744
+        }
+      },
+      {
+        "target_chars": 1500,
+        "actual_chars": 2252,
+        "scores": {
+          "m1_coverage": 0.3875,
+          "prediction_rate": 0.2868,
+          "m3_pattern_density": 0.44,
+          "composite": 33.34,
+          "chars": 2252,
+          "tokens_est": 563,
+          "efficiency": 0.6883
+        }
+      },
+      {
+        "target_chars": 2000,
+        "actual_chars": 2862,
+        "scores": {
+          "m1_coverage": 0.3853,
+          "prediction_rate": 0.2941,
+          "m3_pattern_density": 4.19,
+          "composite": 39.05,
+          "chars": 2862,
+          "tokens_est": 715,
+          "efficiency": 0.5389
+        }
+      },
+      {
+        "target_chars": 2500,
+        "actual_chars": 3938,
+        "scores": {
+          "m1_coverage": 0.3639,
+          "prediction_rate": 0.2132,
+          "m3_pattern_density": 1.78,
+          "composite": 32.55,
+          "chars": 3938,
+          "tokens_est": 984,
+          "efficiency": 0.3699
+        }
+      },
+      {
+        "target_chars": 3500,
+        "actual_chars": 4814,
+        "scores": {
+          "m1_coverage": 0.3644,
+          "prediction_rate": 0.2279,
+          "m3_pattern_density": 2.29,
+          "composite": 33.7,
+          "chars": 4814,
+          "tokens_est": 1203,
+          "efficiency": 0.3029
+        }
+      }
+    ]
+  }
+}

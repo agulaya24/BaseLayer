@@ -1,0 +1,152 @@
+# Database
+data/database/
+
+# Vector store
+data/vectors/
+
+# Raw conversation exports
+data/raw/
+
+# Backups
+backups/
+
+# Imported conversation data
+data/imports/
+
+# Archive
+data/archive/
+
+# Backfill artifacts
+data/backfill/
+
+# Eval artifacts
+data/eval/
+
+# Contradiction artifacts
+data/contradictions/
+
+# Identity layers (contain personal data — NEVER commit)
+data/identity_layers/
+
+# Exported data files
+data/*.csv
+data/*.json
+
+# Legacy identity block drafts
+data/identity_block_*.txt
+data/blind_test_pairs.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Personal data mappings (contains personal data — can exist at root, scripts/, or data/)
+entity_map.json
+scripts/entity_map.json
+data/entity_map.json
+
+# Environment
+.env
+*.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Personal analysis docs (contain biographical data)
+docs/analysis/
+
+# Internal review plan (not for public repo)
+docs/REVIEW_PLAN.md
+
+# GTM directory (internal strategy — not for public repo)
+gtm/
+
+# Generated identity blocks (contain personal data)
+gtm/archive/generated/
+
+# Session transcripts (contain personal data)
+reference/
+
+# Temporary review files
+docs/temporary review/
+
+# Version snapshots (contain personal data from early sessions)
+docs/versions/
+
+# Session progress log (contains personal data throughout)
+docs/core/PROGRESS.md
+
+# Overnight run logs (user-specific pipeline output)
+data/overnight_run.log
+
+# Downloaded research papers (not project output)
+docs/research/*.pdf
+
+# Corpora entity maps (may contain personal data for non-public corpora)
+data/corpora/*/entity_map.json
+
+# Pytest cache
+.pytest_cache/
+
+# Personal corrections data
+data/corrections*.json
+
+# Personal outreach documents
+gtm/archive/outreach/
+gtm/archive/completed/
+
+# Personal case study data
+gtm/research/BAVANI_CASE_STUDY*.md
+
+# Corpora raw data (may contain personal text)
+data/corpora/
+
+# Eval run logs and generated results (contain local paths)
+docs/eval/*/run_log.txt
+docs/eval/*_log.txt
+docs/eval/collaboration_bcb/collaboration_bcb_results.json
+
+# Privacy scrub spec (internal only)
+GIT_PUSH_PREP.md
+TWIN2K_PARALLEL_RUNBOOK.md
+
+# WIP plans and internal review docs
+docs/plans/
+docs/REVIEW_PLAN.md
+docs/REVIEW_RESULTS*.md
+docs/SONNET_HANDOFF.md
+
+# Subject data directories (contain personal data — NEVER commit)
+subjects/*/
+../subjects/buffett_memory/
+../subjects/marks_memory/
+franklin_memory/
+memory_system_v4/
+
+# Old git history backup
+.git_backup/
+
+# Next.js build output
+.next/
+
+# Internal checkpoint docs
+TWIN2K_CHECKPOINT.md
+REFACTOR_GUIDE.md
+CLAUDE_CODE_SETUP.md
+
+# Log files (contain local paths)
+*.log
+scripts/overnight_*.sh
+docs/eval/gpu_overnight/
+docs/eval/master_overnight_stdout.log

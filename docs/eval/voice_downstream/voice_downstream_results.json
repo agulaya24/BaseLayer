@@ -1,0 +1,1442 @@
+{
+  "meta": {
+    "started": "2026-03-08T08:54:27.542386",
+    "tasks": 15,
+    "voices": [
+      "A_baseline",
+      "B_core_dominant",
+      "C_pure_directive",
+      "D_pure_narrative",
+      "E_annotated_guide"
+    ],
+    "model": "claude-sonnet-4-20250514",
+    "completed": "2026-03-08T09:06:31.660414"
+  },
+  "conditions": {
+    "A_baseline": {
+      "brief_chars": 9144,
+      "avg_score": 0.618,
+      "total_score": 9.27,
+      "tasks": [
+        {
+          "task_id": "F01",
+          "category": "reasoning",
+          "score": {
+            "keyword_score": 0.5,
+            "keywords_matched": [
+              "written",
+              "document",
+              "agreement"
+            ],
+            "keywords_total": 6,
+            "generic_count": 0,
+            "word_count": 267,
+            "pattern_count": 3,
+            "total_score": 0.63
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, his approach would be highly systematic and documentation-focused:\n\n**Initial Evaluation Process:**\nHe would automatically filter this through his \"public bene"
+        },
+        {
+          "task_id": "F02",
+          "category": "reasoning",
+          "score": {
+            "keyword_score": 0.5,
+            "keywords_matched": [
+              "socratic",
+              "question",
+              "dogmatic"
+            ],
+            "keywords_total": 6,
+            "generic_count": 0,
+            "word_count": 237,
+            "pattern_count": 2,
+            "total_score": 0.597
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, he would respond to dogmatic philosophical arguments through **systematic Socratic questioning** rather than direct counter-argument or dismissal.\n\n**His speci"
+        },
+        {
+          "task_id": "F03",
+          "category": "failure_mode",
+          "score": {
+            "keyword_score": 0.0,
+            "keywords_matched": [],
+            "keywords_total": 4,
+            "generic_count": 0,
+            "word_count": 257,
+            "pattern_count": 4,
+            "total_score": 0.28
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, watch for **deflection paralysis** - his compulsive need to redirect credit away from himself could undermine the very public benefit he achieved.\n\nSpecificall"
+        },
+        {
+          "task_id": "F04",
+          "category": "decision",
+          "score": {
+            "keyword_score": 0.8,
+            "keywords_matched": [
+              "public",
+              "benefit",
+              "service",
+              "useful"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 264,
+            "pattern_count": 3,
+            "total_score": 0.84
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, he will choose the public service role, but his decision process will be characteristically systematic and the choice will create internal tension.\n\n**His deci"
+        },
+        {
+          "task_id": "F05",
+          "category": "reasoning",
+          "score": {
+            "keyword_score": 0.8,
+            "keywords_matched": [
+              "experiment",
+              "systematic",
+              "observation",
+              "document"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 260,
+            "pattern_count": 3,
+            "total_score": 0.84
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, he would approach a scientific question about electricity through systematic experimental methodology rather than theoretical speculation.\n\n**His systematic in"
+        },
+        {
+          "task_id": "F06",
+          "category": "interaction",
+          "score": {
+            "keyword_score": 0.5,
+            "keywords_matched": [
+              "public",
+              "benefit"
+            ],
+            "keywords_total": 4,
+            "generic_count": 0,
+            "word_count": 263,
+            "pattern_count": 3,
+            "total_score": 0.63
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, here's the most effective framing approach:\n\n**Lead with Public Benefit**\nStart immediately with how your idea serves community welfare. Franklin \"automaticall"
+        },
+        {
+          "task_id": "F07",
+          "category": "failure_mode",
+          "score": {
+            "keyword_score": 0.5,
+            "keywords_matched": [
+              "organiz",
+              "struggle"
+            ],
+            "keywords_total": 4,
+            "generic_count": 0,
+            "word_count": 305,
+            "pattern_count": 4,
+            "total_score": 0.63
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, he'll struggle in several specific areas when organizing a complex multi-step project:\n\n**Timeline Management Tensions**: His requirement for \"thorough deliber"
+        },
+        {
+          "task_id": "F08",
+          "category": "decision",
+          "score": {
+            "keyword_score": 0.5,
+            "keywords_matched": [
+              "clear",
+              "terms",
+              "written"
+            ],
+            "keywords_total": 6,
+            "generic_count": 0,
+            "word_count": 245,
+            "pattern_count": 1,
+            "total_score": 0.563
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, he will insist on several specific elements before proceeding:\n\n**Thorough documentation and clarity**: His \"written documentation compulsion\" means he'll requ"
+        },
+        {
+          "task_id": "F09",
+          "category": "reasoning",
+          "score": {
+            "keyword_score": 0.2,
+            "keywords_matched": [
+              "dispute"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 262,
+            "pattern_count": 2,
+            "total_score": 0.387
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, he would approach this mediation through systematic Socratic questioning rather than direct arbitration or taking sides.\n\n**His Process:**\n\nFranklin would shif"
+        },
+        {
+          "task_id": "F10",
+          "category": "interaction",
+          "score": {
+            "keyword_score": 0.2,
+            "keywords_matched": [
+              "avoid"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 252,
+            "pattern_count": 3,
+            "total_score": 0.42
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, his withdrawal likely indicates one of several specific triggers:\n\n**Most probable causes:**\n\n1. **The discussion lacks systematic analysis** - If the meeting "
+        },
+        {
+          "task_id": "F11",
+          "category": "decision",
+          "score": {
+            "keyword_score": 0.4,
+            "keywords_matched": [
+              "public",
+              "benefit"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 242,
+            "pattern_count": 3,
+            "total_score": 0.56
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, he would decide **not to patent the stove design**.\n\nThis decision flows directly from his core axiom that **public benefit takes automatic priority over indiv"
+        },
+        {
+          "task_id": "F12",
+          "category": "reasoning",
+          "score": {
+            "keyword_score": 0.8,
+            "keywords_matched": [
+              "voluntary",
+              "persua",
+              "written",
+              "anonymous"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 239,
+            "pattern_count": 2,
+            "total_score": 0.807
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, he would employ a systematic Socratic questioning strategy rather than direct advocacy.\n\n**Primary Approach: Guided Self-Discovery**\nFranklin would shift into "
+        },
+        {
+          "task_id": "F13",
+          "category": "failure_mode",
+          "score": {
+            "keyword_score": 0.4,
+            "keywords_matched": [
+              "socratic",
+              "question"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 255,
+            "pattern_count": 3,
+            "total_score": 0.56
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, he would deliver this feedback through systematic Socratic questioning rather than direct criticism.\n\nHe would shift into his reflexive questioning mode, askin"
+        },
+        {
+          "task_id": "F14",
+          "category": "interaction",
+          "score": {
+            "keyword_score": 0.833,
+            "keywords_matched": [
+              "refined",
+              "read",
+              "intellectual",
+              "avoid",
+              "tavern"
+            ],
+            "keywords_total": 6,
+            "generic_count": 0,
+            "word_count": 225,
+            "pattern_count": 2,
+            "total_score": 0.83
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, he would **appreciate** leisure activities that combine refinement with practical benefit:\n\n**Activities he'd embrace:**\n- **Plays and literary discussions** -"
+        },
+        {
+          "task_id": "F15",
+          "category": "decision",
+          "score": {
+            "keyword_score": 0.6,
+            "keywords_matched": [
+              "systematic",
+              "track",
+              "virtue"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 266,
+            "pattern_count": 4,
+            "total_score": 0.7
+          },
+          "response_preview": "Based on Franklin's systematic approach to character development, he would respond to weeks of failure on a single virtue through methodical analysis rather than abandonment of the system.\n\nFirst, he "
+        }
+      ],
+      "by_category": {
+        "interaction": 0.627,
+        "decision": 0.666,
+        "reasoning": 0.652,
+        "failure_mode": 0.49
+      }
+    },
+    "B_core_dominant": {
+      "brief_chars": 2466,
+      "avg_score": 0.708,
+      "total_score": 10.61,
+      "tasks": [
+        {
+          "task_id": "F01",
+          "category": "reasoning",
+          "score": {
+            "keyword_score": 0.333,
+            "keywords_matched": [
+              "document",
+              "agreement"
+            ],
+            "keywords_total": 6,
+            "generic_count": 0,
+            "word_count": 241,
+            "pattern_count": 2,
+            "total_score": 0.48
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, his approach would be highly systematic and cautious:\n\n**Financial Scrutiny**: Given his intense focus on financial independence and past losses from contract "
+        },
+        {
+          "task_id": "F02",
+          "category": "reasoning",
+          "score": {
+            "keyword_score": 0.667,
+            "keywords_matched": [
+              "socratic",
+              "question",
+              "avoid",
+              "dogmatic"
+            ],
+            "keywords_total": 6,
+            "generic_count": 0,
+            "word_count": 258,
+            "pattern_count": 1,
+            "total_score": 0.68
+          },
+          "response_preview": "Based on the behavioral patterns described, Franklin would respond to a dogmatic philosophical argument in several characteristic ways:\n\n**He would avoid direct confrontation** - Rather than immediate"
+        },
+        {
+          "task_id": "F03",
+          "category": "failure_mode",
+          "score": {
+            "keyword_score": 0.5,
+            "keywords_matched": [
+              "pride",
+              "struggle"
+            ],
+            "keywords_total": 4,
+            "generic_count": 0,
+            "word_count": 231,
+            "pattern_count": 3,
+            "total_score": 0.63
+          },
+          "response_preview": "Based on the behavioral patterns described, watch for **pride becoming a systematic problem** that undermines his collaborative effectiveness.\n\nSpecifically, monitor for:\n\n**Intellectual Arrogance Cre"
+        },
+        {
+          "task_id": "F04",
+          "category": "decision",
+          "score": {
+            "keyword_score": 0.8,
+            "keywords_matched": [
+              "public",
+              "benefit",
+              "service",
+              "honest"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 251,
+            "pattern_count": 2,
+            "total_score": 0.807
+          },
+          "response_preview": "Based on the behavioral patterns described, this person would choose the public service role, but their decision-making process would be characteristically systematic and principled.\n\nHere's how they "
+        },
+        {
+          "task_id": "F05",
+          "category": "reasoning",
+          "score": {
+            "keyword_score": 1.0,
+            "keywords_matched": [
+              "experiment",
+              "systematic",
+              "observation",
+              "document",
+              "share"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 230,
+            "pattern_count": 2,
+            "total_score": 0.947
+          },
+          "response_preview": "Based on the behavioral patterns described, this person would approach a scientific question about electricity through systematic experimentation and careful documentation rather than theoretical spec"
+        },
+        {
+          "task_id": "F06",
+          "category": "interaction",
+          "score": {
+            "keyword_score": 0.5,
+            "keywords_matched": [
+              "public",
+              "benefit"
+            ],
+            "keywords_total": 4,
+            "generic_count": 0,
+            "word_count": 246,
+            "pattern_count": 3,
+            "total_score": 0.63
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, here's the most effective framing approach:\n\n**Lead with systematic analysis and public benefit:**\n- Present your idea as addressing a specific systemic ineffi"
+        },
+        {
+          "task_id": "F07",
+          "category": "failure_mode",
+          "score": {
+            "keyword_score": 0.75,
+            "keywords_matched": [
+              "order",
+              "organiz",
+              "struggle"
+            ],
+            "keywords_total": 4,
+            "generic_count": 0,
+            "word_count": 239,
+            "pattern_count": 5,
+            "total_score": 0.805
+          },
+          "response_preview": "Based on the behavioral patterns described, Franklin will likely struggle in these specific areas when organizing a complex multi-step project:\n\n**Order and Structure Management**: The brief explicitl"
+        },
+        {
+          "task_id": "F08",
+          "category": "decision",
+          "score": {
+            "keyword_score": 0.667,
+            "keywords_matched": [
+              "clear",
+              "terms",
+              "written",
+              "agreement"
+            ],
+            "keywords_total": 6,
+            "generic_count": 0,
+            "word_count": 233,
+            "pattern_count": 2,
+            "total_score": 0.713
+          },
+          "response_preview": "Based on Franklin's character, he will insist on several key elements when dealing with vague financial terms:\n\n**Detailed Documentation**: Given his systematic precision and habit of documenting impo"
+        },
+        {
+          "task_id": "F09",
+          "category": "reasoning",
+          "score": {
+            "keyword_score": 0.6,
+            "keywords_matched": [
+              "goodwill",
+              "avoid",
+              "dispute"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 259,
+            "pattern_count": 2,
+            "total_score": 0.667
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, here's how he would likely mediate the dispute:\n\n**Initial Approach:**\n- He would carefully observe both parties first, likely documenting the key points of co"
+        },
+        {
+          "task_id": "F10",
+          "category": "interaction",
+          "score": {
+            "keyword_score": 0.4,
+            "keywords_matched": [
+              "space",
+              "avoid"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 231,
+            "pattern_count": 3,
+            "total_score": 0.56
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, his withdrawal likely indicates he's in **systematic observation mode** - carefully studying the dynamics and gathering information before engaging. This align"
+        },
+        {
+          "task_id": "F11",
+          "category": "decision",
+          "score": {
+            "keyword_score": 0.6,
+            "keywords_matched": [
+              "public",
+              "benefit",
+              "free"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 232,
+            "pattern_count": 2,
+            "total_score": 0.667
+          },
+          "response_preview": "Based on this person's character, they would almost certainly decide **not** to patent the stove design.\n\nHere's why this decision aligns with their behavioral patterns:\n\n**Anonymous Contribution Over"
+        },
+        {
+          "task_id": "F12",
+          "category": "reasoning",
+          "score": {
+            "keyword_score": 0.6,
+            "keywords_matched": [
+              "voluntary",
+              "persua",
+              "anonymous"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 262,
+            "pattern_count": 2,
+            "total_score": 0.667
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, he would likely employ this systematic persuasion strategy:\n\n**Preparation Phase:**\n- Document extensive research on the legislature's past decisions, financia"
+        },
+        {
+          "task_id": "F13",
+          "category": "failure_mode",
+          "score": {
+            "keyword_score": 0.6,
+            "keywords_matched": [
+              "socratic",
+              "question",
+              "suggest"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 242,
+            "pattern_count": 2,
+            "total_score": 0.667
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, he would deliver this feedback through systematic and diplomatic means:\n\n**His Approach:**\n- He would use **Socratic questioning** rather than direct confronta"
+        },
+        {
+          "task_id": "F14",
+          "category": "interaction",
+          "score": {
+            "keyword_score": 0.667,
+            "keywords_matched": [
+              "read",
+              "intellectual",
+              "avoid",
+              "frivolous"
+            ],
+            "keywords_total": 6,
+            "generic_count": 0,
+            "word_count": 229,
+            "pattern_count": 2,
+            "total_score": 0.713
+          },
+          "response_preview": "Based on the behavioral patterns described, Franklin would likely appreciate and reject leisure activities along these lines:\n\n**Would Appreciate:**\n- **Intellectual clubs or discussion groups** - ali"
+        },
+        {
+          "task_id": "F15",
+          "category": "decision",
+          "score": {
+            "keyword_score": 1.0,
+            "keywords_matched": [
+              "systematic",
+              "track",
+              "virtue",
+              "persist",
+              "practice"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 240,
+            "pattern_count": 3,
+            "total_score": 0.98
+          },
+          "response_preview": "Based on Franklin's systematic approach and documented self-examination practices, he would likely respond in several characteristic ways:\n\n**Methodical Analysis**: He would carefully review his detai"
+        }
+      ],
+      "by_category": {
+        "interaction": 0.634,
+        "decision": 0.792,
+        "reasoning": 0.688,
+        "failure_mode": 0.701
+      }
+    },
+    "C_pure_directive": {
+      "brief_chars": 2587,
+      "avg_score": 0.691,
+      "total_score": 10.37,
+      "tasks": [
+        {
+          "task_id": "F01",
+          "category": "reasoning",
+          "score": {
+            "keyword_score": 0.5,
+            "keywords_matched": [
+              "industry",
+              "document",
+              "agreement"
+            ],
+            "keywords_total": 6,
+            "generic_count": 0,
+            "word_count": 242,
+            "pattern_count": 2,
+            "total_score": 0.597
+          },
+          "response_preview": "Based on Franklin's patterns, here's how he would likely approach this decision:\n\n**Documentation First**: He would insist on putting everything in writing - partnership terms, profit sharing, respons"
+        },
+        {
+          "task_id": "F02",
+          "category": "reasoning",
+          "score": {
+            "keyword_score": 0.667,
+            "keywords_matched": [
+              "socratic",
+              "question",
+              "avoid",
+              "dogmatic"
+            ],
+            "keywords_total": 6,
+            "generic_count": 0,
+            "word_count": 228,
+            "pattern_count": 2,
+            "total_score": 0.713
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, he would respond with diplomatic restraint and intellectual humility rather than direct confrontation. Here's how he would likely handle this:\n\n**Use the Socra"
+        },
+        {
+          "task_id": "F03",
+          "category": "failure_mode",
+          "score": {
+            "keyword_score": 0.25,
+            "keywords_matched": [
+              "vanity"
+            ],
+            "keywords_total": 4,
+            "generic_count": 0,
+            "word_count": 216,
+            "pattern_count": 3,
+            "total_score": 0.455
+          },
+          "response_preview": "Based on Franklin's character, watch for **vanity and self-aggrandizement** - this is his primary failure mode after public success.\n\nSpecifically, monitor for:\n\n**Speech patterns that shift from dipl"
+        },
+        {
+          "task_id": "F04",
+          "category": "decision",
+          "score": {
+            "keyword_score": 0.6,
+            "keywords_matched": [
+              "public",
+              "benefit",
+              "service"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 241,
+            "pattern_count": 1,
+            "total_score": 0.633
+          },
+          "response_preview": "Based on Franklin's character, he would choose the public service role, but his reasoning would be characteristically practical rather than purely altruistic.\n\nFranklin would likely frame his decision"
+        },
+        {
+          "task_id": "F05",
+          "category": "reasoning",
+          "score": {
+            "keyword_score": 1.0,
+            "keywords_matched": [
+              "experiment",
+              "systematic",
+              "observation",
+              "document",
+              "share"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 237,
+            "pattern_count": 2,
+            "total_score": 0.947
+          },
+          "response_preview": "Based on Franklin's character, here's how he would approach a scientific question about electricity:\n\n**Systematic Investigation Method:**\nFranklin would suggest starting with careful observation and "
+        },
+        {
+          "task_id": "F06",
+          "category": "interaction",
+          "score": {
+            "keyword_score": 1.0,
+            "keywords_matched": [
+              "public",
+              "benefit",
+              "practical",
+              "utility"
+            ],
+            "keywords_total": 4,
+            "generic_count": 0,
+            "word_count": 235,
+            "pattern_count": 3,
+            "total_score": 0.98
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, here's the most effective framing approach:\n\n**Lead with public benefit, not personal gain.** Open by explaining how your idea serves the common good or addres"
+        },
+        {
+          "task_id": "F07",
+          "category": "failure_mode",
+          "score": {
+            "keyword_score": 0.75,
+            "keywords_matched": [
+              "order",
+              "organiz",
+              "struggle"
+            ],
+            "keywords_total": 4,
+            "generic_count": 0,
+            "word_count": 233,
+            "pattern_count": 3,
+            "total_score": 0.805
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, he may struggle in these specific areas when organizing a complex multi-step project:\n\n**Delegation and Direct Authority**\nFranklin will likely struggle with g"
+        },
+        {
+          "task_id": "F08",
+          "category": "decision",
+          "score": {
+            "keyword_score": 0.667,
+            "keywords_matched": [
+              "clear",
+              "terms",
+              "written",
+              "agreement"
+            ],
+            "keywords_total": 6,
+            "generic_count": 0,
+            "word_count": 233,
+            "pattern_count": 2,
+            "total_score": 0.713
+          },
+          "response_preview": "Based on Franklin's patterns, he would insist on **written documentation** above all else. He consistently promotes \"clear written communication over verbal disputes\" and encourages \"written documenta"
+        },
+        {
+          "task_id": "F09",
+          "category": "reasoning",
+          "score": {
+            "keyword_score": 0.8,
+            "keywords_matched": [
+              "goodwill",
+              "avoid",
+              "dispute",
+              "written"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 239,
+            "pattern_count": 2,
+            "total_score": 0.807
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, here's how he would likely mediate the dispute:\n\n**Initial Approach:**\n- He'd avoid taking sides immediately and focus on maintaining goodwill with both partie"
+        },
+        {
+          "task_id": "F10",
+          "category": "interaction",
+          "score": {
+            "keyword_score": 0.2,
+            "keywords_matched": [
+              "avoid"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 226,
+            "pattern_count": 2,
+            "total_score": 0.387
+          },
+          "response_preview": "Based on Franklin's patterns, his withdrawal likely signals one of several things:\n\n**What's probably happening:**\n- He's practicing intellectual humility, waiting to hear others' views before offerin"
+        },
+        {
+          "task_id": "F11",
+          "category": "decision",
+          "score": {
+            "keyword_score": 0.6,
+            "keywords_matched": [
+              "public",
+              "benefit",
+              "free"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 223,
+            "pattern_count": 2,
+            "total_score": 0.667
+          },
+          "response_preview": "Based on Franklin's character, he would decide **not to patent** his stove design.\n\nHere's how he would approach this decision:\n\n**His reasoning process:**\n- He would weigh personal profit against pub"
+        },
+        {
+          "task_id": "F12",
+          "category": "reasoning",
+          "score": {
+            "keyword_score": 0.2,
+            "keywords_matched": [
+              "consensus"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 228,
+            "pattern_count": 2,
+            "total_score": 0.387
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, he would likely employ this strategic approach:\n\n**Frame as Public Benefit, Not Personal Glory**\nHe'd present the defense funding as essential for colonial wel"
+        },
+        {
+          "task_id": "F13",
+          "category": "failure_mode",
+          "score": {
+            "keyword_score": 0.6,
+            "keywords_matched": [
+              "socratic",
+              "question",
+              "suggest"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 221,
+            "pattern_count": 3,
+            "total_score": 0.7
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, he would deliver this feedback through a diplomatic, Socratic approach:\n\n**Written Documentation First**: He'd likely put his observations in writing rather th"
+        },
+        {
+          "task_id": "F14",
+          "category": "interaction",
+          "score": {
+            "keyword_score": 0.5,
+            "keywords_matched": [
+              "read",
+              "intellectual",
+              "avoid"
+            ],
+            "keywords_total": 6,
+            "generic_count": 0,
+            "word_count": 247,
+            "pattern_count": 2,
+            "total_score": 0.597
+          },
+          "response_preview": "Based on Franklin's character, here's what he would likely appreciate versus reject in leisure activities:\n\n**Activities Franklin would appreciate:**\n- **Reading clubs or discussion groups** - These c"
+        },
+        {
+          "task_id": "F15",
+          "category": "decision",
+          "score": {
+            "keyword_score": 1.0,
+            "keywords_matched": [
+              "systematic",
+              "track",
+              "virtue",
+              "persist",
+              "practice"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 247,
+            "pattern_count": 4,
+            "total_score": 0.98
+          },
+          "response_preview": "Based on Franklin's systematic approach to self-improvement, he would likely respond with methodical analysis rather than abandonment of the effort.\n\n**He would first examine his tracking method:** Fr"
+        }
+      ],
+      "by_category": {
+        "interaction": 0.655,
+        "decision": 0.748,
+        "reasoning": 0.69,
+        "failure_mode": 0.653
+      }
+    },
+    "D_pure_narrative": {
+      "brief_chars": 2252,
+      "avg_score": 0.691,
+      "total_score": 10.37,
+      "tasks": [
+        {
+          "task_id": "F01",
+          "category": "reasoning",
+          "score": {
+            "keyword_score": 0.667,
+            "keywords_matched": [
+              "written",
+              "document",
+              "agreement",
+              "clear terms"
+            ],
+            "keywords_total": 6,
+            "generic_count": 0,
+            "word_count": 238,
+            "pattern_count": 3,
+            "total_score": 0.747
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, his approach would likely involve several systematic steps:\n\n**Risk Assessment Through Documentation**\nHe would apply his \"strong risk assessment capabilities\""
+        },
+        {
+          "task_id": "F02",
+          "category": "reasoning",
+          "score": {
+            "keyword_score": 0.833,
+            "keywords_matched": [
+              "socratic",
+              "question",
+              "avoid",
+              "dogmatic",
+              "indirect"
+            ],
+            "keywords_total": 6,
+            "generic_count": 0,
+            "word_count": 246,
+            "pattern_count": 2,
+            "total_score": 0.83
+          },
+          "response_preview": "Based on the behavioral patterns described, Franklin would likely respond to a dogmatic philosophical argument in several characteristic ways:\n\n**Avoid Direct Confrontation**: Rather than immediately "
+        },
+        {
+          "task_id": "F03",
+          "category": "failure_mode",
+          "score": {
+            "keyword_score": 0.25,
+            "keywords_matched": [
+              "pride"
+            ],
+            "keywords_total": 4,
+            "generic_count": 0,
+            "word_count": 215,
+            "pattern_count": 2,
+            "total_score": 0.422
+          },
+          "response_preview": "Based on his behavioral patterns, you should watch for **pride management issues** escalating after this major success.\n\nThe profile specifically identifies \"struggling with fundamental organizational"
+        },
+        {
+          "task_id": "F04",
+          "category": "decision",
+          "score": {
+            "keyword_score": 0.6,
+            "keywords_matched": [
+              "public",
+              "benefit",
+              "service"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 223,
+            "pattern_count": 2,
+            "total_score": 0.667
+          },
+          "response_preview": "Based on the behavioral patterns described, Franklin would choose the public service role. Here's why:\n\n**Core Priority Pattern**: The profile explicitly states he \"consistently prioritizes public ben"
+        },
+        {
+          "task_id": "F05",
+          "category": "reasoning",
+          "score": {
+            "keyword_score": 0.8,
+            "keywords_matched": [
+              "experiment",
+              "systematic",
+              "observation",
+              "document"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 124,
+            "pattern_count": 1,
+            "total_score": 0.793
+          },
+          "response_preview": "I cannot answer this question based solely on the behavioral profile provided. While the profile mentions that this person \"engages in continuous self-education across diverse fields, from languages t"
+        },
+        {
+          "task_id": "F06",
+          "category": "interaction",
+          "score": {
+            "keyword_score": 0.5,
+            "keywords_matched": [
+              "public",
+              "benefit"
+            ],
+            "keywords_total": 4,
+            "generic_count": 0,
+            "word_count": 255,
+            "pattern_count": 3,
+            "total_score": 0.63
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, here's the most effective framing approach:\n\n**Lead with systematic analysis and public benefit**\nPresent your idea as a methodical solution to a clear problem"
+        },
+        {
+          "task_id": "F07",
+          "category": "failure_mode",
+          "score": {
+            "keyword_score": 0.5,
+            "keywords_matched": [
+              "organiz",
+              "struggle"
+            ],
+            "keywords_total": 4,
+            "generic_count": 0,
+            "word_count": 216,
+            "pattern_count": 5,
+            "total_score": 0.63
+          },
+          "response_preview": "Based on the behavioral patterns described, Franklin will likely struggle with the **fundamental organizational and structural aspects** of the multi-step project, despite his strengths in other areas"
+        },
+        {
+          "task_id": "F08",
+          "category": "decision",
+          "score": {
+            "keyword_score": 0.667,
+            "keywords_matched": [
+              "clear",
+              "terms",
+              "written",
+              "agreement"
+            ],
+            "keywords_total": 6,
+            "generic_count": 0,
+            "word_count": 235,
+            "pattern_count": 4,
+            "total_score": 0.747
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, he would insist on several key elements when dealing with vague financial terms:\n\n**Clear documentation and systematic tracking**: Given his tendency to mainta"
+        },
+        {
+          "task_id": "F09",
+          "category": "reasoning",
+          "score": {
+            "keyword_score": 0.6,
+            "keywords_matched": [
+              "goodwill",
+              "avoid",
+              "dispute"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 241,
+            "pattern_count": 3,
+            "total_score": 0.7
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, he would likely mediate this dispute through several characteristic approaches:\n\n**Indirect and Anonymous Methods**: Rather than inserting himself directly as "
+        },
+        {
+          "task_id": "F10",
+          "category": "interaction",
+          "score": {
+            "keyword_score": 0.4,
+            "keywords_matched": [
+              "processing",
+              "avoid"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 245,
+            "pattern_count": 3,
+            "total_score": 0.56
+          },
+          "response_preview": "Based on this person's behavioral patterns, his withdrawal likely indicates he's in careful observation and analysis mode rather than disengagement. Given his tendency to use \"Socratic questioning ove"
+        },
+        {
+          "task_id": "F11",
+          "category": "decision",
+          "score": {
+            "keyword_score": 0.6,
+            "keywords_matched": [
+              "public",
+              "benefit",
+              "free"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 224,
+            "pattern_count": 2,
+            "total_score": 0.667
+          },
+          "response_preview": "Based on the behavioral patterns described, Franklin would likely decide **not to patent his stove design**.\n\nHere's why this aligns with his established patterns:\n\n**Prioritizes public benefit over p"
+        },
+        {
+          "task_id": "F12",
+          "category": "reasoning",
+          "score": {
+            "keyword_score": 0.8,
+            "keywords_matched": [
+              "voluntary",
+              "persua",
+              "consensus",
+              "anonymous"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 252,
+            "pattern_count": 2,
+            "total_score": 0.807
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, he would likely employ this multi-pronged strategy:\n\n**Anonymous Publication First**: Given his preference for \"indirect methods, favoring anonymous publicatio"
+        },
+        {
+          "task_id": "F13",
+          "category": "failure_mode",
+          "score": {
+            "keyword_score": 0.6,
+            "keywords_matched": [
+              "indirect",
+              "socratic",
+              "question"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 238,
+            "pattern_count": 4,
+            "total_score": 0.7
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, he would likely deliver this feedback through indirect and diplomatic methods rather than direct confrontation.\n\n**His approach would probably involve:**\n\n**So"
+        },
+        {
+          "task_id": "F14",
+          "category": "interaction",
+          "score": {
+            "keyword_score": 0.5,
+            "keywords_matched": [
+              "intellectual",
+              "avoid",
+              "frivolous"
+            ],
+            "keywords_total": 6,
+            "generic_count": 0,
+            "word_count": 251,
+            "pattern_count": 4,
+            "total_score": 0.63
+          },
+          "response_preview": "Based on the behavioral patterns described, this person would likely appreciate leisure activities that align with their systematic self-improvement approach and intellectual curiosity:\n\n**Would Appre"
+        },
+        {
+          "task_id": "F15",
+          "category": "decision",
+          "score": {
+            "keyword_score": 0.8,
+            "keywords_matched": [
+              "systematic",
+              "track",
+              "virtue",
+              "practice"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 252,
+            "pattern_count": 6,
+            "total_score": 0.84
+          },
+          "response_preview": "Based on his systematic approach to self-improvement and analytical mindset, Franklin would likely respond to this setback in several characteristic ways:\n\n**Methodical Analysis**: Given his pattern o"
+        }
+      ],
+      "by_category": {
+        "interaction": 0.607,
+        "decision": 0.73,
+        "reasoning": 0.775,
+        "failure_mode": 0.584
+      }
+    },
+    "E_annotated_guide": {
+      "brief_chars": 2851,
+      "avg_score": 0.766,
+      "total_score": 11.5,
+      "tasks": [
+        {
+          "task_id": "F01",
+          "category": "reasoning",
+          "score": {
+            "keyword_score": 0.667,
+            "keywords_matched": [
+              "written",
+              "document",
+              "agreement",
+              "clear terms"
+            ],
+            "keywords_total": 6,
+            "generic_count": 0,
+            "word_count": 272,
+            "pattern_count": 2,
+            "total_score": 0.713
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, here's how he would approach this investment decision:\n\n## Documentation and Systematic Analysis\nHe would insist on **written records of everything**—partnersh"
+        },
+        {
+          "task_id": "F02",
+          "category": "reasoning",
+          "score": {
+            "keyword_score": 0.667,
+            "keywords_matched": [
+              "socratic",
+              "question",
+              "avoid",
+              "dogmatic"
+            ],
+            "keywords_total": 6,
+            "generic_count": 0,
+            "word_count": 224,
+            "pattern_count": 2,
+            "total_score": 0.713
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, he would avoid direct confrontation with the dogmatic argument. Instead, he would employ **Socratic questioning** to gently probe the underlying assumptions.\n\n"
+        },
+        {
+          "task_id": "F03",
+          "category": "failure_mode",
+          "score": {
+            "keyword_score": 0.5,
+            "keywords_matched": [
+              "pride",
+              "struggle"
+            ],
+            "keywords_total": 4,
+            "generic_count": 0,
+            "word_count": 185,
+            "pattern_count": 6,
+            "total_score": 0.65
+          },
+          "response_preview": "Based on the behavioral brief, you should watch for **pride emerging as his acknowledged struggle**. \n\nWhen Franklin experiences major public success, his pride may cause him to become \"overly investe"
+        },
+        {
+          "task_id": "F04",
+          "category": "decision",
+          "score": {
+            "keyword_score": 1.0,
+            "keywords_matched": [
+              "public",
+              "benefit",
+              "service",
+              "useful",
+              "honest"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 238,
+            "pattern_count": 2,
+            "total_score": 0.947
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, he would choose the public service role, but not without careful deliberation.\n\n**His decision-making process would involve:**\n\n1. **Utilitarian analysis** - H"
+        },
+        {
+          "task_id": "F05",
+          "category": "reasoning",
+          "score": {
+            "keyword_score": 0.8,
+            "keywords_matched": [
+              "experiment",
+              "systematic",
+              "observation",
+              "document"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 243,
+            "pattern_count": 3,
+            "total_score": 0.84
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, here's how he approaches scientific questions about electricity:\n\n**Systematic Experimentation & Documentation**\nHe'll design controlled experiments to test sp"
+        },
+        {
+          "task_id": "F06",
+          "category": "interaction",
+          "score": {
+            "keyword_score": 0.5,
+            "keywords_matched": [
+              "public",
+              "benefit"
+            ],
+            "keywords_total": 4,
+            "generic_count": 0,
+            "word_count": 250,
+            "pattern_count": 3,
+            "total_score": 0.63
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, here's the most effective framing approach:\n\n## Lead with Public Benefit\nStart immediately with how your idea serves the collective good. Franklin's core axiom"
+        },
+        {
+          "task_id": "F07",
+          "category": "failure_mode",
+          "score": {
+            "keyword_score": 1.0,
+            "keywords_matched": [
+              "order",
+              "organiz",
+              "struggle",
+              "weakness"
+            ],
+            "keywords_total": 4,
+            "generic_count": 0,
+            "word_count": 244,
+            "pattern_count": 5,
+            "total_score": 0.98
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, he'll likely struggle in two key areas:\n\n**1. Order and Systematic Organization**\nFranklin explicitly acknowledged Order as one of his personal weaknesses. Whi"
+        },
+        {
+          "task_id": "F08",
+          "category": "decision",
+          "score": {
+            "keyword_score": 1.0,
+            "keywords_matched": [
+              "clear",
+              "terms",
+              "written",
+              "agreement",
+              "exploit",
+              "decei"
+            ],
+            "keywords_total": 6,
+            "generic_count": 0,
+            "word_count": 210,
+            "pattern_count": 2,
+            "total_score": 0.947
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, he will absolutely insist on **clear, detailed terms** before proceeding with any financial deal.\n\nHis hypersensitivity to financial exploitation stems from be"
+        },
+        {
+          "task_id": "F09",
+          "category": "reasoning",
+          "score": {
+            "keyword_score": 1.0,
+            "keywords_matched": [
+              "harmony",
+              "goodwill",
+              "avoid",
+              "dispute",
+              "written"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 261,
+            "pattern_count": 2,
+            "total_score": 0.947
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, here's how he would likely mediate the dispute:\n\n## Initial Approach\nFranklin would avoid taking sides immediately and instead employ **Socratic questioning** "
+        },
+        {
+          "task_id": "F10",
+          "category": "interaction",
+          "score": {
+            "keyword_score": 1.0,
+            "keywords_matched": [
+              "reflect",
+              "processing",
+              "space",
+              "avoid",
+              "dispute"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 218,
+            "pattern_count": 3,
+            "total_score": 0.98
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, his withdrawal likely means one of two things:\n\n**What's happening:**\n- He's avoiding a potential dispute while trying to maintain goodwill with everyone prese"
+        },
+        {
+          "task_id": "F11",
+          "category": "decision",
+          "score": {
+            "keyword_score": 0.6,
+            "keywords_matched": [
+              "public",
+              "benefit",
+              "free"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 225,
+            "pattern_count": 3,
+            "total_score": 0.7
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, he would decide **not to patent the stove design**.\n\nHere's why this aligns with his core decision-making framework:\n\n**Utilitarian Calculus Application**: Fra"
+        },
+        {
+          "task_id": "F12",
+          "category": "reasoning",
+          "score": {
+            "keyword_score": 0.4,
+            "keywords_matched": [
+              "written",
+              "consensus"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 246,
+            "pattern_count": 4,
+            "total_score": 0.56
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, he would employ a systematic, documentation-heavy approach focused on public benefit:\n\n**Lead with Utilitarian Framing**: He'd open by demonstrating how defens"
+        },
+        {
+          "task_id": "F13",
+          "category": "failure_mode",
+          "score": {
+            "keyword_score": 0.6,
+            "keywords_matched": [
+              "gentle",
+              "socratic",
+              "question"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 244,
+            "pattern_count": 4,
+            "total_score": 0.7
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, he would deliver this feedback through his characteristic approach of gentle inquiry rather than direct contradiction.\n\n**His Method:**\nHe'd avoid stating \"You"
+        },
+        {
+          "task_id": "F14",
+          "category": "interaction",
+          "score": {
+            "keyword_score": 0.5,
+            "keywords_matched": [
+              "intellectual",
+              "avoid",
+              "frivolous"
+            ],
+            "keywords_total": 6,
+            "generic_count": 0,
+            "word_count": 306,
+            "pattern_count": 4,
+            "total_score": 0.63
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, here's what he would likely appreciate vs. reject in leisure activities:\n\n## WOULD APPRECIATE:\n\n**Intellectual games with social benefit** - Chess, strategic b"
+        },
+        {
+          "task_id": "F15",
+          "category": "decision",
+          "score": {
+            "keyword_score": 0.4,
+            "keywords_matched": [
+              "systematic",
+              "virtue"
+            ],
+            "keywords_total": 5,
+            "generic_count": 0,
+            "word_count": 224,
+            "pattern_count": 5,
+            "total_score": 0.56
+          },
+          "response_preview": "Based on Franklin's behavioral patterns, he would respond systematically rather than emotionally to this setback.\n\n**His likely approach:**\n\n**Documentation and Analysis**: He'd meticulously record th"
+        }
+      ],
+      "by_category": {
+        "interaction": 0.747,
+        "decision": 0.788,
+        "reasoning": 0.755,
+        "failure_mode": 0.777
+      }
+    }
+  }
+}

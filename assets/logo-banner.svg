@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="60" viewBox="0 0 320 60" fill="none">
+  <rect width="320" height="60" rx="8" fill="#0d1117"/>
+
+  <!-- Top layer — smallest, most transparent -->
+  <path d="M18 20L22 17L34 17L30 20Z" fill="#58a6ff" opacity="0.25"/>
+  <path d="M18 20L22 17L34 17L30 20Z" stroke="#58a6ff" stroke-width="0.5" opacity="0.4"/>
+
+  <!-- Middle layer -->
+  <path d="M15 27L19 24L35 24L31 27Z" fill="#58a6ff" opacity="0.5"/>
+  <path d="M15 27L19 24L35 24L31 27Z" stroke="#58a6ff" stroke-width="0.5" opacity="0.6"/>
+
+  <!-- Base layer — widest, most opaque -->
+  <path d="M12 34L16 31L36 31L32 34Z" fill="#58a6ff" opacity="0.85"/>
+  <path d="M12 34L16 31L36 31L32 34Z" stroke="#58a6ff" stroke-width="0.5" opacity="1"/>
+
+  <!-- Connecting lines -->
+  <line x1="18" y1="20" x2="15" y2="27" stroke="#58a6ff" stroke-width="0.5" opacity="0.2"/>
+  <line x1="30" y1="20" x2="31" y2="27" stroke="#58a6ff" stroke-width="0.5" opacity="0.2"/>
+  <line x1="15" y1="27" x2="12" y2="34" stroke="#58a6ff" stroke-width="0.5" opacity="0.2"/>
+  <line x1="31" y1="27" x2="32" y2="34" stroke="#58a6ff" stroke-width="0.5" opacity="0.2"/>
+
+  <!-- Text -->
+  <text x="48" y="33" font-family="ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace" font-size="20" font-weight="600" fill="#e6edf3" letter-spacing="-0.5">Base Layer</text>
+</svg>

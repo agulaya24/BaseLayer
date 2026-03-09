@@ -1,0 +1,41 @@
+{
+  "started": "2026-03-08T09:15:26.134673",
+  "total_minutes": 29.7,
+  "results": [
+    {
+      "script": "sonnet_validation.py",
+      "name": "Sonnet Validation of Qwen Findings",
+      "status": "SUCCESS",
+      "elapsed_min": 3.3,
+      "returncode": 0
+    },
+    {
+      "script": "expanded_identity_ablation.py",
+      "name": "Expanded Identity-Tier + Temporal Ablation",
+      "status": "SUCCESS",
+      "elapsed_min": 5.4,
+      "returncode": 0
+    },
+    {
+      "script": "voice_downstream_eval.py",
+      "name": "Voice Downstream Evaluation (Sonnet)",
+      "status": "SUCCESS",
+      "elapsed_min": 12.1,
+      "returncode": 0
+    },
+    {
+      "script": "coverage_merge_adversarial.py",
+      "name": "Coverage + Merge + Adversarial",
+      "status": "SUCCESS",
+      "elapsed_min": 5.6,
+      "returncode": 0
+    },
+    {
+      "script": "brief_optimization.py",
+      "name": "Brief Length + Density Optimization",
+      "status": "SUCCESS",
+      "elapsed_min": 3.3,
+      "returncode": 0
+    }
+  ]
+}
