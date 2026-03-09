@@ -1,0 +1,2911 @@
+{
+  "experiment": "predicate_expansion",
+  "question": "Do more predicates capture more nuanced identity signal?",
+  "standard": {
+    "predicate_count": 47,
+    "facts_extracted": 230,
+    "unique_predicates_used": 75,
+    "time_seconds": 932.8
+  },
+  "expanded": {
+    "predicate_count": 70,
+    "facts_extracted": 207,
+    "unique_predicates_used": 92,
+    "time_seconds": 837.7,
+    "new_predicates_used": [
+      "advances",
+      "agrees_to",
+      "approves_of",
+      "arrived_in",
+      "awarded",
+      "boards_with",
+      "borrows",
+      "celebrates",
+      "cheats_in",
+      "composes",
+      "courtship",
+      "defines_self_as",
+      "develops",
+      "develops_interest_in",
+      "disputes",
+      "disregards",
+      "dissuades",
+      "dresses_plainly",
+      "engraves",
+      "establishes",
+      "experiences",
+      "forbids",
+      "has_a_rival_in_business",
+      "has_access_to",
+      "improves",
+      "invents",
+      "is_identified_as",
+      "is_invited_to",
+      "made_fellow_of",
+      "makes",
+      "met_with",
+      "neglects",
+      "opens",
+      "oscillates_between",
+      "pays_off",
+      "perceives",
+      "plans_to",
+      "prints",
+      "proposes",
+      "proposes_a_financial_arrangement",
+      "reads",
+      "received",
+      "received_letter_from",
+      "received_money_from",
+      "received_support_from",
+      "receives",
+      "receives_and_sends_papers_by_the_post",
+      "receives_feedback_from",
+      "rejects",
+      "rejects_label",
+      "sailed_from",
+      "shares_honors_with",
+      "signed",
+      "signs",
+      "sold",
+      "takes_care_of",
+      "turns",
+      "unites",
+      "visited",
+      "wants_to_marry",
+      "wishes_to_improve",
+      "works_with",
+      "worries_about",
+      "writes"
+    ],
+    "facts_from_new_predicates": 82
+  },
+  "delta": {
+    "fact_count_diff": -23,
+    "new_predicate_utilization": "64/23",
+    "pct_facts_from_new_predicates": 39.6
+  },
+  "standard_detail": {
+    "label": "standard_47",
+    "predicate_set_size": 47,
+    "conversations_processed": 10,
+    "total_facts": 230,
+    "unique_predicates_used": 75,
+    "predicate_distribution": {
+      "owns": 15,
+      "struggles_with": 13,
+      "experiences": 13,
+      "values": 11,
+      "enjoys": 9,
+      "wants_to": 9,
+      "works_at": 9,
+      "dislikes": 8,
+      "manages": 8,
+      "believes": 7,
+      "lives_in": 7,
+      "reads": 6,
+      "studies": 5,
+      "received": 5,
+      "identifies_as": 5,
+      "friends_with": 5,
+      "prints": 5,
+      "works_with": 5,
+      "writes": 4,
+      "raised_in": 4,
+      "excels_at": 4,
+      "trades": 4,
+      "prioritizes": 3,
+      "parents": 3,
+      "avoids": 3,
+      "maintains": 3,
+      "fears": 3,
+      "takes_care_of": 3,
+      "admires": 2,
+      "practices": 2,
+      "married_to": 2,
+      "decided": 2,
+      "founded": 1,
+      "developed": 1,
+      "signed": 1,
+      "made_a_fellow_of": 1,
+      "awarded": 1,
+      "identified_as": 1,
+      "invented": 1,
+      "perceived_the_identity_of": 1,
+      "established": 1,
+      "appreciates": 1,
+      "improved": 1,
+      "identifies_with": 1,
+      "organized": 1,
+      "perfected": 1,
+      "received_honors_from": 1,
+      "graduated_from": 1,
+      "borrows": 1,
+      "disputes_with": 1,
+      "learns_from": 1,
+      "prefers": 1,
+      "experienced": 1,
+      "raised_by": 1,
+      "agrees_to": 1,
+      "courtship": 1,
+      "has_acquaintance_with": 1,
+      "approves_of": 1,
+      "cheats": 1,
+      "dissuades": 1,
+      "builds": 1,
+      "conflicts_with": 1,
+      "loves": 1,
+      "hates": 1,
+      "plays": 1,
+      "monitors": 1,
+      "relates_to": 1,
+      "collaborates_with": 1,
+      "opens": 1,
+      "dresses_plainly": 1,
+      "brings_home": 1,
+      "created": 1,
+      "includes": 1,
+      "arranges": 1,
+      "contrived": 1
+    },
+    "parse_errors": 0,
+    "facts": [
+      {
+        "source": "00 Introduction",
+        "predicate": "values",
+        "object": "human experience and wisdom",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "studies",
+        "object": "the life of Benjamin Franklin",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "enjoys",
+        "object": "reading the Autobiography of Benjamin Franklin",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "writes",
+        "object": "_Autobiography_ and _Poor Richard's Almanac_",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "founded",
+        "object": "a fire company, hospital, public library in Philadelphia, University of Pennsylvania",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "developed",
+        "object": "journalism and postal system for the colonies",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "signed",
+        "object": "the Declaration of Independence, Treaty of Alliance with France, Treaty of Peace with England, Constitution",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "received",
+        "object": "honorary degrees from Harvard and Yale, Oxford and St. Andrews",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "made_a_fellow_of",
+        "object": "the Royal Society",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "awarded",
+        "object": "Copley gold medal for improving natural knowledge",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "identified_as",
+        "object": "a self-made man, versatile genius and achiever",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "admires",
+        "object": "the versatility of Benjamin Franklin's achievements",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "invented",
+        "object": "lightning rod, Franklin stove",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "believes",
+        "object": "Franklin's life story is a model for success and self-improvement",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "perceived_the_identity_of",
+        "object": "lightning and electricity",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "values",
+        "object": "Franklin's practical wisdom and disinterested public service",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "established",
+        "object": "the American Philosophical Society",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "appreciates",
+        "object": "Franklin's contributions to science and diplomacy",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "improved",
+        "object": "the cleaning and lighting of streets in Philadelphia",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "identifies_with",
+        "object": "Franklin's rise from humble beginnings to eminence",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "organized",
+        "object": "a postal system for the colonies",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "wants_to",
+        "object": "learn from Franklin's example to overcome personal challenges",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "perfected",
+        "object": "the Albany Plan of Union for the colonies",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "prioritizes",
+        "object": "understanding Franklin's approach to problem-solving and self-improvement",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "received_honors_from",
+        "object": "the French Academy of Science, becoming one of the eight foreign associates",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "wants_to",
+        "object": "emulate Franklin's dedication to public service and scientific inquiry",
+        "confidence": 1.0
+      },
+      {
+        "source": "01 Ancestry And Early Youth In Boston",
+        "predicate": "raised_in",
+        "object": "Boston",
+        "confidence": 1.0
+      },
+      {
+        "source": "01 Ancestry And Early Youth In Boston",
+        "predicate": "parents",
+        "object": "unknown ancestors",
+        "confidence": 0.9
+      },
+      {
+        "source": "01 Ancestry And Early Youth In Boston",
+        "predicate": "graduated_from",
+        "object": "self-education and apprenticeship",
+        "confidence": 1.0
+      },
+      {
+        "source": "01 Ancestry And Early Youth In Boston",
+        "predicate": "values",
+        "object": "felicity and success in life",
+        "confidence": 1.0
+      },
+      {
+        "source": "01 Ancestry And Early Youth In Boston",
+        "predicate": "believes",
+        "object": "the happiness of his past life is due to God's kind providence",
+        "confidence": 1.0
+      },
+      {
+        "source": "01 Ancestry And Early Youth In Boston",
+        "predicate": "struggles_with",
+        "object": "poverty and obscurity in early life",
+        "confidence": 1.0
+      },
+      {
+        "source": "01 Ancestry And Early Youth In Boston",
+        "predicate": "excels_at",
+        "object": "emerging from poverty to affluence and reputation",
+        "confidence": 1.0
+      },
+      {
+        "source": "01 Ancestry And Early Youth In Boston",
+        "predicate": "identifies_as",
+        "object": "a writer of autobiography",
+        "confidence": 1.0
+      },
+      {
+        "source": "01 Ancestry And Early Youth In Boston",
+        "predicate": "wants_to",
+        "object": "provide guidance and inspiration to his posterity through his life story",
+        "confidence": 1.0
+      },
+      {
+        "source": "01 Ancestry And Early Youth In Boston",
+        "predicate": "enjoys",
+        "object": "recalling and documenting his past life",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "values",
+        "object": "reading",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "owns",
+        "object": "John Bunyan's works in separate little volumes",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "reads",
+        "object": "Plutarch's Lives",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "reads",
+        "object": "R. Burton's Historical Collections",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "reads",
+        "object": "DeFoe's Essay on Projects",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "reads",
+        "object": "Dr. Mather's Essays to do Good",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "works_at",
+        "object": "printing business",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "lives_in",
+        "object": "Boston",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "parents",
+        "object": "father and mother",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "raised_in",
+        "object": "Boston",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "studies",
+        "object": "printing business",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "enjoys",
+        "object": "reading books",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "dislikes",
+        "object": "being a clergyman",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "struggles_with",
+        "object": "decision between sea and printing business",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "works_at",
+        "object": "printing house of brother James",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "owns",
+        "object": "small books from chapmen or peddlers",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "borrows",
+        "object": "books from acquaintances of book sellers",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "reads",
+        "object": "Matthew Adams' library books",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "writes",
+        "object": "poetry and ballads",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "disputes_with",
+        "object": "John Collins",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "writes",
+        "object": "letters to John Collins about education of female sex",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "reads",
+        "object": "The Spectator",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "practices",
+        "object": "writing style of The Spectator",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "wants_to",
+        "object": "become a tolerable English writer",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "avoids",
+        "object": "common attendance on public worship",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "believes",
+        "object": "that reading and writing are important for advancement in life",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "struggles_with",
+        "object": "fluency and eloquence in argumentation",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "learns_from",
+        "object": "father's critique on writing style",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "owns",
+        "object": "working dress",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "values",
+        "object": "trade as a printer",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "practices",
+        "object": "reading",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "studies",
+        "object": "Bunyan's Pilgrim's Progress",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "prefers",
+        "object": "cold water for fever treatment",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "avoids",
+        "object": "sea life",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "works_at",
+        "object": "printer's shop in Philadelphia",
+        "confidence": 0.9
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "lives_in",
+        "object": "Philadelphia",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "raised_in",
+        "object": "unknown location before Philadelphia",
+        "confidence": 0.8
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "experienced",
+        "object": "journey to Philadelphia by boat and foot",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "enjoys",
+        "object": "reading Bunyan's Pilgrim's Progress",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "dislikes",
+        "object": "being suspected as a runaway servant",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "struggles_with",
+        "object": "fatigue and hunger during journey",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "excels_at",
+        "object": "rowing a boat",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "identifies_as",
+        "object": "printer",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "maintains",
+        "object": "conversation with Dr. Brown",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "believes",
+        "object": "cold water treatment for fever",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "fears",
+        "object": "being taken up as a runaway servant",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "enjoys",
+        "object": "ox-cheek dinner at an inn",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "dislikes",
+        "object": "being wet and cold during the night on Long Island",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "struggles_with",
+        "object": "finding lodging in Philadelphia",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "excels_at",
+        "object": "adapting to new environments",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "identifies_as",
+        "object": "traveler and adventurer",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "maintains",
+        "object": "friendship with Dr. Brown",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "believes",
+        "object": "cold water treatment for fever",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "fears",
+        "object": "being stranded without a boat to Philadelphia",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "enjoys",
+        "object": "meeting new people during journey",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "dislikes",
+        "object": "being wet and cold during the night on Long Island",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "lives_in",
+        "object": "Philadelphia",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "works_at",
+        "object": "Keimer's printing house",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "owns",
+        "object": "a new suit, a watch, and silver money",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "values",
+        "object": "steady industry and prudent parsimony",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "struggles_with",
+        "object": "lampooning and libeling",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "wants_to",
+        "object": "return to Philadelphia",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "friends_with",
+        "object": "Collins",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "parents",
+        "object": "his father and mother",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "raised_in",
+        "object": "Boston",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "married_to",
+        "object": "unknown",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "raised_by",
+        "object": "his father and mother",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "works_at",
+        "object": "printing business in Philadelphia",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "experiences",
+        "object": "a visit from Sir William Keith and Colonel French",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "decided",
+        "object": "to return to Philadelphia",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "received",
+        "object": "a letter from Sir William Keith recommending him to his father",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "experiences",
+        "object": "an unexpected visit to Boston after seven months away",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "dislikes",
+        "object": "his brother's attitude towards him",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "enjoys",
+        "object": "the attention and support from Sir William Keith",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "experiences",
+        "object": "a journey to Rhode Island",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "received",
+        "object": "money from his brother John in Newport, Rhode Island",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "experiences",
+        "object": "uneasiness due to the money received for Vernon",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "trades",
+        "object": "money and services with passengers on the sloop",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "experiences",
+        "object": "a journey to New York",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "received",
+        "object": "tokens of love from his parents",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "experiences",
+        "object": "a visit to his brother John in Newport, Rhode Island",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "received",
+        "object": "an order from Vernon for money due to him",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "experiences",
+        "object": "a journey back to Philadelphia with his parents' blessing",
+        "confidence": 1.0
+      },
+      {
+        "source": "05 Early Friends In Philadelphia",
+        "predicate": "lives_in",
+        "object": "Philadelphia",
+        "confidence": 1.0
+      },
+      {
+        "source": "05 Early Friends In Philadelphia",
+        "predicate": "friends_with",
+        "object": "Keimer",
+        "confidence": 1.0
+      },
+      {
+        "source": "05 Early Friends In Philadelphia",
+        "predicate": "dislikes",
+        "object": "Keimer's beard and Sabbath observance",
+        "confidence": 1.0
+      },
+      {
+        "source": "05 Early Friends In Philadelphia",
+        "predicate": "agrees_to",
+        "object": "vegetarian diet with Keimer",
+        "confidence": 1.0
+      },
+      {
+        "source": "05 Early Friends In Philadelphia",
+        "predicate": "courtship",
+        "object": "Miss Read",
+        "confidence": 1.0
+      },
+      {
+        "source": "05 Early Friends In Philadelphia",
+        "predicate": "has_acquaintance_with",
+        "object": [
+          "Charles Osborne",
+          "Joseph Watson",
+          "James Ralph"
+        ],
+        "confidence": 1.0
+      },
+      {
+        "source": "05 Early Friends In Philadelphia",
+        "predicate": "values",
+        "object": "reading and literary discussions",
+        "confidence": 1.0
+      },
+      {
+        "source": "05 Early Friends In Philadelphia",
+        "predicate": "dislikes",
+        "object": "Osborne's criticism of poetry",
+        "confidence": 1.0
+      },
+      {
+        "source": "05 Early Friends In Philadelphia",
+        "predicate": "approves_of",
+        "object": "Ralph's poem",
+        "confidence": 1.0
+      },
+      {
+        "source": "05 Early Friends In Philadelphia",
+        "predicate": "cheats",
+        "object": "Osborne by presenting Ralph's work as his own",
+        "confidence": 1.0
+      },
+      {
+        "source": "05 Early Friends In Philadelphia",
+        "predicate": "dissuades",
+        "object": "Ralph from pursuing poetry",
+        "confidence": 1.0
+      },
+      {
+        "source": "05 Early Friends In Philadelphia",
+        "predicate": "enjoys",
+        "object": "mutual literary criticism and improvement",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "lives_in",
+        "object": "Philadelphia",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "married_to",
+        "object": "Miss Read",
+        "confidence": 0.8
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "works_at",
+        "object": "Palmer's printing-house in Bartholomew Close",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "trades",
+        "object": "letters of credit and letters to friends for money and supplies",
+        "confidence": 0.9
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "struggles_with",
+        "object": "disappointment with Governor Keith's promises",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "friends_with",
+        "object": "Mr. Denham",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "works_at",
+        "object": "printing business in London",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "friends_with",
+        "object": "this person",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "lives_in",
+        "object": "London",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "manages",
+        "object": "governorship of Pennsylvania",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "owns",
+        "object": "no credit or resources to give",
+        "confidence": 0.9
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "manages",
+        "object": "correspondence and despatches for the governorship",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "works_at",
+        "object": "Philadelphia as a lawyer",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "trades",
+        "object": "friendship with this person",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "values",
+        "object": "improving oneself through work and experience",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "identifies_as",
+        "object": "attorney and knave",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "experiences",
+        "object": "disappointment with Governor Keith's promises",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "struggles_with",
+        "object": "finding employment in London",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "experiences",
+        "object": "friendship and support from Mr. Denham",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "manages",
+        "object": "correspondence with Riddlesden",
+        "confidence": 0.9
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "experiences",
+        "object": "voyage to London in December 1724",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "struggles_with",
+        "object": "financial difficulties and finding employment",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "experiences",
+        "object": "disappointment with Governor Keith's letters of credit",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "manages",
+        "object": "governorship and correspondence",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "experiences",
+        "object": "friendship with Mr. Denham",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "manages",
+        "object": "correspondence and despatches for the governorship",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "experiences",
+        "object": "disappointment with Governor Keith's promises",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "lives_in",
+        "object": "Philadelphia",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "works_at",
+        "object": "Keimer's printing-house",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "studies",
+        "object": "accounts",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "manages",
+        "object": "Keimer's printing-house",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "owns",
+        "object": "a mould for casting types",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "builds",
+        "object": "types and matrices",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "trades",
+        "object": "printing services",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "struggles_with",
+        "object": "debt to Vernon",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "values",
+        "object": "learning and education",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "enjoys",
+        "object": "reading on Saturdays",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "dislikes",
+        "object": "Keimer's behavior and treatment",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "friends_with",
+        "object": "Hugh Meredith, Stephen Potts, George Webb, David Harry",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "manages",
+        "object": "warehouse duties",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "excels_at",
+        "object": "selling and business management",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "prioritizes",
+        "object": "improving the skills of his coworkers",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "conflicts_with",
+        "object": "Keimer's management style",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "maintains",
+        "object": "order in the printing-house",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "identifies_as",
+        "object": "a diligent and hardworking individual",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "wants_to",
+        "object": "pay off debt to Vernon",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "loves",
+        "object": "learning and self-improvement",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "hates",
+        "object": "being indebted",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "plays",
+        "object": "a role in the local community and business world",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "monitors",
+        "object": "the progress of his coworkers",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "relates_to",
+        "object": "ingenious people in the town",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "collaborates_with",
+        "object": "Hugh Meredith, Stephen Potts, George Webb, David Harry",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "admires",
+        "object": "Mr. Denham's mentorship and guidance",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "fears",
+        "object": "losing his job at Keimer's printing-house",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "writes",
+        "object": "an anonymous pamphlet on paper currency",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "prints",
+        "object": "the money",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "opens",
+        "object": "a stationer's shop",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "owns",
+        "object": "blanks of all sorts, paper, parchment, chapmen's books, etc.",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "works_with",
+        "object": "Whitemash (a compositor)",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "takes_care_of",
+        "object": "his credit and character as a tradesman",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "dresses_plainly",
+        "object": "",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "avoids",
+        "object": "places of idle diversion",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "brings_home",
+        "object": "the paper I purchased at the stores through the streets on a wheelbarrow",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "manages",
+        "object": "a printing business",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "prints",
+        "object": "the laws and votes of the Newcastle government",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "owns",
+        "object": "a printing-house",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "struggles_with",
+        "object": "paying off the debt for the printing-house",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "works_with",
+        "object": "Breintnal (a friend)",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "takes_care_of",
+        "object": "his business reputation and credit",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "owns",
+        "object": "a stationer's shop",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "works_with",
+        "object": "an apprentice (the son of Aquilla Rose)",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "owns",
+        "object": "blanks, paper, parchment, chapmen's books, etc.",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "prints",
+        "object": "the Newcastle paper money",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "owns",
+        "object": "a printing business",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "prints",
+        "object": "laws and votes of the Newcastle government",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "owns",
+        "object": "a printing-house",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "struggles_with",
+        "object": "paying off the debt for the printing-house",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "works_with",
+        "object": "Breintnal (a friend)",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "takes_care_of",
+        "object": "his business reputation and credit",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "owns",
+        "object": "a stationer's shop",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "works_with",
+        "object": "an apprentice (the son of Aquilla Rose)",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "owns",
+        "object": "blanks, paper, parchment, chapmen's books, etc.",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "prints",
+        "object": "the Newcastle paper money",
+        "confidence": 1.0
+      },
+      {
+        "source": "09 Plan For Attaining Moral Perfection",
+        "predicate": "values",
+        "object": "moral perfection",
+        "confidence": 1.0
+      },
+      {
+        "source": "09 Plan For Attaining Moral Perfection",
+        "predicate": "struggles_with",
+        "object": "committing faults",
+        "confidence": 1.0
+      },
+      {
+        "source": "09 Plan For Attaining Moral Perfection",
+        "predicate": "wants_to",
+        "object": "live without committing any fault at any time",
+        "confidence": 1.0
+      },
+      {
+        "source": "09 Plan For Attaining Moral Perfection",
+        "predicate": "believes",
+        "object": "the mere speculative conviction that it was our interest to be completely virtuous is not sufficient to prevent us from slipping into faults",
+        "confidence": 1.0
+      },
+      {
+        "source": "09 Plan For Attaining Moral Perfection",
+        "predicate": "decided",
+        "object": "to undertake a project of moral perfection",
+        "confidence": 1.0
+      },
+      {
+        "source": "09 Plan For Attaining Moral Perfection",
+        "predicate": "prioritizes",
+        "object": "breaking bad habits and acquiring good ones",
+        "confidence": 1.0
+      },
+      {
+        "source": "09 Plan For Attaining Moral Perfection",
+        "predicate": "created",
+        "object": "a method to achieve moral perfection",
+        "confidence": 1.0
+      },
+      {
+        "source": "09 Plan For Attaining Moral Perfection",
+        "predicate": "owns",
+        "object": "a little book for daily examination of virtues",
+        "confidence": 1.0
+      },
+      {
+        "source": "09 Plan For Attaining Moral Perfection",
+        "predicate": "studies",
+        "object": "the moral virtues listed by different writers",
+        "confidence": 1.0
+      },
+      {
+        "source": "09 Plan For Attaining Moral Perfection",
+        "predicate": "includes",
+        "object": "thirteen names of virtues with precepts in a method to achieve moral perfection",
+        "confidence": 1.0
+      },
+      {
+        "source": "09 Plan For Attaining Moral Perfection",
+        "predicate": "wants_to",
+        "object": "acquire the habit of all these virtues one at a time",
+        "confidence": 1.0
+      },
+      {
+        "source": "09 Plan For Attaining Moral Perfection",
+        "predicate": "arranges",
+        "object": "the virtues in an order to facilitate their acquisition",
+        "confidence": 1.0
+      },
+      {
+        "source": "09 Plan For Attaining Moral Perfection",
+        "predicate": "believes",
+        "object": "daily examination is necessary for moral perfection",
+        "confidence": 1.0
+      },
+      {
+        "source": "09 Plan For Attaining Moral Perfection",
+        "predicate": "contrived",
+        "object": "a method for conducting daily examination of virtues",
+        "confidence": 1.0
+      },
+      {
+        "source": "09 Plan For Attaining Moral Perfection",
+        "predicate": "wants_to",
+        "object": "gain knowledge while improving in virtue",
+        "confidence": 1.0
+      },
+      {
+        "source": "09 Plan For Attaining Moral Perfection",
+        "predicate": "values",
+        "object": "the advice of Pythagoras to conduct daily examination",
+        "confidence": 1.0
+      }
+    ],
+    "time_seconds": 932.8
+  },
+  "expanded_detail": {
+    "label": "expanded_70",
+    "predicate_set_size": 70,
+    "conversations_processed": 10,
+    "total_facts": 207,
+    "unique_predicates_used": 92,
+    "predicate_distribution": {
+      "owns": 16,
+      "manages": 13,
+      "dislikes": 12,
+      "values": 11,
+      "struggles_with": 11,
+      "wants_to": 10,
+      "reads": 7,
+      "enjoys": 7,
+      "works_at": 6,
+      "writes": 5,
+      "friends_with": 5,
+      "lives_in": 5,
+      "visited": 4,
+      "studies": 3,
+      "believes": 3,
+      "prioritizes": 3,
+      "works_with": 3,
+      "identifies_as": 2,
+      "excels_at": 2,
+      "makes": 2,
+      "practices": 2,
+      "follows": 2,
+      "experiences": 2,
+      "received_letter_from": 2,
+      "avoids": 2,
+      "founded": 1,
+      "develops": 1,
+      "signs": 1,
+      "receives": 1,
+      "made_fellow_of": 1,
+      "awarded": 1,
+      "establishes": 1,
+      "perceives": 1,
+      "invents": 1,
+      "advances": 1,
+      "admires": 1,
+      "shares_honors_with": 1,
+      "improves": 1,
+      "unites": 1,
+      "raised_in": 1,
+      "parents": 1,
+      "graduated_from": 1,
+      "fears": 1,
+      "loves": 1,
+      "hates": 1,
+      "celebrates": 1,
+      "worries_about": 1,
+      "defines_self_as": 1,
+      "rejects_label": 1,
+      "oscillates_between": 1,
+      "sold": 1,
+      "signed": 1,
+      "has_access_to": 1,
+      "borrows": 1,
+      "is_invited_to": 1,
+      "develops_interest_in": 1,
+      "composes": 1,
+      "disputes": 1,
+      "receives_feedback_from": 1,
+      "wishes_to_improve": 1,
+      "turns": 1,
+      "met_with": 1,
+      "received_money_from": 1,
+      "received_support_from": 1,
+      "agrees_to": 1,
+      "courtship": 1,
+      "approves_of": 1,
+      "cheats_in": 1,
+      "dissuades": 1,
+      "received": 1,
+      "disregards": 1,
+      "maintains": 1,
+      "is_identified_as": 1,
+      "sailed_from": 1,
+      "arrived_in": 1,
+      "builds": 1,
+      "engraves": 1,
+      "prints": 1,
+      "opens": 1,
+      "takes_care_of": 1,
+      "dresses_plainly": 1,
+      "pays_off": 1,
+      "proposes": 1,
+      "rejects": 1,
+      "neglects": 1,
+      "has_a_rival_in_business": 1,
+      "receives_and_sends_papers_by_the_post": 1,
+      "boards_with": 1,
+      "wants_to_marry": 1,
+      "proposes_a_financial_arrangement": 1,
+      "forbids": 1,
+      "plans_to": 1
+    },
+    "parse_errors": 0,
+    "facts": [
+      {
+        "source": "00 Introduction",
+        "predicate": "values",
+        "object": "human element in life stories",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "reads",
+        "object": "Franklin's Autobiography",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "identifies_as",
+        "object": "American",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "writes",
+        "object": "_Autobiography_",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "struggles_with",
+        "object": "everyday passions and difficulties",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "excels_at",
+        "object": "public service",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "manages",
+        "object": "diplomacy and literature",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "founded",
+        "object": "fire company, hospital, public library in Philadelphia, University of Pennsylvania",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "develops",
+        "object": "postal system for the colonies",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "signs",
+        "object": "Declaration of Independence, Treaty of Alliance with France, Treaty of Peace with England, Constitution",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "writes",
+        "object": "_Poor Richard's Almanac_",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "receives",
+        "object": "honorary degrees from Harvard and Yale, Oxford and St. Andrews",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "made_fellow_of",
+        "object": "Royal Society",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "awarded",
+        "object": "Copley gold medal for improving natural knowledge",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "establishes",
+        "object": "American Philosophical Society",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "writes",
+        "object": "_Autobiography_ and _Poor Richard's Almanac_",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "studies",
+        "object": "Franklin's method of writing",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "perceives",
+        "object": "identity of lightning and electricity",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "invents",
+        "object": "Franklin stove, lightning rod",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "believes",
+        "object": "Franklin's maxims made Philadelphia and Pennsylvania wealthy",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "advances",
+        "object": "material prosperity of his countrymen",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "admires",
+        "object": "Franklin's versatility and achievements",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "shares_honors_with",
+        "object": "Washington for the Revolution",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "wants_to",
+        "object": "help American young people through Franklin's story",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "improves",
+        "object": "cleaning and lighting of streets",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "prioritizes",
+        "object": "Franklin's human aspect in his life story",
+        "confidence": 1.0
+      },
+      {
+        "source": "00 Introduction",
+        "predicate": "unites",
+        "object": "excellence in statesmanship and philosophy",
+        "confidence": 1.0
+      },
+      {
+        "source": "01 Ancestry And Early Youth In Boston",
+        "predicate": "raised_in",
+        "object": "Boston",
+        "confidence": 1.0
+      },
+      {
+        "source": "01 Ancestry And Early Youth In Boston",
+        "predicate": "parents",
+        "object": "unknown ancestors",
+        "confidence": 0.9
+      },
+      {
+        "source": "01 Ancestry And Early Youth In Boston",
+        "predicate": "graduated_from",
+        "object": "self-education and apprenticeship",
+        "confidence": 1.0
+      },
+      {
+        "source": "01 Ancestry And Early Youth In Boston",
+        "predicate": "values",
+        "object": "felicity and affluence",
+        "confidence": 1.0
+      },
+      {
+        "source": "01 Ancestry And Early Youth In Boston",
+        "predicate": "believes",
+        "object": "the happiness of his past life is due to God's kind providence",
+        "confidence": 1.0
+      },
+      {
+        "source": "01 Ancestry And Early Youth In Boston",
+        "predicate": "struggles_with",
+        "object": "poverty and obscurity in early life",
+        "confidence": 1.0
+      },
+      {
+        "source": "01 Ancestry And Early Youth In Boston",
+        "predicate": "excels_at",
+        "object": "emerging from poverty to affluence",
+        "confidence": 1.0
+      },
+      {
+        "source": "01 Ancestry And Early Youth In Boston",
+        "predicate": "identifies_as",
+        "object": "a writer and historian",
+        "confidence": 0.8
+      },
+      {
+        "source": "01 Ancestry And Early Youth In Boston",
+        "predicate": "wants_to",
+        "object": "recollect his life in writing for posterity",
+        "confidence": 1.0
+      },
+      {
+        "source": "01 Ancestry And Early Youth In Boston",
+        "predicate": "enjoys",
+        "object": "talking about himself and past actions",
+        "confidence": 1.0
+      },
+      {
+        "source": "01 Ancestry And Early Youth In Boston",
+        "predicate": "dislikes",
+        "object": "being tiresome to others when talking about himself",
+        "confidence": 1.0
+      },
+      {
+        "source": "01 Ancestry And Early Youth In Boston",
+        "predicate": "prioritizes",
+        "object": "gratitude and humility in acknowledging his happiness",
+        "confidence": 1.0
+      },
+      {
+        "source": "01 Ancestry And Early Youth In Boston",
+        "predicate": "fears",
+        "object": "a fatal reverse of fortune",
+        "confidence": 1.0
+      },
+      {
+        "source": "01 Ancestry And Early Youth In Boston",
+        "predicate": "loves",
+        "object": "the idea of a second edition to correct faults and improve life",
+        "confidence": 1.0
+      },
+      {
+        "source": "01 Ancestry And Early Youth In Boston",
+        "predicate": "hates",
+        "object": "vanity in others but acknowledges it in himself",
+        "confidence": 1.0
+      },
+      {
+        "source": "01 Ancestry And Early Youth In Boston",
+        "predicate": "celebrates",
+        "object": "the benefits of vanity when productive to the possessor and others",
+        "confidence": 1.0
+      },
+      {
+        "source": "01 Ancestry And Early Youth In Boston",
+        "predicate": "worries_about",
+        "object": "not being able to bear a fatal reverse if it happens",
+        "confidence": 1.0
+      },
+      {
+        "source": "01 Ancestry And Early Youth In Boston",
+        "predicate": "defines_self_as",
+        "object": "a humble and grateful individual",
+        "confidence": 1.0
+      },
+      {
+        "source": "01 Ancestry And Early Youth In Boston",
+        "predicate": "rejects_label",
+        "object": "the low tone of conceit in self-praise",
+        "confidence": 1.0
+      },
+      {
+        "source": "01 Ancestry And Early Youth In Boston",
+        "predicate": "oscillates_between",
+        "object": "hope and fear regarding future fortune",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "values",
+        "object": "reading books",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "owns",
+        "object": "John Bunyan's works in separate little volumes",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "sold",
+        "object": "John Bunyan's works to buy R. Burton's Historical Collections",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "reads",
+        "object": "Plutarch's Lives",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "reads",
+        "object": "Defoe's Essay on Projects",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "reads",
+        "object": "Dr. Mather's Essays to do Good",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "works_at",
+        "object": "printing business as an apprentice",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "signed",
+        "object": "indentures to work for his brother James until age 21",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "makes",
+        "object": "great proficiency in the printing business",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "has_access_to",
+        "object": "better books after becoming a printer's apprentice",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "borrows",
+        "object": "books from acquaintances of book sellers",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "reads",
+        "object": "books borrowed from acquaintances late into the night",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "is_invited_to",
+        "object": "Mr. Matthew Adams' library",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "develops_interest_in",
+        "object": "poetry",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "composes",
+        "object": "occasional ballads such as The Lighthouse Tragedy and a sailor's song on the taking of Teach (or Blackbeard) the pirate",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "disputes",
+        "object": "with John Collins about educating females in learning",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "writes",
+        "object": "letters to John Collins debating the education of women",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "receives_feedback_from",
+        "object": "his father about his writing style",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "reads",
+        "object": "an odd volume of the Spectator",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "wishes_to_improve",
+        "object": "his writing style to imitate The Spectator",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "practices",
+        "object": "rewriting papers from The Spectator to improve his own writing skills",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "turns",
+        "object": "tales into verse and back again to improve vocabulary and sentence structure",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "practices",
+        "object": "arranging thoughts in a methodical way through writing exercises",
+        "confidence": 1.0
+      },
+      {
+        "source": "02 Beginning Life As Printer",
+        "predicate": "reads",
+        "object": "books at night after work or on Sundays when alone in the printing house",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "owns",
+        "object": "a trade as a printer",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "values",
+        "object": "work ethic and self-reliance",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "struggles_with",
+        "object": "feeling homesick and uncertain about the future",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "enjoys",
+        "object": "reading Bunyan's Pilgrim's Progress",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "dislikes",
+        "object": "being wet and cold during travel",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "follows",
+        "object": "prescriptions for health, such as drinking cold water for fever",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "wants_to",
+        "object": "find employment in Philadelphia",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "experiences",
+        "object": "adventures and challenges during travel to Philadelphia",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "friends_with",
+        "object": "Dr. Brown, an innkeeper in Burlington",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "enjoys",
+        "object": "the hospitality of the old woman who offered lodging",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "dislikes",
+        "object": "being suspected as a runaway servant",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "works_at",
+        "object": "the printer's shop in Philadelphia (future intention)",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "lives_in",
+        "object": "Philadelphia (planned move)",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "experiences",
+        "object": "a journey by boat and foot to Philadelphia",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "enjoys",
+        "object": "the company of fellow travelers during the journey",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "dislikes",
+        "object": "being stranded and delayed due to weather conditions",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "enjoys",
+        "object": "the gingerbread bought from the old woman in Burlington",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "struggles_with",
+        "object": "finding lodging and direction upon arrival in Philadelphia",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "enjoys",
+        "object": "the sense of accomplishment after overcoming challenges",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "dislikes",
+        "object": "feeling tired and hungry upon arrival in Philadelphia",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "owns",
+        "object": "a Dutch dollar and a shilling in copper (at the time of arrival)",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "enjoys",
+        "object": "the act of exploring Philadelphia upon arrival",
+        "confidence": 1.0
+      },
+      {
+        "source": "03 Arrival In Philadelphia",
+        "predicate": "dislikes",
+        "object": "not knowing the local customs and products (like three-penny loaf)",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "lives_in",
+        "object": "Philadelphia",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "works_at",
+        "object": "Keimer's printing house",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "visited",
+        "object": "Boston",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "met_with",
+        "object": "Sir William Keith",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "received_letter_from",
+        "object": "Sir William Keith",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "owns",
+        "object": "a new suit, a watch, and silver money",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "visited",
+        "object": "brother-in-law's printing house",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "received_letter_from",
+        "object": "father",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "wants_to",
+        "object": "return to Philadelphia",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "visited",
+        "object": "brother John in Newport, Rhode Island",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "received_money_from",
+        "object": "Vernon via brother John",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "struggles_with",
+        "object": "reconciliation with brother",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "received_support_from",
+        "object": "father for future endeavors",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "friends_with",
+        "object": "Collins, a clerk in the post-office",
+        "confidence": 1.0
+      },
+      {
+        "source": "04 First Visit To Boston",
+        "predicate": "visited",
+        "object": "New York",
+        "confidence": 1.0
+      },
+      {
+        "source": "05 Early Friends In Philadelphia",
+        "predicate": "lives_in",
+        "object": "Philadelphia",
+        "confidence": 1.0
+      },
+      {
+        "source": "05 Early Friends In Philadelphia",
+        "predicate": "friends_with",
+        "object": "Keimer",
+        "confidence": 1.0
+      },
+      {
+        "source": "05 Early Friends In Philadelphia",
+        "predicate": "dislikes",
+        "object": "Keimer's beard and Sabbath observance",
+        "confidence": 1.0
+      },
+      {
+        "source": "05 Early Friends In Philadelphia",
+        "predicate": "agrees_to",
+        "object": "eating a vegetarian diet with Keimer",
+        "confidence": 1.0
+      },
+      {
+        "source": "05 Early Friends In Philadelphia",
+        "predicate": "courtship",
+        "object": "Miss Read",
+        "confidence": 1.0
+      },
+      {
+        "source": "05 Early Friends In Philadelphia",
+        "predicate": "dislikes",
+        "object": "Keimer's gluttony and breaking the vegetarian diet",
+        "confidence": 1.0
+      },
+      {
+        "source": "05 Early Friends In Philadelphia",
+        "predicate": "friends_with",
+        "object": [
+          "Charles Osborne",
+          "Joseph Watson",
+          "James Ralph"
+        ],
+        "confidence": 1.0
+      },
+      {
+        "source": "05 Early Friends In Philadelphia",
+        "predicate": "values",
+        "object": "reading and literary discussions",
+        "confidence": 1.0
+      },
+      {
+        "source": "05 Early Friends In Philadelphia",
+        "predicate": "dislikes",
+        "object": "Osborne's criticism of poetry",
+        "confidence": 1.0
+      },
+      {
+        "source": "05 Early Friends In Philadelphia",
+        "predicate": "approves_of",
+        "object": "Ralph's encouragement to pursue poetry",
+        "confidence": 1.0
+      },
+      {
+        "source": "05 Early Friends In Philadelphia",
+        "predicate": "dislikes",
+        "object": "Osborne's discouragement of Ralph's poetic pursuits",
+        "confidence": 1.0
+      },
+      {
+        "source": "05 Early Friends In Philadelphia",
+        "predicate": "manages",
+        "object": "a literary competition with friends",
+        "confidence": 1.0
+      },
+      {
+        "source": "05 Early Friends In Philadelphia",
+        "predicate": "cheats_in",
+        "object": "the literary competition by copying Ralph's work",
+        "confidence": 1.0
+      },
+      {
+        "source": "05 Early Friends In Philadelphia",
+        "predicate": "dislikes",
+        "object": "Osborne's praise of the copied poem",
+        "confidence": 1.0
+      },
+      {
+        "source": "05 Early Friends In Philadelphia",
+        "predicate": "dissuades",
+        "object": "Ralph from pursuing poetry",
+        "confidence": 1.0
+      },
+      {
+        "source": "05 Early Friends In Philadelphia",
+        "predicate": "dislikes",
+        "object": "Osborne's failure to fulfill promise of visiting after death",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "works_at",
+        "object": "Palmer's printing-house in Bartholomew Close",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "lives_in",
+        "object": "London, specifically Little Britain",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "owns",
+        "object": "fifteen pistoles (gold coins)",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "friends_with",
+        "object": "Mr. Denham, a Quaker merchant",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "struggles_with",
+        "object": "doubting the sincerity of Governor Keith",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "values",
+        "object": "improving himself in his business (printing)",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "received",
+        "object": "letters of recommendation from Governor Keith",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "lives_in",
+        "object": "London, specifically Little Britain",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "struggles_with",
+        "object": "finding employment in London",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "manages",
+        "object": "the affairs of the colony (governor)",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "owns",
+        "object": "letters of recommendation for this person",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "values",
+        "object": "pleasing everybody",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "disregards",
+        "object": "the instructions of the proprietaries",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "maintains",
+        "object": "a friendship with this person that lasted a lifetime",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "works_at",
+        "object": "Philadelphia as a lawyer",
+        "confidence": 1.0
+      },
+      {
+        "source": "06 First Visit To London",
+        "predicate": "is_identified_as",
+        "object": "a rascal and knave",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "sailed_from",
+        "object": "Gravesend",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "arrived_in",
+        "object": "Philadelphia",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "works_at",
+        "object": "merchant's clerk",
+        "confidence": 0.85
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "manages",
+        "object": "Keimer's printing-house",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "studies",
+        "object": "accounts",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "values",
+        "object": "Mr. Denham's advice and kindness",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "struggles_with",
+        "object": "illness (pleurisy)",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "owns",
+        "object": "small legacy from Mr. Denham",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "works_with",
+        "object": "Hugh Meredith, Stephen Potts, John (Irishman), George Webb, David Harry",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "builds",
+        "object": "mould for casting types",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "engraves",
+        "object": "several things on occasion",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "makes",
+        "object": "ink",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "manages",
+        "object": "warehouse",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "owns",
+        "object": "printing-house (temporarily)",
+        "confidence": 0.95
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "manages",
+        "object": "business operations of Keimer's printing-house",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "owns",
+        "object": "types and stationery for the printing-house",
+        "confidence": 0.95
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "manages",
+        "object": "training of Keimer's employees",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "owns",
+        "object": "knowledge and skills in printing, engraving, ink-making",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "manages",
+        "object": "inventory of the printing-house",
+        "confidence": 0.95
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "owns",
+        "object": "tools and equipment for the printing-house",
+        "confidence": 0.95
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "manages",
+        "object": "customer relations for Keimer's business",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "owns",
+        "object": "business relationships and connections in Philadelphia",
+        "confidence": 0.95
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "manages",
+        "object": "Keimer's business operations",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "owns",
+        "object": "business reputation and goodwill in Philadelphia",
+        "confidence": 0.95
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "manages",
+        "object": "Keimer's financial affairs",
+        "confidence": 1.0
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "owns",
+        "object": "business records and documents for Keimer's printing-house",
+        "confidence": 0.95
+      },
+      {
+        "source": "07 Beginning Business In Philadelphia",
+        "predicate": "manages",
+        "object": "Keimer's business expansion plans",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "writes",
+        "object": "an anonymous pamphlet on paper currency",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "prints",
+        "object": "the money",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "opens",
+        "object": "a stationer's shop",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "owns",
+        "object": "blanks of all sorts, paper, parchment, chapmen's books, etc.",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "works_with",
+        "object": "Whitemash (a compositor)",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "takes_care_of",
+        "object": "his credit and character as a tradesman",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "dresses_plainly",
+        "object": null,
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "avoids",
+        "object": "places of idle diversion",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "pays_off",
+        "object": "the debt for the printing-house",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "proposes",
+        "object": "a partnership to David Harry",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "rejects",
+        "object": "the partnership proposal from this person",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "struggles_with",
+        "object": "a powerful rival in David Harry",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "neglects",
+        "object": "his business",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "works_with",
+        "object": "Keimer's apprentice (David Harry)",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "has_a_rival_in_business",
+        "object": "Bradford",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "receives_and_sends_papers_by_the_post",
+        "object": null,
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "boards_with",
+        "object": "Godfrey",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "manages",
+        "object": "a courtship treaty for this person with a relation's daughter",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "wants_to_marry",
+        "object": "the relation's daughter",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "proposes_a_financial_arrangement",
+        "object": "to marry the relation's daughter with a hundred pounds as dowry",
+        "confidence": 1.0
+      },
+      {
+        "source": "08 Business Success And First Public Service",
+        "predicate": "forbids",
+        "object": "this person from courting their daughter",
+        "confidence": 1.0
+      },
+      {
+        "source": "09 Plan For Attaining Moral Perfection",
+        "predicate": "values",
+        "object": "moral perfection",
+        "confidence": 1.0
+      },
+      {
+        "source": "09 Plan For Attaining Moral Perfection",
+        "predicate": "struggles_with",
+        "object": "committing faults",
+        "confidence": 1.0
+      },
+      {
+        "source": "09 Plan For Attaining Moral Perfection",
+        "predicate": "wants_to",
+        "object": "live without committing any fault at any time",
+        "confidence": 1.0
+      },
+      {
+        "source": "09 Plan For Attaining Moral Perfection",
+        "predicate": "believes",
+        "object": "the mere speculative conviction that it was our interest to be completely virtuous is not sufficient to prevent us from slipping into faults",
+        "confidence": 1.0
+      },
+      {
+        "source": "09 Plan For Attaining Moral Perfection",
+        "predicate": "plans_to",
+        "object": "break contrary habits and acquire good ones before having any dependence on a steady, uniform rectitude of conduct",
+        "confidence": 1.0
+      },
+      {
+        "source": "09 Plan For Attaining Moral Perfection",
+        "predicate": "owns",
+        "object": "a little book with pages for each virtue to track progress",
+        "confidence": 1.0
+      },
+      {
+        "source": "09 Plan For Attaining Moral Perfection",
+        "predicate": "studies",
+        "object": "the moral virtues as described by various writers and philosophers",
+        "confidence": 1.0
+      },
+      {
+        "source": "09 Plan For Attaining Moral Perfection",
+        "predicate": "prioritizes",
+        "object": "acquiring the habit of temperance first, followed by silence, order, resolution, frugality, industry, sincerity, justice, moderation, cleanliness, tranquility, chastity, and humility",
+        "confidence": 1.0
+      },
+      {
+        "source": "09 Plan For Attaining Moral Perfection",
+        "predicate": "follows",
+        "object": "the advice of Pythagoras to conduct daily examination of one's actions",
+        "confidence": 1.0
+      },
+      {
+        "source": "09 Plan For Attaining Moral Perfection",
+        "predicate": "wants_to",
+        "object": "gain knowledge while improving in virtue",
+        "confidence": 1.0
+      },
+      {
+        "source": "09 Plan For Attaining Moral Perfection",
+        "predicate": "avoids",
+        "object": "prattling, punning, and joking which only made him acceptable to trifling company",
+        "confidence": 1.0
+      },
+      {
+        "source": "09 Plan For Attaining Moral Perfection",
+        "predicate": "wants_to",
+        "object": "break the habit of getting into prattling, punning, and joking",
+        "confidence": 1.0
+      },
+      {
+        "source": "09 Plan For Attaining Moral Perfection",
+        "predicate": "values",
+        "object": "coolness and clearness of head to maintain vigilance against ancient habits and temptations",
+        "confidence": 1.0
+      },
+      {
+        "source": "09 Plan For Attaining Moral Perfection",
+        "predicate": "wants_to",
+        "object": "gain more time for attending to his project and studies through order",
+        "confidence": 1.0
+      },
+      {
+        "source": "09 Plan For Attaining Moral Perfection",
+        "predicate": "struggles_with",
+        "object": "habitual resolution in keeping up with constant vigilance",
+        "confidence": 1.0
+      },
+      {
+        "source": "09 Plan For Attaining Moral Perfection",
+        "predicate": "wants_to",
+        "object": "free himself from remaining debt and produce affluence and independence through frugality and industry",
+        "confidence": 1.0
+      },
+      {
+        "source": "09 Plan For Attaining Moral Perfection",
+        "predicate": "values",
+        "object": "daily examination to maintain moral perfection",
+        "confidence": 1.0
+      },
+      {
+        "source": "09 Plan For Attaining Moral Perfection",
+        "predicate": "wants_to",
+        "object": "conduct daily examination of his actions and virtues",
+        "confidence": 1.0
+      }
+    ],
+    "time_seconds": 837.7
+  }
+}

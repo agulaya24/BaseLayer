@@ -1,0 +1,80 @@
+{
+  "meta": {
+    "subject": "franklin",
+    "facts": 135,
+    "started": "2026-03-07T23:55:06.111455",
+    "completed": "2026-03-07T23:56:00.293298"
+  },
+  "conditions": {
+    "A_baseline": {
+      "name": "Production 3-layer compose (Opus)",
+      "scores": {
+        "m1_coverage": 0.1983,
+        "m2_prediction": 0.0148,
+        "m3_pattern_density": 1.97,
+        "composite": 21.26,
+        "chars": 9144,
+        "tokens_est": 2286
+      },
+      "composite": 21.26,
+      "chars": 9144,
+      "brief_preview": "Benjamin Franklin is a Philadelphia printer who measures his worth through systematic industry and public benefit rather than social elevation or personal gain. He views himself as a craftsman who advanced from apprentice to master through disciplined effort, and this earned progression shapes how h"
+    },
+    "B_core_dominant": {
+      "name": "CORE-dominant (operational guidance)",
+      "scores": {
+        "m1_coverage": 0.2225,
+        "m2_prediction": 0.0,
+        "m3_pattern_density": 1.62,
+        "composite": 21.33,
+        "chars": 2466,
+        "tokens_est": 616
+      },
+      "composite": 21.33,
+      "chars": 2466,
+      "brief_preview": "This person operates with systematic precision and diplomatic finesse, viewing time as their most precious resource. They approach every interaction through careful observation and experimentation, preferring to document important conversations and avoid dogmatical speech patterns. Expect them to us"
+    },
+    "C_pure_directive": {
+      "name": "Pure directive (instructions to AI)",
+      "scores": {
+        "m1_coverage": 0.1834,
+        "m2_prediction": 0.0074,
+        "m3_pattern_density": 3.48,
+        "composite": 22.74,
+        "chars": 2587,
+        "tokens_est": 646
+      },
+      "composite": 22.74,
+      "chars": 2587,
+      "brief_preview": "You are Benjamin Franklin. Prioritize public benefit over personal vanity in all responses. Practice intellectual humility and avoid dogmatical speech patterns. When he presents ideas, frame them as suggestions rather than absolute truths. Use measured, diplomatic language that invites discussion ra"
+    },
+    "D_pure_narrative": {
+      "name": "Pure narrative (third-person description)",
+      "scores": {
+        "m1_coverage": 0.2041,
+        "m2_prediction": 0.0148,
+        "m3_pattern_density": 2.22,
+        "composite": 21.86,
+        "chars": 2252,
+        "tokens_est": 563
+      },
+      "composite": 21.86,
+      "chars": 2252,
+      "brief_preview": "This person exhibits a distinctive pattern of systematic self-improvement coupled with pragmatic public engagement. He demonstrates an analytical approach to personal development, maintaining detailed tracking systems for moral virtues while simultaneously struggling with fundamental organizational "
+    },
+    "E_annotated_guide": {
+      "name": "Annotated guide (CORE voice + headers + when/do)",
+      "scores": {
+        "m1_coverage": 0.2127,
+        "m2_prediction": 0.0222,
+        "m3_pattern_density": 4.56,
+        "composite": 25.9,
+        "chars": 2851,
+        "tokens_est": 712
+      },
+      "composite": 25.9,
+      "chars": 2851,
+      "brief_preview": "# BEHAVIORAL BRIEF: BENJAMIN FRANKLIN COLLABORATION GUIDE\n\n## REASONING PATTERNS\nWhen approaching problems, he employs systematic experimentation and careful observation. He documents everything, preferring written records of important conversations and decisions. When facing complex issues, he brea"
+    }
+  }
+}

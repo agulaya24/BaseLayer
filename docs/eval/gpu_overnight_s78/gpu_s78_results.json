@@ -1,0 +1,733 @@
+{
+  "meta": {
+    "started": "2026-03-08T08:51:28.333442",
+    "model": "qwen2.5:14b",
+    "franklin_facts": 135,
+    "completed": "2026-03-08T09:34:34.705364"
+  },
+  "phases": {
+    "1_temporal_quarters": [
+      {
+        "label": "Q1_predicts_rest",
+        "train_count": 33,
+        "test_count": 102,
+        "scores": {
+          "m1_coverage": 0.2268,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 2.62,
+          "composite": 23.01,
+          "chars": 4577,
+          "efficiency": 0.1983
+        },
+        "brief_preview": "### Foundational Beliefs and Values\nWhen this person values time as the most precious resource, do ensure that any interactions or requests for his attention are efficient and to the point. When he be"
+      },
+      {
+        "label": "Q2_predicts_rest",
+        "train_count": 33,
+        "test_count": 102,
+        "scores": {
+          "m1_coverage": 0.2261,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 1.47,
+          "composite": 21.24,
+          "chars": 6142,
+          "efficiency": 0.1473
+        },
+        "brief_preview": "**Behavioral Brief**\n\n**When this person enjoys confuting opponents through logical reasoning, do encourage him to engage in debates and discussions that challenge his intellect.**\n  \n**When he excels"
+      },
+      {
+        "label": "Q3_predicts_rest",
+        "train_count": 33,
+        "test_count": 102,
+        "scores": {
+          "m1_coverage": 0.1971,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 1.01,
+          "composite": 19.4,
+          "chars": 5935,
+          "efficiency": 0.1329
+        },
+        "brief_preview": "### Memory Mastery\nWhen this person needs to recall specific details or past events, he excels at memory. Use his ability to remember accurately and efficiently.\n\n### Loyalty and Obligation\nWhen partn"
+      },
+      {
+        "label": "Q4_predicts_rest",
+        "train_count": 36,
+        "test_count": 99,
+        "scores": {
+          "m1_coverage": 0.1928,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 2.07,
+          "composite": 20.82,
+          "chars": 4827,
+          "efficiency": 0.1598
+        },
+        "brief_preview": "### Behavioral Brief\n\n**When this person ascribes confidence to his country and honorable employment, do recognize that he prioritizes Sincerity and Justice in all actions.**\n\n**When faced with decept"
+      }
+    ],
+    "2_accumulation": {
+      "forward": [
+        {
+          "label": "fwd_Q1->Q4",
+          "train_count": 33,
+          "test_count": 36,
+          "scores": {
+            "m1_coverage": 0.1863,
+            "prediction_rate": 0.0,
+            "m3_pattern_density": 2.94,
+            "composite": 21.86,
+            "chars": 4081,
+            "efficiency": 0.1826
+          },
+          "brief_preview": "### Founding Initiatives\nWhen this person identifies an opportunity to promote communal welfare, he will found organizations such as clubs or hospitals that foster intellectual and practical advanceme"
+        },
+        {
+          "label": "fwd_Q1+Q2->Q4",
+          "train_count": 66,
+          "test_count": 36,
+          "scores": {
+            "m1_coverage": 0.1315,
+            "prediction_rate": 0.0,
+            "m3_pattern_density": 0.57,
+            "composite": 16.11,
+            "chars": 3526,
+            "efficiency": 0.1493
+          },
+          "brief_preview": "### Behavioral Brief for This Person\n\n**Founding Initiatives**\n- When founding a club or institution, prioritize intellectual debate and practical wisdom.\n- When establishing new organizations, ensure"
+        },
+        {
+          "label": "fwd_Q1+Q2+Q3->Q4",
+          "train_count": 99,
+          "test_count": 36,
+          "scores": {
+            "m1_coverage": 0.1861,
+            "prediction_rate": 0.0,
+            "m3_pattern_density": 1.46,
+            "composite": 19.63,
+            "chars": 3427,
+            "efficiency": 0.2174
+          },
+          "brief_preview": "### Founding and Leadership Initiatives\nWhen this person founds a new organization or club, such as the Junto club or Pennsylvania Hospital, prioritize collaborative community-building and practical p"
+        }
+      ],
+      "reverse": [
+        {
+          "label": "rev_Q4->Q1",
+          "train_count": 36,
+          "test_count": 33,
+          "scores": {
+            "m1_coverage": 0.2024,
+            "prediction_rate": 0.0,
+            "m3_pattern_density": 4.52,
+            "composite": 24.87,
+            "chars": 3543,
+            "efficiency": 0.2287
+          },
+          "brief_preview": "### Behavioral Brief\n\n**Confidence in Sincerity and Justice**\nWhen this person encounters moral dilemmas or ethical decisions, he prioritizes sincerity and justice. He will avoid actions that compromi"
+        },
+        {
+          "label": "rev_Q4+Q3->Q1",
+          "train_count": 69,
+          "test_count": 33,
+          "scores": {
+            "m1_coverage": 0.1896,
+            "prediction_rate": 0.0,
+            "m3_pattern_density": 4.43,
+            "composite": 24.23,
+            "chars": 12408,
+            "efficiency": 0.0611
+          },
+          "brief_preview": "**Behavioral Brief**\n\n**Confidence and Integrity**\nWhen this person ascribes confidence to his country and employs honor in sincerity and justice, do affirm his commitment to moral principles and upho"
+        },
+        {
+          "label": "rev_Q4+Q3+Q2->Q1",
+          "train_count": 102,
+          "test_count": 33,
+          "scores": {
+            "m1_coverage": 0.2144,
+            "prediction_rate": 0.0303,
+            "m3_pattern_density": 0.26,
+            "composite": 19.72,
+            "chars": 3843,
+            "efficiency": 0.2234
+          },
+          "brief_preview": "**Behavioral Brief**\n\n**Confidence and Honesty**\nWhen this person ascribes confidence to his country and honorable employment, do recognize his commitment to Sincerity and Justice. When faced with dec"
+        }
+      ]
+    },
+    "3_subtype_cross": [
+      {
+        "label": "biographical_predicts_others",
+        "train_count": 65,
+        "test_count": 70,
+        "scores": {
+          "m1_coverage": 0.1531,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 2.28,
+          "composite": 19.54,
+          "chars": 3512,
+          "efficiency": 0.1743
+        },
+        "brief_preview": "### Background Overview\nThis person was raised in Boston, New England by Josiah Franklin and Abiah Folger. He attended grammar school and studied arithmetic, navigation, geometry, and philosophy under",
+        "fact_type": "biographical",
+        "count": 65
+      },
+      {
+        "label": "positional_predicts_others",
+        "train_count": 39,
+        "test_count": 96,
+        "scores": {
+          "m1_coverage": 0.1172,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 1.1,
+          "composite": 16.34,
+          "chars": 6352,
+          "efficiency": 0.0738
+        },
+        "brief_preview": "### Behavioral Brief\n\n**Values Colonial Defense and Unified Governance**\nWhen considering political matters, prioritize the defense of colonial territories and advocate for a unified governance struct",
+        "fact_type": "positional",
+        "count": 39
+      },
+      {
+        "label": "behavioral_predicts_others",
+        "train_count": 20,
+        "test_count": 115,
+        "scores": {
+          "m1_coverage": 0.1932,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 2.1,
+          "composite": 20.88,
+          "chars": 4281,
+          "efficiency": 0.1805
+        },
+        "brief_preview": "### Behavioral Brief\n\n**Observation and Experimentation**\nWhen this person encounters new situations or ideas, he engages in careful observation and experimentation to understand them better. Encourag",
+        "fact_type": "behavioral",
+        "count": 20
+      },
+      {
+        "label": "preference_predicts_others",
+        "train_count": 11,
+        "test_count": 124,
+        "scores": {
+          "m1_coverage": 0.1998,
+          "prediction_rate": 0.0161,
+          "m3_pattern_density": 0.0,
+          "composite": 18.4,
+          "chars": 2663,
+          "efficiency": 0.3005
+        },
+        "brief_preview": "### Behavioral Brief\n\n**When discussing moral philosophy, do emphasize practical wisdom.**\nThis person is deeply interested in the application of ethical principles to real-life situations and prefers",
+        "fact_type": "preference",
+        "count": 11
+      }
+    ],
+    "4_predicate_extended": {
+      "epistemic": {
+        "rounds": [
+          {
+            "label": "epistemic_r1",
+            "train_count": 40,
+            "test_count": 47,
+            "scores": {
+              "m1_coverage": 0.1923,
+              "prediction_rate": 0.0,
+              "m3_pattern_density": 0.87,
+              "composite": 19.0,
+              "chars": 6867,
+              "efficiency": 0.112
+            },
+            "brief_preview": "### Behavioral Brief for This Person\n\n**When Valuing Colonial Defense, Do Prioritize Unified Governance.**\nThis person places a high value on colonial defense but believes it should be achieved throug"
+          },
+          {
+            "label": "epistemic_r2",
+            "train_count": 40,
+            "test_count": 47,
+            "scores": {
+              "m1_coverage": 0.1557,
+              "prediction_rate": 0.0,
+              "m3_pattern_density": 1.67,
+              "composite": 18.74,
+              "chars": 5974,
+              "efficiency": 0.1043
+            },
+            "brief_preview": "### Behavioral Brief for This Person\n\n#### Values Colonial Defense and Unified Governance\nWhen discussing governance, ensure to emphasize the importance of a unified system that supports colonial defe"
+          },
+          {
+            "label": "epistemic_r3",
+            "train_count": 40,
+            "test_count": 47,
+            "scores": {
+              "m1_coverage": 0.1815,
+              "prediction_rate": 0.0,
+              "m3_pattern_density": 0.95,
+              "composite": 18.69,
+              "chars": 7364,
+              "efficiency": 0.0986
+            },
+            "brief_preview": "### Behavioral Brief\n\n**Values Colonial Defense and Unified Governance**\nWhen discussing governance, ensure this person's support for colonial defense and unified rule is reflected. Emphasize the impo"
+          }
+        ],
+        "avg_composite": 18.81,
+        "std_composite": 0.14,
+        "fact_count": 40
+      },
+      "capability": {
+        "rounds": [
+          {
+            "label": "capability_r1",
+            "train_count": 26,
+            "test_count": 54,
+            "scores": {
+              "m1_coverage": 0.1893,
+              "prediction_rate": 0.0,
+              "m3_pattern_density": 3.86,
+              "composite": 23.35,
+              "chars": 5705,
+              "efficiency": 0.1327
+            },
+            "brief_preview": "### Behavioral Brief\n\n**Observation and Experimentation**\nWhen this person encounters a new situation or problem, he practices careful observation and experimentation to understand it better. Encourag"
+          },
+          {
+            "label": "capability_r2",
+            "train_count": 26,
+            "test_count": 54,
+            "scores": {
+              "m1_coverage": 0.1296,
+              "prediction_rate": 0.0,
+              "m3_pattern_density": 0.24,
+              "composite": 15.55,
+              "chars": 4102,
+              "efficiency": 0.1265
+            },
+            "brief_preview": "### Behavioral Brief\n\n**Observation and Experimentation**\nWhen this person encounters a new situation, do thorough observation followed by experimentation to understand underlying principles.\n\n**Readi"
+          },
+          {
+            "label": "capability_r3",
+            "train_count": 26,
+            "test_count": 54,
+            "scores": {
+              "m1_coverage": 0.1788,
+              "prediction_rate": 0.0,
+              "m3_pattern_density": 0.18,
+              "composite": 17.42,
+              "chars": 5610,
+              "efficiency": 0.1275
+            },
+            "brief_preview": "### Behavioral Brief\n\n**Observation and Experimentation**\nWhen this person encounters a new situation or problem, do encourage them to observe carefully and experiment systematically. This approach he"
+          }
+        ],
+        "avg_composite": 18.77,
+        "std_composite": 3.33,
+        "fact_count": 26
+      },
+      "experiential": {
+        "rounds": [
+          {
+            "label": "experiential_r1",
+            "train_count": 14,
+            "test_count": 60,
+            "scores": {
+              "m1_coverage": 0.176,
+              "prediction_rate": 0.0,
+              "m3_pattern_density": 5.18,
+              "composite": 24.81,
+              "chars": 5018,
+              "efficiency": 0.1404
+            },
+            "brief_preview": "### Founding Initiatives\nWhen this person identifies a need or aspiration, he takes decisive action to establish institutions that address these needs. For instance:\n- When he aspired to set up an ind"
+          },
+          {
+            "label": "experiential_r2",
+            "train_count": 14,
+            "test_count": 60,
+            "scores": {
+              "m1_coverage": 0.2123,
+              "prediction_rate": 0.0,
+              "m3_pattern_density": 3.55,
+              "composite": 23.81,
+              "chars": 2819,
+              "efficiency": 0.3016
+            },
+            "brief_preview": "### Background and Context\nThis person is a prolific founder with a strong inclination towards initiating new ventures in various fields such as education, healthcare, military, and publishing. His ex"
+          },
+          {
+            "label": "experiential_r3",
+            "train_count": 14,
+            "test_count": 60,
+            "scores": {
+              "m1_coverage": 0.2134,
+              "prediction_rate": 0.0167,
+              "m3_pattern_density": 3.19,
+              "composite": 23.74,
+              "chars": 3762,
+              "efficiency": 0.2271
+            },
+            "brief_preview": "### Background and Context\nThis person is a prolific founder with a diverse range of experiences, including military command, financial challenges, and the establishment of numerous institutions. His "
+          }
+        ],
+        "avg_composite": 24.12,
+        "std_composite": 0.49,
+        "fact_count": 14
+      },
+      "preference": {
+        "rounds": [
+          {
+            "label": "preference_r1",
+            "train_count": 11,
+            "test_count": 62,
+            "scores": {
+              "m1_coverage": 0.236,
+              "prediction_rate": 0.0,
+              "m3_pattern_density": 0.55,
+              "composite": 20.26,
+              "chars": 3653,
+              "efficiency": 0.2585
+            },
+            "brief_preview": "### Behavioral Brief\n\n**When discussing moral philosophy, do emphasize practical wisdom and ethical reasoning.**\nThis person values the application of philosophical theories to real-life situations.\n\n"
+          },
+          {
+            "label": "preference_r2",
+            "train_count": 11,
+            "test_count": 62,
+            "scores": {
+              "m1_coverage": 0.1848,
+              "prediction_rate": 0.0,
+              "m3_pattern_density": 1.52,
+              "composite": 19.67,
+              "chars": 3293,
+              "efficiency": 0.2246
+            },
+            "brief_preview": "### Behavioral Brief\n\n**When discussing moral philosophy, do provide insights that challenge conventional wisdom.**\nThis person is deeply interested in moral philosophy and practical wisdom, so engagi"
+          },
+          {
+            "label": "preference_r3",
+            "train_count": 11,
+            "test_count": 62,
+            "scores": {
+              "m1_coverage": 0.2064,
+              "prediction_rate": 0.0161,
+              "m3_pattern_density": 2.85,
+              "composite": 22.94,
+              "chars": 3156,
+              "efficiency": 0.2616
+            },
+            "brief_preview": "**Behavioral Brief**\n\n**Moral Philosophy and Practical Wisdom**\nWhen this person engages in discussions about moral philosophy, provide insights that challenge conventional wisdom. Encourage him to ex"
+          }
+        ],
+        "avg_composite": 20.96,
+        "std_composite": 1.42,
+        "fact_count": 11
+      },
+      "relational": {
+        "rounds": [
+          {
+            "label": "relational_r1",
+            "train_count": 9,
+            "test_count": 63,
+            "scores": {
+              "m1_coverage": 0.1516,
+              "prediction_rate": 0.0159,
+              "m3_pattern_density": 2.96,
+              "composite": 20.9,
+              "chars": 3039,
+              "efficiency": 0.1997
+            },
+            "brief_preview": "### Mentorship and Guidance\nWhen this person seeks guidance or mentorship, direct them to Matthew Adams, Thomas Denham, William Franklin, and James Franklin. Ensure their interactions reflect a deep r"
+          },
+          {
+            "label": "relational_r2",
+            "train_count": 9,
+            "test_count": 63,
+            "scores": {
+              "m1_coverage": 0.1529,
+              "prediction_rate": 0.0,
+              "m3_pattern_density": 0.28,
+              "composite": 16.54,
+              "chars": 3551,
+              "efficiency": 0.1724
+            },
+            "brief_preview": "### Background and Mentorship\nThis person has a strong network of mentors who have significantly influenced his career and personal development. He was mentored by Matthew Adams, William Franklin (son"
+          },
+          {
+            "label": "relational_r3",
+            "train_count": 9,
+            "test_count": 63,
+            "scores": {
+              "m1_coverage": 0.1426,
+              "prediction_rate": 0.0159,
+              "m3_pattern_density": 1.2,
+              "composite": 17.9,
+              "chars": 11660,
+              "efficiency": 0.0489
+            },
+            "brief_preview": "### Mentorship and Guidance\nWhen this person seeks guidance, direct them to Matthew Adams, Thomas Denham, and William Franklin for mentorship in various aspects of their career and personal developmen"
+          }
+        ],
+        "avg_composite": 18.45,
+        "std_composite": 1.82,
+        "fact_count": 9
+      }
+    },
+    "5_length_sweep": [
+      {
+        "target": 500,
+        "scores": {
+          "m1_coverage": 0.176,
+          "prediction_rate": 0.0074,
+          "m3_pattern_density": 0.0,
+          "composite": 17.22,
+          "chars": 1675,
+          "efficiency": 0.421
+        }
+      },
+      {
+        "target": 1000,
+        "scores": {
+          "m1_coverage": 0.1494,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 0.22,
+          "composite": 16.3,
+          "chars": 4587,
+          "efficiency": 0.1303
+        }
+      },
+      {
+        "target": 1500,
+        "scores": {
+          "m1_coverage": 0.1993,
+          "prediction_rate": 0.0074,
+          "m3_pattern_density": 0.0,
+          "composite": 18.16,
+          "chars": 3780,
+          "efficiency": 0.2109
+        }
+      },
+      {
+        "target": 2000,
+        "scores": {
+          "m1_coverage": 0.1745,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 0.56,
+          "composite": 17.81,
+          "chars": 3602,
+          "efficiency": 0.1939
+        }
+      },
+      {
+        "target": 2500,
+        "scores": {
+          "m1_coverage": 0.1791,
+          "prediction_rate": 0.0074,
+          "m3_pattern_density": 0.19,
+          "composite": 17.63,
+          "chars": 10501,
+          "efficiency": 0.0682
+        }
+      },
+      {
+        "target": 3500,
+        "scores": {
+          "m1_coverage": 0.1727,
+          "prediction_rate": 0.0074,
+          "m3_pattern_density": 0.2,
+          "composite": 17.39,
+          "chars": 5066,
+          "efficiency": 0.1364
+        }
+      }
+    ],
+    "6_voice_replication": {
+      "core_dominant": {
+        "scores": {
+          "m1_coverage": 0.184,
+          "prediction_rate": 0.0074,
+          "m3_pattern_density": 0.54,
+          "composite": 18.36,
+          "chars": 3670,
+          "efficiency": 0.2006
+        },
+        "brief_preview": "In crafting a behavioral brief for our colleague, it is essential to weave together the individual’s core values, experiences, and aspirations into actionable guidance. This person embodies a unique b"
+      },
+      "pure_directive": {
+        "scores": {
+          "m1_coverage": 0.2289,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 2.01,
+          "composite": 22.16,
+          "chars": 2493,
+          "efficiency": 0.3674
+        },
+        "brief_preview": "Do prioritize the user’s values of colonial defense, unified governance, and time management. Do emphasize his belief that God is the fountain of wisdom and his commitment to practical philosophy and "
+      },
+      "pure_narrative": {
+        "scores": {
+          "m1_coverage": 0.2186,
+          "prediction_rate": 0.0148,
+          "m3_pattern_density": 0.23,
+          "composite": 19.45,
+          "chars": 4402,
+          "efficiency": 0.1987
+        },
+        "brief_preview": "### Behavioral Brief Analysis\n\n#### Background and Early Life\nThe individual, hereafter referred to as Subject A, was raised in Boston, New England, under the guardianship of Josiah Franklin and Abiah"
+      },
+      "annotated_guide": {
+        "scores": {
+          "m1_coverage": 0.1861,
+          "prediction_rate": 0.0222,
+          "m3_pattern_density": 2.43,
+          "composite": 21.65,
+          "chars": 1644,
+          "efficiency": 0.4528
+        },
+        "brief_preview": "### Reasoning Patterns\nWhen faced with colonial defense issues, the individual reasons from a perspective that prioritizes unified governance over divergent views. When considering time management, th"
+      },
+      "compressed_telegram": {
+        "scores": {
+          "m1_coverage": 0.1855,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 0.0,
+          "composite": 17.42,
+          "chars": 2858,
+          "efficiency": 0.2599
+        },
+        "brief_preview": "**Target:** American leader, colonial thinker, printer, writer, scientist  \n[founded]: Junto club; voluntary militia association for provincial defense; Pennsylvania Hospital; academy in Pennsylvania;"
+      }
+    },
+    "7_marks_cross_subject": {
+      "temporal_quarters": [
+        {
+          "label": "marks_Q1_predicts_rest",
+          "train_count": 68,
+          "test_count": 204,
+          "scores": {
+            "m1_coverage": 0.3471,
+            "prediction_rate": 0.0833,
+            "m3_pattern_density": 2.41,
+            "composite": 29.59,
+            "chars": 7868,
+            "efficiency": 0.1764
+          },
+          "brief_preview": "### Behavioral Brief\n\n**When Faced with Economic Stimulus Policies,** do scrutinize their potential to create moral hazard and unsustainable asset prices, recognizing the risks of excessive reliance o"
+        },
+        {
+          "label": "marks_Q2_predicts_rest",
+          "train_count": 68,
+          "test_count": 204,
+          "scores": {
+            "m1_coverage": 0.4111,
+            "prediction_rate": 0.4216,
+            "m3_pattern_density": 0.77,
+            "composite": 38.15,
+            "chars": 11620,
+            "efficiency": 0.1415
+          },
+          "brief_preview": "**Behavioral Brief**\n\n**Pattern Recognition and Experience**\nWhen analyzing market trends or making investment decisions, prioritize field experience over theoretical knowledge. Recognize that practic"
+        },
+        {
+          "label": "marks_Q3_predicts_rest",
+          "train_count": 68,
+          "test_count": 204,
+          "scores": {
+            "m1_coverage": 0.331,
+            "prediction_rate": 0.0343,
+            "m3_pattern_density": 3.17,
+            "composite": 28.86,
+            "chars": 4414,
+            "efficiency": 0.3001
+          },
+          "brief_preview": "### Behavioral Brief\n\n#### Beliefs about Economic and Market Fundamentals\nWhen assessing economic fundamentals or market conditions, this person will prioritize clear-eyed observation over financial d"
+        },
+        {
+          "label": "marks_Q4_predicts_rest",
+          "train_count": 68,
+          "test_count": 204,
+          "scores": {
+            "m1_coverage": 0.3635,
+            "prediction_rate": 0.2402,
+            "m3_pattern_density": 0.38,
+            "composite": 31.11,
+            "chars": 7942,
+            "efficiency": 0.1831
+          },
+          "brief_preview": "### Behavioral Brief for This Person\n\n**When Evaluating Investment Opportunities, Do Focus on Underpriced Assets After Crashes.**\nThis person believes bargain opportunities emerge only when assets are"
+        }
+      ],
+      "subtype_cross": [
+        {
+          "label": "marks_positional_cross",
+          "train_count": 255,
+          "test_count": 17,
+          "scores": {
+            "m1_coverage": 0.3183,
+            "prediction_rate": 0.0588,
+            "m3_pattern_density": 0.78,
+            "composite": 25.37,
+            "chars": 11542,
+            "efficiency": 0.1103
+          },
+          "brief_preview": "### Behavioral Brief for This Person\n\n**When Faced with Monetary and Fiscal Stimulus Proposals, Do Critique Their Potential to Create Moral Hazard and Unsustainable Asset Prices.**\nThis person will sc"
+        },
+        {
+          "label": "marks_preference_cross",
+          "train_count": 17,
+          "test_count": 255,
+          "scores": {
+            "m1_coverage": 0.3483,
+            "prediction_rate": 0.1765,
+            "m3_pattern_density": 1.27,
+            "composite": 30.25,
+            "chars": 3926,
+            "efficiency": 0.355
+          },
+          "brief_preview": "### Behavioral Brief\n\n**Values Clear-Eyed Observation**\nWhen assessing market conditions or investor behavior, do so with a focus on human psychology and intuition rather than relying solely on financ"
+        }
+      ],
+      "compression": [
+        {
+          "label": "marks_split_10pct",
+          "train_count": 27,
+          "test_count": 245,
+          "scores": {
+            "m1_coverage": 0.3225,
+            "prediction_rate": 0.0857,
+            "m3_pattern_density": 1.13,
+            "composite": 26.74,
+            "chars": 5305,
+            "efficiency": 0.2432
+          },
+          "brief_preview": "**Behavioral Brief**\n\n**Values and Beliefs Integration**\nWhen evaluating investment opportunities, do so with a focus on bipartisan cooperation and pragmatic problem-solving. When considering politica",
+          "split_pct": 10
+        },
+        {
+          "label": "marks_split_20pct",
+          "train_count": 54,
+          "test_count": 218,
+          "scores": {
+            "m1_coverage": 0.3533,
+            "prediction_rate": 0.1193,
+            "m3_pattern_density": 1.06,
+            "composite": 28.71,
+            "chars": 8460,
+            "efficiency": 0.167
+          },
+          "brief_preview": "### Behavioral Brief\n\n**When faced with a decision that pits partisan politics against pragmatic problem-solving, do prioritize the latter.**\n\n- When presented with an opportunity for bipartisan coope",
+          "split_pct": 20
+        },
+        {
+          "label": "marks_split_50pct",
+          "train_count": 136,
+          "test_count": 136,
+          "scores": {
+            "m1_coverage": 0.3726,
+            "prediction_rate": 0.2279,
+            "m3_pattern_density": 1.16,
+            "composite": 32.35,
+            "chars": 11175,
+            "efficiency": 0.1334
+          },
+          "brief_preview": "### Behavioral Brief\n\n**When Valuing Investments, Do Not Rely Solely on Quantifiable Models.**\nThis person prioritizes subjective judgment and skilled analysis over rigid mathematical models in assess",
+          "split_pct": 50
+        }
+      ]
+    }
+  }
+}

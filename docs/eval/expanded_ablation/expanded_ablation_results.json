@@ -1,0 +1,461 @@
+{
+  "meta": {
+    "started": "2026-03-08T08:49:09.629048",
+    "total_facts": 135,
+    "type_dist": {
+      "biographical": 65,
+      "positional": 39,
+      "behavioral": 20,
+      "preference": 11
+    },
+    "commit_dist": {
+      "factual": 85,
+      "conviction": 28,
+      "preference": 11,
+      "position": 11
+    },
+    "completed": "2026-03-08T08:54:26.974038"
+  },
+  "experiments": {
+    "1_subtype_isolation": [
+      {
+        "label": "subtype_biographical",
+        "train_count": 65,
+        "test_count": 70,
+        "scores": {
+          "m1_coverage": 0.1755,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 0.75,
+          "composite": 18.14,
+          "chars": 2676
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF: COLONIAL POLYMATH & INSTITUTION BUILDER\n\n## CORE IDENTITY\nThis person identifies as \"youngest son of youngest son for five generations\" - drives relentless self-improvement and ins",
+        "fact_type": "biographical",
+        "pct_of_total": 48.1
+      },
+      {
+        "label": "subtype_positional",
+        "train_count": 39,
+        "test_count": 96,
+        "scores": {
+          "m1_coverage": 0.1995,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 3.3,
+          "composite": 22.93,
+          "chars": 2427
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF: COLONIAL-ERA PRAGMATIC MORALIST\n\n## CORE WORLDVIEW\nThis person operates from Deist beliefs, viewing God as the fountain of wisdom while emphasizing practical virtue over theologica",
+        "fact_type": "positional",
+        "pct_of_total": 28.9
+      },
+      {
+        "label": "subtype_behavioral",
+        "train_count": 20,
+        "test_count": 115,
+        "scores": {
+          "m1_coverage": 0.2148,
+          "prediction_rate": 0.0174,
+          "m3_pattern_density": 4.73,
+          "composite": 26.12,
+          "chars": 2114
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF: ENLIGHTENMENT PRAGMATIST\n\n## COMMUNICATION STYLE\n**Measured & Socratic**: This person employs deliberate, humble speech patterns. When engaging in debate, he uses logical reasoning",
+        "fact_type": "behavioral",
+        "pct_of_total": 14.8
+      },
+      {
+        "label": "subtype_preference",
+        "train_count": 11,
+        "test_count": 124,
+        "scores": {
+          "m1_coverage": 0.1436,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 1.3,
+          "composite": 17.7,
+          "chars": 2302
+        },
+        "brief_preview": "# Behavioral Brief: Enlightenment-Era Practical Philosopher\n\n## Core Intellectual Profile\nThis person embodies 18th-century rational inquiry with deep fascination for moral philosophy and practical wi",
+        "fact_type": "preference",
+        "pct_of_total": 8.1
+      }
+    ],
+    "2_predicate_clusters": [
+      {
+        "label": "cluster_epistemic",
+        "train_count": 31,
+        "test_count": 104,
+        "scores": {
+          "m1_coverage": 0.1802,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 1.43,
+          "composite": 19.35,
+          "chars": 2099
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF\n\n## CORE VALUES & WORLDVIEW\nThis person operates from Deist principles, viewing God as the fountain of wisdom while emphasizing rational governance and natural order. He values colo",
+        "predicates": [
+          "believes",
+          "values",
+          "prioritizes"
+        ],
+        "predicate_counts": {
+          "believes": 11,
+          "values": 14,
+          "prioritizes": 6
+        }
+      },
+      {
+        "label": "cluster_capability",
+        "train_count": 26,
+        "test_count": 109,
+        "scores": {
+          "m1_coverage": 0.1988,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 3.63,
+          "composite": 23.39,
+          "chars": 1931
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF: ENLIGHTENMENT POLYMATH\n\n## COMMUNICATION STYLE\nWhen engaging in discussion, this person employs measured speech and intellectual humility, avoiding dogmatic assertions. He uses the",
+        "predicates": [
+          "practices",
+          "excels_at",
+          "demonstrates"
+        ],
+        "predicate_counts": {
+          "practices": 13,
+          "excels_at": 13,
+          "demonstrates": 0
+        }
+      },
+      {
+        "label": "cluster_experiential",
+        "train_count": 14,
+        "test_count": 121,
+        "scores": {
+          "m1_coverage": 0.2047,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 4.3,
+          "composite": 24.63,
+          "chars": 1862
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF: COLONIAL ENTREPRENEUR & CIVIC ORGANIZER\n\n## FOUNDATIONAL DRIVE\nThis person is a compulsive institution-builder driven by practical problem-solving. He creates organizations to addr",
+        "predicates": [
+          "experienced",
+          "achieved",
+          "founded",
+          "contributed_to"
+        ],
+        "predicate_counts": {
+          "experienced": 6,
+          "achieved": 0,
+          "founded": 8,
+          "contributed_to": 0
+        }
+      },
+      {
+        "label": "cluster_avoidance",
+        "train_count": 14,
+        "test_count": 121,
+        "scores": {
+          "m1_coverage": 0.21,
+          "prediction_rate": 0.0165,
+          "m3_pattern_density": 4.92,
+          "composite": 26.19,
+          "chars": 1829
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF\n\n## COMMUNICATION STYLE\nWhen this person speaks, avoid dogmatic or overly positive declarations. He prefers measured, humble discourse over bold proclamations. When he shares ideas,",
+        "predicates": [
+          "avoids",
+          "struggles_with",
+          "dislikes"
+        ],
+        "predicate_counts": {
+          "avoids": 6,
+          "struggles_with": 3,
+          "dislikes": 5
+        }
+      },
+      {
+        "label": "cluster_relational",
+        "train_count": 10,
+        "test_count": 125,
+        "scores": {
+          "m1_coverage": 0.1572,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 2.23,
+          "composite": 19.64,
+          "chars": 1791
+        },
+        "brief_preview": "# Behavioral Brief: Colonial-Era Mentor & Collaborator\n\n## Core Identity\nThis person operates as a central figure in an interconnected network of mentors, collaborators, and friends spanning multiple ",
+        "predicates": [
+          "friends_with",
+          "mentored_by",
+          "admires",
+          "collaborates_with",
+          "advocates",
+          "advocated_for"
+        ],
+        "predicate_counts": {
+          "friends_with": 5,
+          "mentored_by": 3,
+          "admires": 0,
+          "collaborates_with": 1,
+          "advocates": 0,
+          "advocated_for": 1
+        }
+      },
+      {
+        "label": "cluster_preference",
+        "train_count": 6,
+        "test_count": 129,
+        "scores": {
+          "m1_coverage": 0.1713,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 2.35,
+          "composite": 20.38,
+          "chars": 2126
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF\n\n## INTELLECTUAL PROFILE\nThis person embodies Enlightenment-era curiosity with deep fascination for practical wisdom and moral philosophy. He approaches knowledge through experiment",
+        "predicates": [
+          "prefers",
+          "interested_in",
+          "enjoys"
+        ],
+        "predicate_counts": {
+          "prefers": 0,
+          "interested_in": 5,
+          "enjoys": 1
+        }
+      }
+    ],
+    "3_temporal_windows": [
+      {
+        "label": "quarter_Q1_early",
+        "train_count": 33,
+        "test_count": 102,
+        "scores": {
+          "m1_coverage": 0.2,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 0.8,
+          "composite": 19.2,
+          "chars": 2504
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF: COLONIAL PRAGMATIST & CIVIC REFORMER\n\n## CORE IDENTITY\nThis person identifies as American with interests distinct from British authority. Raised in Boston, he operates from Philade",
+        "quarter": "Q1_early",
+        "id_range": "00d8b097-6faf-429b-be4e-2ce48542beb7-2d222cc2-6bda-4997-b217-c318779be11e"
+      },
+      {
+        "label": "quarter_Q2_mid_early",
+        "train_count": 33,
+        "test_count": 102,
+        "scores": {
+          "m1_coverage": 0.2226,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 4.33,
+          "composite": 25.4,
+          "chars": 2311
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF\n\n## CORE PERSONALITY\n**Pragmatic Intellectual**: This person combines rigorous logical reasoning with hands-on experimentation. He enjoys confuting opponents through systematic argu",
+        "quarter": "Q2_mid_early",
+        "id_range": "2de7566c-58d1-4c8f-9048-65407643bf6c-6451c944-eafa-4d69-a36d-9808dbb1640a"
+      },
+      {
+        "label": "quarter_Q3_mid_late",
+        "train_count": 33,
+        "test_count": 102,
+        "scores": {
+          "m1_coverage": 0.2022,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 4.08,
+          "composite": 24.21,
+          "chars": 2696
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF: ENLIGHTENMENT PRAGMATIST & PUBLIC SERVANT\n\n## CORE IDENTITY\nThis person embodies practical wisdom combined with intellectual curiosity. He operates as a self-made scholar-entrepren",
+        "quarter": "Q3_mid_late",
+        "id_range": "6594ec61-1225-4801-877f-2d1ce1883b0b-a09f06b1-f745-49cd-86d5-36e6e1b4f04f"
+      },
+      {
+        "label": "quarter_Q4_late",
+        "train_count": 36,
+        "test_count": 99,
+        "scores": {
+          "m1_coverage": 0.1854,
+          "prediction_rate": 0.0101,
+          "m3_pattern_density": 2.23,
+          "composite": 21.02,
+          "chars": 2240
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF\n\n## CORE IDENTITY & VALUES\nThis person identifies as coming from humble origins (youngest son lineage) but aspires beyond his station through merit and systematic self-improvement. ",
+        "quarter": "Q4_late",
+        "id_range": "a3742085-9689-4fba-b523-97695e9ce82e-f8018aa8-36aa-4049-a6b2-f7dbb45366df"
+      }
+    ],
+    "4_bidirectional_temporal": [
+      {
+        "label": "bidir_Q1->Q4",
+        "train_count": 33,
+        "test_count": 36,
+        "scores": {
+          "m1_coverage": 0.211,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 2.26,
+          "composite": 21.82,
+          "chars": 3101
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF: COLONIAL PRAGMATIST & CIVIC FOUNDER\n\n## COMMUNICATION STYLE\n**Avoid dogmatical speech patterns.** This person deliberately avoids positive, assertive declarations, having learned t"
+      },
+      {
+        "label": "bidir_Q4->Q1",
+        "train_count": 36,
+        "test_count": 33,
+        "scores": {
+          "m1_coverage": 0.1855,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 4.53,
+          "composite": 24.22,
+          "chars": 2206
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF: SYSTEMATIC SELF-IMPROVER & CIVIC INNOVATOR\n\n## CORE IDENTITY\nThis person identifies as the \"youngest son of youngest son for five generations\" - use this underdog perspective to fr"
+      },
+      {
+        "label": "bidir_Q1->Q3",
+        "train_count": 33,
+        "test_count": 33,
+        "scores": {
+          "m1_coverage": 0.1954,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 1.49,
+          "composite": 20.06,
+          "chars": 2008
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF: COLONIAL PRAGMATIST & CIVIC ORGANIZER\n\n## CORE IDENTITY\nThis person identifies as American with interests distinct from British authority. Raised in Boston, he founded multiple civ"
+      },
+      {
+        "label": "bidir_Q3->Q1",
+        "train_count": 33,
+        "test_count": 33,
+        "scores": {
+          "m1_coverage": 0.2299,
+          "prediction_rate": 0.0303,
+          "m3_pattern_density": 4.3,
+          "composite": 26.4,
+          "chars": 2325
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF: ENLIGHTENMENT-ERA PRAGMATIST\n\n## CORE PERSONALITY\nThis person embodies intellectual humility paired with strategic ambition. He prioritizes public benefit over personal recognition"
+      },
+      {
+        "label": "bidir_Q2->Q4",
+        "train_count": 33,
+        "test_count": 36,
+        "scores": {
+          "m1_coverage": 0.2137,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 5.18,
+          "composite": 26.31,
+          "chars": 2125
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF\n\n## CORE PERSONALITY\nThis person is a pragmatic intellectual who combines theoretical curiosity with hands-on experimentation. He approaches problems through systematic reasoning an"
+      },
+      {
+        "label": "bidir_Q4->Q2",
+        "train_count": 36,
+        "test_count": 33,
+        "scores": {
+          "m1_coverage": 0.195,
+          "prediction_rate": 0.0303,
+          "m3_pattern_density": 4.19,
+          "composite": 24.84,
+          "chars": 2624
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF: SYSTEMATIC SELF-IMPROVER & CIVIC INNOVATOR\n\n## CORE IDENTITY\nThis person identifies as the \"youngest son of youngest son for five generations\" - use this underdog positioning to mo"
+      }
+    ],
+    "5_temporal_accumulation": [
+      {
+        "label": "accum_Q1_only",
+        "train_count": 33,
+        "test_count": 36,
+        "scores": {
+          "m1_coverage": 0.2398,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 3.63,
+          "composite": 25.03,
+          "chars": 2204
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF: COLONIAL PRAGMATIST & CIVIC FOUNDER\n\n## CORE IDENTITY\nThis person identifies as American with interests distinct from British authority. Raised in Boston, he founded multiple civic",
+        "train_quarters": "Q1_only"
+      },
+      {
+        "label": "accum_Q1+Q2",
+        "train_count": 66,
+        "test_count": 36,
+        "scores": {
+          "m1_coverage": 0.2162,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 2.79,
+          "composite": 22.83,
+          "chars": 2151
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF: Colonial Pragmatist & Institution Builder\n\n## CORE IDENTITY\nThis person is a practical philosopher who builds institutions and systems. He identifies as American with interests dis",
+        "train_quarters": "Q1+Q2"
+      },
+      {
+        "label": "accum_Q1+Q2+Q3",
+        "train_count": 99,
+        "test_count": 36,
+        "scores": {
+          "m1_coverage": 0.2452,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 0.4,
+          "composite": 20.4,
+          "chars": 2518
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF: Colonial Pragmatist & Institution Builder\n\n## CORE IDENTITY\nThis person is a practical philosopher who builds institutions and systems for public benefit. He identifies as American",
+        "train_quarters": "Q1+Q2+Q3"
+      },
+      {
+        "label": "accum_all_quarters",
+        "train_count": 99,
+        "test_count": 36,
+        "scores": {
+          "m1_coverage": 0.2507,
+          "prediction_rate": 0.0278,
+          "m3_pattern_density": 0.0,
+          "composite": 20.72,
+          "chars": 2517
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF\n\n## CORE IDENTITY\nThis person is a colonial American intellectual, entrepreneur, and civic leader who founded multiple institutions (Junto club, Pennsylvania Hospital, academy, Phil",
+        "train_quarters": "all_quarters"
+      }
+    ],
+    "6_commitment_depth": [
+      {
+        "label": "high_commitment",
+        "train_count": 13,
+        "test_count": 45,
+        "scores": {
+          "m1_coverage": 0.2072,
+          "prediction_rate": 0.0222,
+          "m3_pattern_density": 3.24,
+          "composite": 23.7,
+          "chars": 1852
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF\n\n## INTELLECTUAL ORIENTATION\nThis person gravitates toward practical philosophy and moral reasoning. When discussing ethics, focus on actionable wisdom rather than abstract theory. ",
+        "depth_range": "high"
+      },
+      {
+        "label": "low_commitment",
+        "train_count": 77,
+        "test_count": 45,
+        "scores": {
+          "m1_coverage": 0.2137,
+          "prediction_rate": 0.0,
+          "m3_pattern_density": 3.39,
+          "composite": 23.64,
+          "chars": 2654
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF: COLONIAL POLYMATH & PRAGMATIC REFORMER\n\n## CORE IDENTITY & VALUES\nThis person identifies as American with interests distinct from British authority. He values intellectual improvem",
+        "depth_range": "low"
+      }
+    ]
+  }
+}
