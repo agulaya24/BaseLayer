@@ -148,7 +148,7 @@ Extraction sends text to the Anthropic API. Nothing persists remotely beyond [An
 We'd welcome contributions — especially around evaluation, new source type adapters, and local model support. See [open questions](https://base-layer.ai/journey) for where the research is headed.
 
 ```bash
-git clone https://github.com/agulaya24/baselayer.git
+git clone https://github.com/agulaya24/BaseLayer.git
 cd baselayer
 pip install -e ".[dev]"
 pytest
@@ -163,7 +163,7 @@ If you use Base Layer in your research:
   title     = {Base Layer: Behavioral Compression for AI Identity},
   author    = {Gulaya, Aarik},
   year      = {2026},
-  url       = {https://github.com/agulaya24/baselayer},
+  url       = {https://github.com/agulaya24/BaseLayer},
   license   = {Apache-2.0}
 }
 ```
