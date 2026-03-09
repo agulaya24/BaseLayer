@@ -1,0 +1,282 @@
+{
+  "conditions": {
+    "C1": {
+      "condition": "C1",
+      "description": "No Collective review",
+      "status": "OK",
+      "m1_collective": {
+        "scores": {
+          "cognitive_scientist": 82,
+          "narrative_biographer": 78,
+          "epistemologist": 85,
+          "pragmatic_engineer": 88
+        },
+        "combined": 83,
+        "issues": [
+          {
+            "category": "cognitive_patterns",
+            "description": "Some behavioral patterns border on clich\u00e9 (e.g., 'time is money' frugality) without sufficient nuance about when these patterns break down",
+            "severity": "medium"
+          },
+          {
+            "category": "biographical_completeness",
+            "description": "Limited coverage of emotional responses, family dynamics, and personal relationships beyond functional aspects",
+            "severity": "medium"
+          },
+          {
+            "category": "historical_context",
+            "description": "Insufficient grounding in specific historical events or timeframes that shaped these behaviors",
+            "severity": "low"
+          },
+          {
+            "category": "pattern_specificity",
+            "description": "Some patterns described too abstractly without concrete behavioral triggers or thresholds",
+            "severity": "medium"
+          }
+        ],
+        "strengths": [
+          "Excellent identification of core tensions and contradictions that create realistic behavioral complexity",
+          "Strong epistemological grounding with explicit acknowledgment of data limitations",
+          "Pragmatic structure that clearly indicates how different modes trigger different response patterns",
+          "Sophisticated treatment of paradoxes (seeking recognition while avoiding self-promotion)",
+          "Clear operational guidance for AI implementation with specific behavioral triggers"
+        ]
+      },
+      "m3_patterns": {
+        "total": 36,
+        "behavioral": 8,
+        "axioms": 6,
+        "predictions": 0,
+        "limitations": 1,
+        "tensions": 21,
+        "density_per_1000_chars": 4.73
+      },
+      "m4_diagnostics": {
+        "char_count": 7614,
+        "token_est": 1903,
+        "sections": 12,
+        "pronoun_consistency": "he/him (97.3%)",
+        "has_thin_data": true,
+        "has_contested": false,
+        "has_availability": true,
+        "has_failure_modes": false
+      },
+      "m2_pairwise": {
+        "winner": "A",
+        "confidence": 4,
+        "reasoning": "Brief A provides more behavioral specificity with concrete examples of how Franklin's patterns manifest (e.g., 'shifts into questioning mode rather than direct argumentation' with specific contexts), while Brief B often stays at a more abstract level. Brief A also better captures the nuanced tensions in Franklin's character through specific behavioral predictions, making it more actionable for AI injection.",
+        "decoded_winner": "baseline",
+        "presentation_order": "baseline_first"
+      }
+    },
+    "C2": {
+      "condition": "C2",
+      "description": "No contradictions/consolidation",
+      "status": "OK",
+      "m1_collective": {
+        "scores": {
+          "cognitive_scientist": 82,
+          "narrative_biographer": 78,
+          "epistemologist": 88,
+          "pragmatic_engineer": 85
+        },
+        "combined": 83,
+        "issues": [
+          {
+            "category": "narrative_biographer",
+            "description": "Historical figure identity never explicitly stated, making it difficult to verify completeness and accuracy of portrait",
+            "severity": "medium"
+          },
+          {
+            "category": "cognitive_scientist",
+            "description": "Some behavioral patterns described through self-reported virtue tracking rather than observed behaviors",
+            "severity": "medium"
+          },
+          {
+            "category": "narrative_biographer",
+            "description": "Chronological context and life stages unclear - behaviors presented as static rather than evolving",
+            "severity": "medium"
+          },
+          {
+            "category": "pragmatic_engineer",
+            "description": "Dense prose style may require multiple readings for AI to extract actionable patterns",
+            "severity": "low"
+          }
+        ],
+        "strengths": [
+          "Excellent acknowledgment of data limitations and uncertainty through [THIN DATA] section",
+          "Rich behavioral tensions and contradictions that avoid simplistic characterization",
+          "Systematic connection between principles and specific behavioral manifestations",
+          "Strong grounding of claims in specific examples and contexts",
+          "Nuanced treatment of complex motivations like strategic invisibility and collaborative loyalty"
+        ]
+      },
+      "m3_patterns": {
+        "total": 33,
+        "behavioral": 8,
+        "axioms": 7,
+        "predictions": 0,
+        "limitations": 2,
+        "tensions": 16,
+        "density_per_1000_chars": 3.66
+      },
+      "m4_diagnostics": {
+        "char_count": 9006,
+        "token_est": 2251,
+        "sections": 15,
+        "pronoun_consistency": "he/him (100.0%)",
+        "has_thin_data": true,
+        "has_contested": false,
+        "has_availability": true,
+        "has_failure_modes": true
+      },
+      "m2_pairwise": {
+        "winner": "B",
+        "confidence": 4,
+        "reasoning": "Brief B provides more concrete behavioral patterns with specific triggers and responses (e.g., 'shifts into questioning mode rather than direct argumentation' when encountering disagreement), while Brief A tends toward abstract principles. B's structure of 'foundational certainties' leading to 'predictable patterns' offers clearer actionability for AI behavior generation.",
+        "decoded_winner": "baseline",
+        "presentation_order": "test_first"
+      }
+    },
+    "C3": {
+      "condition": "C3",
+      "description": "No scoring",
+      "status": "OK",
+      "m1_collective": {
+        "scores": {
+          "cognitive_scientist": 82,
+          "narrative_biographer": 78,
+          "epistemologist": 85,
+          "pragmatic_engineer": 79
+        },
+        "combined": 81,
+        "issues": [
+          {
+            "category": "cognitive_patterns",
+            "description": "Some behavioral descriptions border on idealized rationality rather than capturing genuine human inconsistency",
+            "severity": "medium"
+          },
+          {
+            "category": "narrative_completeness",
+            "description": "Limited coverage of emotional responses, personal relationships, and private life contexts",
+            "severity": "medium"
+          },
+          {
+            "category": "behavioral_specificity",
+            "description": "Several patterns described abstractly without concrete behavioral examples or situational triggers",
+            "severity": "medium"
+          },
+          {
+            "category": "predictive_utility",
+            "description": "Tension resolution rules could be more specific about which principle dominates in particular contexts",
+            "severity": "low"
+          }
+        ],
+        "strengths": [
+          "Excellent identification and articulation of core tensions and contradictions in the subject's behavior",
+          "Strong epistemological grounding with explicit acknowledgment of data limitations",
+          "Effective capture of systematic thinking patterns and empirical orientation",
+          "Useful behavioral predictions for intellectual and civic contexts",
+          "Clear documentation of when specific patterns surface in conversation"
+        ]
+      },
+      "m3_patterns": {
+        "total": 29,
+        "behavioral": 7,
+        "axioms": 4,
+        "predictions": 0,
+        "limitations": 1,
+        "tensions": 17,
+        "density_per_1000_chars": 3.99
+      },
+      "m4_diagnostics": {
+        "char_count": 7261,
+        "token_est": 1815,
+        "sections": 11,
+        "pronoun_consistency": "he/him (97.1%)",
+        "has_thin_data": true,
+        "has_contested": false,
+        "has_availability": true,
+        "has_failure_modes": true
+      },
+      "m2_pairwise": {
+        "winner": "A",
+        "confidence": 4,
+        "reasoning": "Brief A provides more behavioral specificity with concrete triggers and response patterns (e.g., 'automatically filters through public benefit,' 'shifts into questioning mode'), while Brief B often describes general principles without clear behavioral manifestations. A's structured approach to tensions and contradictions offers more actionable guidance for AI responses than B's philosophical summaries.",
+        "decoded_winner": "baseline",
+        "presentation_order": "baseline_first"
+      }
+    },
+    "C5": {
+      "condition": "C5",
+      "description": "No tiering (all facts = identity)",
+      "status": "OK",
+      "m1_collective": {
+        "scores": {
+          "cognitive_scientist": 82,
+          "narrative_biographer": 71,
+          "epistemologist": 88,
+          "pragmatic_engineer": 85
+        },
+        "combined": 82,
+        "issues": [
+          {
+            "category": "narrative_completeness",
+            "description": "Historical figure unnamed, making it difficult to verify accuracy or completeness of portrait",
+            "severity": "medium"
+          },
+          {
+            "category": "behavioral_specificity",
+            "description": "Some patterns described in abstract terms without concrete behavioral examples",
+            "severity": "medium"
+          },
+          {
+            "category": "personal_domain_gaps",
+            "description": "Acknowledged lack of data on personal relationships could limit AI responses in important contexts",
+            "severity": "low"
+          },
+          {
+            "category": "pattern_verification",
+            "description": "Limited evidence for how consistently these patterns apply across different life stages",
+            "severity": "low"
+          }
+        ],
+        "strengths": [
+          "Excellent epistemological grounding with clear acknowledgment of data limitations and domain boundaries",
+          "Rich behavioral patterns that avoid clich\u00e9s and capture genuine complexity",
+          "Strong integration of multiple behavioral systems showing how patterns interconnect",
+          "Practical guidance for AI implementation with specific interaction strategies",
+          "Nuanced treatment of contradictions and failure modes",
+          "Clear operational instructions for engaging with the subject's thinking patterns"
+        ]
+      },
+      "m3_patterns": {
+        "total": 26,
+        "behavioral": 5,
+        "axioms": 2,
+        "predictions": 0,
+        "limitations": 1,
+        "tensions": 18,
+        "density_per_1000_chars": 3.84
+      },
+      "m4_diagnostics": {
+        "char_count": 6765,
+        "token_est": 1691,
+        "sections": 11,
+        "pronoun_consistency": "he/him (100.0%)",
+        "has_thin_data": true,
+        "has_contested": false,
+        "has_availability": true,
+        "has_failure_modes": true
+      },
+      "m2_pairwise": {
+        "winner": "A",
+        "confidence": 4,
+        "reasoning": "Brief A provides more concrete behavioral patterns with specific triggers and manifestations (e.g., 'When evaluating any policy... he automatically filters it through public benefit'), while Brief B often describes attitudes without clear behavioral anchors. A's systematic documentation of tensions, communication patterns, and specific response triggers makes it significantly more actionable for AI injection.",
+        "decoded_winner": "baseline",
+        "presentation_order": "baseline_first"
+      }
+    }
+  },
+  "timestamp": "2026-03-08T15:39:20.212325"
+}
