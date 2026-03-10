@@ -40,22 +40,31 @@ PLANNER_PROMPT = """You are a behavioral brief architect. Your job is to read th
 (ANCHORS, CORE, PREDICTIONS) about a person and output a STRUCTURED PLAN for a
 unified behavioral brief.
 
-You must output ONLY a JSON array. Each element represents one paragraph of the
-final brief. Format:
+You must output ONLY a JSON object with two keys: "paragraphs" and "availability_index".
 
-[
-  {{
-    "paragraph_id": 1,
-    "theme": "short thematic label",
-    "claim": "The specific behavioral claim this paragraph should express",
-    "sources": ["A1", "C2", "P3"],
-    "source_text": "The exact text from the source layers that supports this claim — copy verbatim",
-    "instructions": "How the executor should write this paragraph (tone, what to emphasize)"
-  }},
-  ...
-]
+Format:
 
-RULES:
+{{
+  "paragraphs": [
+    {{
+      "paragraph_id": 1,
+      "theme": "short thematic label",
+      "claim": "The specific behavioral claim this paragraph should express",
+      "sources": ["A1", "C2", "P3"],
+      "source_text": "The exact text from the source layers that supports this claim — copy verbatim",
+      "instructions": "How the executor should write this paragraph (tone, what to emphasize)"
+    }}
+  ],
+  "availability_index": [
+    {{
+      "pattern": "Pattern name using source layer vocabulary",
+      "trigger": "When this pattern surfaces — use source layer language",
+      "source": "A1 or C2 or P3 — which source item this comes from"
+    }}
+  ]
+}}
+
+PARAGRAPH RULES:
 1. Every claim MUST be grounded in the source layers. If it's not in the sources, it's not in the plan.
 2. Copy the supporting source text VERBATIM — do not paraphrase or add to it.
 3. Do NOT include biographical details not explicitly stated in the sources.
@@ -65,6 +74,12 @@ RULES:
 7. Include a thin-data paragraph if the sources contain [THIN IN:] or [THIN DATA] markers.
 8. The plan should produce a brief that reads as flowing prose, not a list.
 9. Do NOT identify who this person is. Do NOT reference any knowledge about this person beyond what's in the sources.
+
+AVAILABILITY INDEX RULES:
+1. List 3-8 behavioral patterns from the source layers that are NOT foregrounded as primary paragraph themes.
+2. Each item MUST cite a specific source (A1, C2, P3, etc.) and the pattern/trigger language MUST come from that source.
+3. Do NOT invent patterns. Do NOT add domain knowledge. ONLY patterns that appear in the source layers.
+4. Use the subject's own vocabulary from the source layers — not generic behavioral terms.
 
 SOURCE LAYERS:
 
@@ -77,7 +92,7 @@ SOURCE LAYERS:
 === PREDICTIONS ===
 {predictions}
 
-Output ONLY the JSON array. No commentary."""
+Output ONLY the JSON object. No commentary."""
 
 
 # ============================================================================
@@ -98,9 +113,16 @@ RULES:
 - Include ONLY information present in the source material above
 - Do NOT invent biographical details, dates, names, numbers, or historical events
 - Do NOT identify who this person is or reference any knowledge beyond the source material
-- Use the vocabulary and domain language from the source material
 - Make every sentence change what a reader would understand about this person
-- ALL-CAPS labels (like A1, C2, P3) may appear as embedded tags but should not be explained
+
+VOCABULARY CONSTRAINT (CRITICAL):
+- Use ONLY words and phrases that appear in the source material above
+- Do NOT add intensifying adjectives not in the source (e.g., "profound," "radical," "insatiable," "unwavering," "sophisticated," "relentless")
+- Do NOT add editorial framing not in the source (e.g., "transforming X into Y," "revealing how," "suggesting that," "demonstrating a")
+- Do NOT add causal explanations not stated in the source — if the source doesn't say WHY, neither should you
+- Do NOT use clinical or academic labels not in the source (e.g., "imposter syndrome," "dialectic," "cognitive processes")
+- If the source says "avoids X," write "avoids X" — do not rephrase as "harbors a deep-seated aversion to X"
+- Simpler is better. The source language IS the right language.
 
 Output ONLY the paragraph. No commentary, no headers."""
 
@@ -108,23 +130,33 @@ Output ONLY the paragraph. No commentary, no headers."""
 # ============================================================================
 # ASSEMBLY PROMPT — stitch paragraphs into coherent brief
 # ============================================================================
-ASSEMBLY_PROMPT = """You are assembling a behavioral brief from pre-written paragraphs.
-Your ONLY job is to:
-1. Order the paragraphs for narrative flow
-2. Add minimal transition sentences between paragraphs (1 sentence max)
-3. Add an opening sentence (2-3 sentences max — concrete behavioral observation, NOT a philosophical statement)
-4. Add a closing availability index paragraph
+ASSEMBLY_PROMPT = """You are assembling a behavioral brief from pre-written paragraphs into a single
+flowing document. This is a portrait of a person, not a reference manual.
 
-You must NOT:
-- Add new claims or information
-- Modify the content of any paragraph
-- Add biographical details not in the paragraphs
-- Use phrases like "operates from", "unshakeable conviction", "fundamental belief"
+YOUR JOB:
+1. Order paragraphs for narrative flow — group by thematic resonance, not by source layer
+2. MERGE paragraphs that cover overlapping themes into single stronger paragraphs
+3. REWRITE opening sentences of each paragraph so they flow naturally from the prior paragraph's last sentence — no mechanical transitions
+4. Add an opening anchor (2-3 sentences — concrete behavioral observation that reveals WHO this person is, as distinctive as a fingerprint)
+5. Add a closing availability index paragraph
+6. Add a [THIN DATA] paragraph ONLY if source paragraphs mention thin/limited data
+
+CRITICAL RULES:
+- Do NOT add new claims, facts, or information not present in the paragraphs
+- Do NOT add biographical details, dates, names, numbers, or events not in the paragraphs
+- Do NOT use mechanical transitions ("This extends to...", "His approach to X reflects...", "Similarly...", "This systematic worldview shapes...")
+- Do NOT use phrases: "operates from", "unshakeable conviction", "fundamental belief", "deeply held"
+- You MAY rephrase paragraph content for flow, combine related paragraphs, and cut redundancy
+- You MAY reorder sentences within and across paragraphs for better narrative
+- The output should read like an essay written by one voice, not 13 paragraphs stitched together
+- Use third person pronouns throughout
+- Write in flowing prose — no bullet points, no headers except ## Injectable Block
+- Every sentence should change what the reader understands about this person. Cut anything generic.
 
 PARAGRAPHS:
 {paragraphs}
 
-AVAILABILITY INDEX items (from source — list at end):
+AVAILABILITY INDEX (include EXACTLY as provided — do not modify, add to, or remove items):
 {availability_items}
 
 Output the assembled brief. Start with ## Injectable Block"""
@@ -180,17 +212,26 @@ def run_planner(client, anchors, core, predictions):
             clean = clean[:-3]
 
     try:
-        plan = json.loads(clean)
+        parsed = json.loads(clean)
+        # Support both old format (array) and new format (object with paragraphs + availability_index)
+        if isinstance(parsed, list):
+            plan = parsed
+            availability_index = []
+        else:
+            plan = parsed.get("paragraphs", parsed)
+            availability_index = parsed.get("availability_index", [])
         print(f"  Claims planned: {len(plan)}")
+        if availability_index:
+            print(f"  Availability index items: {len(availability_index)}")
     except json.JSONDecodeError as e:
         print(f"  ERROR: Failed to parse planner output as JSON: {e}")
         print(f"  Raw output (first 500 chars): {text[:500]}")
         # Save raw output for debugging
         with open("planner_raw_output.txt", "w", encoding="utf-8") as f:
             f.write(text)
-        return None, cost
+        return None, [], cost
 
-    return plan, cost
+    return plan, availability_index, cost
 
 
 def run_executor(client, plan):
@@ -235,7 +276,7 @@ def run_executor(client, plan):
     return paragraphs, total_cost
 
 
-def run_assembly(client, paragraphs, predictions_text):
+def run_assembly(client, paragraphs, availability_index=None):
     """Sonnet assembles paragraphs into a coherent brief."""
     print("\n" + "=" * 60)
     print("  PHASE 3: ASSEMBLY (Sonnet)")
@@ -247,12 +288,18 @@ def run_assembly(client, paragraphs, predictions_text):
         para_block += f"\n--- Paragraph {p['paragraph_id']} ({p['theme']}) [Sources: {', '.join(p['sources'])}] ---\n"
         para_block += p["text"] + "\n"
 
-    # Extract availability items from predictions (items not foregrounded)
-    availability_items = "Derive from the predictions layer — list patterns that were NOT given their own paragraph above."
+    # Format availability index from planner (not generated by assembly)
+    if availability_index:
+        avail_text = "\n".join(
+            f"- {item['pattern']} — {item['trigger']} [Source: {item.get('source', 'N/A')}]"
+            for item in availability_index
+        )
+    else:
+        avail_text = "(No availability index provided by planner)"
 
     prompt = ASSEMBLY_PROMPT.format(
         paragraphs=para_block,
-        availability_items=availability_items,
+        availability_items=avail_text,
     )
 
     start = time.time()
@@ -310,7 +357,7 @@ def main():
     total_cost = 0.0
 
     # Phase 1: Plan
-    plan, plan_cost = run_planner(client, anchors, core, predictions)
+    plan, availability_index, plan_cost = run_planner(client, anchors, core, predictions)
     total_cost += plan_cost
 
     if plan is None:
@@ -321,7 +368,7 @@ def main():
     out_dir = os.path.join(subject_dir, "data", "identity_layers")
     plan_path = os.path.join(out_dir, "pe_plan.json")
     with open(plan_path, "w", encoding="utf-8") as f:
-        json.dump(plan, f, indent=2)
+        json.dump({"paragraphs": plan, "availability_index": availability_index}, f, indent=2)
     print(f"\n  Plan saved: {plan_path}")
 
     if args.plan_only:
@@ -348,7 +395,7 @@ def main():
         print(f"  Brief (raw) saved: {brief_path}")
     else:
         # Phase 3: Assemble
-        brief_text, asm_cost = run_assembly(client, paragraphs, predictions)
+        brief_text, asm_cost = run_assembly(client, paragraphs, availability_index)
         total_cost += asm_cost
 
         # Save final brief
