@@ -143,6 +143,52 @@ Extraction sends text to the Anthropic API. Nothing persists remotely beyond [An
 
 76+ design decisions, 10 design principles, 81+ session logs. The prompts are in the code. Nothing is hidden.
 
+## Roadmap
+
+### What's working now
+
+- 4-step pipeline: import → extract → author → compose
+- Import from ChatGPT exports, Claude exports, journals, text files, directories
+- Document mode for non-conversation text (books, patents, letters, essays)
+- MCP server with identity Resource + recall/search/trace tools
+- Cost estimation before processing (`baselayer estimate`)
+- Cold start via guided journal prompts (`baselayer journal`)
+- Provenance traces: every identity claim → source facts → original text
+- Local extraction via Ollama (Qwen 2.5 14B)
+
+### Active research
+
+- [ ] **Persistent updating** — Pipeline currently runs once to produce a snapshot. Working toward continuous updating: new conversations → incremental fact extraction → brief evolves over time without full re-runs.
+- [ ] **Self-referential proof** — Run Base Layer on its own documentation. The pipeline should be able to build its own identity brief and use it to improve its own development.
+- [ ] **Paul Graham case study** — 28 essays ready. Strong test of document-mode extraction on a well-known voice.
+
+### Near-term
+
+- [ ] **Conversation capture from anywhere** — Import from any LLM provider, messaging app, or text source. OpenRouter proxy design ([D-049](docs/core/DECISIONS.md)) for automatic capture across providers.
+- [ ] **Multi-provider pipeline** — Run extraction/authoring/composition on OpenAI, Google, or Anthropic models. Provider-agnostic by default, user choice available. ([D-052](docs/core/DECISIONS.md))
+- [ ] **Fully local pipeline** — End-to-end local processing as open models improve. Extraction works locally today (Ollama); authoring and composition need stronger local models.
+- [ ] **LongMemEval benchmark** — Stack Base Layer on memory systems (Mem0, Zep, Supermemory). Test whether identity + memory > memory alone. Validates the "missing layer" thesis.
+- [ ] **Longitudinal drift tracking** — Does the brief stay accurate as you change? Detect when patterns shift via contradiction, not elapsed time. The biggest open question.
+- [ ] **Brief correction CLI** — `baselayer correct` to flag, edit, or supersede individual facts. Changes cascade to layers and brief automatically.
+
+### Research horizons
+
+- [ ] **Voice/style layer** — The brief captures reasoning but not prose style. Stylometric analysis could enable "write in this person's voice" — but fidelity creates vulnerability (Finding #6). Exploring carefully.
+- [ ] **Stacking benchmark** — Does System X + Base Layer > System X alone? 8 benchmarks, 3 tiers across memory systems, coding agents, and personalization tasks. ([Study design](docs/eval/STACKING_BENCHMARK_STUDY.md))
+- [ ] **ADRB benchmark** — Axiom-conditioned domain reasoning. Do structured axioms from Buffett's letters improve investment reasoning? 40 tasks, 7 conditions. ([Spec](docs/eval/AXIOM_BENCHMARK_SPEC.md))
+- [ ] **Dissenting opinion benchmark** — Build a brief from a judge's prior opinions, predict how they'd argue a held-out dissent. Novel contribution to behavioral prediction. ([D-076](docs/core/DECISIONS.md))
+- [ ] **LaMP / PersonaLens** — Academic personalization benchmarks. Standard evaluation against published baselines.
+- [ ] **Fine-tuned lightweight models** — Train 3B-7B parameter models on extraction patterns. Reduce cost and latency for high-volume use.
+
+### Vision
+
+The brief is a portable, compressed representation of how someone thinks. Today it works in AI conversations. Where it goes:
+
+- **Personal** — Every AI you use knows you without being told. Your identity travels with you across models, providers, and tools.
+- **Professional** — Your professional point of view as a portable lens. New team members, collaborators, or AI agents understand your reasoning style immediately.
+- **Agents** — Autonomous agents that represent your goals, constraints, and values — not generic defaults. The brief becomes the alignment layer between human intent and agent action.
+- **Continuity** — Intelligence that persists as models upgrade. Same identity, new substrate. Your belief trajectories survive model changes.
+
 ## Contributing
 
 We'd welcome contributions — especially around evaluation, new source type adapters, and local model support. See [open questions](https://base-layer.ai/journey) for where the research is headed.
