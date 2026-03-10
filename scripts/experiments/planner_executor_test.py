@@ -134,10 +134,10 @@ ASSEMBLY_PROMPT = """You are assembling a behavioral brief from pre-written para
 flowing document. This is a portrait of a person, not a reference manual.
 
 YOUR JOB:
-1. Order paragraphs for narrative flow — group by thematic resonance, not by source layer
+1. PRESERVE the planner's paragraph ordering — paragraph 1 is the broadest identity pattern and MUST come first. Do NOT reorder paragraphs unless two adjacent ones cover the same theme and should merge.
 2. MERGE paragraphs that cover overlapping themes into single stronger paragraphs
 3. REWRITE opening sentences of each paragraph so they flow naturally from the prior paragraph's last sentence — no mechanical transitions
-4. Add an opening anchor (2-3 sentences — concrete behavioral observation that reveals WHO this person is, as distinctive as a fingerprint)
+4. The opening paragraph should be the BROADEST behavioral pattern — who this person IS at the most fundamental level. Specific examples and domain-specific details come LATER as evidence. Do NOT open with a narrow scenario.
 5. Add a closing availability index paragraph
 6. Add a [THIN DATA] paragraph ONLY if source paragraphs mention thin/limited data
 
