@@ -41,15 +41,31 @@ Every identity claim traces to source facts. Every fact traces to source text. N
 
 ## Quick Start
 
+**Requirements:** Python 3.10+, [Anthropic API key](https://console.anthropic.com/account/keys)
+
+### Option A: Use Claude Code (easiest)
+
+```bash
+pip install baselayer
+```
+
+Then tell Claude Code:
+
+> "Find my ChatGPT export and run Base Layer on it. Show me the cost estimate first."
+
+That's it. Claude Code handles the rest.
+
+### Option B: One command
+
 ```bash
 pip install baselayer
 export ANTHROPIC_API_KEY=sk-ant-...
-baselayer run chatgpt-export.zip    # import → extract → author → compose → brief
+baselayer run chatgpt-export.zip
 ```
 
-**~30 minutes for ~1,000 conversations. ~$0.50–2.00 total.**
+This runs the full pipeline: import → extract → author → compose. Shows a cost estimate before spending anything. Takes ~30 minutes for ~1,000 conversations. ~$0.50–2.00 total.
 
-Or step-by-step:
+### Option C: Step-by-step
 
 ```bash
 baselayer init
@@ -59,15 +75,8 @@ baselayer extract                          # structured facts from every convers
 baselayer author && baselayer compose      # identity layers → unified brief
 ```
 
-For non-conversation text (books, essays, letters, patents):
-
-```bash
-baselayer import ~/documents/ --source text
-baselayer extract --document-mode
-baselayer author && baselayer compose
-```
-
-No conversation history? `baselayer journal` generates guided prompts to bootstrap your identity model.
+**Other input types:** Books, essays, letters, patents — use `baselayer extract --document-mode`.
+**No conversation history?** Run `baselayer journal` for guided prompts that bootstrap your identity model.
 
 ## Use Your Brief
 
