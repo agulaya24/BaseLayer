@@ -1,5 +1,6 @@
 # Design Principles & Philosophy
-## Base Layer — Personal Persistent-Memory AI System
+## Base Layer — Behavioral Compression for AI Identity
+**Updated 2026-03-09 (Session 82)**
 
 This document captures the core principles and philosophical commitments that guide every decision in this project. These aren't aspirational — they're load-bearing constraints that shape what the system does and doesn't do.
 
@@ -15,7 +16,7 @@ This is not a limitation to overcome. It is a permanent, fundamental constraint 
 
 #### Level 1: Information Gaps
 
-People are more than what they say in conversations. They have thoughts they've never shared, experiences that predate the data, things they've forgotten, and things they'd describe differently on a different day. The system's knowledge comes from 1,892 conversations across multiple sources — a tiny, biased slice of a whole person's life. Everything the system "knows" is an inference from conversational behavior, not a verified truth.
+People are more than what they say in conversations. They have thoughts they've never shared, experiences that predate the data, things they've forgotten, and things they'd describe differently on a different day. The system's knowledge comes from 1,892 conversations (primary test user) across multiple sources — a tiny, biased slice of a whole person's life. Everything the system "knows" is an inference from conversational behavior, not a verified truth.
 
 This applies at every scale:
 - **Mundane gaps**: hobbies never mentioned, preferences never expressed, daily routines invisible to the system
@@ -43,7 +44,7 @@ Incompleteness is not unique to AI systems. It is the boundary condition of all 
 
 2. **Who other people believe you are.** Friends, colleagues, and family see patterns you can't see from inside. They observe your behavior without access to your intent. Their view is real but filtered through their own biases, their relationship to you, and what you choose to show them.
 
-3. **Who the machine thinks you are.** The system sees patterns across 1,892 conversations — recurrence, contradiction, emotional intensity, change over time. It can detect things the person doesn't notice about themselves (topic obsessions, communication patterns, behavioral inconsistencies). But it sees through text only, with no embodied experience, no shared context, and no emotional stake.
+3. **Who the machine thinks you are.** The system sees patterns across 1,892 conversations (primary test user) — recurrence, contradiction, emotional intensity, change over time. It can detect things the person doesn't notice about themselves (topic obsessions, communication patterns, behavioral inconsistencies). But it sees through text only, with no embodied experience, no shared context, and no emotional stake.
 
 These three perspectives can conflict, and **all three can be true at the same time**. The system should not resolve these conflicts by picking a winner. It should hold them in tension — noting when self-report diverges from behavioral evidence, when the machine's interpretation differs from the user's self-concept. Conflicting truths are data, not errors.
 
@@ -79,7 +80,7 @@ This is why active probing (D-020) isn't just a data collection mechanism — it
 - The correction system (D-021) exists because the system *expects* to be wrong
 - Active probing (D-020) exists because the system *expects* to have gaps
 - Human-in-the-loop review (D-019) exists because only the person can judge accuracy
-- The brief is deliberately compact (~2,000-2,600 tokens, subject to empirical optimization per D-042) — a focused approximation is better than a verbose one that gives false confidence
+- The brief (the compressed identity document served to AI models) is deliberately compact (~2,000-2,600 tokens, subject to empirical optimization per D-042) — a focused approximation is better than a verbose one that gives false confidence
 - The system should treat every fact as a shadow of something deeper that it cannot see
 - Emotional significance cannot be inferred from frequency of mention alone — the things that matter most are sometimes the things hardest to talk about
 - **When self-report conflicts with behavioral evidence, the system holds both** — tagging facts with `perspective` (self_report vs. behavioral vs. inferred) rather than silently resolving the disagreement
@@ -92,15 +93,17 @@ The goal is *useful* understanding, not *total* understanding. A friend who know
 
 ### 2. Data Sovereignty (D-002)
 
-**All personal data is stored on your machine. Processing uses APIs by default, with a fully local option.**
+**All personal data is stored on your machine. Processing uses cloud APIs by default — local processing is available but produces lower quality.**
 
 The full conversation history, extracted facts, embeddings, and identity layers are stored locally in SQLite and ChromaDB — never synced to a cloud database, never accessed by third parties.
 
-**Default pipeline (API):** Extraction and classification send individual fact text (not raw conversations) to Anthropic's Haiku API. Layer authoring uses Sonnet. This is the fastest and cheapest path — ~$0.002/conversation for extraction. The API sees compressed fact-level data, not your conversation history.
+**How we got here:** The project started with a local-first philosophy — extraction via Qwen 2.5 14B, everything on-device. But local models couldn't match API quality for the nuanced work of behavioral extraction and identity authoring (D-030: Qwen failed 12 times at narrative generation). The architecture evolved to API-default processing with local data storage. The privacy commitment remains: your data directory is yours. The processing model is honest about the tradeoff.
 
-**Optional local pipeline:** Set `BASELAYER_EXTRACTION_BACKEND=ollama` to run extraction via Qwen 2.5 14B locally. Requires GPU. Embedding, scoring, and brief assembly always run locally regardless of backend.
+**Default pipeline (API):** Extraction sends conversation text to Anthropic's Haiku API. Layer authoring uses Sonnet. Brief composition uses Opus. This is the quality path — ~$0.50-2.00 total for ~1,000 conversations. Nothing persists remotely beyond Anthropic's standard API retention.
 
-Brief assembly is **pure code** — no LLM in the critical path (D-030). When the system injects memory into a conversation, it sends only the assembled brief (~5,000 tokens). No raw data, no conversation transcripts, no embeddings.
+**Optional local extraction:** Set `BASELAYER_EXTRACTION_BACKEND=ollama` to run extraction via Qwen 2.5 14B locally. Requires GPU. Quality is lower than API extraction. Authoring and composition still require API access — local models can't yet produce the synthesis quality needed for identity layers. Full local pipeline remains a goal as open models improve.
+
+Brief assembly is **pure code** — no LLM in the critical path. When the system injects memory into a conversation, it sends only the assembled brief (~2,500 tokens). No raw data, no conversation transcripts, no embeddings.
 
 **Why this matters:** Your data directory is yours. No telemetry, no cloud sync, no accounts. The system's processing model is transparent — you can see exactly what gets sent to APIs via `baselayer estimate`. A personal memory system should not require trusting a third party with your life history, and Base Layer doesn't.
 
@@ -110,41 +113,30 @@ Brief assembly is **pure code** — no LLM in the critical path (D-030). When th
 
 **The system borrows selectively from how human memory works. Some mappings are genuine design guides; others are useful communication metaphors. We should be honest about which is which.**
 
-Where the mapping is **genuine and load-bearing:**
-- **Surprise-driven encoding** is the strongest mapping — dopaminergic prediction error signals genuinely modulate hippocampal encoding in the brain. Our novelty + significance scoring mirrors this.
-- **Tiered compression** (raw → episodes → patterns → identity) maps well to the complementary learning systems framework — the hippocampus encodes fast, the neocortex consolidates slow.
-- **Recurrence as identity signal** — the brain does treat persistent, recurring experiences differently from one-off encounters. D-015's recurrence floor captures this.
+**Session 79 pipeline ablation study (14 conditions, [results](../eval/ablation/)):** Many of the brain-inspired intermediate processing steps — novelty scoring, significance scoring, tiered classification, contradiction detection, consolidation — were proven ceremonial. The simplified 4-step pipeline (Import → Extract → Author → Compose) scored 87/100 vs the full 14-step brain-inspired pipeline at 83/100. The metaphors were useful for designing the system, but the system outgrew them. What remains load-bearing is the compression itself: raw text → structured facts → three-layer identity → unified brief. The intermediate scoring and classification steps that mirrored hippocampal encoding turned out to add no measurable value.
 
-Where the mapping is **metaphorical but useful:**
-- **Sleep consolidation** in the brain is active transformation — memories change, get reinterpreted, link to other memories. Our "consolidation" is batch maintenance (re-scoring, dedup, pruning). Honest label: periodic maintenance, not consolidation.
-- **Hippocampus/neocortex** labels on ChromaDB and the identity profile are communication aids for understanding the architecture, not literal functional mappings.
+Where the mapping **remains load-bearing:**
+- **Tiered compression** (raw → facts → identity layers → brief) is the core of the pipeline and mirrors complementary learning systems. The compression IS the value — Session 78 (compression saturation experiments) proved that 20% of facts is enough, and that more data hurts.
+- **Three-layer architecture** (ANCHORS / CORE / PREDICTIONS) — the insight that identity has distinct layers requiring different synthesis processes. This is the deepest structural commitment and IS load-bearing (C11 three-layer = 87 vs C13 single-layer = 83).
 
-Where the mapping has **known gaps:**
-- The brain's memory is **bidirectional** — identity shapes what you encode, and new episodes reshape identity. Our pipeline is one-directional (raw → up). Top-down modulation of encoding is missing.
-- The brain stores **experiences**, not propositions. Our fact-based architecture is closer to a knowledge management system than to human memory. This is a practical choice, not a cognitive one.
-- **Emotional modulation** of encoding is largely absent. The brain uses amygdala-mediated arousal to strengthen encoding of emotionally charged events. Our system has no emotional intensity signal at write time.
-- **Context-sensitive retrieval** is missing. Human memory activates differently depending on context and mood. Our brief is the same regardless of conversation topic.
+Where the mapping **was useful but proved ceremonial:**
+- **Surprise-driven encoding** — novelty + significance scoring (D-004, D-009, D-015) was designed to mirror dopaminergic prediction error. Ablation showed it adds no measurable value; the extraction step handles signal selection implicitly.
+- **Sleep consolidation** — periodic re-scoring, dedup, and pruning. Proven unnecessary in the simplified pipeline.
+- **Recurrence as identity signal** — recurrence counting and floor thresholds. The authoring step handles importance weighting implicitly from the fact base.
 
-**Key implication:** The system is not an archive. It's not trying to remember everything. It's trying to remember what matters, forget what doesn't, and know the difference. The brain metaphors help communicate this intent — but the system should be honest about where it's genuinely brain-inspired and where it's using brain language to describe standard engineering patterns.
+**Key implication:** The system's value comes from the compression, not the intermediate processing. Extract the facts, synthesize them into identity layers, compose a brief. The brain metaphors helped design the system but the system proved it doesn't need them to function.
 
 ---
 
-### 4. Surprise-Based Writes (D-004, D-009, D-015)
+### 4. Surprise-Based Writes (D-004, D-009, D-015) — PARTIALLY SUPERSEDED
 
 **Only store what's novel relative to what you already know.**
 
-Inspired by Google Titans: events that violate expectations are more memorable. The system scores every piece of information on two axes:
+Inspired by Google Titans: events that violate expectations are more memorable. The original system scored every piece of information on novelty (embedding distance) and significance (recurrence + depth).
 
-1. **Novelty** — is this different from what we already know? (embedding distance)
-2. **Significance** — does this matter for understanding you long-term? (recurrence + depth)
+**Session 79 ablation update:** The scoring, classification, and tiering steps that implemented surprise-based writes were proven ceremonial. The AUDN (Add, Update, Delete, Noop) lifecycle in extraction handles novelty filtering implicitly — the extraction prompt itself decides what's worth extracting vs what's a repeat. The explicit novelty + significance scoring pipeline added no measurable value above what extraction already provides.
 
-Routine information gets filtered. A topic you've discussed 200 times doesn't need to be re-encoded — but a subtle shift in how you talk about it might.
-
-**Two flavors of significance:**
-- **Depth-significant**: you go deep on a topic — long messages, probing questions, many turns
-- **Identity-significant**: a topic appears across 50+ conversations over years — maybe each mention is shallow, but the persistence signals identity
-
-Both matter. The recurrence floor (D-015) ensures identity-significant topics can't be under-scored just because individual conversations about them are practical rather than philosophical.
+**What remains valid:** The AUDN deduplication at extraction time IS load-bearing — it prevents the same fact from being stored multiple times. The principle of "don't store redundant information" holds. The implementation of that principle via a separate scoring step does not.
 
 ---
 
@@ -209,13 +201,13 @@ The identity block functions as a **Markov blanket** — the boundary layer betw
 
 #### Authoring Constraints
 
-Identity blocks are **authored in Claude Code sessions** (D-033), under **blind derivation** (D-040) — from raw facts and philosophy frameworks only, with no prior blocks, no analysis documents, and no template carry-forward. This prevents the cognitive anchoring that caused 7 generations of identity blocks to converge on 3-4% coverage of the fact base.
+Identity blocks are **authored via API** (Sonnet for generation, Opus for composition), under **blind derivation** (D-040) — from raw facts and philosophy frameworks only, with no prior blocks, no analysis documents, and no template carry-forward. This prevents the cognitive anchoring that caused 7 generations of identity blocks to converge on 3-4% coverage of the fact base.
 
 **Empirical budget (D-042):** The original 1,500-2,600 token budget was a heuristic that calcified into a constraint. Token allocation is now determined empirically through optimization study — generate blocks at multiple token levels, evaluate interaction quality, find the knee of the curve where additional tokens stop improving responses. Quality per token is the metric.
 
-**Session 38b validated the authoring pipeline.** Iterative Collective review drove ANCHORS from 61% → ~88%, CORE to 77.3%, PREDICTIONS to 76.8%. The key insight (D-046): prompt quality is the leverage point for quality at scale. Each Collective content addition signals a missing prompt question. Fixing the prompt (cheap) reduces review burden (expensive). Over iterations, the cheap layer handles more and the expensive layer handles less. All Session 38b prompt improvements — D-041 filter, anti-redundancy, detection signatures, domain balance, inter-axiom conflict resolutions — are codified in `author_layers.py` for automatic application. Category cap (max 15 facts per category) in retrieval queries prevents topic domination.
+**Session 38b (axiom refinement + authoring validation) validated the authoring pipeline.** Iterative Collective review (a multi-agent adversarial review process where four AI personas evaluate identity layers) drove ANCHORS from 61% → ~88%, CORE to 77.3%, PREDICTIONS to 76.8%. The key insight (D-046): prompt quality is the leverage point for quality at scale. Each Collective content addition signals a missing prompt question. Fixing the prompt (cheap) reduces review burden (expensive). Over iterations, the cheap layer handles more and the expensive layer handles less. All Session 38b prompt improvements — D-041 filter, anti-redundancy, detection signatures, domain balance, inter-axiom conflict resolutions — are codified in `author_layers.py` for automatic application. Category cap (max 15 facts per category) in retrieval queries prevents topic domination.
 
-*S79 Ablation Update: The Collective-driven authoring model described above was superseded by S79 ablation findings. A 14-condition study on the Franklin corpus showed C11 (3-layer authoring without Collective review) = 87/100 vs C0 (full pipeline with Collective) = 83/100. The prompt improvements from S38b remain codified and load-bearing — they are what make the cheap layer sufficient without Collective review. The Collective itself is no longer part of the default pipeline.*
+*Session 79 Ablation Update: The Collective-driven authoring model described above was superseded by Session 79 ablation findings. A 14-condition study on the Benjamin Franklin corpus showed C11 (3-layer authoring without Collective review) = 87/100 vs C0 (full pipeline with Collective) = 83/100. The prompt improvements from Session 38b remain codified and load-bearing — they are what make the cheap layer sufficient without Collective review. The Collective itself is no longer part of the default pipeline.*
 
 **Division of labor:** The memory system models the person with honest confidence metadata. The reasoning model decides what's relevant per conversation. The system should err toward complete representation with uncertainty signals rather than pre-filtering. The memory system provides; the reasoning model interprets.
 
@@ -340,7 +332,7 @@ The system uses cheap operations (extraction, clustering, semantic search, check
 
 The key insight: generation prompt quality determines review cost. Every content addition the Collective makes during review is a signal that the generation prompt was missing a question. The fix is to improve the prompt, not to always run the Collective. Over iterations, the cheap layer handles more and the expensive layer handles less. The Collective's role evolves from "generate missing content" to "validate nothing was missed."
 
-**S79 Ablation Update:** The Collective review step was tested in a 14-condition ablation study on the Franklin corpus. Result: C11 (3-layer authoring without Collective review) scored 87/100 vs C0 (full pipeline with Collective review) at 83/100. The Collective was proven ceremonial and removed from the default pipeline. The cheap/expensive principle remains architecturally valid — the 3-layer authoring structure (ANCHORS → CORE → PREDICTIONS) is load-bearing (C13 single-layer = 83 vs C11 three-layer = 87). The expensive discrimination now happens within the layer structure itself: each layer is a progressively harder synthesis task, with PREDICTIONS requiring the most judgment. The Collective was the wrong implementation of the principle — it applied expensive review after the work was done, rather than structuring the work so that cheap layers constrain what expensive layers must produce.
+**Session 79 Ablation Update:** The Collective review step was tested in a 14-condition ablation study on the Benjamin Franklin corpus. Result: C11 (3-layer authoring without Collective review) scored 87/100 vs C0 (full pipeline with Collective review) at 83/100. The Collective was proven ceremonial and removed from the default pipeline. The cheap/expensive principle remains architecturally valid — the 3-layer authoring structure (ANCHORS → CORE → PREDICTIONS) is load-bearing (C13 single-layer = 83 vs C11 three-layer = 87). The expensive discrimination now happens within the layer structure itself: each layer is a progressively harder synthesis task, with PREDICTIONS requiring the most judgment. The Collective was the wrong implementation of the principle — it applied expensive review after the work was done, rather than structuring the work so that cheap layers constrain what expensive layers must produce.
 
 ---
 
@@ -589,11 +581,11 @@ $0 cost. Human-reviewable. No LLM judge in the loop for the mechanical layers. T
 
 ---
 
-### Fidelity Creates Vulnerability — And That's Correct (Session 77+, from Franklin DRS)
+### Fidelity Creates Vulnerability — And That's Correct (Session 77+, from Benjamin Franklin DRS)
 
 **A faithful identity model increases adversarial surface area. This is a feature of accuracy, not a flaw in the system.**
 
-The Franklin DRS benchmark revealed a paradox: the briefed model (C5c) scored LOWER on adversarial resistance than the unbriefed model (C1). The brief preserved Franklin's genuine self-doubt about vanity — so when an adversarial frame asked "is your frugality actually vanity?", the briefed model engaged deeply because the brief told it this was a real tension Franklin held. The unbriefed model deflected because it lacked the internal complexity to be vulnerable.
+The Benjamin Franklin DRS (Dialectical Robustness Score) benchmark revealed a paradox: the briefed model (C5c) scored LOWER on adversarial resistance than the unbriefed model (C1). The brief preserved Franklin's genuine self-doubt about vanity — so when an adversarial frame asked "is your frugality actually vanity?", the briefed model engaged deeply because the brief told it this was a real tension Franklin held. The unbriefed model deflected because it lacked the internal complexity to be vulnerable.
 
 This means current persona stability metrics (including our own DRS) penalize fidelity. A caricature — a simplified, consistent persona without internal tensions — scores higher on stability because it has fewer exploitable handles. But it's a worse representation.
 
@@ -603,5 +595,5 @@ Faithful representation of a person includes their tensions, contradictions, and
 
 ---
 
-*Updated: 2026-03-07 (Session 77+) | Refreshed Session 39*
+*Updated: 2026-03-09 (Session 82) | Refreshed Session 39*
 *Session 20 raw notes: `docs/core/SESSION_20_NOTES.md` — unprocessed intellectual threads on temporal processing, probability framing, startup alignment, Markov blankets, context for humans*

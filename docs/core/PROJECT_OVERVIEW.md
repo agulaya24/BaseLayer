@@ -1,5 +1,5 @@
 # Base Layer — Project Overview
-**Updated 2026-03-08 (Session 80)**
+**Updated 2026-03-09 (Session 82)**
 
 ---
 
@@ -11,11 +11,11 @@ All data stored on the user's machine. Processing uses cloud APIs by default, wi
 
 ## Core Idea
 
-Modern LLMs are powerful but stateless. Every conversation starts from zero. Base Layer adds a durable understanding layer: extract facts from conversations, author a compressed identity brief, and inject it as context. The result is persistent understanding without replaying history or running up token costs.
+Modern LLMs are powerful but stateless. Every conversation starts from zero. Base Layer adds a durable understanding layer: extract facts from conversations, author a compressed identity brief (a ~2,500-token document that teaches an AI how someone thinks and communicates), and inject it as context. The result is persistent understanding without replaying history or running up token costs.
 
 Base Layer is a structured reasoning process that produces understanding. The identity brief isn't a profile — it's a chain of thought that teaches an AI how to understand and communicate naturally with a specific person.
 
-**North star:** perceived alignment — AI responses reflecting an accurate behavioral model of the user.
+**North star:** Every agentic workflow, AI interaction, and form of personalization is hollow if it doesn't understand who the human is behind the screen. Base Layer exists because AI should know you.
 
 ---
 
@@ -32,7 +32,7 @@ Base Layer is a structured reasoning process that produces understanding. The id
    - **Communication & Operating Guide (CORE)** — Directive-format communication approach, context modes, narrative orientation, essential context. Always-on.
    - **Behavioral Predictions** — Situation-triggered response patterns with detection signatures and interaction directives. Always-on.
 
-4. **Brief Composition** — Three layers compressed into a unified narrative brief (~3,500 tokens). Served via MCP as an always-on identity Resource.
+4. **Brief Composition** — Three layers compressed into a unified narrative brief (~2,500 tokens, V4). Served via MCP (Model Context Protocol) as an always-on identity Resource.
 
 5. **Reasoning Model** — Any LLM receives the brief and responds with understanding. Stateless, interchangeable.
 
@@ -54,7 +54,7 @@ The identity brief is authored in three independent layers, each with its own so
 
 ### Adversarial Review Pipeline (The Collective) — ARCHIVED
 
-The original pipeline included a multi-agent adversarial review process (The Collective) for identity layers. Pipeline ablation (Session 79, 14 conditions on Franklin) demonstrated that skipping Collective review produced higher-quality briefs (87/100 vs 83/100 for the full 14-step pipeline). The review step is preserved in the codebase but is no longer part of the default pipeline.
+The original pipeline included a multi-agent adversarial review process ("The Collective" — four AI personas evaluating identity layers from different angles: accuracy, completeness, tone, behavioral utility). Pipeline ablation (Session 79, 14 conditions on Benjamin Franklin's autobiography, [results](../eval/ablation/)) demonstrated that skipping Collective review produced higher-quality briefs (87/100 vs 83/100 for the full 14-step pipeline). The review step is preserved in the codebase but is no longer part of the default pipeline.
 
 ### Model Roles
 
@@ -65,7 +65,7 @@ The original pipeline included a multi-agent adversarial review process (The Col
 | **Composition** | Opus (API) | Compresses 3 layers into unified narrative brief |
 | **Brief assembly** | Pure code | Loads and serves final brief. No LLM in the critical path. ~100ms. |
 
-Each step uses the cheapest model that can do the job. Embedding, scoring, classification, tiering, and contradiction detection were part of the original 14-step pipeline but proved ceremonial in ablation testing (Session 79).
+Each step uses the cheapest model that can do the job. Embedding, scoring, classification, tiering, and contradiction detection were part of the original 14-step pipeline but proved ceremonial in ablation testing (Session 79, [results](../eval/ablation/)).
 
 ### Data Architecture
 
@@ -78,13 +78,13 @@ Each step uses the cheapest model that can do the job. Embedding, scoring, class
 
 ## Pipeline (4 Steps)
 
-Pipeline ablation (Session 79) tested 14 conditions on Franklin and proved that 10 of the original 14 steps were ceremonial — scoring, classification, tiering, contradiction detection, consolidation, anchor extraction, and collective review added no measurable value. The simplified 4-step pipeline scores higher (87/100 vs 83/100) while costing less.
+Pipeline ablation (Session 79) tested 14 conditions on Benjamin Franklin (autobiography) and proved that 10 of the original 14 steps were ceremonial — scoring, classification, tiering, contradiction detection, consolidation, anchor extraction, and collective review added no measurable value. The simplified 4-step pipeline scores higher (87/100 vs 83/100) while costing less.
 
 ```
 STEP 1:  IMPORT        — Multi-source importer (ChatGPT, Claude, journals, text files)
 STEP 2:  EXTRACT       — Text → structured triples {subject, predicate, object, qualifier} (Haiku API)
 STEP 3:  AUTHOR        — Facts → three-layer identity generation (Sonnet)
-STEP 4:  COMPOSE       — 3 layers → unified narrative brief (~3,500 tokens) (Opus)
+STEP 4:  COMPOSE       — 3 layers → unified narrative brief (~2,500 tokens) (Opus)
 ```
 
 **One command:** `baselayer run <file>` runs steps 1-4 automatically with cost estimate gate.
@@ -173,26 +173,26 @@ Local deployability is being actively explored. The architecture is designed for
 
 | Metric | Value |
 |---|---|
-| Active facts (User A) | 4,610 |
+| Active facts (User A — primary test user, 1,892 ChatGPT conversations) | 4,610 |
 | Active facts (User B) | 309 |
 | Active facts (Subject B) | 76 |
-| Active facts (Franklin) | 212 (135 identity-tier) |
-| Active facts (Douglass) | 88 (51 identity-tier) |
-| Active facts (Wollstonecraft) | 95 (81 identity-tier) |
-| Active facts (Roosevelt) | 398 (264 identity-tier) |
+| Active facts (Franklin — Benjamin Franklin, autobiography) | 212 (135 identity-tier) |
+| Active facts (Douglass — Frederick Douglass, autobiography) | 88 (51 identity-tier) |
+| Active facts (Wollstonecraft — Mary Wollstonecraft, published treatise) | 95 (81 identity-tier) |
+| Active facts (Roosevelt — Theodore Roosevelt, autobiography) | 398 (264 identity-tier) |
 | Identity-tier facts (User A) | 2,684 |
-| Conversations imported | 1,892 (multi-source) |
+| Conversations imported | 1,892 (primary test user, multi-source) |
 | Messages | 40,997 |
 | Epistemic axioms (User A) | 11 |
-| Design decisions logged | 76 |
+| Design decisions logged | 76+ |
 | Classification accuracy | 91.2% type, 93.8% depth |
 | Brief assembly time | ~100ms |
-| Brief token budget | ~3,723 tokens (unified narrative brief) |
+| Brief token budget | ~2,500 tokens (unified narrative brief, V4) |
 | CLI commands | 25 |
 | MCP tools | 5 tools + 1 resource |
 | Constrained predicates | 47 + 30 aliases |
-| External subjects validated | 10 (User A, User B, User C, Franklin, Douglass, Wollstonecraft, Roosevelt, Patents, Buffett, Marks) |
-| Build sessions | 80+ |
+| External subjects validated | 10 (User A, User B, User C, Franklin, Douglass, Wollstonecraft, Roosevelt, Patents, Warren Buffett, Howard Marks) |
+| Build sessions | 82+ |
 | V4 Collective score (User A) | 78.5/100 |
 | V4 Collective score (User B) | 77.7/100 |
 | V4 Collective score (Subject B) | 81.7/100 |
@@ -203,17 +203,20 @@ Local deployability is being actively explored. The architecture is designed for
 ## What's Next
 
 ### Key Completed Milestones
-- **Pipeline ablation** — DONE (S79): 14 conditions on Franklin, ~$16. Proved 10 of 14 steps ceremonial. Simplified to 4-step pipeline.
-- **N=10 validation** — DONE: User A, User B, User C, Franklin, Douglass, Wollstonecraft, Roosevelt, Patents, Buffett, Marks. All scored 73-82/100.
+- **Pipeline ablation** — DONE (Session 79): 14 conditions on Franklin, ~$16. Proved 10 of 14 steps ceremonial. Simplified to 4-step pipeline.
+- **N=10 validation** — DONE: User A, User B, User C, Franklin, Douglass, Wollstonecraft, Roosevelt, Patents, Warren Buffett (48 shareholder letters), Howard Marks (74 investment memos). All scored 73-82/100.
 - **Twin-2K-500 benchmark** — DONE (N=100): 71.83% accuracy at 18:1 compression, p=0.008.
-- **BCB-0.1 Franklin** — DONE: 2 pass, 2 fail, 1 invalid. DRS penalizes fidelity.
-- **Provenance eval framework** — DONE (S77): Mechanical BA+PC layers, $0 cost, human-auditable.
-- **Website** — LIVE at base-layer.ai. 4 routes (Home, Journey, Examples, Try It).
-- **414 tests, 76 design decisions, 25 CLI subcommands.**
+- **BCB-0.1 Franklin** — DONE: 2 pass, 2 fail, 1 invalid. DRS (Dialectical Robustness Score) penalizes fidelity.
+- **Provenance eval framework** — DONE (Session 77): Mechanical BA+PC layers, $0 cost, human-auditable.
+- **Website** — LIVE at [base-layer.ai](https://base-layer.ai). 4 routes (Home, Journey, Examples, Try It).
+- **Privacy scrub + git push** — DONE (Session 81): 0 security blockers.
+- **Pipeline validation** — DONE (Session 81): All subjects recomposed with V4.
+- **Code review** — DONE (Session 81): 13 bugs fixed, 0 security blockers.
+- **Website Try It redesign** — DONE (Session 82): Two-step flow, agent-agnostic.
+- **GitHub repo** — LIVE at [agulaya24/BaseLayer](https://github.com/agulaya24/BaseLayer) (public).
+- **414 tests, 76+ design decisions, 25 CLI subcommands.**
 
 ### Active
-- **Privacy scrub + git push** — See `GIT_PUSH_PREP.md`. Fresh repo planned.
-- **Pipeline validation** — Re-running simplified 4-step pipeline across all subjects.
 - **Paul Graham case study** — 28 essays ready. Pipeline run pending.
 - **Self-referential case study** — Run Base Layer on its own documentation.
 
@@ -226,6 +229,7 @@ Local deployability is being actively explored. The architecture is designed for
 
 ## Repository
 
-Open source under Apache 2.0.
+Open source under Apache 2.0. Repository is public and live.
 
-GitHub: https://github.com/baselayer/baselayer.git
+GitHub: [https://github.com/agulaya24/BaseLayer](https://github.com/agulaya24/BaseLayer)
+Website: [https://base-layer.ai](https://base-layer.ai)

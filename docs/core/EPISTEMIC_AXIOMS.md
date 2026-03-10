@@ -1,13 +1,14 @@
 # Epistemic Axioms — Formalized (Session 38, updated Session 38b)
+## Base Layer — Behavioral Compression for AI Identity
 
-> **Note (S58):** This document captures the original 9 axioms (8 confirmed + 1 paused) formalized in Session 38. The deployed V4 ANCHORS layer (Session 52, cycle_003) contains **11 axioms** with updated formulations, false-positive warnings, and interaction pairs. See `data/identity_layers/anchors_v4.md` for the current deployed version.
+> **Note (Session 58):** This document captures the original 9 axioms (8 confirmed + 1 paused) formalized in Session 38. The deployed V4 ANCHORS layer (Session 52, cycle_003) contains **11 axioms** with updated formulations, false-positive warnings, and interaction pairs. See `data/identity_layers/anchors_v4.md` for the current deployed version.
 
 ## What This Is
 Formulations for 9 axioms (8 confirmed + 1 paused) from the original axiom design sessions. These define the probabilistic priors the model operates from when interacting with this user. These are beliefs the user reasons FROM, not ABOUT — pre-defined certainties that narrow predictions before any specific situation arises.
 
 **Audience:** The AI model consuming this block. Every statement should change how the model generates responses. (D-041)
 
-**Source:** Extracted from 1,892 conversations, reviewed and refined in Session 37 Collective review, formalized in Session 38.
+**Source:** Extracted from 1,892 conversations (primary test user), reviewed and refined in Session 37 Collective review (a multi-agent adversarial review process), formalized in Session 38.
 
 **Database:** `epistemic_anchors` table, formulation_version 2.
 
@@ -190,4 +191,4 @@ The weakest:
 
 ---
 
-*Formalized: 2026-02-23 (Session 38). Updated Session 38b (Anchor 4 reframed, inter-axiom conflict resolutions added). Source: ANCHOR_REVIEW_SESSION37.md + semantic provenance search against 1,421 identity/conviction facts.*
+*Formalized: 2026-02-23 (Session 38). Updated Session 38b (Anchor 4 reframed, inter-axiom conflict resolutions added). Source: ANCHOR_REVIEW_SESSION37.md + semantic provenance search against 1,421 identity/conviction facts (primary test user).*
