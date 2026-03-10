@@ -16,7 +16,7 @@
 
 ---
 
-Base Layer compresses thousands of conversations, journal entries, or any personal text into ~2,500 tokens that capture *how someone thinks* — not just what they've said. Inject that compressed identity into any AI conversation, and the model responds as if it knows you.
+Base Layer compresses thousands of conversations, journal entries, or any personal text into ~2,500 tokens that capture *how someone thinks* — not just what they've said. Inject that compressed identity into any AI conversation, and the model responds as if it knows you. Tested on corpora ranging from 8 journal entries to 600K+ words of published text.
 
 **4-step pipeline.** Import → Extract (47 predicates, Haiku) → Author (3-layer identity, Sonnet) → Compose (unified brief, Opus). Validated on 10 subjects across 6 source types. [Ablation study](docs/eval/ablation/) proved 4 steps beat 14.
 
@@ -169,7 +169,7 @@ Extraction sends text to the Anthropic API. Nothing persists remotely beyond [An
 
 - [ ] **Persistent updating** — Pipeline currently runs once to produce a snapshot. Working toward continuous updating: new conversations → incremental fact extraction → brief evolves over time without full re-runs.
 - [ ] **Self-referential proof** — Run Base Layer on its own documentation. The pipeline should be able to build its own identity brief and use it to improve its own development.
-- [ ] **Paul Graham case study** — 28 essays ready. Strong test of document-mode extraction on a well-known voice.
+- [x] **Paul Graham case study** — 28 essays → 272 facts → 6,204 char brief at 5:1 compression. [Live example](https://base-layer.ai/examples/graham) pending.
 
 ### Near-term
 
