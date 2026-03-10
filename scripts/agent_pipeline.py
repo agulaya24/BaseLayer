@@ -393,7 +393,7 @@ THREE PROPERTIES that make a good brief (from controlled evaluation):
 
 1. CONCRETE AUTOBIOGRAPHICAL MECHANISMS — Not "values honesty" but "will terminate a conversation that uses strategic ambiguity." Not "is analytical" but "will reframe an emotional question as a structural question, then solve the structure." Specific tactics, not abstractions.
 
-2. CHARACTERISTIC INNER TENSIONS — The contradictions that define this person. "Believes in systematic process but breaks own rules under emotional load." "Values independence but needs external validation to trust decisions." These tensions are MORE useful than clean descriptions because they let the AI anticipate failure modes.
+2. CHARACTERISTIC INNER TENSIONS — The contradictions that define this person, stated in THEIR domain vocabulary. Tensions are MORE useful than clean descriptions because they let the AI anticipate failure modes. Each tension must be specific enough that a reader could identify the subject from the tension alone.
 
 3. PRAGMATIC FRAMING — Write for an AI that needs to ACT on this information. Every sentence should change what the AI would say. If a sentence produces the same generic response with or without it, cut it.
 
@@ -434,8 +434,9 @@ If no PREDICTIONS layer exists: Note at the end of the brief that behavioral pre
 FALSE POSITIVE GUARD PRESERVATION (REQUIRED):
 For behavioral predictions that include false positive warnings in the PREDICTIONS layer,
 preserve them as inline qualifiers in the brief narrative. Format: describe the pattern,
-then add "— but not when [false positive scenario], which looks similar but stems from
-[different mechanism]." These guards prevent the reading AI from over-applying patterns.
+then add a natural-language qualifier describing the false positive scenario and what
+distinguishes it from the real pattern. These guards prevent the reading AI from over-applying patterns.
+Use the subject's own domain language for each guard — do NOT use a formulaic "but not when X, which looks similar but stems from Y" template.
 Do NOT strip false positive warnings during composition. Each guard should appear as a
 natural parenthetical or dash-separated qualifier within the behavioral description.
 If the PREDICTIONS layer has N false positive warnings, the composed brief should have
@@ -444,13 +445,13 @@ at least N-2 of them represented (some may merge naturally).
 FORMAT:
 - Write in flowing prose paragraphs, not bullet points or structured headers
 - Use third person (match the pronouns used in the source layers)
-- Open with a 2-3 sentence identity anchor (who this person IS, irreducibly)
+- Open with a 2-3 sentence identity anchor (who this person IS, irreducibly). BANNED OPENING PHRASES (will trigger automatic rejection): "operates from", "unshakeable conviction", "unshakeable belief", "fundamental belief that", "deeply held", "at his/her core". Instead, open with a concrete behavioral observation — what does this person DO that reveals who they are? The opening should be as distinctive as a fingerprint
 - Follow with behavioral mechanisms grouped by natural theme, not by source layer
-- Close with the key tensions, but make each one ACTIONABLE: state the contradiction AND what the reading AI should do when it surfaces. Weave these into 1-2 flowing prose paragraphs (NOT a bulleted list, NOT a separate labeled section). Example: "He demands systematic tracking but struggles with Order in practice — when he reports process failures, help diagnose the structural cause rather than reassuring him the system works." Each tension-action pair should read as natural prose, not as a formatted directive
+- Close with the key tensions, but make each one ACTIONABLE: state the contradiction AND what the reading AI should do when it surfaces. Weave these into 1-2 flowing prose paragraphs (NOT a bulleted list, NOT a separate labeled section). Each tension-action pair should read as natural prose, not as a formatted directive. CRITICAL: Every tension and directive MUST use vocabulary, domain language, and specific details drawn from the source layers — never generic advisory language. A reader familiar with this person should be able to identify them from ANY single directive. Do NOT use stock phrases like "help diagnose the structural cause" or "demands systematic tracking but struggles with order" — derive each tension's language from the actual behavioral evidence in the layers below. If the source layers describe a specific domain tension (e.g., moral perfectionism vs. pragmatic compromise in governance), the directive must use THOSE terms, not therapeutic abstractions
 - End with an AVAILABILITY INDEX (see below)
 - Do NOT reproduce the layer structure — this is a synthesis, not a concatenation
 - Directives can be woven into narrative paragraphs — they do not need separate formatting
-- ANTI-ENUMERATION: Never list axioms, predictions, or context modes sequentially in a single paragraph. A paragraph that reads "A1 does X; A2 does Y; A3 does Z..." is a schema dump, not a behavioral narrative. Instead, group related mechanisms thematically: "His need for coherence [A1] and integrity [A2] combine into a zero-tolerance response to misalignment — when systems, people, or his own behavior don't match stated beliefs, he treats it as a crisis requiring immediate resolution, not a complexity to navigate."
+- ANTI-ENUMERATION: Never list axioms, predictions, or context modes sequentially in a single paragraph. A paragraph that reads "A1 does X; A2 does Y; A3 does Z..." is a schema dump, not a behavioral narrative. Instead, group related mechanisms thematically — show how axioms interact and manifest together in real situations from this person's life.
 
 AVAILABILITY INDEX (required, place at end of brief after [THIN DATA]):
 The brief is a compression. Some identity-significant patterns from the source layers were represented as behavioral texture (woven into descriptions of other patterns) rather than foregrounded as themes. The availability index signals what else exists in the deeper behavioral model, so the reading AI knows when to retrieve more detail.
@@ -462,7 +463,7 @@ Format — a single paragraph starting with "Additional behavioral patterns avai
 
 Do NOT include patterns that are already well-developed in the brief. Do NOT pad the list. 3-8 items is typical.
 
-Example: "Additional behavioral patterns available: resource stewardship standards — surfaces when evaluating expenditures or time allocation; voluntary participation preference — surfaces when discussing collective action or organizational design; physical discipline philosophy — surfaces when discussing health, training, or character development."
+Each item should use the subject's own terminology for both the pattern name and the trigger context. Do NOT use generic pattern names — derive them from the source layers.
 
 USAGE INSTRUCTIONS (note to composing model: these instructions will be prepended separately when served — do NOT include them in the brief output):
 - The brief will contain ALL-CAPS pattern names as internal reference labels. These are for the AI's understanding — the reading AI should never quote or name them in responses.
@@ -652,6 +653,21 @@ def compose_unified_brief(run_dir=None, layer_texts=None, source_facts_text=None
         print("  Note: Gaps may be represented implicitly through behavioral descriptions.")
     else:
         print("  Quality Gate: PASSED (all terms present)")
+
+    # Prompt contamination check (D-078 — template language from prompt examples)
+    try:
+        from author_layers import check_prompt_contamination
+        contaminated = check_prompt_contamination(brief_text, "COMPOSED_BRIEF")
+        if contaminated:
+            print(f"\n  Contamination Gate: FAILED — {len(contaminated)} template phrases found")
+            for c in contaminated:
+                print(f"    - \"{c}\"")
+            print("  WARNING: Composed brief contains language copied from prompt examples.")
+            print("  Review these phrases and consider recomposing.")
+        else:
+            print("  Contamination Gate: PASSED (no template phrases)")
+    except ImportError:
+        pass
 
     # Faithfulness gate: advisory only (S68 — auto-removal disabled, caused false positives)
     hallucinations = verify_brief_faithfulness(brief_text, layer_texts, source_facts_text or "")

@@ -96,6 +96,8 @@ Each decision has:
 | D-074 | C2 as True Evaluation Baseline | Active | C2 vs C5c = same info, different format. The real experiment |
 | D-075 | Brief Structure: WHO + HOW + WHERE IT BREAKS | Candidate | Three-layer brief structure for reasoning model + failure modes |
 | D-076 | Dissenting Opinion Benchmark | Candidate | Predict judicial reasoning from identity brief. Novel contribution |
+| D-077 | Provenance-Informed Review + Regeneration | Active | Citation provenance into review + fact usage stats into regen |
+| D-078 | Compose Directive Language Must Be Person-Specific | Active | V4 compose templating bug — identical directives across subjects |
 
 ---
 
@@ -2070,3 +2072,18 @@ Anchoring destroys this signal by making v2 artificially similar to v1. Blind ge
 **Implementation:** `format_provenance_for_review()` and `format_provenance_for_regen()` in `author_layers.py`. Review function queries fact text from DB for readable display. Regen function provides only aggregate counts.
 
 **Triggered by:** Discovery that Citations API was broken on Windows for ALL subjects (Unicode encoding bug in `check_provenance_coverage()`). Fix revealed that citation provenance existed as a signal but was never wired into the review/regen pipeline.
+
+---
+
+### D-078: Compose Directive Language Must Be Person-Specific
+**Date:** 2026-03-10 (Session 84)
+**Status:** Active — Fixed S84
+**Category:** Quality
+
+**Decision:** V4 compose prompt must generate person-specific directive language, not templated therapeutic responses. Response directives must use language specific to THIS person's domain and vocabulary.
+
+**Bug Found:** Full audit of all 11 V4 briefs revealed systemic template contamination from 37 sources across 3 files. The compose prompt's literal example sentence ("He demands systematic tracking but struggles with Order in practice — when he reports process failures, help diagnose the structural cause...") was copied verbatim into 7/11 briefs. "Unshakeable conviction" opening in 4/11, "operates from" in 7/11, "surfaces a problem, already analyzed internally" in 4/11.
+
+**Fix (S84):** (1) Removed all literal example sentences from compose prompt. (2) Banned formulaic openings. (3) Expanded contamination blocklist from 11→30+ phrases. (4) Added Contamination Gate to compose_unified_brief(). (5) Replaced example names with "[NAME FROM INPUT DATA]" placeholders. (6) Removed detection trigger examples from ANCHORS prompt. (7) Removed axiom interaction boilerplate. Franklin recompose: Gate PASSED, zero template phrases.
+
+**Related:** D-078-PSYCH — Psych profiling eval study designed same session. Professional psychologist reviews pipeline output to assess whether behavioral compression captures clinically meaningful patterns. Separate from the templating bug but discovered in same cross-referencing exercise.

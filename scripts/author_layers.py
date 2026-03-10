@@ -595,13 +595,12 @@ For each axiom:
 - Include a DETECTION TRIGGER: a specific conversational signal that tells the AI this axiom is active. Format: "Active when: [specific observable pattern in their messages]"
 - If an axiom is contested or flagged, note this briefly
 
-DETECTION TRIGGER examples:
-  OWNERSHIP — Active when: they attribute outcomes to luck, other people's decisions, or circumstances beyond their control
-  SYSTEMATIC — Active when: they describe a decision made while angry, anxious, or emotionally activated
-  CONTINUOUS-QUESTIONING — Active when: they revisit a topic previously discussed, or ask whether something is settled
+DETECTION TRIGGER format:
+  [AXIOM NAME] — Active when: [specific observable pattern in their messages, derived from the input facts]
+Derive both the axiom name AND the detection trigger from the input data. Do NOT reuse example names or triggers from these instructions.
 
 After all axioms, include an AXIOM INTERACTIONS section that:
-- Opens with a GENERAL FRAME: "When axioms conflict in a specific situation, hold the tension explicitly rather than resolving it — surface which axioms are in play and let the user decide through their actions, not their words."
+- Opens with a GENERAL FRAME describing how this specific person handles axiom conflicts (derived from the input facts — do NOT use generic language about "holding tension" or "surfacing axioms")
 - Then shows specific interaction pairs: how axioms reinforce, tension with, or cascade into each other
 - Includes the specific conflict resolution directives provided in the input
 - Format as short labeled pairs, not a wall of prose
@@ -617,7 +616,7 @@ PROVENANCE — Each axiom must cite the input facts it draws from. After each ax
 Use the [F-xxx] IDs provided in the input facts. Only cite facts that directly support the axiom. This enables trace-back from claims to source evidence.
 
 LEXICON IDS — Assign each axiom a stable identifier: A1, A2, A3, etc. Use this ID as a prefix before the axiom name:
-  **A1. COHERENCE**
+  **A1. [AXIOM NAME FROM INPUT DATA]**
   ...
   provenance: [F-1204, F-2891]
 
@@ -649,7 +648,7 @@ This layer is the COMMUNICATION AND OPERATING GUIDE — how the AI should engage
 Structure:
 
 COMMUNICATION APPROACH
-How this person processes and prefers to receive information. Be SPECIFIC — not "prefers direct communication" (everyone says that) but "reads pattern recognition as competence, not intrusion — say 'this contradicts your rule X' directly." Include:
+How this person processes and prefers to receive information. Be SPECIFIC — not "prefers direct communication" (everyone says that) but a directive so precise it could only describe THIS person, derived from the input facts. Include:
 - Reasoning style (first-principles vs. analogical, deductive vs. inductive)
 - Information delivery preference (conclusion-first vs. evidence-first)
 - Abstraction level (concrete/grounded vs. conceptual/theoretical)
@@ -661,7 +660,7 @@ How this person processes and prefers to receive information. Be SPECIFIC — no
 CONTEXT MODES
 How engagement should shift across different contexts. People operate differently when dealing with personal matters vs. professional vs. creative vs. analytical work. For each active context in this person's life:
 - What the AI should assume when this context is active
-- How communication style shifts (be specific: "shift to accountability partner tone when they describe rule-breaking" not "be supportive")
+- How communication style shifts (be specific and derived from input facts, not generic — describe the actual shift this person exhibits)
 - What topics are sensitive or emotionally loaded
 - When to lead with acknowledgment before analysis vs. when to lead with analysis directly
 
@@ -679,7 +678,7 @@ Compressed biographical facts that DIRECTLY change AI behavior. Not "age 31, liv
 
 DOMAIN BALANCE: No single domain should occupy more than ~25% of the block. Compress dominant domains to behavioral essence.
 
-BEHAVIORAL SPECIFICITY — This is the most important quality criterion. Generic directives like "be direct" or "challenge ideas" are worthless — every AI already tries to do this. The test: could this sentence appear in ANY person's CORE layer? If yes, it is too generic. Good CORE sentences are specific enough that only ONE person's layer would contain them. BAD: "They value clear communication." GOOD: "When they ask a question, they have a hypothesis — stress-test it rather than answering from scratch."
+BEHAVIORAL SPECIFICITY — This is the most important quality criterion. Generic directives like "be direct" or "challenge ideas" are worthless — every AI already tries to do this. The test: could this sentence appear in ANY person's CORE layer? If yes, it is too generic. Good CORE sentences are specific enough that only ONE person's layer would contain them. BAD: "They value clear communication." GOOD: A sentence so specific that only THIS person's layer would contain it, derived from their actual behavioral patterns in the input facts. Do NOT reuse examples from these instructions.
 
 D-041 FILTER — Before including ANY detail, ask: "What would the AI do differently knowing this?" If nothing, cut it.
 
@@ -704,7 +703,7 @@ PROVENANCE — For each major section or context mode, include a provenance line
 Use the [F-xxx] IDs provided in the input facts. Only cite facts that directly support the claim.
 
 LEXICON IDS — Assign each context mode a stable identifier: C1, C2, C3, etc. Use this ID as a prefix:
-  **C1. TRADING CONTEXT**
+  **C1. [CONTEXT NAME FROM INPUT DATA]**
   ...
   provenance: [F-301, F-455]
 Use M1, M2, M3 for meta sections (COMMUNICATION_APPROACH, NARRATIVE_ORIENTATION, ESSENTIAL_CONTEXT).
@@ -759,10 +758,11 @@ PROVENANCE — After each prediction's directive, include a provenance line citi
 Use the [F-xxx] IDs provided in the input facts. Only cite facts that directly support the pattern.
 
 LEXICON IDS — Assign each prediction a stable identifier: P1, P2, P3, etc. Use this ID as a prefix:
-  **P1. ANALYSIS-PARALYSIS SPIRAL**: When [trigger] → [response]
+  **P1. [PATTERN NAME FROM INPUT DATA]**: When [trigger] → [response]
   Detection: ...
   Directive: ...
   provenance: [F-501, F-602, F-891]
+Do NOT reuse example pattern names from these instructions — derive each name from the actual behavioral evidence.
 
 Constraints:
 - No philosophy framework names
@@ -891,12 +891,35 @@ def _detect_corpus_type(conn, facts=None):
 # are insufficient because models copy examples verbatim.
 
 PROMPT_EXAMPLE_PHRASES = [
-    # Current fictional "Alex" examples
+    # Current fictional "Alex" examples (ANCHORS prompt)
     "audit it for resource waste",
     "Alex will reject anything that allocates effort",
     "distrust your judgment for not catching it",
     "never frame a missed commitment as circumstantial",
     "treat every broken promise as a choice that requires accountability",
+    # Detection trigger examples (ANCHORS prompt)
+    "they attribute outcomes to luck, other people's decisions, or circumstances beyond their control",
+    "they describe a decision made while angry, anxious, or emotionally activated",
+    "they revisit a topic previously discussed, or ask whether something is settled",
+    # Axiom interaction example (ANCHORS prompt)
+    "hold the tension explicitly rather than resolving it",
+    # CORE prompt examples
+    "reads pattern recognition as competence, not intrusion",
+    "stress-test it rather than answering from scratch",
+    "shift to accountability partner tone when they describe rule-breaking",
+    "fixing infrastructure before adding features",
+    # PREDICTIONS prompt example names
+    "ANALYSIS-PARALYSIS SPIRAL",
+    # Compose prompt contamination (D-078 — verbatim in 5-7 briefs)
+    "help diagnose the structural cause rather than reassuring",
+    "demands systematic tracking but struggles with",
+    "unshakeable conviction that",
+    "unshakeable belief that",
+    "operates from an unshakeable",
+    "processes information through first-principles reasoning",
+    "surfaces a problem, it's already partially analyzed internally",
+    "when he reports process failures",
+    "when she reports process failures",
     # Legacy examples (from pre-S68 prompt — may persist in cached outputs)
     "flag it before they find it",
     "they will detect it and trust you less for not catching it first",
