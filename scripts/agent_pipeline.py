@@ -483,11 +483,12 @@ ANTI-CATALOGING (HARD RULE — most common failure mode):
 - Axiom names (ALL-CAPS labels) may appear as internal tags for the reading AI, but they should be embedded in behavioral descriptions, never presented as "the X mechanism."
 - If the source ANCHORS layer has more than 8 axioms, represent each through its most vivid behavioral manifestation rather than trying to name every axiom explicitly.
 
-DATA QUALITY MARKERS (REQUIRED FORMAT):
-- Use exactly `[THIN DATA]` (not `[THIN]`, not plain text) for all data limitation notes.
-- Place a `[THIN DATA]` paragraph at the END of every brief, specifying which domains lack sufficient evidence for reliable prediction.
+DATA QUALITY MARKERS (CONDITIONAL):
+- Use exactly `[THIN DATA]` (not `[THIN]`, not plain text) for data limitation notes.
+- ONLY include a `[THIN DATA]` paragraph if the source layers contain `[THIN IN:]` or `[THIN DATA]` markers, OR if the source corpus clearly covers only 1-2 domains. If the source layers have rich multi-domain data with no thin markers, do NOT fabricate a generic limitation paragraph.
+- When you DO include [THIN DATA], derive the specific language from the source layers' own thin-data markers. Do NOT use the generic phrase "Behavioral prediction data is insufficient" — instead describe what specific domains the source layers flagged as thin, using the subject's own domain vocabulary.
 - Use `[CONTESTED]` for disputed or uncertain patterns, preserved from source layers.
-- Some vagueness is intentional: where the source data supports a behavioral direction but not a specific prediction, describe the tendency without manufacturing false precision. The brief should be honest about what it knows well, what it knows partially, and what it cannot yet predict. Incompleteness is a feature — it prevents overclaiming and signals where the reading AI should probe rather than assume.
+- Some vagueness is intentional: where the source data supports a behavioral direction but not a specific prediction, describe the tendency without manufacturing false precision.
 
 CONSTRAINTS:
 - Every claim must be traceable to the source layers or facts provided below
@@ -654,18 +655,39 @@ def compose_unified_brief(run_dir=None, layer_texts=None, source_facts_text=None
     else:
         print("  Quality Gate: PASSED (all terms present)")
 
-    # Prompt contamination check (D-078 — template language from prompt examples)
+    # Prompt contamination check + retry (D-078 — template language from prompt examples)
+    max_compose_retries = 2
     try:
         from author_layers import check_prompt_contamination
-        contaminated = check_prompt_contamination(brief_text, "COMPOSED_BRIEF")
-        if contaminated:
+        for compose_attempt in range(max_compose_retries):
+            contaminated = check_prompt_contamination(brief_text, "COMPOSED_BRIEF")
+            if not contaminated:
+                print("  Contamination Gate: PASSED (no template phrases)")
+                break
             print(f"\n  Contamination Gate: FAILED — {len(contaminated)} template phrases found")
             for c in contaminated:
                 print(f"    - \"{c}\"")
-            print("  WARNING: Composed brief contains language copied from prompt examples.")
-            print("  Review these phrases and consider recomposing.")
-        else:
-            print("  Contamination Gate: PASSED (no template phrases)")
+            if compose_attempt < max_compose_retries - 1:
+                print("  Retrying composition with decontamination instruction...")
+                banned_list = "; ".join(f'"{c}"' for c in contaminated)
+                decontam_prompt = prompt + f"\n\nCRITICAL DECONTAMINATION: Your previous attempt contained template phrases that must NOT appear. BANNED PHRASES (do not use these or close variants): {banned_list}. Rephrase these concepts using language specific to THIS person's domain."
+                try:
+                    response = client.messages.create(
+                        model=LAYER_REVIEW_MODEL,
+                        max_tokens=16384,
+                        temperature=0.1,
+                        messages=[{"role": "user", "content": decontam_prompt}],
+                        timeout=httpx.Timeout(600.0, connect=30.0),
+                    )
+                    brief_text = response.content[0].text
+                    retry_cost = (response.usage.input_tokens * 15 + response.usage.output_tokens * 75) / 1_000_000
+                    total_cost += retry_cost
+                    print(f"  Retry generated: {len(brief_text)} chars, ~${retry_cost:.3f}")
+                except Exception as e:
+                    print(f"  Retry failed: {e}")
+                    break
+            else:
+                print("  WARNING: Contamination persists after retries. Manual review needed.")
     except ImportError:
         pass
 

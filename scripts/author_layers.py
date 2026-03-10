@@ -600,10 +600,11 @@ DETECTION TRIGGER format:
 Derive both the axiom name AND the detection trigger from the input data. Do NOT reuse example names or triggers from these instructions.
 
 After all axioms, include an AXIOM INTERACTIONS section that:
-- Opens with a GENERAL FRAME describing how this specific person handles axiom conflicts (derived from the input facts — do NOT use generic language about "holding tension" or "surfacing axioms")
-- Then shows specific interaction pairs: how axioms reinforce, tension with, or cascade into each other
+- Shows specific interaction pairs: how axioms reinforce, tension with, or cascade into each other in THIS person's life
 - Includes the specific conflict resolution directives provided in the input
+- For each tension pair, describe what THIS person actually does when the axioms collide — use concrete examples from the input facts, not generic advice about "holding tension" or "acknowledging both sides"
 - Format as short labeled pairs, not a wall of prose
+- Do NOT include a generic "general frame" or universal statement about how to handle axiom conflicts. Jump straight to the specific pairs
 
 When behavior contradicts an axiom, that is diagnostic — the AI should surface it as recognition ("you're doing the thing you said you don't do"), not correction.
 
@@ -655,7 +656,7 @@ How this person processes and prefers to receive information. Be SPECIFIC — no
 - Feedback mode (direct challenge vs. diplomatic, when each is appropriate)
 - Mode detection: how to tell when they are in "execution mode" (compressed, decision-ready questions — give tight answers) vs. "exploration mode" (open-ended, conceptual — give full depth). What signals the switch?
 - If facts show they use AI: how specifically — as tool, oracle, reasoning partner, etc. OMIT this bullet entirely if no AI usage evidence exists (e.g., historical figures, journal-only subjects).
-- Internal processing style: do they think out loud or process internally before speaking? When they surface a problem, is it raw or already partially resolved? This changes whether the AI should brainstorm or refine.
+- Internal processing style: ONLY include this if the input facts contain DIRECT EVIDENCE of how this person presents problems (e.g., facts showing they arrive with hypotheses, or facts showing they think out loud). Do NOT infer processing style from the text format — an autobiography or published letter is always pre-processed by nature; that tells you nothing about the person's conversational style. If no direct evidence exists, OMIT this bullet entirely.
 
 CONTEXT MODES
 How engagement should shift across different contexts. People operate differently when dealing with personal matters vs. professional vs. creative vs. analytical work. For each active context in this person's life:
@@ -918,8 +919,23 @@ PROMPT_EXAMPLE_PHRASES = [
     "operates from an unshakeable",
     "processes information through first-principles reasoning",
     "surfaces a problem, it's already partially analyzed internally",
+    "surfaces a problem, it's already partially",
+    "already partially processed internally",
+    "already partially resolved",
     "when he reports process failures",
     "when she reports process failures",
+    # Tension-handling boilerplate (D-078 wave 2)
+    "acknowledge both sides rather than",
+    "acknowledge both as valid rather than forcing",
+    "without forcing resolution",
+    "rather than forcing resolution",
+    "rather than pushing toward resolution",
+    "rather than resolving toward either",
+    "hold the tension explicitly rather than resolving",
+    "surface which axioms are in play",
+    "Behavioral prediction data is insufficient for this subject",
+    "Behavioral prediction data remains limited",
+    "Behavioral prediction data is insufficient for",
     # Legacy examples (from pre-S68 prompt — may persist in cached outputs)
     "flag it before they find it",
     "they will detect it and trust you less for not catching it first",
@@ -998,7 +1014,7 @@ def check_provenance_coverage(text, citation_provenance, layer_name, input_count
 # GENERATION — API-based layer authoring
 # ===========================================================================
 
-def generate_layer(layer_name, prompt_text, max_contamination_retries=1):
+def generate_layer(layer_name, prompt_text, max_contamination_retries=3):
     """Generate a layer via Anthropic API (Sonnet by default, per D-046).
 
     Uses centralized api_client for singleton client, retry, and logging.
