@@ -98,6 +98,7 @@ Each decision has:
 | D-076 | Dissenting Opinion Benchmark | Candidate | Predict judicial reasoning from identity brief. Novel contribution |
 | D-077 | Provenance-Informed Review + Regeneration | Active | Citation provenance into review + fact usage stats into regen |
 | D-078 | Compose Directive Language Must Be Person-Specific | Active | V4 compose templating bug — identical directives across subjects |
+| D-079 | Planner-Executor Composition Architecture | Tested (S84) | Context-isolated composition eliminates pre-training contamination: 33→0 ungrounded claims on Franklin |
 
 ---
 
@@ -2087,3 +2088,32 @@ Anchoring destroys this signal by making v2 artificially similar to v1. Blind ge
 **Fix (S84):** (1) Removed all literal example sentences from compose prompt. (2) Banned formulaic openings. (3) Expanded contamination blocklist from 11→30+ phrases. (4) Added Contamination Gate to compose_unified_brief(). (5) Replaced example names with "[NAME FROM INPUT DATA]" placeholders. (6) Removed detection trigger examples from ANCHORS prompt. (7) Removed axiom interaction boilerplate. Franklin recompose: Gate PASSED, zero template phrases.
 
 **Related:** D-078-PSYCH — Psych profiling eval study designed same session. Professional psychologist reviews pipeline output to assess whether behavioral compression captures clinically meaningful patterns. Separate from the templating bug but discovered in same cross-referencing exercise.
+
+### D-079: Planner-Executor Composition Architecture
+**Date:** 2026-03-10 (Session 84)
+**Status:** Tested — pending integration
+**Category:** Architecture / Provenance
+
+**Problem:** Opus compose step injects pre-training knowledge for famous subjects despite "DERIVE ONLY FROM INPUT" constraint and anonymization. Full contamination scan across 11 subjects found: Franklin 18 ungrounded claims, Buffett 9, Marks 9, Roosevelt 8, Aarik 7 (+ 1 inverted), Bavani 7, Patent 5, Douglass 4, Wollstonecraft 1, Base Layer 0, Paul Graham 0. ~25% contamination rate for famous subjects. One inverted claim (Aarik: brief said opposite of source).
+
+**Root cause:** Opus infers subject identity from contextual signatures (printing + Philadelphia → Franklin) despite anonymization. Once recognized, pre-training biographical knowledge floods the output indistinguishably from input-derived content. Prompt constraints are probabilistic, not reliable — Paul Graham was clean (high overlap between extracted data and pre-training), Franklin was not (large delta).
+
+**Decision:** Split composition into Planner (Opus) and Executor (Sonnet) phases with context isolation:
+1. **Planner (Opus):** Reads all 3 source layers. Outputs structured JSON plan — one entry per paragraph with: claim, cited sources [A1, C2, P3], verbatim source text, writing instructions.
+2. **Executor (Sonnet):** Receives ONE claim + its specific source text per call. Never sees full layer set. Cannot infer subject identity from isolated fragments.
+3. **Assembly (Sonnet):** Stitches paragraphs into coherent narrative. Content locked — can only reorder and add transitions.
+
+**Test result (Franklin):** Opus-only brief: 33 ungrounded claims. P-E brief: **0 ungrounded claims.** Every detail traces to source layers. Cost: $0.33 vs $0.25 (30% increase). Prose quality: slightly more repetitive, mechanical transitions — fixable with better assembly prompt.
+
+**Why not just a tighter gate:** (1) Semantic similarity ≠ derivation — entailment checks can't distinguish "consistent with sources" from "derived from sources." (2) The inverted-claim problem — model cites correct source but reverses the meaning; verification against the cited source passes. (3) The reward signal problem — too strict kills synthesis, too loose allows hallucination. No single threshold works.
+
+**Alternatives considered:**
+- Tighter faithfulness gate: Insufficient — can't catch inversions or plausible-but-unsourced behavioral claims
+- Local model (Qwen) as executor: Untested — D-030 says Qwen fails at narrative; also still knows Franklin. Testing separately.
+- Constrained decoding: Incompatible with API; kills synthesis
+- Knowledge delta pre-check: Fragile — models are unreliable introspectors
+
+**Next steps:** Test P-E on 2-3 more subjects (especially private subjects). Improve assembly prompt for prose quality. If validated, integrate into main pipeline as optional `--planner-executor` flag.
+
+**Full diagnostic:** `docs/diagnostics/D079_PROVENANCE_ENFORCEMENT_DIAGNOSTIC.md`
+**Test script:** `scripts/experiments/planner_executor_test.py`
