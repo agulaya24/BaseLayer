@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo-banner.svg" alt="Base Layer" width="560" />
+  <img src="assets/logo-banner.png" alt="Base Layer" width="560" />
 </p>
 
 <p align="center">
