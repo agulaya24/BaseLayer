@@ -1,12 +1,12 @@
 # System Architecture
-## Base Layer — Personal Persistent-Memory AI
-**Updated 2026-03-08 (Session 80)**
+## Base Layer — Behavioral Compression for AI Identity
+**Updated 2026-03-09 (Session 82)**
 
 ---
 
 ## The Problem
 
-Every conversation with an AI starts from zero. Three years of ChatGPT conversations — 1,892 of them — and none of that context carries forward. You repeat yourself. The AI re-explains things you already know. There's no continuity, no relationship, no growth.
+Every conversation with an AI starts from zero. Three years of ChatGPT conversations — 1,892 of them (primary test user) — and none of that context carries forward. You repeat yourself. The AI re-explains things you already know. There's no continuity, no relationship, no growth.
 
 Bigger context windows don't solve this. Dumping 40,000 messages into a prompt isn't memory — it's a filing cabinet with no librarian.
 
@@ -16,20 +16,22 @@ Build a **living model of the user** that evolves over time. Not searchable arch
 
 The AI should feel like it **knows** you, not like it was **briefed** about you.
 
-**North star:** perceived alignment — AI responses reflecting an accurate behavioral model of the user.
+**North star:** Every agentic workflow, AI interaction, and form of personalization is hollow if it doesn't understand who the human is behind the screen. Base Layer exists because AI should know you.
 
 ## Design Philosophy
 
-**Brain-inspired, not database-inspired.** The architecture mirrors how human memory actually works:
+**Compression-first, not storage-first.** The architecture compresses raw text into behavioral understanding:
 
-- **Hippocampus** (fast, episodic) --> recent conversations, specific memories
+> *Note: The original design drew heavily from brain-inspired memory metaphors (hippocampus/neocortex, sleep consolidation, surprise-driven encoding). Session 79 pipeline ablation study (14 conditions, [results](../eval/ablation/)) proved that the intermediate processing steps inspired by these metaphors — scoring, classification, tiering, contradiction detection — were ceremonial. What remains load-bearing is the compression itself: raw text → structured facts → three-layer identity → unified brief. The brain metaphors were useful scaffolding for building the system but the system outgrew them.*
+
+- ~~**Hippocampus** (fast, episodic) --> recent conversations, specific memories~~
 - **Neocortex** (slow, consolidated) --> stable identity, learned patterns
 - **Sleep consolidation** (periodic compression) --> episodes compress into patterns over time
 - **Surprise-driven encoding** --> novel information gets prioritized; routine gets filtered
 
 **Core principles:**
 
-1. **Local-first.** All data stays on your machine. Extraction uses Anthropic Haiku API by default; Ollama/local models available as optional alternative. Only reasoning goes to the cloud (Claude API), and only with an assembled brief — never raw data.
+1. **Local-first.** All data stays on your machine. Extraction uses Anthropic Haiku API by default; Ollama/local models available as optional alternative. Only reasoning goes to the cloud (Claude API), and only with an assembled brief (the compressed identity document that teaches an AI how someone thinks and communicates) — never raw data.
 
 2. **Surprise-based writes.** Inspired by Google Titans: only store what's novel relative to what you already know. Routine information gets filtered. This keeps the memory system from drowning in noise.
 
@@ -45,7 +47,7 @@ The AI should feel like it **knows** you, not like it was **briefed** about you.
 
 ### Simplified Pipeline (4 Steps)
 
-Pipeline ablation (Session 79) tested 14 conditions on Franklin (~$16) and proved that 10 of the original 14 steps were ceremonial. The simplified 4-step pipeline scores higher (87/100 vs 83/100 for the full pipeline). The 3-layer architecture is load-bearing; the intermediate processing steps are not.
+Pipeline ablation (Session 79) tested 14 conditions on Benjamin Franklin (autobiography, [live example](https://base-layer.ai/examples/franklin)) (~$16) and proved that 10 of the original 14 steps were ceremonial. The simplified 4-step pipeline scores higher (87/100 vs 83/100 for the full pipeline). The 3-layer architecture is load-bearing; the intermediate processing steps are not.
 
 ```
                     THE MEMORY SYSTEM (BASE LAYER)
@@ -61,7 +63,7 @@ Pipeline ablation (Session 79) tested 14 conditions on Franklin (~$16) and prove
  |   +----------------------------------------------------------+ |
  |   | Haiku API — 47 constrained predicates                     | |
  |   | Text → {subject, predicate, object, qualifier} triples    | |
- |   | AUDN lifecycle: ADD / UPDATE / DELETE / NOOP              | |
+ |   | AUDN (Add, Update, Delete, Noop) fact lifecycle            | |
  |   +---------------------------+------------------------------+ |
  |                               |                                |
  |   STEP 3: AUTHOR              v                                |
@@ -74,8 +76,9 @@ Pipeline ablation (Session 79) tested 14 conditions on Franklin (~$16) and prove
  |                               |                                |
  |   STEP 4: COMPOSE             v                                |
  |   +----------------------------------------------------------+ |
- |   | Opus — Compress 3 layers → unified brief (~3,500 tokens)  | |
- |   | Served via MCP as always-on identity Resource              | |
+ |   | Opus — Compress 3 layers → unified brief (~2,500 tokens)  | |
+ |   | Served via MCP (Model Context Protocol) as always-on      | |
+ |   | identity Resource                                          | |
  |   +----------------------------------------------------------+ |
  |                                                                |
  +--------------------------------------------------------------+
@@ -102,7 +105,7 @@ The original architecture described five layers. After ablation (Session 79), th
 The raw, unmodified record of everything. Never fed directly to an LLM. Serves as the source of truth that all other layers derive from.
 
 **Technology:** SQLite
-**Contents:** 1,892 conversations, 40,997 messages (Jan 2023 -- Feb 2026, multi-source)
+**Contents:** 1,892 conversations, 40,997 messages (primary test user, Jan 2023 -- Feb 2026, multi-source)
 **Schema:**
 
 | Table | Purpose |
@@ -381,7 +384,7 @@ CREATE VIRTUAL TABLE memory_facts_fts USING fts5(
 **Distribution (4,610 active facts, post-S52 consolidation):** knowledge_tier: identity 2,684, situational 1,022, context 904. fact_class: 4,456 classified (94.1%), 278 biography facts pending Opus classification.
 
 **Multi-user validation (S53-54):**
-- **User A:** 1,892 conversations → 4,610 active facts → layers at 78.5/100 (Collective)
+- **User A:** 1,892 conversations → 4,610 active facts → layers at 78.5/100 (Collective — a multi-agent adversarial review process, since proven ceremonial and removed from the default pipeline)
 - **User B:** 36 newsletter posts → 309 active facts → layers at 77.7/100 (Collective)
 - **User C:** 9 journal entries → 76 active facts → layers at 81.7/100 (Collective)
 
@@ -630,7 +633,7 @@ The original pipeline also used Qwen 2.5 14B (local extraction), MiniLM (similar
 3. AUTHOR (Sonnet API): Facts → three-layer identity (ANCHORS + CORE + PREDICTIONS)
          |
          v
-4. COMPOSE (Opus API): 3 layers → unified narrative brief (~3,500 tokens)
+4. COMPOSE (Opus API): 3 layers → unified narrative brief (~2,500 tokens)
          |
          v
 5. SERVE (MCP): Brief available as always-on identity Resource
@@ -700,7 +703,8 @@ The system maintains four tiers of memory, each at a different level of compress
 |  Ground truth. Never fed to LLM directly.              |
 |  "What exactly was said?"                              |
 |                                                        |
-|  40,997 messages across 1,892 conversations.           |
+|  40,997 messages across 1,892 conversations             |
+|  (primary test user).                                   |
 |  SQLite database, fully indexed and searchable.        |
 +--------------------------------------------------------+
 ```
@@ -765,11 +769,11 @@ python author_layers.py --generate all  # generates for User B's data
 **Multi-user validation (N=10, Sessions 53-79):**
 - **User C (9 journal entries):** V4 pipeline: 81 extracted → 76 active → layers at 81.7/100 (Collective). Case study proved V4 > V3 (V3 hallucinated client's children as User C's). Token efficiency: identity layers use 26% fewer input tokens than raw journal while producing structurally superior responses.
 - **User B (36 newsletter posts):** V4 pipeline: 406 extracted → 309 active → layers at 77.7/100. Single-domain PREDICTIONS prompt + corpus-type detection fixed (S53). Revealed 2 CRITICAL contamination bugs (store_anchors.py hardcoded axioms, author_layers.py hardcoded conflicts).
-- **User A (1,892 conversations):** V4 pipeline: 5,270 extracted → 4,610 active → layers at 78.5/100 (cycle_003). Blind eval: +2.8 behavioral prediction gap.
-- **Franklin (autobiography):** 117 active facts → 79 identity-tier → ANCHORS 75.75/100 + CORE 73/100 + PREDICTIONS 75/100. Eval: C5c wins (+0.40).
-- **Douglass (autobiography):** 47 active facts → brief ~2,137 tokens.
-- **Wollstonecraft (treatise):** 45 active facts → brief ~1,688 tokens.
-- **Roosevelt (autobiography):** 87 active facts → brief ~2,738 tokens.
+- **User A — the primary test user (1,892 ChatGPT conversations):** V4 pipeline: 5,270 extracted → 4,610 active → layers at 78.5/100 (cycle_003). Blind eval: +2.8 behavioral prediction gap.
+- **Benjamin Franklin (autobiography):** 117 active facts → 79 identity-tier → ANCHORS 75.75/100 + CORE 73/100 + PREDICTIONS 75/100. Eval: C5c wins (+0.40).
+- **Frederick Douglass (autobiography):** 47 active facts → brief ~2,137 tokens.
+- **Mary Wollstonecraft (published treatise):** 45 active facts → brief ~1,688 tokens.
+- **Theodore Roosevelt (autobiography):** 87 active facts → brief ~2,738 tokens.
 
 **Note on first-run pipelines:** New pipelines produce facts with `knowledge_tier = NULL` ('untiered'). The tier step (Step 6) now auto-initializes these to 'context' before running Sonnet promotion, preventing downstream failures in layer authoring that expect all facts to have a tier assigned.
 
@@ -810,13 +814,15 @@ COMPLETE (Core Pipeline)                    COMPLETE (Infrastructure)
 [x] Twin-2K benchmark (71.83%, p=0.008)    [x] Person-agnostic prompts
 [x] BCB-0.1 Franklin                       [x] Anonymization layer
 [x] Website LIVE (base-layer.ai)            [x] Database initializer (init_database.py)
+[x] GitHub repo LIVE (agulaya24/BaseLayer)  [x] Code review S81 (13 bugs fixed, 0 blockers)
+[x] Privacy scrub (S81)                     [x] Pipeline validation (all subjects)
 
 NEXT                                        POST-LAUNCH
 ----                                        -----------
-[ ] Privacy scrub + git push               [ ] ADRB benchmark (~$30)
-[ ] Pipeline validation (all subjects)      [ ] Dissenting opinion benchmark (D-076)
-[ ] Paul Graham case study                  [ ] Brief structure update (D-075)
-[ ] Self-referential case study             [ ] Cross-provider blind eval
+[ ] Paul Graham case study                  [ ] ADRB benchmark (~$30)
+[ ] Self-referential case study             [ ] Dissenting opinion benchmark (D-076)
+                                            [ ] Brief structure update (D-075)
+                                            [ ] Cross-provider blind eval
                                             [ ] Local deployability improvements
 ```
 
@@ -930,7 +936,7 @@ These conclusions come from deep research into Google Titans, Mem0, Letta/MemGPT
 **Why ~5,000 tokens for the brief?**
 - Research shows adding 512 input tokens costs less latency than generating 8 output tokens
 - ~5,000 tokens is ~2.5% of Claude's context window — leaves 97%+ for actual conversation
-- Identity layers (~3,500 tokens) carry the behavioral model; theme + episode retrieval (~1,400 tokens) adds query-specific context
+- Identity layers (~2,500 tokens, V4 briefs) carry the behavioral model; theme + episode retrieval (~1,400 tokens) adds query-specific context
 - D-042 (empirical budget) suspends a priori budget assumptions; optimization study planned
 - The 80/20 rule: this budget captures ~90% of the "knowing" feeling
 
