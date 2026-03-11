@@ -818,7 +818,7 @@ def main():
 
     # Find layer files (prefer v4, fall back to non-versioned)
     def find_layer_file(name: str) -> Optional[Path]:
-        for suffix in ["_v4.md", "_v3.md", "_v2.md", ".md"]:
+        for suffix in ["_v5_clean.md", "_v5.md", "_v4.md", "_v3.md", "_v2.md", ".md"]:
             candidate = layers_dir / f"{name}{suffix}"
             if candidate.exists():
                 return candidate

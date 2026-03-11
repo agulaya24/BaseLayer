@@ -407,7 +407,7 @@ def run_pipeline_thread(file_path, document_mode, subject):
 
         # Read the brief
         from config import PROJECT_ROOT
-        brief_path = PROJECT_ROOT / "data" / "identity_layers" / "brief_v4.md"
+        brief_path = PROJECT_ROOT / "data" / "identity_layers" / "brief_v5_clean.md"
         if brief_path.exists():
             brief_text = brief_path.read_text(encoding="utf-8")
             if brief_text.startswith("---"):

@@ -1017,7 +1017,7 @@ def cmd_run(args):
 
     # Done — show result
     from config import PROJECT_ROOT
-    brief_path = PROJECT_ROOT / "data" / "identity_layers" / "brief_v4.md"
+    brief_path = PROJECT_ROOT / "data" / "identity_layers" / "brief_v5_clean.md"
     if brief_path.exists():
         brief_text = brief_path.read_text(encoding="utf-8")
         # Strip YAML header

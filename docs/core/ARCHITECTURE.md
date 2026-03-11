@@ -1,22 +1,28 @@
 # System Architecture
 ## Base Layer — Behavioral Compression for AI Identity
-**Updated 2026-03-09 (Session 82)**
+**Updated 2026-03-10 (Session 87)**
 
 ---
 
 ## The Problem
 
-Every conversation with an AI starts from zero. Three years of ChatGPT conversations — 1,892 of them (primary test user) — and none of that context carries forward. You repeat yourself. The AI re-explains things you already know. There's no continuity, no relationship, no growth.
+Every AI agent — coding assistant, research agent, scheduling agent — starts with no understanding of who it's working for. Each interaction resets. The same preferences, constraints, and reasoning patterns have to be re-established from scratch, or inferred incorrectly.
 
-Bigger context windows don't solve this. Dumping 40,000 messages into a prompt isn't memory — it's a filing cabinet with no librarian.
+The platforms that do build a user model (ChatGPT Memory, Claude Projects) build it opaquely. You can't inspect the representation, correct it directly, export it, or use it with a different provider.
+
+As agents gain autonomy and take actions on your behalf, a misaligned model compounds. The agent doesn't just give a bad answer — it acts on a wrong assumption. Identity is load-bearing infrastructure in an agentic system, not a UX feature.
+
+Larger context windows don't solve this. Raw conversation history is retrieval, not understanding. The agent still has no model of how you reason or what you prioritize.
 
 ## The Goal
 
-Build a **living model of the user** that evolves over time. Not searchable archives. Not RAG retrieval. Something closer to how a human friend remembers you — a compressed, always-available understanding that deepens with every interaction.
+Compress conversation history into a **structured, auditable behavioral model**: how you reason, what you prioritize, how you communicate, where you draw lines.
 
-The AI should feel like it **knows** you, not like it was **briefed** about you.
+The output — a unified brief — is portable. Any LLM loads the same representation before every interaction. The representation is locally owned, provenance-traced to source conversations, and provider-agnostic.
 
-**North star:** Every agentic workflow, AI interaction, and form of personalization is hollow if it doesn't understand who the human is behind the screen. Base Layer exists because AI should know you.
+This is the identity layer of the agentic stack. Base Layer builds it.
+
+**North star:** Every agentic workflow is hollow without a reliable model of who the human is. That model should be owned by the human — inspectable, correctable, portable across any system.
 
 ## Design Philosophy
 
@@ -35,7 +41,7 @@ The AI should feel like it **knows** you, not like it was **briefed** about you.
 
 2. **Surprise-based writes.** Inspired by Google Titans: only store what's novel relative to what you already know. Routine information gets filtered. This keeps the memory system from drowning in noise.
 
-3. **Always-on identity.** A compressed behavioral model is present in every single conversation. Not biography — behavioral predictions. The AI doesn't just know facts about you; it knows how you operate, what triggers you, and how to interact with you effectively. Three-layer architecture (D-043): epistemic axioms + individual overview + behavioral predictions, each authored independently. Stored as injectable markdown files, loaded by `assemble_brief.py` at runtime.
+3. **Always-on identity.** A compressed behavioral model is present in every single conversation. Not biography — behavioral predictions. The model understands how you operate, what triggers you, and how to communicate with you effectively. Three-layer architecture (D-043): epistemic axioms + individual overview + behavioral predictions, each authored independently. Stored as injectable markdown, served via MCP at runtime.
 
 4. **Inherent incompleteness.** The system will never have a complete or fully accurate picture of the person it models. This operates at two levels. First, *information gaps*: the system only knows what came up in conversation, and even that is filtered through misattribution, intent confusion, and the difference between curiosity and identity. The model is always partial and potentially wrong. Second, and more fundamentally, *experiential depth*: there is an emotional dimension to human life that cannot be captured through conversation at all. What it feels like when your cat is ill, what it means to love your wife, the weight behind a loss or a triumph — these are real and central to who a person is, but no data representation can hold them. The system must operate with knowledge of both constraints. Every layer — confidence scores, correction propagation, active probing, human-in-the-loop review — exists in acknowledgment of this reality. The goal is useful understanding, not total understanding. Confidence is warranted; certainty never is. (See `DESIGN_PRINCIPLES.md` for the full treatment.)
 
