@@ -389,7 +389,8 @@ IDENTITY_LAYERS_DIR = PROJECT_ROOT / "data" / "identity_layers"
 ANCHORS_LAYER_FILE = IDENTITY_LAYERS_DIR / "anchors_v4.md"
 CORE_LAYER_FILE = IDENTITY_LAYERS_DIR / "core_v4.md"
 PREDICTIONS_LAYER_FILE = IDENTITY_LAYERS_DIR / "predictions_v4.md"
-UNIFIED_BRIEF_FILE = IDENTITY_LAYERS_DIR / "brief_v4.md"
+UNIFIED_BRIEF_FILE = IDENTITY_LAYERS_DIR / "brief_v5_clean.md"  # Stripped citations — for serving
+UNIFIED_BRIEF_CITED_FILE = IDENTITY_LAYERS_DIR / "brief_v5.md"  # With citations — for audit
 
 # D-054: Agent pipeline directories
 AGENT_DEFINITIONS_DIR = PROJECT_ROOT / "agents"

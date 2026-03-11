@@ -56,7 +56,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from config import (
     DATABASE_FILE, VECTORS_DIR, EMBEDDING_MODEL,
     ANCHORS_LAYER_FILE, CORE_LAYER_FILE, PREDICTIONS_LAYER_FILE,
-    UNIFIED_BRIEF_FILE,
+    UNIFIED_BRIEF_FILE, UNIFIED_BRIEF_CITED_FILE,
     get_db,
 )
 
@@ -130,9 +130,10 @@ def get_identity_brief() -> str:
         "Match response length to question complexity — default shorter."
     )
 
-    # Priority 1: Unified brief (compressed narrative — proven +0.40 vs structured layers)
-    if UNIFIED_BRIEF_FILE.exists():
-        content = UNIFIED_BRIEF_FILE.read_text(encoding="utf-8")
+    # Priority 1: Unified brief — clean (no citations) preferred, cited fallback
+    brief_file = UNIFIED_BRIEF_FILE if UNIFIED_BRIEF_FILE.exists() else UNIFIED_BRIEF_CITED_FILE
+    if brief_file.exists():
+        content = brief_file.read_text(encoding="utf-8")
         marker = "## Injectable Block"
         idx = content.find(marker)
         if idx >= 0:

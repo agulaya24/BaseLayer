@@ -1,0 +1,278 @@
+{
+  "meta": {
+    "started": "2026-03-10T19:24:48.261454",
+    "model": "claude-sonnet-4-20250514",
+    "subject": "aarik",
+    "source": "GPT conversations (linear)",
+    "total_facts": 2562,
+    "date_range": "2023-01-09 to 2026-02-14",
+    "quarter_sizes": [
+      640,
+      640,
+      640,
+      642
+    ]
+  },
+  "experiments": {
+    "1_temporal_direction": [
+      {
+        "label": "early_to_late",
+        "train_count": 1281,
+        "test_count": 1281,
+        "scores": {
+          "m1_coverage": 0.2442,
+          "prediction_rate": 0.0211,
+          "m3_pattern_density": 2.94,
+          "composite": 24.7,
+          "chars": 2722
+        },
+        "brief_preview": "# Behavioral Brief: Technical Entrepreneur & Day Trader\n\n## **Core Identity & Values**\nThis person operates as a technical entrepreneur who founded SAFA (AI-powered software traceability platform) and"
+      },
+      {
+        "label": "late_to_early",
+        "train_count": 1281,
+        "test_count": 1281,
+        "scores": {
+          "m1_coverage": 0.1985,
+          "prediction_rate": 0.007,
+          "m3_pattern_density": 3.3,
+          "composite": 23.06,
+          "chars": 4547
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF: FOUNDER-OPERATOR WITH EPISTEMIC FOCUS\n\n## CORE IDENTITY & WORLDVIEW\n**Systems-Level Thinker & Epistemic Architect**\n- This person operates as a founder-operator with deep systems t"
+      },
+      {
+        "label": "middle_to_edges",
+        "train_count": 1281,
+        "test_count": 1281,
+        "scores": {
+          "m1_coverage": 0.2092,
+          "prediction_rate": 0.007,
+          "m3_pattern_density": 2.18,
+          "composite": 21.81,
+          "chars": 3214
+        },
+        "brief_preview": "# Behavioral Brief: Technical Trader & AI Entrepreneur\n\n## **Core Identity & Values**\nThis person operates as a **disciplined day trader** and **AI startup founder** with deep technical expertise acro"
+      },
+      {
+        "label": "random_baseline",
+        "train_count": 1281,
+        "test_count": 1281,
+        "scores": {
+          "m1_coverage": 0.2459,
+          "prediction_rate": 0.032,
+          "m3_pattern_density": 2.88,
+          "composite": 24.95,
+          "chars": 3129
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF: TECHNICAL FOUNDER & SYSTEMATIC TRADER\n\n## CORE IDENTITY\n**Systems-First Operator**: This person identifies as a founder-operator with deep technical intuition who excels at transla"
+      }
+    ],
+    "2_quarter_prediction": [
+      {
+        "label": "Q1_predicts_rest",
+        "train_count": 640,
+        "test_count": 1922,
+        "scores": {
+          "m1_coverage": 0.2057,
+          "prediction_rate": 0.0182,
+          "m3_pattern_density": 1.23,
+          "composite": 20.53,
+          "chars": 2434
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF: TECHNICAL ENTREPRENEUR & STARTUP FOUNDER\n\n## PROFESSIONAL IDENTITY\nThis person is a serial entrepreneur who founded SAFA (AI-powered software traceability platform) and secured $77",
+        "quarter": 1
+      },
+      {
+        "label": "Q2_predicts_rest",
+        "train_count": 640,
+        "test_count": 1922,
+        "scores": {
+          "m1_coverage": 0.2293,
+          "prediction_rate": 0.0161,
+          "m3_pattern_density": 2.15,
+          "composite": 22.8,
+          "chars": 3718
+        },
+        "brief_preview": "# Behavioral Brief: Technical Trader & Enterprise AI Professional\n\n## Core Identity & Values\n**Professional Foundation**: This person operates as a sophisticated technical trader with 7+ years in ente",
+        "quarter": 2
+      },
+      {
+        "label": "Q3_predicts_rest",
+        "train_count": 640,
+        "test_count": 1922,
+        "scores": {
+          "m1_coverage": 0.219,
+          "prediction_rate": 0.0411,
+          "m3_pattern_density": 4.05,
+          "composite": 25.85,
+          "chars": 3955
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF: TRADING-FOCUSED FOUNDER-OPERATOR\n\n## CORE IDENTITY\nThis person identifies as an apprentice-stage day trader with founder-operator experience. They exhibit high pattern recognition,",
+        "quarter": 3
+      },
+      {
+        "label": "Q4_predicts_rest",
+        "train_count": 642,
+        "test_count": 1920,
+        "scores": {
+          "m1_coverage": 0.1798,
+          "prediction_rate": 0.0115,
+          "m3_pattern_density": 2.47,
+          "composite": 21.19,
+          "chars": 2829
+        },
+        "brief_preview": "# Behavioral Brief: AI Systems Architect & Former Founder\n\n## Core Identity & Approach\nThis person is a systems-thinking founder-operator with deep AI expertise who values epistemic rigor above all el",
+        "quarter": 4
+      }
+    ],
+    "3_accumulation": [
+      {
+        "label": "Q1..Q1_predicts_Q4",
+        "train_count": 640,
+        "test_count": 642,
+        "scores": {
+          "m1_coverage": 0.198,
+          "prediction_rate": 0.0062,
+          "m3_pattern_density": 0.63,
+          "composite": 19.03,
+          "chars": 3151
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF: AI-POWERED SOFTWARE TRACEABILITY ENTREPRENEUR\n\n## CORE IDENTITY & VALUES\nThis person is a 30-year-old female entrepreneur who founded SAFA (formerly ND-Origin Oncology), an AI-powe"
+      },
+      {
+        "label": "Q1..Q2_predicts_Q4",
+        "train_count": 1280,
+        "test_count": 642,
+        "scores": {
+          "m1_coverage": 0.2397,
+          "prediction_rate": 0.014,
+          "m3_pattern_density": 3.55,
+          "composite": 25.26,
+          "chars": 3381
+        },
+        "brief_preview": "# Behavioral Brief: Technical Entrepreneur & Day Trader\n\n## CORE IDENTITY\n**Technical Founder & Market Operator**: This person founded SAFA, an AI-powered software traceability platform, after experie"
+      },
+      {
+        "label": "Q1..Q3_predicts_Q4",
+        "train_count": 1920,
+        "test_count": 642,
+        "scores": {
+          "m1_coverage": 0.2286,
+          "prediction_rate": 0.014,
+          "m3_pattern_density": 0.71,
+          "composite": 20.56,
+          "chars": 2806
+        },
+        "brief_preview": "# Behavioral Brief: Technical Entrepreneur & Day Trader\n\n## Core Identity & Values\n**Technical Founder with Trading Focus**: This person founded multiple AI startups (SAFA, Visionist) specializing in "
+      },
+      {
+        "label": "Q4..Q4_predicts_Q1",
+        "train_count": 642,
+        "test_count": 640,
+        "scores": {
+          "m1_coverage": 0.2087,
+          "prediction_rate": 0.0156,
+          "m3_pattern_density": 2.61,
+          "composite": 22.66,
+          "chars": 4209
+        },
+        "brief_preview": "# Behavioral Brief: AI-Native Systems Architect & Operator\n\n## Professional Identity & Approach\n**Core Archetype**: Founder-operator transitioning to high-leverage execution roles. They excel at 0-to-"
+      },
+      {
+        "label": "Q3..Q4_predicts_Q1",
+        "train_count": 1282,
+        "test_count": 640,
+        "scores": {
+          "m1_coverage": 0.2107,
+          "prediction_rate": 0.0125,
+          "m3_pattern_density": 3.43,
+          "composite": 23.89,
+          "chars": 4077
+        },
+        "brief_preview": "# Behavioral Brief: High-Agency Founder-Operator\n\n## **Core Identity & Operating Style**\nThis person operates as a **systems-thinking founder-operator** with deep technical fluency and cross-functiona"
+      },
+      {
+        "label": "Q2..Q4_predicts_Q1",
+        "train_count": 1922,
+        "test_count": 640,
+        "scores": {
+          "m1_coverage": 0.1897,
+          "prediction_rate": 0.0016,
+          "m3_pattern_density": 2.11,
+          "composite": 20.79,
+          "chars": 3325
+        },
+        "brief_preview": "# Behavioral Brief: Technical Founder & Day Trader\n\n## Core Identity & Values\n**Systems-Level Thinker with Epistemic Focus**\n- This person operates as a founder-operator with deep technical fluency in"
+      }
+    ],
+    "4_cross_type": [
+      {
+        "label": "type_positional_predicts_others",
+        "train_count": 782,
+        "test_count": 1780,
+        "scores": {
+          "m1_coverage": 0.2111,
+          "prediction_rate": 0.0129,
+          "m3_pattern_density": 2.75,
+          "composite": 22.89,
+          "chars": 2911
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF: SYSTEMS-ORIENTED TECHNICAL LEADER\n\n## CORE IDENTITY\nThis person operates as a systems-thinking generalist who values epistemic integrity, technical rigor, and principled decision-m"
+      },
+      {
+        "label": "type_biographical_predicts_others",
+        "train_count": 698,
+        "test_count": 1864,
+        "scores": {
+          "m1_coverage": 0.182,
+          "prediction_rate": 0.0139,
+          "m3_pattern_density": 1.44,
+          "composite": 19.79,
+          "chars": 3463
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF: AI STARTUP FOUNDER & TECHNICAL OPERATOR\n\n## PROFESSIONAL IDENTITY & EXPERTISE\n**Core Identity:** This person is a technically-fluent founder who has built and scaled multiple AI st"
+      },
+      {
+        "label": "type_preference_predicts_others",
+        "train_count": 441,
+        "test_count": 2121,
+        "scores": {
+          "m1_coverage": 0.2358,
+          "prediction_rate": 0.0123,
+          "m3_pattern_density": 0.92,
+          "composite": 21.12,
+          "chars": 3265
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF: TECHNICAL POLYMATH & SYSTEMS THINKER\n\n## CORE IDENTITY\nThis person is a technical polymath with deep expertise spanning software engineering, finance, and automotive domains. They "
+      },
+      {
+        "label": "type_behavioral_predicts_others",
+        "train_count": 639,
+        "test_count": 1923,
+        "scores": {
+          "m1_coverage": 0.2146,
+          "prediction_rate": 0.0198,
+          "m3_pattern_density": 3.81,
+          "composite": 24.8,
+          "chars": 3409
+        },
+        "brief_preview": "# BEHAVIORAL BRIEF: Technical Trader & Systems Thinker\n\n## CORE IDENTITY\nThis person operates as a disciplined day trader specializing in SPY/SPX options with systematic technical analysis. They demon"
+      }
+    ]
+  },
+  "franklin_reference": {
+    "temporal_direction": {
+      "early_to_late": 20.25,
+      "late_to_early": 22.0,
+      "random": 19.93
+    },
+    "quarter_prediction": {
+      "Q1": 23.01,
+      "Q2": 21.24,
+      "Q3": 19.4,
+      "Q4": 20.82
+    },
+    "finding": "No significant direction effect. Later predicts earlier slightly better."
+  }
+}
