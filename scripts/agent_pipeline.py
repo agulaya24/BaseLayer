@@ -25,7 +25,7 @@ from config import (
     ANCHORS_LAYER_FILE,
     CORE_LAYER_FILE,
     PREDICTIONS_LAYER_FILE,
-    UNIFIED_BRIEF_FILE,
+    UNIFIED_BRIEF_FILE, UNIFIED_BRIEF_CITED_FILE,
     get_db,
 )
 
@@ -740,5 +740,18 @@ def store_unified_brief(run_dir, brief_text):
     header = "\n".join(header_lines)
     content = f"---\n{header}\n---\n\n## Injectable Block\n\n{brief_text}"
 
-    UNIFIED_BRIEF_FILE.write_text(content, encoding="utf-8")
-    print(f"  Stored: {UNIFIED_BRIEF_FILE}")
+    # Save cited version (for audit)
+    UNIFIED_BRIEF_CITED_FILE.write_text(content, encoding="utf-8")
+    print(f"  Stored (cited): {UNIFIED_BRIEF_CITED_FILE}")
+
+    # Save clean version (citations stripped, for serving/injection)
+    import re as _re
+    _cite_re = _re.compile(r'\s*\[(?:[APCM]\d+(?:[-\u2013][A-Z]?\d+)?(?:\s*,\s*[APCM]\d+(?:[-\u2013][A-Z]?\d+)?)*|CONTESTED|THIN IN[^]]*)\]')
+    _prov_re = _re.compile(r'^\*\*PROVENANCE\*\*:.*$\n?', _re.MULTILINE)
+    clean = _prov_re.sub('', content)
+    clean = _cite_re.sub('', clean)
+    clean = _re.sub(r'  +', ' ', clean)
+    clean = _re.sub(r' +([.,;:])', r'\1', clean)
+    clean = _re.sub(r'\n\s*\n\s*\n', '\n\n', clean)
+    UNIFIED_BRIEF_FILE.write_text(clean, encoding="utf-8")
+    print(f"  Stored (clean): {UNIFIED_BRIEF_FILE}")
