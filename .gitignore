@@ -150,3 +150,18 @@ CLAUDE_CODE_SETUP.md
 scripts/overnight_*.sh
 docs/eval/gpu_overnight/
 docs/eval/master_overnight_stdout.log
+
+# SWE-bench experiment data (contain local paths + live experiment state)
+data/swebench/
+
+# Drift experiment results (generated output, contain local paths)
+scripts/experiments/drift_results/
+scripts/experiments/overnight_results/
+
+# PatentMind / Moltbook bot (API keys + runtime state — never commit)
+scripts/patentmind_agent.py
+scripts/patentmind_state.json
+scripts/baselayer_agent.py
+
+# Scripts backup snapshot (not project output)
+scripts_backup_20260310/
