@@ -13,9 +13,6 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-# Add scripts to path
-SCRIPTS_DIR = Path(__file__).parent.parent / "scripts"
-sys.path.insert(0, str(SCRIPTS_DIR))
 
 
 @pytest.fixture
@@ -24,9 +21,9 @@ def temp_db(tmp_path):
     db_path = tmp_path / "test_memory.db"
 
     # Patch config to use temp path
-    with patch("config.DATABASE_FILE", db_path), \
-         patch("config.PROJECT_ROOT", tmp_path):
-        from init_database import init_database
+    with patch("baselayer.config.DATABASE_FILE", db_path), \
+         patch("baselayer.config.PROJECT_ROOT", tmp_path):
+        from baselayer.init_database import init_database
         tables = init_database(db_path)
 
     conn = sqlite3.connect(str(db_path))
@@ -107,7 +104,7 @@ def mock_anthropic():
     Patches both the anthropic.Anthropic constructor and resets the
     api_client singleton so the mock is used for all API calls.
     """
-    import scripts.api_client as api_client_mod
+    import baselayer.api_client as api_client_mod
 
     mock_client = MagicMock()
     mock_response = MagicMock()

@@ -9,7 +9,6 @@ import sqlite3
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
 
 EXPECTED_TABLES = [
@@ -161,7 +160,7 @@ class TestTokenBudgetCompliance:
     """Verify token budget constants are consistent."""
 
     def test_total_equals_sum_of_parts(self):
-        from config import (
+        from baselayer.config import (
             IDENTITY_TOKEN_BUDGET, THEME_TOKEN_BUDGET,
             EPISODE_TOKEN_BUDGET, TOTAL_TOKEN_BUDGET,
         )
@@ -171,12 +170,12 @@ class TestTokenBudgetCompliance:
         assert TOTAL_TOKEN_BUDGET <= part_sum + 200  # But not wildly more
 
     def test_identity_budget_is_largest(self):
-        from config import IDENTITY_TOKEN_BUDGET, THEME_TOKEN_BUDGET, EPISODE_TOKEN_BUDGET
+        from baselayer.config import IDENTITY_TOKEN_BUDGET, THEME_TOKEN_BUDGET, EPISODE_TOKEN_BUDGET
         assert IDENTITY_TOKEN_BUDGET > THEME_TOKEN_BUDGET
         assert IDENTITY_TOKEN_BUDGET > EPISODE_TOKEN_BUDGET
 
     def test_budgets_are_reasonable(self):
-        from config import TOTAL_TOKEN_BUDGET
+        from baselayer.config import TOTAL_TOKEN_BUDGET
         # Should be between 1K and 10K tokens
         assert 1000 <= TOTAL_TOKEN_BUDGET <= 10000
 
@@ -185,7 +184,7 @@ class TestDataConsistency:
     """Test data consistency in populated database."""
 
     def test_fact_categories_are_valid(self, populated_db):
-        from config import VALID_CATEGORIES
+        from baselayer.config import VALID_CATEGORIES
         conn, _ = populated_db
         categories = conn.execute(
             "SELECT DISTINCT category FROM memory_facts WHERE category IS NOT NULL"
@@ -194,7 +193,7 @@ class TestDataConsistency:
             assert cat in VALID_CATEGORIES, f"Invalid category: {cat}"
 
     def test_fact_types_are_valid(self, populated_db):
-        from config import VALID_FACT_TYPES
+        from baselayer.config import VALID_FACT_TYPES
         conn, _ = populated_db
         types = conn.execute(
             "SELECT DISTINCT fact_type FROM memory_facts WHERE fact_type IS NOT NULL"
@@ -203,7 +202,7 @@ class TestDataConsistency:
             assert ft in VALID_FACT_TYPES, f"Invalid fact_type: {ft}"
 
     def test_commitment_depths_are_valid(self, populated_db):
-        from config import VALID_COMMITMENT_DEPTHS
+        from baselayer.config import VALID_COMMITMENT_DEPTHS
         conn, _ = populated_db
         depths = conn.execute(
             "SELECT DISTINCT commitment_depth FROM memory_facts WHERE commitment_depth IS NOT NULL"
@@ -212,7 +211,7 @@ class TestDataConsistency:
             assert cd in VALID_COMMITMENT_DEPTHS, f"Invalid commitment_depth: {cd}"
 
     def test_fact_classes_are_valid(self, populated_db):
-        from config import VALID_FACT_CLASSES
+        from baselayer.config import VALID_FACT_CLASSES
         conn, _ = populated_db
         classes = conn.execute(
             "SELECT DISTINCT fact_class FROM memory_facts WHERE fact_class IS NOT NULL"

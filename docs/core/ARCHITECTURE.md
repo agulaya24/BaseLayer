@@ -464,7 +464,7 @@ Like the brain's sleep consolidation process, the system periodically:
 
 The assembly layer. Transforms raw memory into a compressed, structured brief injected into the reasoning model's system prompt. The three-layer identity block is authored independently and stored as markdown files; dynamic context (themes, episodes) is assembled per-message by code. Total brief: ~5,000 tokens. No LLM in the critical path for brief assembly — all code-based retrieval.
 
-**Script:** `scripts/assemble_brief.py`
+**Script:** `src/baselayer/assemble_brief.py`
 **Format:** XML tags for structure, markdown inside blocks for readability.
 
 #### Three-Layer Identity Architecture (D-043)

@@ -12,7 +12,6 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 from io import StringIO
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
 
 class TestCLISubcommands:
@@ -24,28 +23,28 @@ class TestCLISubcommands:
     ]
 
     def test_all_subcommands_exist(self):
-        from cli import main
+        from baselayer.cli import main
         import argparse
 
         # Parse --help to check subcommands are registered
         # We test by trying to parse each command
         for cmd in self.EXPECTED_COMMANDS:
-            from cli import main as cli_main
+            from baselayer.cli import main as cli_main
             # Just verify the module loads and has the command functions
-            import cli
+            import baselayer.cli as cli
             func_name = f"cmd_{cmd}" if cmd != "import" else "cmd_import"
             assert hasattr(cli, func_name) or cmd == "estimate", \
                 f"Missing command function for '{cmd}'"
 
     def test_version_flag(self):
-        from cli import main
+        from baselayer.cli import main
         with pytest.raises(SystemExit) as exc_info:
             sys.argv = ["baselayer", "--version"]
             main()
         assert exc_info.value.code == 0
 
     def test_no_command_shows_help(self, capsys):
-        from cli import main
+        from baselayer.cli import main
         with pytest.raises(SystemExit) as exc_info:
             sys.argv = ["baselayer"]
             main()
@@ -58,9 +57,9 @@ class TestCLIInit:
     def test_init_creates_database(self, tmp_path):
         db_path = tmp_path / "data" / "database" / "memory.db"
 
-        with patch("config.PROJECT_ROOT", tmp_path), \
-             patch("config.DATABASE_FILE", db_path):
-            from init_database import init_database
+        with patch("baselayer.config.PROJECT_ROOT", tmp_path), \
+             patch("baselayer.config.DATABASE_FILE", db_path):
+            from baselayer.init_database import init_database
             tables = init_database(db_path)
             # 15 regular tables + 1 FTS5 virtual table = 16
             # (FTS5 shadow tables are excluded from the count)
@@ -88,8 +87,8 @@ class TestCLIStats:
     def test_stats_on_populated_db(self, populated_db, capsys):
         conn, db_path = populated_db
 
-        with patch("config.DATABASE_FILE", db_path):
-            from cli import cmd_stats
+        with patch("baselayer.config.DATABASE_FILE", db_path):
+            from baselayer.cli import cmd_stats
             import argparse
             args = argparse.Namespace()
             cmd_stats(args)
@@ -104,28 +103,27 @@ class TestCLIErrorHandling:
     """Test error handling for common failure modes."""
 
     def test_api_key_check_fails_without_key(self):
-        from cli import _check_api_key
+        from baselayer.cli import _check_api_key
         with patch.dict(os.environ, {}, clear=True):
             os.environ.pop("ANTHROPIC_API_KEY", None)
             with pytest.raises(SystemExit):
                 _check_api_key()
 
     def test_api_key_check_passes_with_key(self):
-        from cli import _check_api_key
+        from baselayer.cli import _check_api_key
         with patch.dict(os.environ, {"ANTHROPIC_API_KEY": "sk-ant-test123"}):
             # Should not raise
             _check_api_key()
 
     def test_import_nonexistent_file(self):
         """cmd_import should exit(1) for nonexistent files."""
-        from cli import cmd_import
+        from baselayer.cli import cmd_import
         import argparse
         import subprocess
         # Run in subprocess to avoid sys.exit corrupting pytest's IO capture
         result = subprocess.run(
             [sys.executable, "-c",
-             "import sys; sys.path.insert(0, 'scripts'); "
-             "from cli import cmd_import; import argparse; "
+             "from baselayer.cli import cmd_import; import argparse; "
              "cmd_import(argparse.Namespace(file='/nonexistent/file.json', source=None))"],
             capture_output=True, text=True,
             cwd=str(Path(__file__).parent.parent),
