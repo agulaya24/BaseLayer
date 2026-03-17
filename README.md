@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License" /></a>
-  <img src="https://img.shields.io/badge/tests-414_passing-brightgreen.svg" alt="Tests" />
+  <a href="https://github.com/agulaya24/BaseLayer/actions/workflows/test.yml"><img src="https://github.com/agulaya24/BaseLayer/actions/workflows/test.yml/badge.svg" alt="Tests" /></a>
   <img src="https://img.shields.io/badge/python-3.10+-blue.svg" alt="Python" />
   <img src="https://img.shields.io/badge/subjects-10-green.svg" alt="Subjects" />
 </p>
@@ -118,7 +118,7 @@ Run `baselayer estimate` to preview your exact cost before spending anything. Us
 
 ## Key Findings
 
-From 81+ sessions of experimentation ([full research](https://base-layer.ai/research)):
+From 90+ sessions of experimentation ([full research](https://base-layer.ai/research)):
 
 1. **20% of facts is enough.** Compression saturates early. Adding more content makes things worse.
 2. **What you avoid predicts better than what you believe.** Avoidance and struggle patterns are the strongest behavioral predictors.
@@ -140,19 +140,19 @@ Base Layer sends your text to the Anthropic API during extraction and authoring.
 - **Text-only.** Body language, tone, physical habits — all invisible.
 - **N=10.** Generalizes across source types, but below statistical power for strong claims.
 - **Cloud API dependency.** Local Ollama backend exists but quality is lower.
-- **Pre-1.0.** 414 tests passing, 76+ design decisions documented. Expect rough edges.
+- **Pre-1.0.** 369 tests passing, 80+ design decisions documented. Expect rough edges.
 
 ## Documentation
 
 | Doc | Contents |
 |-----|----------|
 | [`ARCHITECTURE.md`](docs/core/ARCHITECTURE.md) | Pipeline design |
-| [`DECISIONS.md`](docs/core/DECISIONS.md) | 76 design decisions with rationale |
+| [`DECISIONS.md`](docs/core/DECISIONS.md) | 80 design decisions with rationale |
 | [`DESIGN_PRINCIPLES.md`](docs/core/DESIGN_PRINCIPLES.md) | Foundational principles |
 | [`BCB_FRAMEWORK.md`](docs/eval/BCB_FRAMEWORK.md) | Behavioral Compression Benchmark |
 | [`ABLATION_PROTOCOL.md`](docs/eval/ABLATION_PROTOCOL.md) | Pipeline ablation study |
 
-76+ design decisions, 10 design principles, 81+ session logs. The prompts are in the code. Nothing is hidden.
+80+ design decisions, 10 design principles, 90+ session logs. The prompts are in the code. Nothing is hidden.
 
 ## Roadmap
 
@@ -202,14 +202,7 @@ The brief is a portable, compressed representation of how someone thinks. Today 
 
 ## Contributing
 
-We'd welcome contributions — especially around evaluation, new source type adapters, and local model support. See [open questions](https://base-layer.ai/journey) for where the research is headed.
-
-```bash
-git clone https://github.com/agulaya24/BaseLayer.git
-cd baselayer
-pip install -e ".[dev]"
-pytest
-```
+We'd welcome contributions — especially around evaluation, new source type adapters, and local model support. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions and where to start.
 
 ## Citation
 
