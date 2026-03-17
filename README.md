@@ -126,11 +126,13 @@ From 81+ sessions of experimentation ([full research](https://base-layer.ai/rese
 4. **Most of the pipeline doesn't matter.** 4 steps scored 87/100. Full 14-step scored 83/100. But the 3-layer architecture IS load-bearing.
 5. **Fidelity creates vulnerability.** The more faithfully the brief captures someone, the more exploitable it becomes.
 
-## Privacy
+## Privacy & Data Flow
 
-Your database, vectors, and identity layers are stored locally (SQLite + ChromaDB). No cloud sync, no accounts, no telemetry.
+Base Layer sends your text to the Anthropic API during extraction and authoring. This is how the pipeline works — language models process your conversations to extract structured facts and author identity layers. Your data is subject to [Anthropic's API data policy](https://www.anthropic.com/policies/privacy) (zero-retention for API usage by default as of March 2025).
 
-Extraction sends text to the Anthropic API. Nothing persists remotely beyond [Anthropic's standard API retention](https://www.anthropic.com/policies/privacy). For fully local processing, use `BASELAYER_EXTRACTION_BACKEND=ollama`.
+**What stays local:** Your database (SQLite), vectors (ChromaDB), extracted facts, and identity brief all live on your machine. No cloud sync, no accounts, no telemetry. The brief is yours.
+
+**Fully local option:** Set `BASELAYER_EXTRACTION_BACKEND=ollama` to run extraction through a local model (Qwen 2.5). Authoring and composition still require Claude API access. A fully local pipeline is on the [roadmap](https://base-layer.ai/journey) as open model quality improves.
 
 ## Limitations
 
