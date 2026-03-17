@@ -34,7 +34,7 @@ baselayer = "baselayer.cli:main"
 baselayer-mcp = "baselayer.mcp_server:main"
 
 [tool.setuptools]
-packages = ["baselayer"]
+packages = ["baselayer", "baselayer.archive", "baselayer.archive.dead_pipeline_steps", "baselayer.experiments"]
 
 [tool.setuptools.package-dir]
-baselayer = "scripts"
+"" = "src"

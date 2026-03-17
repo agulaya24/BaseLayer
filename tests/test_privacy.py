@@ -11,7 +11,6 @@ import os
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
 
 class TestBriefPrivacy:
@@ -35,7 +34,7 @@ class TestBriefPrivacy:
 
     def test_brief_token_budget_enforced(self):
         """Brief should not exceed the total token budget."""
-        from config import TOTAL_TOKEN_BUDGET, CHARS_PER_TOKEN
+        from baselayer.config import TOTAL_TOKEN_BUDGET, CHARS_PER_TOKEN
         max_chars = TOTAL_TOKEN_BUDGET * CHARS_PER_TOKEN  # 20,000 chars
         assert max_chars == 20000
 
@@ -45,16 +44,18 @@ class TestMCPPrivacy:
 
     def test_search_facts_has_limit(self):
         """search_facts tool should have a default result limit."""
-        from mcp_server import search_facts
+        from baselayer.mcp_server import search_facts
         import inspect
         sig = inspect.signature(search_facts)
         assert "limit" in sig.parameters
         assert sig.parameters["limit"].default == 15
 
-    def test_identity_resource_reads_injectable_only(self, mock_identity_layers):
+    def test_identity_resource_reads_injectable_only(self, mock_identity_layers, tmp_path):
         """Identity resource should only return injectable blocks, not metadata."""
-        import mcp_server
-        with patch.object(mcp_server, "ANCHORS_LAYER_FILE", mock_identity_layers / "anchors_v3.md"), \
+        import baselayer.mcp_server as mcp_server
+        with patch.object(mcp_server, "UNIFIED_BRIEF_FILE", tmp_path / "nonexistent_brief.md"), \
+             patch.object(mcp_server, "UNIFIED_BRIEF_CITED_FILE", tmp_path / "nonexistent_cited.md"), \
+             patch.object(mcp_server, "ANCHORS_LAYER_FILE", mock_identity_layers / "anchors_v3.md"), \
              patch.object(mcp_server, "CORE_LAYER_FILE", mock_identity_layers / "core_v3.md"), \
              patch.object(mcp_server, "PREDICTIONS_LAYER_FILE", mock_identity_layers / "predictions_v3.md"):
             brief = mcp_server.get_identity_brief()
@@ -81,7 +82,7 @@ class TestNoSecretLeakage:
 
     def test_cli_check_api_key_doesnt_print_key(self):
         """The API key check should not print the actual key."""
-        from cli import _check_api_key
+        from baselayer.cli import _check_api_key
         import io
         from contextlib import redirect_stdout, redirect_stderr
 

@@ -14,7 +14,6 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 # Add scripts to path
-sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
 
 # ============================================================
@@ -25,13 +24,13 @@ class TestConfig:
     """Test that config.py defines all required constants."""
 
     def test_paths_defined(self):
-        from config import PROJECT_ROOT, DATABASE_FILE, VECTORS_DIR
+        from baselayer.config import PROJECT_ROOT, DATABASE_FILE, VECTORS_DIR
         assert PROJECT_ROOT is not None
         assert DATABASE_FILE is not None
         assert VECTORS_DIR is not None
 
     def test_token_budgets(self):
-        from config import (
+        from baselayer.config import (
             IDENTITY_TOKEN_BUDGET, THEME_TOKEN_BUDGET,
             EPISODE_TOKEN_BUDGET, TOTAL_TOKEN_BUDGET, CHARS_PER_TOKEN,
         )
@@ -42,28 +41,28 @@ class TestConfig:
         assert CHARS_PER_TOKEN == 4
 
     def test_valid_categories(self):
-        from config import VALID_CATEGORIES
+        from baselayer.config import VALID_CATEGORIES
         required = {"preference", "biography", "project", "relationship",
                     "interest", "skill", "value", "habit", "opinion",
                     "goal", "negative_trait"}
         assert VALID_CATEGORIES == required
 
     def test_valid_fact_types(self):
-        from config import VALID_FACT_TYPES
+        from baselayer.config import VALID_FACT_TYPES
         required = {"biographical", "behavioral", "positional", "preference", "unclassified"}
         assert VALID_FACT_TYPES == required
 
     def test_valid_commitment_depths(self):
-        from config import VALID_COMMITMENT_DEPTHS
+        from baselayer.config import VALID_COMMITMENT_DEPTHS
         required = {"factual", "preference", "position", "conviction", "unclassified"}
         assert VALID_COMMITMENT_DEPTHS == required
 
     def test_valid_fact_classes(self):
-        from config import VALID_FACT_CLASSES
+        from baselayer.config import VALID_FACT_CLASSES
         assert VALID_FACT_CLASSES == {"event", "state", "unclassified"}
 
     def test_extraction_settings(self):
-        from config import (
+        from baselayer.config import (
             SIMILARITY_THRESHOLD, MIN_FACT_LENGTH,
             MAX_FACTS_PER_CONVERSATION, MIN_MESSAGES_FOR_EXTRACTION,
         )
@@ -73,7 +72,7 @@ class TestConfig:
         assert MIN_MESSAGES_FOR_EXTRACTION > 0
 
     def test_identity_layer_paths(self):
-        from config import (
+        from baselayer.config import (
             IDENTITY_LAYERS_DIR, ANCHORS_LAYER_FILE,
             CORE_LAYER_FILE, PREDICTIONS_LAYER_FILE,
         )
@@ -83,7 +82,7 @@ class TestConfig:
         assert ANCHORS_LAYER_FILE.parent == IDENTITY_LAYERS_DIR
 
     def test_scope_source_mapping(self):
-        from config import SCOPE_SOURCE_MAPPING, DEFAULT_SCOPE
+        from baselayer.config import SCOPE_SOURCE_MAPPING, DEFAULT_SCOPE
         assert SCOPE_SOURCE_MAPPING["chatgpt"] == "personal"
         assert SCOPE_SOURCE_MAPPING["claude_web"] == "personal"
         assert SCOPE_SOURCE_MAPPING["claude_code"] == "project"
@@ -92,7 +91,7 @@ class TestConfig:
     def test_project_root_respects_env_var(self, tmp_path):
         with patch.dict(os.environ, {"MEMORY_SYSTEM_ROOT": str(tmp_path)}):
             # Re-import to trigger resolution
-            from config import _resolve_project_root
+            from baselayer.config import _resolve_project_root
             root = _resolve_project_root()
             assert root == tmp_path
 
@@ -156,7 +155,7 @@ class TestInitDatabase:
     def test_idempotent_init(self, tmp_path):
         """Running init twice should not error or duplicate tables."""
         db_path = tmp_path / "test.db"
-        from init_database import init_database
+        from baselayer.init_database import init_database
         tables1 = init_database(db_path)
         tables2 = init_database(db_path)
         assert tables1 == tables2
@@ -222,20 +221,20 @@ class TestAuthoringHelpers:
 
     def test_domain_cap_config_exists(self):
         """Domain balance config must exist (D-055)."""
-        from config import AUTHORING_MAX_DOMAIN_PERCENT, AUTHORING_DOMAIN_KEYWORDS
+        from baselayer.config import AUTHORING_MAX_DOMAIN_PERCENT, AUTHORING_DOMAIN_KEYWORDS
         assert 0 < AUTHORING_MAX_DOMAIN_PERCENT <= 50
         assert isinstance(AUTHORING_DOMAIN_KEYWORDS, dict)
         assert "trading" in AUTHORING_DOMAIN_KEYWORDS
 
     def test_domain_cap_function_exists(self):
         """cap_by_domain must be importable and callable."""
-        from author_layers import cap_by_domain
+        from baselayer.author_layers import cap_by_domain
         result = cap_by_domain([])
         assert result == []
 
     def test_domain_cap_reduces_over_represented(self):
         """Domain cap should reduce facts when a domain exceeds threshold."""
-        from author_layers import cap_by_domain
+        from baselayer.author_layers import cap_by_domain
         facts = [{"fact_text": f"trading setup {i}", "category": "skill"} for i in range(20)]
         facts += [{"fact_text": "enjoys hiking regularly", "category": "habit"}]
         # 20 trading + 1 non-trading = 21 total. 25% of 21 = 5.

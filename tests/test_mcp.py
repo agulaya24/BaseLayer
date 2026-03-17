@@ -11,9 +11,8 @@ import sys
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
 
-import mcp_server
+import baselayer.mcp_server as mcp_server
 
 
 class TestMCPServerInit:
@@ -29,8 +28,10 @@ class TestMCPServerInit:
 class TestIdentityResource:
     """Test the memory://identity resource."""
 
-    def test_returns_content_when_layers_exist(self, mock_identity_layers):
-        with patch.object(mcp_server, "ANCHORS_LAYER_FILE", mock_identity_layers / "anchors_v3.md"), \
+    def test_returns_content_when_layers_exist(self, mock_identity_layers, tmp_path):
+        with patch.object(mcp_server, "UNIFIED_BRIEF_FILE", tmp_path / "nonexistent_brief.md"), \
+             patch.object(mcp_server, "UNIFIED_BRIEF_CITED_FILE", tmp_path / "nonexistent_cited.md"), \
+             patch.object(mcp_server, "ANCHORS_LAYER_FILE", mock_identity_layers / "anchors_v3.md"), \
              patch.object(mcp_server, "CORE_LAYER_FILE", mock_identity_layers / "core_v3.md"), \
              patch.object(mcp_server, "PREDICTIONS_LAYER_FILE", mock_identity_layers / "predictions_v3.md"):
             brief = mcp_server.get_identity_brief()
@@ -40,7 +41,9 @@ class TestIdentityResource:
     def test_returns_fallback_when_no_layers(self, tmp_path):
         empty_dir = tmp_path / "empty_layers"
         empty_dir.mkdir()
-        with patch.object(mcp_server, "ANCHORS_LAYER_FILE", empty_dir / "anchors_v3.md"), \
+        with patch.object(mcp_server, "UNIFIED_BRIEF_FILE", tmp_path / "nonexistent_brief.md"), \
+             patch.object(mcp_server, "UNIFIED_BRIEF_CITED_FILE", tmp_path / "nonexistent_cited.md"), \
+             patch.object(mcp_server, "ANCHORS_LAYER_FILE", empty_dir / "anchors_v3.md"), \
              patch.object(mcp_server, "CORE_LAYER_FILE", empty_dir / "core_v3.md"), \
              patch.object(mcp_server, "PREDICTIONS_LAYER_FILE", empty_dir / "predictions_v3.md"):
             brief = mcp_server.get_identity_brief()
