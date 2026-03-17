@@ -181,7 +181,7 @@ def generate_data_profile(conn):
     if type_rows:
         lines.append(f"Fact types: {', '.join(f'{r[0]} ({r[1]})' for r in type_rows)}")
     if source_rows:
-        lines.append(f"Source types: {', '.join(f'{r[0] or 'unknown'} ({r[1]})' for r in source_rows)}")
+        lines.append("Source types: " + ", ".join(f"{r[0] or 'unknown'} ({r[1]})" for r in source_rows))
 
     # Interpretive notes — let the agent reason from these
     notes = []
