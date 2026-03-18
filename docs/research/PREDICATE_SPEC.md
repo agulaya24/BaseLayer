@@ -40,20 +40,20 @@ Rather than rejecting LLM outputs that don't match exactly, a normalization laye
 
 ## The 46 Predicates
 
-### Category 1: Values, Preferences & Priorities (4 predicates)
+### Category 1: Values, Beliefs & Priorities (5 predicates)
 
 | Predicate | Epistemic Claim | Example | Why It Exists |
 |:---|:---|:---|:---|
+| `believes` | This person holds X as a conviction or worldview | "believes markets are efficient in the long run" | The heaviest epistemic predicate. Beliefs are identity-constitutive. Moved here from Emotions (S93 Collective review) — beliefs are epistemic positions, not emotional states. |
 | `values` | This person cares deeply about X | "values intellectual honesty" | Core behavioral signal. What someone values predicts decisions under constraint. |
 | `prefers` | This person chooses X over alternatives | "prefers async communication" | Weaker than `values` — a preference is malleable, a value is constitutive. |
 | `avoids` | This person actively steers away from X | "avoids consensus-driven decisions" | Avoidance predicates are among the most predictive for identity. What you refuse defines you as much as what you pursue. |
 | `prioritizes` | This person orders X above other concerns | "prioritizes speed over correctness in prototyping" | Distinct from `values` — prioritization implies ranking under tradeoff, not just caring. |
 
-### Category 2: Emotions & Attitudes (6 predicates)
+### Category 2: Emotions & Attitudes (5 predicates)
 
 | Predicate | Epistemic Claim | Example | Why It Exists |
 |:---|:---|:---|:---|
-| `believes` | This person holds X as a conviction or worldview | "believes markets are efficient in the long run" | The heaviest epistemic predicate. Beliefs are identity-constitutive. |
 | `fears` | This person experiences anxiety or dread about X | "fears being perceived as pseudo-intellectual" | Fear predicates expose vulnerability — high identity signal, high sensitivity. |
 | `enjoys` | This person derives pleasure from X | "enjoys solving constraint satisfaction problems" | Moderate intensity positive affect. |
 | `loves` | This person has intense positive attachment to X | "loves the feeling of shipping" | Distinct from `enjoys` — intensity preserved for commitment depth scoring. Added Session 49 to prevent emotional flattening. |
@@ -141,11 +141,15 @@ Added in Session 55 as a block. Prior to this, relationship extraction was 0.8% 
 |:---|:---|:---|:---|
 | `interested_in` | This person has passive curiosity about X | "interested in decentralized identity protocols" | Added Session 49. Distinct from `follows` — passive interest does not imply active tracking. NOT aliased to `follows` because conflating them inflates the signal of casual mentions. |
 
+**Why isolated:** `interested_in` is the lowest-signal predicate in the vocabulary — it captures what someone has mentioned with curiosity but not commitment. Merging it into "Activities & Practices" would overstate its weight. Merging into "Relationships" (where `follows` lives) would collapse a distinction the Collective ruled epistemically wrong (S49). It sits alone because it occupies a unique epistemic position: acknowledged but uncommitted attention.
+
 ### Category 12: Loss (1 predicate)
 
 | Predicate | Epistemic Claim | Example | Why It Exists |
 |:---|:---|:---|:---|
 | `lost` | This person experienced the loss of X | "lost a close mentor in 2023" | Loss events are among the highest-weight identity facts. They reshape values, priorities, and risk tolerance in ways that persist for years. |
+
+**Why isolated:** Loss may be low-frequency — a person might have only 1-3 loss facts across thousands — but each one carries disproportionate identity weight. A single loss event can explain shifts in values, risk tolerance, and priorities that dozens of other facts merely describe. Merging `lost` into "Learning & Growth" would obscure this signal. If a subject has even one `lost` fact, it likely belongs in their identity model. The isolation preserves that signal.
 
 ### Category 13: Fallback (1 predicate)
 
@@ -271,16 +275,37 @@ The interaction between predicate and commitment depth is what gives Base Layer 
 
 ---
 
+## Known Limitations
+
+These are active areas of work, not theoretical gaps. Each represents a dimension of human identity that the current grammar does not yet capture.
+
+### 1. Temporal Dynamics
+The grammar captures what someone believes, not when they started believing it or how that belief evolved. A fact like "values intellectual honesty" has no mechanism for expressing "started valuing intellectual honesty after leaving finance in 2019." The `qualifier` field stores temporal context ("since 2019") but it's excluded from scoring and not visible in the identity model. Temporal trajectories — how someone's predicate distribution shifts over time — would be the highest-value addition to the grammar but require a fundamentally different storage model.
+
+### 2. Conditional Behavior
+The grammar captures what someone does, not under what conditions. "Practices deep work" doesn't distinguish "practices deep work when alone" from "practices deep work under deadline pressure." The layer authoring step partially addresses this through `activeWhen` and `directive` fields on each layer item, but the underlying facts lose their conditional context during extraction. The prediction layer is the closest mechanism — it captures trigger → behavior patterns — but the facts themselves remain unconditional.
+
+### 3. Intensity and Weight
+All facts within a tier are treated equally. "Lost a close mentor" and "lost a set of keys" would both receive the same `lost` predicate with no intensity distinction. The commitment depth field (factual/preference/position/conviction) captures speaker certainty but not event significance. A "Canonical Event Schema" that weights facts by downstream impact — how much a fact changes other facts — is the highest-priority open research question.
+
+### 4. Cohort-Level Patterns
+When the same prediction appears across nearly all subjects (e.g., "tension acknowledgment" appeared in 14 of 15 outreach subjects), it may indicate a template artifact in the authoring prompt rather than a genuine universal pattern. The grammar extracts individual facts well, but the layer authoring step can produce universal-sounding patterns from them. Distinguishing subject-specific predictions from cohort-level universals requires benchmark-level analysis that has not yet been formalized.
+
+### 5. Social Context
+The grammar captures who someone relates to (`friends_with`, `collaborates_with`) but not how someone behaves differently in different social contexts. "Excels at public speaking" doesn't distinguish between "excels at public speaking with peers" and "excels at public speaking with strangers." Social context modulation is a real dimension of identity that the current grammar does not represent.
+
+---
+
 ## Open Questions
 
-### Memory Weighting (Canonical Event Schema)
-The current system treats all facts within a tier equally. A "Canonical Event" intensity scale — where losing keys = 0.01 weight and losing a mentor = 10.00 weight — would add a dimension that prevents dynamic updates from being noisy. The `lost` predicate already captures loss events, but has no intensity gradient. This is an active research question.
+### Memory Weighting (Canonical Event Schema) — HIGH PRIORITY
+The current system treats all facts within a tier equally. A "Canonical Event" intensity scale — where losing keys = 0.01 weight and losing a mentor = 10.00 weight — would add a dimension that prevents dynamic updates from being noisy. The `lost` predicate already captures loss events, but has no intensity gradient. This is the highest-priority open research question because it directly affects the quality of the identity model for anyone with a significant life event in their corpus.
 
-### Verification Handshake
-When the system detects a shift in predicate patterns (e.g., increased `avoids` predicates around a topic that previously appeared under `values`), should it surface this to the user for confirmation before updating identity layers? "I noticed a shift in your reasoning regarding risk — should I update your Core layer?" This keeps the human sovereign over their own behavioral model.
+### Verification Handshake — HIGH PRIORITY
+When the system detects a shift in predicate patterns (e.g., increased `avoids` predicates around a topic that previously appeared under `values`), should it surface this to the user for confirmation before updating identity layers? "I noticed a shift in your reasoning regarding risk — should I update your Core layer?" This keeps the human sovereign over their own behavioral model. Without it, the system silently overwrites identity — which violates the core thesis.
 
 ### Vocabulary Expansion Criteria
-The current test — a predicate must appear 10+ times across 5,000 facts to earn a canonical slot — is empirical but not formalized. A more rigorous inclusion criterion might consider: (a) discriminative power in Twin-2K identification, (b) downstream impact on layer authoring, (c) cross-subject universality.
+The current heuristic for adding a new predicate: it must appear with meaningful frequency across multiple subjects and capture a distinction that existing predicates collapse. The earlier "10 times across 5,000 facts" threshold was a rough empirical guide, not a formal criterion. A more rigorous inclusion test would consider: (a) discriminative power in Twin-2K identification — does the predicate help distinguish between subjects? (b) downstream impact on layer authoring — does collapsing this predicate into an existing one change the identity model? (c) cross-subject universality — does it appear in diverse corpora, not just one domain? The removal of `trades` (S93) was the first application of criterion (c).
 
 ---
 
