@@ -165,3 +165,36 @@ scripts/baselayer_agent.py
 
 # Scripts backup snapshot (not project output)
 scripts_backup_20260310/
+
+# Outreach target source corpora (scraped public writing — NEVER commit)
+data/dan_shipper_source/
+data/anne_source/
+data/henrik_source/
+data/david_source/
+data/fred_wilson_source/
+data/simon_willison_source/
+data/maggie_appleton_source/
+data/cedric_chin_source/
+data/casey_newton_source/
+data/scott_alexander_source/
+data/matt_yglesias_source/
+data/swyx_source/
+data/ethan_mollick_source/
+data/cory_doctorow_source/
+data/kevin_kelly_source/
+data/charlie_warzel_source/
+data/kevin_roose_source/
+data/*_source/
+
+# Personal/private subject data (NEVER commit)
+bavani_memory/
+roman_memory/
+aarik*/
+memory_system_v4/
+
+# Personal eval data (contains subject name references)
+docs/eval/temporal_stability_aarik/
+docs/eval/*_aarik*
+docs/eval/*_bavani*
+scripts/experiments/temporal_stability_aarik.py
+src/baselayer/experiments/temporal_stability_aarik.py
