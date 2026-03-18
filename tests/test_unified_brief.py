@@ -56,6 +56,11 @@ class TestStoreUnifiedBrief:
         from baselayer.agent_pipeline import store_unified_brief, UNIFIED_BRIEF_FILE
 
         with patch("baselayer.agent_pipeline.UNIFIED_BRIEF_FILE", tmp_path / "brief_v4.md"), \
+             patch("baselayer.agent_pipeline.UNIFIED_BRIEF_CITED_FILE", tmp_path / "brief_v5.md"), \
+             patch("baselayer.agent_pipeline.IDENTITY_MODEL_FILE", tmp_path / "identity_model.md"), \
+             patch("baselayer.agent_pipeline.ANCHORS_LAYER_FILE", tmp_path / "anchors.md"), \
+             patch("baselayer.agent_pipeline.CORE_LAYER_FILE", tmp_path / "core.md"), \
+             patch("baselayer.agent_pipeline.PREDICTIONS_LAYER_FILE", tmp_path / "predictions.md"), \
              patch("baselayer.agent_pipeline.IDENTITY_LAYERS_DIR", tmp_path):
             store_unified_brief(None, "Test brief content here.")
             content = (tmp_path / "brief_v4.md").read_text(encoding="utf-8")
@@ -72,6 +77,11 @@ class TestStoreUnifiedBrief:
         run_dir.mkdir(parents=True)
 
         with patch("baselayer.agent_pipeline.UNIFIED_BRIEF_FILE", tmp_path / "brief_v4.md"), \
+             patch("baselayer.agent_pipeline.UNIFIED_BRIEF_CITED_FILE", tmp_path / "brief_v5.md"), \
+             patch("baselayer.agent_pipeline.IDENTITY_MODEL_FILE", tmp_path / "identity_model.md"), \
+             patch("baselayer.agent_pipeline.ANCHORS_LAYER_FILE", tmp_path / "anchors.md"), \
+             patch("baselayer.agent_pipeline.CORE_LAYER_FILE", tmp_path / "core.md"), \
+             patch("baselayer.agent_pipeline.PREDICTIONS_LAYER_FILE", tmp_path / "predictions.md"), \
              patch("baselayer.agent_pipeline.IDENTITY_LAYERS_DIR", tmp_path):
             store_unified_brief(run_dir, "Brief with run info.")
             content = (tmp_path / "brief_v4.md").read_text(encoding="utf-8")
