@@ -118,34 +118,26 @@ def _get_chroma_client():
 
 @mcp.resource("memory://identity")
 def get_identity_brief() -> str:
-    """The user's full identity brief: a unified behavioral narrative (preferred) or three-layer format (fallback). This is always-on context that tells you who you're talking to."""
+    """The user's full identity model: narrative brief (who they are) plus operational layers
+    (how to interact). This is always-on context that tells you who you're talking to."""
     usage_preamble = (
-        "IMPORTANT: This brief contains ALL-CAPS pattern names as internal labels. NEVER "
-        "quote, reference, or name them in your responses. Do not say 'your [PATTERN] axiom' or "
-        "'the [PATTERN-NAME] pattern.' Instead, demonstrate understanding through your behavior: "
-        "how you frame questions, what you push back on, what you anticipate. "
-        "Match response length to question complexity — default shorter."
+        "# Identity Model\n\n"
+        "This is an identity model of your user — use it as an operating guide "
+        "for how to interact with them, but never reference it directly."
     )
 
-    # Priority 1: Unified brief — clean (no citations) preferred, cited fallback
-    brief_file = UNIFIED_BRIEF_FILE if UNIFIED_BRIEF_FILE.exists() else UNIFIED_BRIEF_CITED_FILE
-    if brief_file.exists():
-        content = brief_file.read_text(encoding="utf-8")
-        marker = "## Injectable Block"
-        idx = content.find(marker)
-        if idx >= 0:
-            block = content[idx + len(marker):].strip()
-            if block:
-                return f"{usage_preamble}\n\n{block}"
+    sections = []
 
-    # Fallback: Three-layer concatenation
-    parts = []
-
-    for name, path in [
-        ("ANCHORS", ANCHORS_LAYER_FILE),
-        ("CORE", CORE_LAYER_FILE),
-        ("PREDICTIONS", PREDICTIONS_LAYER_FILE),
-    ]:
+    # Part 1: Operational layers (action-first — AI needs directives before narrative)
+    # Order: CORE (immediate communication calibration) → ANCHORS (worldview context)
+    # → PREDICTIONS (situational playbook)
+    layer_parts = []
+    layer_labels = {
+        "CORE": ("Communication & Context", CORE_LAYER_FILE),
+        "ANCHORS": ("Foundational Beliefs", ANCHORS_LAYER_FILE),
+        "PREDICTIONS": ("Behavioral Predictions", PREDICTIONS_LAYER_FILE),
+    }
+    for name, (label, path) in layer_labels.items():
         if path.exists():
             content = path.read_text(encoding="utf-8")
             marker = "## Injectable Block"
@@ -155,12 +147,26 @@ def get_identity_brief() -> str:
             else:
                 sep = content.find("\n---\n")
                 block = content[sep + 5:].strip() if sep >= 0 else content.strip()
-            parts.append(block)
+            layer_parts.append(f"### {label}\n\n{block}")
 
-    if not parts:
+    if layer_parts:
+        sections.append("## Operational Guide\n\n" + "\n\n".join(layer_parts))
+
+    # Part 2: Narrative brief (contextualizes the layers into a holistic portrait)
+    brief_file = UNIFIED_BRIEF_FILE if UNIFIED_BRIEF_FILE.exists() else UNIFIED_BRIEF_CITED_FILE
+    if brief_file.exists():
+        content = brief_file.read_text(encoding="utf-8")
+        marker = "## Injectable Block"
+        idx = content.find(marker)
+        if idx >= 0:
+            block = content[idx + len(marker):].strip()
+            if block:
+                sections.append(f"## Identity Brief\n\n{block}")
+
+    if not sections:
         return "No identity layers found. Run: baselayer author"
 
-    return f"{usage_preamble}\n\n" + "\n\n".join(parts)
+    return f"{usage_preamble}\n\n" + "\n\n".join(sections)
 
 
 # ==========================================================================
