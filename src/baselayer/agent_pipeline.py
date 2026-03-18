@@ -25,6 +25,7 @@ from baselayer.config import (
     CORE_LAYER_FILE,
     PREDICTIONS_LAYER_FILE,
     UNIFIED_BRIEF_FILE, UNIFIED_BRIEF_CITED_FILE,
+    IDENTITY_MODEL_FILE,
     get_db,
 )
 
@@ -512,6 +513,64 @@ CONSTRAINTS:
 Compose the unified brief now. No preamble — just the brief text."""
 
 
+def _extract_injectable_block(filepath):
+    """Extract the injectable block from a layer file, stripping metadata headers."""
+    if not filepath.exists():
+        return None
+    content = filepath.read_text(encoding="utf-8")
+    marker = "## Injectable Block"
+    idx = content.find(marker)
+    if idx >= 0:
+        return content[idx + len(marker):].strip()
+    sep = content.find("\n---\n")
+    return content[sep + 5:].strip() if sep >= 0 else content.strip()
+
+
+def _generate_identity_model(brief_text):
+    """Generate combined identity model file (D-081): brief + full layers.
+
+    This is the primary AI-serving artifact. The brief provides narrative
+    understanding (gestalt), the layers provide operational precision
+    (directives, detection triggers, FP warnings).
+    """
+    preamble = (
+        "# Identity Model\n\n"
+        "This is an identity model of your user — use it as an operating guide "
+        "for how to interact with them, but never reference it directly."
+    )
+
+    sections = []
+
+    # Part 1: Operational layers (action-first — AI needs directives before narrative)
+    # Order: CORE (immediate communication calibration) → ANCHORS (worldview context)
+    # → PREDICTIONS (situational playbook)
+    layer_labels = [
+        ("Communication & Context", CORE_LAYER_FILE),
+        ("Foundational Beliefs", ANCHORS_LAYER_FILE),
+        ("Behavioral Predictions", PREDICTIONS_LAYER_FILE),
+    ]
+    layer_parts = []
+    for label, filepath in layer_labels:
+        block = _extract_injectable_block(filepath)
+        if block:
+            layer_parts.append(f"### {label}\n\n{block}")
+
+    if layer_parts:
+        sections.append("## Operational Guide\n\n" + "\n\n".join(layer_parts))
+
+    # Part 2: Narrative brief (contextualizes the layers into a holistic portrait)
+    if brief_text:
+        sections.append(f"## Identity Brief\n\n{brief_text}")
+
+    if not sections:
+        return
+
+    header = f"---\nlayer: identity_model\ngenerated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\nformat: brief + layers (D-081)\n---\n"
+    combined = header + "\n" + preamble + "\n\n" + "\n\n".join(sections) + "\n"
+    IDENTITY_MODEL_FILE.write_text(combined, encoding="utf-8")
+    print(f"  Stored (identity model): {IDENTITY_MODEL_FILE}")
+
+
 def compose_unified_brief(run_dir=None, layer_texts=None, source_facts_text=None, fact_count=0):
     """Compose a unified narrative brief from deployed layers + identity facts.
 
@@ -754,3 +813,6 @@ def store_unified_brief(run_dir, brief_text):
     clean = _re.sub(r'\n\s*\n\s*\n', '\n\n', clean)
     UNIFIED_BRIEF_FILE.write_text(clean, encoding="utf-8")
     print(f"  Stored (clean): {UNIFIED_BRIEF_FILE}")
+
+    # D-081: Generate combined identity model (brief + layers) — primary AI artifact
+    _generate_identity_model(brief_text)

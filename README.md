@@ -16,7 +16,7 @@
 
 ---
 
-Base Layer compresses thousands of conversations, journal entries, or any personal text into ~2,500 tokens that capture *how someone thinks* — not just what they've said. Inject that compressed identity into any AI conversation, and the model responds as if it knows you. Tested on corpora ranging from 8 journal entries to 600K+ words of published text.
+Base Layer compresses thousands of conversations, journal entries, or any personal text into a 3–6K token identity model that captures *how someone thinks* — not just what they've said. Inject that identity model into any AI conversation, and the model responds as if it knows you. Tested on corpora ranging from 8 journal entries to 600K+ words of published text.
 
 **4-step pipeline.** Import → Extract (47 predicates, Haiku) → Author (3-layer identity, Sonnet) → Compose (unified brief, Opus). Validated on 10 subjects across 6 source types. [Ablation study](docs/eval/ablation/) proved 4 steps beat 14.
 
@@ -85,7 +85,7 @@ baselayer author && baselayer compose      # identity layers → unified brief
 claude mcp add --transport stdio base-layer -- baselayer-mcp
 ```
 
-**Or paste directly** into Claude custom instructions, ChatGPT project files, or any system prompt. The brief is ~2,500 tokens — fits anywhere.
+**Or paste directly** into Claude custom instructions, ChatGPT project files, or any system prompt. The identity model is 3–6K tokens — fits anywhere.
 
 ## Validation
 

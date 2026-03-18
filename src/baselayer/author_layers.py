@@ -247,13 +247,16 @@ def retrieve_anchors_facts(conn):
 
     if simplified:
         # Simplified pipeline: route by predicate instead of tier/classification
+        # Surface identifies_as facts first — these represent core self-concept
+        # and are foundational by definition (Collective review S91)
         placeholders = ",".join(["?"] * len(ANCHOR_PREDICATES))
         rows = conn.execute(f"""
-            SELECT id, fact_text, fact_type, commitment_depth, recurrence_count
+            SELECT id, fact_text, fact_type, commitment_depth, recurrence_count,
+                   CASE WHEN predicate = 'identifies_as' THEN 0 ELSE 1 END AS sort_group
             FROM memory_facts
             WHERE superseded_by IS NULL
               AND predicate IN ({placeholders})
-            ORDER BY recurrence_count DESC, fact_text
+            ORDER BY sort_group, recurrence_count DESC, fact_text
         """, list(ANCHOR_PREDICATES)).fetchall()
         source_label = "predicate_routed_anchors"
     else:
@@ -620,6 +623,10 @@ LEXICON IDS — Assign each axiom a stable identifier: A1, A2, A3, etc. Use this
   ...
   provenance: [F-1204, F-2891]
 
+FRAMING BIAS GUARD: Default to gravitation framing — express axioms as what this person moves TOWARD ("values X", "seeks X", "gravitates toward X"), not what they reject. Only use rejection framing ("dismisses Y", "rejects Y") when the input facts explicitly use avoidance predicates (avoids, rejects, dismisses). Never infer rejection from preference — "values bootstrapping" does NOT imply "rejects venture capital." This prevents systematic amplification of skepticism into hostility.
+
+IDENTITY ATTENTION: Pay particular attention to identifies_as predicates in the input — these represent how the subject sees themselves, which is foundational by definition. If multiple identifies_as facts converge on a self-concept (e.g., writer, practitioner, builder), that identity warrants its own axiom.
+
 Constraints:
 - No philosophy framework names (Frankfurt, Taylor, Parfit, etc.)
 - No "AI directive:" labels — the whole text IS directive
@@ -741,6 +748,7 @@ False positive warning: [when this pattern might APPEAR active but isn't — to 
 Rules:
 - Patterns must be GENERAL behavioral patterns, not domain-specific ones
 - Detection examples MUST span multiple domains. If a pattern only shows up in one domain, it belongs in a domain-specific brief, not here. Spread detection examples across: professional, personal, relational, intellectual, financial.
+- MULTI-SOURCE GROUNDING: Each prediction must be supported by facts from 2+ source documents. Single-source patterns may appear in detection examples but cannot drive the prediction title or directive. This prevents overgeneralizing a single opinion into a personality trait.
 - Directives must be actionable — tell the AI what to output differently, not what to understand
 - If a pattern is time-bounded, mark it [time-bounded]
 - Open with a framing sentence explaining what these predictions are and how to use them
@@ -802,6 +810,7 @@ False positive warning: [when this pattern might APPEAR active but isn't — to 
 Rules:
 - Patterns should be scenario-specific behavioral sequences, not personality traits
 - Each prediction describes an observable "when X, they do Y" — not a belief or stance
+- MULTI-SOURCE GROUNDING: Each prediction must be supported by facts from 2+ source documents. Single-source patterns may appear in detection examples but cannot drive the prediction title or directive. This prevents overgeneralizing a single opinion into a personality trait.
 - Directives must be actionable — tell the AI what to output differently
 - Where evidence is thin, mark with [THIN DATA] and keep brief
 - Open with a framing sentence explaining what these predictions are
