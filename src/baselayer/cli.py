@@ -949,8 +949,137 @@ def cmd_journal(args):
         print(f"  Run 'baselayer journal' again anytime to add more.\n")
 
 
+def _run_traceability():
+    """Post-compose traceability: tier facts, generate embeddings, build provenance, detect tensions.
+
+    These steps don't change the identity model output — they build the audit trail
+    that makes every claim inspectable. Cost: ~$0.05 per subject (Haiku for tensions).
+    """
+    import sqlite3
+    from baselayer.config import DATABASE_FILE, VECTORS_DIR, PROJECT_ROOT
+
+    if not DATABASE_FILE.exists():
+        print("  No database found, skipping traceability.")
+        return
+
+    conn = sqlite3.connect(str(DATABASE_FILE))
+
+    # 5a: Rule-based tiering (predicate → knowledge_tier)
+    print("  5a. Tiering facts by predicate...")
+    IDENTITY_PREDS = (
+        'values', 'believes', 'fears', 'identifies_as', 'aspires_to',
+        'prioritizes', 'avoids', 'practices', 'excels_at', 'struggles_with',
+        'loves', 'hates', 'enjoys', 'dislikes', 'builds', 'founded',
+        'decides', 'decided', 'experienced', 'lost', 'follows', 'monitors',
+        'plays', 'trades', 'maintains', 'prefers',
+    )
+    placeholders = ','.join(f"'{p}'" for p in IDENTITY_PREDS)
+    id_count = conn.execute(f"""
+        UPDATE memory_facts SET knowledge_tier = 'identity'
+        WHERE (knowledge_tier IS NULL OR knowledge_tier = 'untiered')
+        AND predicate IN ({placeholders})
+    """).rowcount
+    ctx_count = conn.execute("""
+        UPDATE memory_facts SET knowledge_tier = 'contextual'
+        WHERE knowledge_tier IS NULL OR knowledge_tier = 'untiered'
+    """).rowcount
+    conn.commit()
+    print(f"      {id_count} → identity, {ctx_count} → contextual")
+
+    # 5b: Embed facts into ChromaDB (if not already done)
+    print("  5b. Checking embeddings...")
+    try:
+        import chromadb
+        client = chromadb.PersistentClient(path=str(VECTORS_DIR))
+        try:
+            collection = client.get_collection("memory_facts")
+            db_count = conn.execute("SELECT COUNT(*) FROM memory_facts").fetchone()[0]
+            vec_count = collection.count()
+            if vec_count >= db_count * 0.9:
+                print(f"      {vec_count}/{db_count} facts already embedded. Skipping.")
+            else:
+                print(f"      {vec_count}/{db_count} embedded. Running embed...")
+                conn.close()
+                cmd_embed(type('', (), {'batch_size': 64})())
+                conn = sqlite3.connect(str(DATABASE_FILE))
+        except Exception:
+            print(f"      No collection found. Running embed...")
+            conn.close()
+            cmd_embed(type('', (), {'batch_size': 64})())
+            conn = sqlite3.connect(str(DATABASE_FILE))
+    except ImportError:
+        print("      chromadb not installed, skipping embeddings.")
+
+    # 5c: Vector provenance (embedding similarity traces for each layer claim)
+    print("  5c. Generating vector provenance...")
+    try:
+        from sentence_transformers import SentenceTransformer
+        from baselayer.config import EMBEDDING_MODEL
+        import baselayer.api_client as ac
+        if ac._embedding_model is None:
+            ac._embedding_model = SentenceTransformer(EMBEDDING_MODEL)
+
+        from baselayer.verify_provenance import generate_vector_provenance, _reset_chroma_cache
+        _reset_chroma_cache()
+
+        total_links = 0
+        for layer in ["ANCHORS", "CORE", "PREDICTIONS"]:
+            results = generate_vector_provenance(layer)
+            links = sum(len(r.get("fact_ids", [])) for r in results)
+            total_links += links
+            print(f"      {layer}: {len(results)} claims, {links} fact links")
+        print(f"      Total: {total_links} provenance links")
+    except ImportError as e:
+        print(f"      sentence_transformers not available: {e}")
+    except Exception as e:
+        print(f"      Provenance error: {e}")
+
+    # 5d: Tension detection (embedding pairs + Haiku classification)
+    print("  5d. Detecting tensions...")
+    try:
+        import sys as _sys
+        import baselayer.config as _cfg
+        _sys.modules['config'] = _cfg
+        import baselayer.api_client as _ac
+        _sys.modules['api_client'] = _ac
+
+        _archive = str(Path(__file__).parent / "archive" / "utilities")
+        if _archive not in _sys.path:
+            _sys.path.insert(0, _archive)
+
+        import detect_contradictions as dc
+        from baselayer.config import get_db
+        import contextlib
+
+        with contextlib.closing(get_db()) as tconn:
+            facts = dc.load_facts(tconn)
+            if len(facts) >= 2:
+                embeddings = dc.embed_facts(facts)
+                candidates = dc.find_candidate_pairs(facts, embeddings, threshold=0.45)
+                max_pairs = min(len(candidates), 30)
+                tensions_found = 0
+                for pair in candidates[:max_pairs]:
+                    fa, fb = pair["fact_a"], pair["fact_b"]
+                    result = dc.classify_pair_haiku(
+                        fa["fact_text"], fb["fact_text"],
+                        fa.get("predicate", "unknown"), fb.get("predicate", "unknown")
+                    )
+                    if result.get("verdict") in ("CONTRADICTION", "TENSION"):
+                        tensions_found += 1
+                print(f"      {tensions_found} tensions found from {max_pairs} candidates")
+            else:
+                print(f"      Too few facts ({len(facts)}) for tension detection")
+    except ImportError as e:
+        print(f"      Tension detection unavailable: {e}")
+    except Exception as e:
+        print(f"      Tension error: {e}")
+
+    conn.close()
+    print("  Traceability complete.\n")
+
+
 def cmd_run(args):
-    """One-command pipeline: import → extract → author → compose (4 steps)."""
+    """One-command pipeline: import → extract → author → compose + traceability (5 steps)."""
     from baselayer.config import DATABASE_FILE
 
     file_path = args.file
@@ -1016,6 +1145,12 @@ def cmd_run(args):
     args.no_citations = False
     args.compose = True
     cmd_author(args)
+
+    # Step 5: Traceability (tier + embed + provenance + tensions)
+    print(f"\n{'='*60}")
+    print(f"  Step 5/5: Building traceability infrastructure")
+    print(f"{'='*60}\n")
+    _run_traceability()
 
     # Done — show result
     from baselayer.config import PROJECT_ROOT

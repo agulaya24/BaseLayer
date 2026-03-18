@@ -83,15 +83,22 @@ def apply_exclusion_filter(facts):
 
 
 def _has_tiered_facts(conn):
-    """Check if any facts have been classified/tiered (non-simplified pipeline).
+    """Check if facts have FULL classification (tier + commitment_depth + scope).
 
-    Returns True if the pipeline ran classification + tiering steps.
-    Returns False if we're in simplified mode (extract only, no tiering).
+    Returns True only if the full classification pipeline ran (tier + depth + scope).
+    Returns False if we're in simplified mode — even if rule-based tiering was applied,
+    the simplified path should be used when commitment_depth is not populated.
     """
     try:
-        row = conn.execute(
-            "SELECT COUNT(*) FROM memory_facts WHERE superseded_by IS NULL AND knowledge_tier = 'identity'"
-        ).fetchone()
+        # Need BOTH identity tier AND conviction depth to use the non-simplified path
+        row = conn.execute("""
+            SELECT COUNT(*) FROM memory_facts
+            WHERE superseded_by IS NULL
+              AND knowledge_tier = 'identity'
+              AND commitment_depth IS NOT NULL
+              AND commitment_depth != 'unclassified'
+              AND scope IS NOT NULL
+        """).fetchone()
         return row[0] > 0
     except sqlite3.OperationalError:
         return False
