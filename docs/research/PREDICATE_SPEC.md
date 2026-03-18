@@ -2,7 +2,7 @@
 
 **The Behavioral Grammar of Identity**
 
-A formal specification of the 47 constrained predicates used by Base Layer to extract, normalize, and structure human behavioral facts from conversation and document corpora.
+A formal specification of the 46 constrained predicates used by Base Layer to extract, normalize, and structure human behavioral facts from conversation and document corpora.
 
 ---
 
@@ -38,7 +38,7 @@ Rather than rejecting LLM outputs that don't match exactly, a normalization laye
 
 ---
 
-## The 47 Predicates
+## The 46 Predicates
 
 ### Category 1: Values, Preferences & Priorities (4 predicates)
 
@@ -60,13 +60,12 @@ Rather than rejecting LLM outputs that don't match exactly, a normalization laye
 | `dislikes` | This person finds X unpleasant | "dislikes meetings without agendas" | Moderate intensity negative affect. |
 | `hates` | This person has intense aversion to X | "hates performative intellectualism" | Distinct from `dislikes` — same intensity rationale as `loves`/`enjoys`. Added Session 49. |
 
-### Category 3: Activities & Practices (4 predicates)
+### Category 3: Activities & Practices (3 predicates)
 
 | Predicate | Epistemic Claim | Example | Why It Exists |
 |:---|:---|:---|:---|
 | `practices` | This person regularly engages in X | "practices daily journaling" | Habitual behavior — identity through action, not declaration. |
 | `plays` | This person engages in X (games, sports, instruments) | "plays chess competitively" | Added Session 52. `practices` was too formal for recreational activities. |
-| `trades` | This person actively trades X | "trades options on momentum setups" | Domain-specific predicate. Trading is a distinct behavioral category — part skill, part practice, part identity. |
 | `monitors` | This person actively observes/tracks X | "monitors Federal Reserve policy changes" | Added Session 52. Distinct from `follows` (passive interest) — monitoring implies active attention and decision-readiness. |
 
 ### Category 4: Learning & Growth (3 predicates)
@@ -293,6 +292,7 @@ The current test — a predicate must appear 10+ times across 5,000 facts to ear
 | v0.2 | S49 | 37 | +6 epistemic precision predicates (Collective-approved) |
 | v0.3 | S52 | 39 | +2 predicate audit additions (plays, monitors) |
 | v1.0 | S55 | 47 | +8 relationship predicates (Plan 1) |
+| v1.1 | S93 | 46 | -1: removed `trades` (domain-specific to financial trading, not universal). Collective review. |
 
 ---
 

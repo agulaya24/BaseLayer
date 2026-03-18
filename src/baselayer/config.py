@@ -548,7 +548,7 @@ VALID_COMMITMENT_DEPTHS = {"factual", "preference", "position", "conviction", "u
 CONSTRAINED_PREDICATES = [
     "owns", "values", "practices", "studies", "prefers", "avoids",
     "works_at", "lives_in", "married_to", "raised_in", "graduated_from",
-    "manages", "builds", "trades", "believes", "fears", "enjoys",
+    "manages", "builds", "believes", "fears", "enjoys",
     "dislikes", "struggles_with", "excels_at", "identifies_as",
     "maintains", "follows", "aspires_to", "lost", "founded",
     "parents", "experienced", "learned", "decided", "prioritizes",
