@@ -396,6 +396,97 @@ def build_traces_for_item(item_id: str, db_path: Path, conv_titles: dict) -> tup
 # Build enriched payload
 # ---------------------------------------------------------------------------
 
+def compute_radar_profile(name: str, db_path: Path, anchors: list, core: list, predictions: list, facts: list) -> dict:
+    """Auto-generate radar profile from fact distribution and layer structure.
+
+    8 axes scored 0-1:
+    - conviction: ratio of high-commitment predicates (believes, values, fears, identifies_as)
+    - consistency: how concentrated the predicate distribution is (low entropy = high consistency)
+    - breadth: number of unique predicates / 46 (max possible)
+    - stability: ratio of identity-tier facts
+    - awareness: ratio of self-reflective predicates (struggles_with, fears, identifies_as)
+    - relational: ratio of relationship predicates
+    - temporal: based on source diversity (conversations/documents)
+    - predictability: predictions layer size relative to anchors+core
+    """
+    import math
+
+    total = len(facts) if facts else 1
+
+    # Count predicates
+    pred_counts = {}
+    tier_counts = {"identity": 0, "contextual": 0, "untiered": 0}
+    for f in facts:
+        p = f.get("predicate") or "unknown"
+        pred_counts[p] = pred_counts.get(p, 0) + 1
+        t = f.get("knowledge_tier") or "untiered"
+        tier_counts[t] = tier_counts.get(t, 0) + 1
+
+    # 1. Conviction: ratio of conviction-level predicates
+    conviction_preds = {"believes", "values", "fears", "identifies_as", "prioritizes"}
+    conviction_count = sum(pred_counts.get(p, 0) for p in conviction_preds)
+    conviction = min(1.0, conviction_count / max(total * 0.3, 1))  # normalize: 30%+ = 1.0
+
+    # 2. Consistency: inverse entropy of predicate distribution
+    if pred_counts:
+        probs = [c / total for c in pred_counts.values()]
+        entropy = -sum(p * math.log2(p) for p in probs if p > 0)
+        max_entropy = math.log2(len(pred_counts)) if len(pred_counts) > 1 else 1
+        consistency = 1.0 - (entropy / max(max_entropy, 1))
+    else:
+        consistency = 0.5
+
+    # 3. Breadth: unique predicates / 46
+    breadth = min(1.0, len(pred_counts) / 46)
+
+    # 4. Stability: identity-tier ratio
+    identity_count = tier_counts.get("identity", 0)
+    stability = min(1.0, identity_count / max(total * 0.7, 1))  # 70%+ identity = 1.0
+
+    # 5. Awareness: self-reflective predicates
+    awareness_preds = {"struggles_with", "fears", "identifies_as", "experienced", "lost", "decided"}
+    awareness_count = sum(pred_counts.get(p, 0) for p in awareness_preds)
+    awareness = min(1.0, awareness_count / max(total * 0.15, 1))  # 15%+ = 1.0
+
+    # 6. Relational: relationship predicates
+    relational_preds = {"collaborates_with", "mentored_by", "friends_with", "relates_to", "admires", "conflicts_with", "reports_to", "raised_by", "parents"}
+    relational_count = sum(pred_counts.get(p, 0) for p in relational_preds)
+    relational = min(1.0, relational_count / max(total * 0.1, 1))  # 10%+ = 1.0
+
+    # 7. Temporal: source diversity (number of unique sources)
+    sources = set()
+    for f in facts:
+        s = f.get("source") or f.get("sourceChapter") or ""
+        if s:
+            sources.add(s)
+    temporal = min(1.0, len(sources) / 30)  # 30+ sources = 1.0
+
+    # 8. Predictability: prediction coverage relative to total layer items
+    total_items = len(anchors) + len(core) + len(predictions)
+    predictability = min(1.0, len(predictions) / max(total_items * 0.35, 1))  # 35%+ predictions = 1.0
+
+    # Round all values
+    slug = name.lower().replace(" ", "-").replace("(", "").replace(")", "")
+    color = "#38bdf8"  # accent blue
+
+    return {
+        "id": slug,
+        "label": name,
+        "axes": [
+            {"key": "conviction", "label": "Conviction Strength", "value": round(conviction, 2)},
+            {"key": "consistency", "label": "Behavioral Consistency", "value": round(consistency, 2)},
+            {"key": "breadth", "label": "Domain Breadth", "value": round(breadth, 2)},
+            {"key": "stability", "label": "Identity Stability", "value": round(stability, 2)},
+            {"key": "awareness", "label": "Self-Awareness", "value": round(awareness, 2)},
+            {"key": "relational", "label": "Relational Depth", "value": round(relational, 2)},
+            {"key": "temporal", "label": "Temporal Span", "value": round(temporal, 2)},
+            {"key": "predictability", "label": "Predictability", "value": round(predictability, 2)},
+        ],
+        "color": color,
+        "fillColor": color,
+    }
+
+
 def build_payload(subject_dir: Path, name: str, slug: str, password: str, source_desc: str, token: Optional[str] = None) -> dict:
     layers_dir = subject_dir / "data" / "identity_layers"
     db_path = subject_dir / "data" / "database" / "memory.db"
@@ -483,6 +574,9 @@ def build_payload(subject_dir: Path, name: str, slug: str, password: str, source
         chapters = 0
     conn.close()
 
+    # Generate radar profile from fact distribution
+    radar = compute_radar_profile(name, db_path, anchors, core, predictions, facts)
+
     # Load tensions if available
     tensions_file = Path(__file__).parent.parent.parent / "tensions_all.json"
     contradictions = []
@@ -508,6 +602,7 @@ def build_payload(subject_dir: Path, name: str, slug: str, password: str, source
         "interactions": interactions,
         "contradictions": contradictions,
         "stats": pred_dist,
+        "radar": radar,
     }
 
     if token:
