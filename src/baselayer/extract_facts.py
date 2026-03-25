@@ -1345,7 +1345,17 @@ def extract_facts_from_conversation(conv_id: str, conv_title: str, messages: lis
                 )
                 all_facts.extend(validated)
 
-        # Apply overall max_facts cap to combined results
+        # S97: Coverage report — detect underextraction before truncating
+        if len(all_facts) > max_facts:
+            discarded = len(all_facts) - max_facts
+            pct = discarded / len(all_facts) * 100
+            print(f"\n  COVERAGE WARNING: {len(all_facts)} facts extracted, cap is {max_facts}.")
+            print(f"  {discarded} facts ({pct:.0f}%) will be discarded.")
+            print(f"  Consider raising max_facts_ceiling or splitting into chapters.\n")
+
+        # Apply overall max_facts cap — sort by confidence to keep best, not first
+        if len(all_facts) > max_facts:
+            all_facts.sort(key=lambda f: f.get("confidence", 0.5), reverse=True)
         return all_facts[:max_facts]
 
     # Standard single-pass path (short conversations, no change)
