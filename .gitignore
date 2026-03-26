@@ -216,3 +216,5 @@ data/*_archive*
 
 # All subject environments
 subjects/
+tensions_all.json
+docs/eval/**/temporal_stability_aarik/
