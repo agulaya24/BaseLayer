@@ -42,6 +42,7 @@ from baselayer.extract_facts import (
     EXTRACT_SCHEMA, EXTRACT_SCHEMA_FALLBACK,
     build_extraction_prompt,
     build_identity_extraction_prompt,
+    build_document_extraction_prompt,
     _abstract_project_conversation,
     validate_structured_response,
     store_fact,
@@ -114,10 +115,16 @@ def _get_conversation_messages(conn, conv_id):
 # Phase 1: SUBMIT
 # ---------------------------------------------------------------------------
 
-def run_submit():
-    """Build prompts for all conversations and submit as a batch."""
+def run_submit(document_mode=False, skip_extracted=False):
+    """Build prompts for all conversations and submit as a batch.
+
+    Args:
+        document_mode: Use document extraction prompt (for subject corpora).
+        skip_extracted: Only process conversations not yet in extraction_log.
+    """
+    mode_label = "Document Corpus" if document_mode else "Re-extraction"
     print("=" * 70)
-    print("Batch Re-extraction — SUBMIT Phase")
+    print(f"Batch {mode_label} — SUBMIT Phase")
     print("=" * 70)
 
     # Check for existing batch
@@ -138,15 +145,24 @@ def run_submit():
     print("\nLoading conversations from database...")
 
     with contextlib.closing(get_db()) as conn:
-        # Get ALL conversations (re-extracting everything)
-        rows = conn.execute("""
-            SELECT id, title, message_count, source
-            FROM conversations
-            WHERE message_count >= ?
-            ORDER BY created_at
-        """, (MIN_MESSAGES_FOR_EXTRACTION,)).fetchall()
-
-        print(f"  Found {len(rows)} conversations with >= {MIN_MESSAGES_FOR_EXTRACTION} messages")
+        # Get conversations — optionally skip already-extracted ones
+        if skip_extracted:
+            rows = conn.execute("""
+                SELECT c.id, c.title, c.message_count, c.source
+                FROM conversations c
+                LEFT JOIN extraction_log e ON c.id = e.conversation_id
+                WHERE c.message_count >= ? AND e.conversation_id IS NULL
+                ORDER BY c.created_at
+            """, (MIN_MESSAGES_FOR_EXTRACTION,)).fetchall()
+            print(f"  Found {len(rows)} unextracted conversations")
+        else:
+            rows = conn.execute("""
+                SELECT id, title, message_count, source
+                FROM conversations
+                WHERE message_count >= ?
+                ORDER BY created_at
+            """, (MIN_MESSAGES_FOR_EXTRACTION,)).fetchall()
+            print(f"  Found {len(rows)} conversations with >= {MIN_MESSAGES_FOR_EXTRACTION} messages")
 
         # Build batch requests
         requests = []
@@ -162,8 +178,11 @@ def run_submit():
                 skipped += 1
                 continue
 
-            # Build prompt based on source type (D-048)
-            if source == "claude_code":
+            # Build prompt based on mode and source type
+            if document_mode:
+                conv_text = _build_conv_text(messages)
+                prompt = build_document_extraction_prompt(conv_title, conv_text)
+            elif source == "claude_code":
                 conv_text = _abstract_project_conversation(messages)
                 if len(conv_text.strip()) < 100:
                     skipped += 1

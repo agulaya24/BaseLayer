@@ -250,6 +250,40 @@ def init_database(db_path=None):
         );
         """)
 
+        # S98 Phase 8: Schema versioning
+        conn.executescript("""
+        CREATE TABLE IF NOT EXISTS schema_version (
+            version INTEGER PRIMARY KEY,
+            description TEXT,
+            applied_at TEXT
+        );
+        """)
+
+        # S98 Phase 3B: Subject registry — central tracking for all subjects
+        conn.executescript("""
+        CREATE TABLE IF NOT EXISTS subjects (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL UNIQUE,
+            slug TEXT UNIQUE,
+            category TEXT,
+            email TEXT,
+            status TEXT NOT NULL DEFAULT 'not_scraped',
+            wave INTEGER,
+            tier INTEGER,
+            version TEXT DEFAULT 'V1',
+            document_mode BOOLEAN DEFAULT 1,
+            environment_dir TEXT,
+            source_dir TEXT,
+            source_description TEXT,
+            source_fingerprint TEXT,
+            fact_count INTEGER DEFAULT 0,
+            sent BOOLEAN DEFAULT 0,
+            sent_date TEXT,
+            created_at TEXT,
+            updated_at TEXT
+        );
+        """)
+
         # FTS5 full-text search on fact_text (Session 57 — C11)
         # Enables fast keyword search via MATCH instead of LIKE '%query%'
         # content= syncs with memory_facts; triggers keep index up to date.

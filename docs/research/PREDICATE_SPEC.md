@@ -8,13 +8,13 @@ A formal specification of the 46 constrained predicates used by Base Layer to ex
 
 ## Why Predicates?
 
-Before predicates, Base Layer extracted facts as free-text sentences. The result: 57% of 4,106 extracted facts started with "The user is..." — 580 used "interested in," 286 used "considering," 208 used "concerned about." These are LLM extraction artifacts, not identity signal. They waste tokens, inflate stop words, and make downstream scoring unreliable.
+Before predicates, Base Layer extracted facts as free-text sentences. The result: 57% of 4,106 extracted facts started with "The user is...". 580 used "interested in," 286 used "considering," 208 used "concerned about." These are LLM extraction artifacts, not identity signal. They waste tokens, inflate stop words, and make downstream scoring unreliable.
 
-The root cause was a misalignment between extraction and scoring. The extraction prompt produced unconstrained natural language. The scoring system tried to extract signal via keyword co-occurrence. When facts are full of generic words, recurrence counts inflate because generic words match everything. This was the direct cause of a critical scoring bug in Session 46 (coffee: 677→21 after fix, works out: 743→0).
+The root cause was a misalignment between extraction and scoring. The extraction prompt produced unconstrained natural language. The scoring system tried to extract signal via keyword co-occurrence. When facts are full of generic words, recurrence counts inflate because generic words match everything. This was the direct cause of a critical scoring bug in Session 46 (coffee: 677 to 21 after fix, works out: 743 to 0).
 
 The solution: a constrained predicate vocabulary that forces the extraction model to classify every fact into a structured triple — `{subject, predicate, object}` — with a qualifier stored separately. The predicate is the verb that defines the *relationship* between a person and a piece of knowledge about them.
 
-This is not a knowledge graph in the traditional sense. It is a **behavioral grammar** — a finite vocabulary of verbs that, taken together, can describe how any human thinks, acts, values, fears, builds, and relates.
+This is not a knowledge graph in the traditional sense. It is a **behavioral grammar**, a finite vocabulary of verbs that, taken together, can describe how any human thinks, acts, values, fears, builds, and relates.
 
 ---
 
@@ -26,11 +26,11 @@ Every predicate must carry a distinct epistemic claim. "Attended" is not aliased
 
 ### 2. Behavioral Over Biographical
 
-The predicates that matter most for identity compression are behavioral: `values`, `avoids`, `fears`, `believes`, `prioritizes`, `practices`. Biographical predicates (`works_at`, `lives_in`, `graduated_from`) provide context but are rarely predictive. In Base Layer's Twin-2K benchmark (N=100, 71.83% accuracy), avoidance and experiential predicates were the most discriminating features. This informed the vocabulary's bias toward behavioral coverage.
+The predicates that matter most for identity compression are behavioral (`values`, `avoids`, `fears`, `believes`, `prioritizes`, `practices`). Biographical predicates (`works_at`, `lives_in`, `graduated_from`) provide context but are rarely predictive. In Base Layer's Twin-2K benchmark (N=100, 71.83% accuracy), avoidance and experiential predicates were the most discriminating features. This informed the vocabulary's bias toward behavioral coverage.
 
 ### 3. Constrained but Not Closed
 
-The vocabulary is constrained — the extraction model is instructed to use only these predicates — but not closed. An `unknown` predicate serves as a filterable fallback when the model produces something unmapped. Unmapped predicates are logged for vocabulary expansion review. The constraint prevents LLM hallucination artifacts; the fallback prevents information loss.
+The vocabulary is constrained (the extraction model is instructed to use only these predicates) but not closed. An `unknown` predicate serves as a filterable fallback when the model produces something unmapped. Unmapped predicates are logged for vocabulary expansion review. The constraint prevents LLM hallucination artifacts; the fallback prevents information loss.
 
 ### 4. Normalization Over Rejection
 
@@ -169,7 +169,7 @@ Analysis of 4,106 extracted facts revealed that unconstrained LLM extraction pro
 
 ### Session 48 — The First 31
 
-Four extraction prompt variants (A/B/C/D) were tested on 16 conversations. Variant D — structured predicates + subject stripping + temporal precision + few-shot examples + density directive — won the Collective review (combined 85/100). The initial vocabulary was 31 predicates covering ownership, values, activities, biography, skills, emotions, and decisions.
+Four extraction prompt variants (A/B/C/D) were tested on 16 conversations. Variant D (structured predicates + subject stripping + temporal precision + few-shot examples + density directive) won the Collective review (combined 85/100). The initial vocabulary was 31 predicates covering ownership, values, activities, biography, skills, emotions, and decisions.
 
 **Research basis:** Surveyed Mem0 (subject stripping, AUDN dedup), Zep (graph-based entity/edge normalization), Letta (self-editing memory), KGGen (NeurIPS 2025 — extract freely then normalize), Wikidata (30 constraint types, statement ranking), ConceptNet (34 fixed relations, lemmatization). Key insight: AI memory systems handle quality structurally; knowledge graphs enforce quality at the schema level. Base Layer needed KG-style normalization applied to its natural language fact store.
 
@@ -184,7 +184,7 @@ The Collective reviewed the initial vocabulary and flagged six gaps where collap
 - `loves` — intense positive ≠ moderate positive (emotional flattening)
 - `hates` — intense negative ≠ moderate negative (same rationale)
 
-The principle: **if two predicates collapse a distinction that would change downstream identity modeling, they must remain separate.**
+The principle: if two predicates collapse a distinction that would change downstream identity modeling, they must remain separate.
 
 ### Session 52 — The Predicate Audit (+2 = 39)
 
@@ -201,7 +201,7 @@ Analysis showed relationship extraction was 0.8% of all facts — a glaring gap.
 
 ### Why Not More?
 
-The vocabulary could be larger. But every additional predicate increases the cognitive load on the extraction model and the probability of misclassification. The 47 predicates are a **Pareto frontier** — they cover the identity-relevant relationships that appear in real conversation and document corpora without over-specifying. The normalization layer (100+ aliases) absorbs LLM output variance without inflating the canonical vocabulary.
+The vocabulary could be larger. But every additional predicate increases the cognitive load on the extraction model and the probability of misclassification. The 47 predicates are a **Pareto frontier**: they cover the identity-relevant relationships that appear in real conversation and document corpora without over-specifying. The normalization layer (100+ aliases) absorbs LLM output variance without inflating the canonical vocabulary.
 
 The test: if a predicate would be used fewer than 10 times across 5,000+ facts, it doesn't earn a slot. It gets aliased to a broader predicate or left as `unknown` for review.
 

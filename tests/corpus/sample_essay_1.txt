@@ -1,0 +1,8 @@
+The Art of Systems Thinking
+Source: test corpus
+
+When I approach any problem, I first try to understand the system it operates in. Most people jump to solutions before they understand the structure. I've learned that understanding constraints is more valuable than generating options. The best decisions come from seeing the whole board, not from being clever about individual moves.
+
+I practice this daily in my work. Every morning I review what changed in my domain and ask: what does this mean for the system, not just for me? This habit of zooming out before zooming in has saved me from countless tactical mistakes.
+
+My biggest fear is building something that doesn't matter. I'd rather work on hard problems that might fail than easy problems that definitely succeed but change nothing. This is a values choice, not a strategy — I genuinely believe that impact matters more than comfort.

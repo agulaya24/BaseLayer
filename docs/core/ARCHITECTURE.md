@@ -1,16 +1,16 @@
 # System Architecture
-## Base Layer — Behavioral Compression for AI Identity
+## Base Layer: Behavioral Compression for AI Identity
 **Updated 2026-03-10 (Session 87)**
 
 ---
 
 ## The Problem
 
-Every AI agent — coding assistant, research agent, scheduling agent — starts with no understanding of who it's working for. Each interaction resets. The same preferences, constraints, and reasoning patterns have to be re-established from scratch, or inferred incorrectly.
+Every AI agent (coding assistant, research agent, scheduling agent) starts with no understanding of who it's working for. Each interaction resets. The same preferences, constraints, and reasoning patterns have to be re-established from scratch, or inferred incorrectly.
 
 The platforms that do build a user model (ChatGPT Memory, Claude Projects) build it opaquely. You can't inspect the representation, correct it directly, export it, or use it with a different provider.
 
-As agents gain autonomy and take actions on your behalf, a misaligned model compounds. The agent doesn't just give a bad answer — it acts on a wrong assumption. Identity is load-bearing infrastructure in an agentic system, not a UX feature.
+As agents gain autonomy and take actions on your behalf, a misaligned model compounds. The agent doesn't just give a bad answer; it acts on a wrong assumption. Identity is load-bearing infrastructure in an agentic system, not a UX feature.
 
 Larger context windows don't solve this. Raw conversation history is retrieval, not understanding. The agent still has no model of how you reason or what you prioritize.
 
@@ -18,34 +18,34 @@ Larger context windows don't solve this. Raw conversation history is retrieval, 
 
 Compress conversation history into a **structured, auditable behavioral model**: how you reason, what you prioritize, how you communicate, where you draw lines.
 
-The output — a unified brief — is portable. Any LLM loads the same representation before every interaction. The representation is locally owned, provenance-traced to source conversations, and provider-agnostic.
+The output, a unified brief, is portable. Any LLM loads the same representation before every interaction. The representation is locally owned, provenance-traced to source conversations, and provider-agnostic.
 
 This is the identity layer of the agentic stack. Base Layer builds it.
 
-**North star:** Every agentic workflow is hollow without a reliable model of who the human is. That model should be owned by the human — inspectable, correctable, portable across any system.
+**North star:** Every agentic workflow is hollow without a reliable model of who the human is. That model should be owned by the human: inspectable, correctable, portable across any system.
 
 ## Design Philosophy
 
-**Compression-first, not storage-first.** The architecture compresses raw text into behavioral understanding:
+**Compression-first, not storage-first.** The architecture compresses raw text into behavioral understanding.
 
-> *Note: The original design drew heavily from brain-inspired memory metaphors (hippocampus/neocortex, sleep consolidation, surprise-driven encoding). Session 79 pipeline ablation study (14 conditions, [results](../eval/ablation/)) proved that the intermediate processing steps inspired by these metaphors — scoring, classification, tiering, contradiction detection — were ceremonial. What remains load-bearing is the compression itself: raw text → structured facts → three-layer identity → unified brief. The brain metaphors were useful scaffolding for building the system but the system outgrew them.*
+> *Note: The original design drew heavily from brain-inspired memory metaphors (hippocampus/neocortex, sleep consolidation, surprise-driven encoding). Session 79 pipeline ablation study (14 conditions, [results](../eval/ablation/)) proved that the intermediate processing steps inspired by these metaphors (scoring, classification, tiering, contradiction detection) were ceremonial. What remains load-bearing is the compression itself: raw text to structured facts to three-layer identity to unified brief. The brain metaphors were useful scaffolding for building the system but the system outgrew them.*
 
-- ~~**Hippocampus** (fast, episodic) --> recent conversations, specific memories~~
-- **Neocortex** (slow, consolidated) --> stable identity, learned patterns
-- **Sleep consolidation** (periodic compression) --> episodes compress into patterns over time
-- **Surprise-driven encoding** --> novel information gets prioritized; routine gets filtered
+- ~~**Hippocampus** (fast, episodic): recent conversations, specific memories~~
+- **Neocortex** (slow, consolidated): stable identity, learned patterns
+- **Sleep consolidation** (periodic compression): episodes compress into patterns over time
+- **Surprise-driven encoding**: novel information gets prioritized; routine gets filtered
 
 **Core principles:**
 
-1. **Local-first.** All data stays on your machine. Extraction uses Anthropic Haiku API by default; Ollama/local models available as optional alternative. Only reasoning goes to the cloud (Claude API), and only with an assembled brief (the compressed identity document that teaches an AI how someone thinks and communicates) — never raw data.
+1. **Local-first.** All data stays on your machine. Extraction uses Anthropic Haiku API by default; Ollama/local models available as optional alternative. Only reasoning goes to the cloud (Claude API), and only with an assembled brief (the compressed identity document that teaches an AI how someone thinks and communicates), never raw data.
 
 2. **Surprise-based writes.** Inspired by Google Titans: only store what's novel relative to what you already know. Routine information gets filtered. This keeps the memory system from drowning in noise.
 
-3. **Always-on identity.** A compressed behavioral model is present in every single conversation. Not biography — behavioral predictions. The model understands how you operate, what triggers you, and how to communicate with you effectively. Three-layer architecture (D-043): epistemic axioms + individual overview + behavioral predictions, each authored independently. Stored as injectable markdown, served via MCP at runtime.
+3. **Always-on identity.** A compressed behavioral model is present in every single conversation. Not biography, but behavioral predictions. The model understands how you operate, what triggers you, and how to communicate with you effectively. Three-layer architecture (D-043), with epistemic axioms + individual overview + behavioral predictions, each authored independently. Stored as injectable markdown, served via MCP at runtime.
 
-4. **Inherent incompleteness.** The system will never have a complete or fully accurate picture of the person it models. This operates at two levels. First, *information gaps*: the system only knows what came up in conversation, and even that is filtered through misattribution, intent confusion, and the difference between curiosity and identity. The model is always partial and potentially wrong. Second, and more fundamentally, *experiential depth*: there is an emotional dimension to human life that cannot be captured through conversation at all. What it feels like when your cat is ill, what it means to love your wife, the weight behind a loss or a triumph — these are real and central to who a person is, but no data representation can hold them. The system must operate with knowledge of both constraints. Every layer — confidence scores, correction propagation, active probing, human-in-the-loop review — exists in acknowledgment of this reality. The goal is useful understanding, not total understanding. Confidence is warranted; certainty never is. (See `DESIGN_PRINCIPLES.md` for the full treatment.)
+4. **Inherent incompleteness.** The system will never have a complete or fully accurate picture of the person it models. This operates at two levels. First, *information gaps*: the system only knows what came up in conversation, and even that is filtered through misattribution, intent confusion, and the difference between curiosity and identity. The model is always partial and potentially wrong. Second, and more fundamentally, *experiential depth*: there is an emotional dimension to human life that cannot be captured through conversation at all. What it feels like when your cat is ill, what it means to love your wife, the weight behind a loss or a triumph: these are real and central to who a person is, but no data representation can hold them. The system must operate with knowledge of both constraints. Every layer (confidence scores, correction propagation, active probing, human-in-the-loop review) exists in acknowledgment of this reality. The goal is useful understanding, not total understanding. Confidence is warranted; certainty never is. (See `DESIGN_PRINCIPLES.md` for the full treatment.)
 
-5. **Scoped memory.** Facts are tagged by interaction mode — personal, project, professional (D-044). Personal-scope facts feed identity blocks. Project-scope facts feed project briefs (e.g., CLAUDE.md). Epistemic anchors are validated by cross-scope recurrence. This prevents meta-contamination (project language bleeding into personal identity) and enables multi-user deployments where each user's data is isolated.
+5. **Scoped memory.** Facts are tagged by interaction mode (personal, project, professional; see D-044). Personal-scope facts feed identity blocks. Project-scope facts feed project briefs (e.g., CLAUDE.md). Epistemic anchors are validated by cross-scope recurrence. This prevents meta-contamination (project language bleeding into personal identity) and enables multi-user deployments where each user's data is isolated.
 
 ---
 
@@ -121,7 +121,7 @@ The raw, unmodified record of everything. Never fed directly to an LLM. Serves a
 
 **Sources:** ChatGPT export (1,859 conversations), Claude Code sessions (25+), Claude.ai web export (8+)
 
-**Scripts:** `import_conversations.py` (multi-source incremental import — ChatGPT, Claude Code, Claude web parsers), `query.py` (keyword search), `init_database.py` (initialize clean databases for new users)
+**Scripts:** `import_conversations.py` (multi-source incremental import: ChatGPT, Claude Code, Claude web parsers), `query.py` (keyword search), `init_database.py` (initialize clean databases for new users)
 
 ---
 
@@ -146,7 +146,7 @@ Vector representations of all content, enabling search by meaning rather than ke
 
 ### Layer 3: Memory Control
 
-The mechanical intelligence layer. In the simplified 4-step pipeline, this layer handles fact extraction only (Haiku API with 47 constrained predicates). The original pipeline included scoring, classification, tiering, contradiction detection, and consolidation — all proved ceremonial in ablation testing (Session 79).
+The mechanical intelligence layer. In the simplified 4-step pipeline, this layer handles fact extraction only (Haiku API with 47 constrained predicates). The original pipeline included scoring, classification, tiering, contradiction detection, and consolidation, all proved ceremonial in ablation testing (Session 79).
 
 **Active in simplified pipeline:** Haiku-based structured fact extraction with AUDN lifecycle.
 
@@ -155,7 +155,7 @@ The mechanical intelligence layer. In the simplified 4-step pipeline, this layer
 
 The full Layer 3 handled fact extraction, classification, scoring, embedding, deduplication, consolidation, and AUDN lifecycle decisions. Multiple models served different roles:
 
-- **Haiku (API, default):** Structured fact extraction with constrained predicates (D-056 Tier 2, Variant D). Produces `{subject, predicate, object, qualifier}` triples with 47 constrained predicates (31 original + 6 S49 + 2 S52 + 8 S55 relationship). Also: fact classification — `fact_type` and `commitment_depth`. 91.2% accuracy on type, 93.8% on depth. Batch API mode available (`batch_extract.py`) for 50% cost reduction.
+- **Haiku (API, default):** Structured fact extraction with constrained predicates (D-056 Tier 2, Variant D). Produces `{subject, predicate, object, qualifier}` triples with 47 constrained predicates (31 original + 6 S49 + 2 S52 + 8 S55 relationship). Also handles fact classification (`fact_type` and `commitment_depth`). 91.2% accuracy on type, 93.8% on depth. Batch API mode available (`batch_extract.py`) for 50% cost reduction.
 - **Qwen 2.5 14B (local, via Ollama):** Optional local extraction for users with GPU. No narrative generation (D-030).
 - **Sonnet (API):** Knowledge tier reclassification (~$1 for full corpus), three-layer identity generation with D-041/D-046 encoded prompts. Single-domain corpus detection (`_detect_corpus_type()`) selects appropriate PREDICTIONS prompt.
 - **Opus (session):** Contradiction judgment (when MiniLM similarity surfaces candidate pairs), identity block review (Collective), architecture decisions. All judgment via Claude Code sessions (D-038, $0 incremental under BYOS).
@@ -176,7 +176,7 @@ Each conversation gets a 3-5 sentence summary capturing the essence, key decisio
 
 Not every piece of information deserves to be remembered. Inspired by Google Titans' principle that **events violating expectations are more memorable**, we score novelty at two levels:
 
-**Two axes of scoring** (Decision D-009): Pure novelty misses important things — a subtle shift in your trading philosophy is low-novelty by embedding distance but extremely significant. So we score on two dimensions:
+**Two axes of scoring** (Decision D-009): Pure novelty misses important things: a subtle shift in your trading philosophy is low-novelty by embedding distance but extremely significant. So we score on two dimensions:
 
 1. **Novelty** (embedding distance, fast): is this different from what we already know?
 2. **Significance** (data-driven): does this matter for understanding you long-term?
@@ -200,7 +200,7 @@ Model testing (D-016) proved that **the data matters more than the model**. Feed
 
 **Step 2 -- Apply recurrence floor (deterministic, no LLM needed):**
 
-Not all significance requires depth. Some topics aren't "deep" by any metric — just practical, everyday conversations — but they're so persistent across years that they're clearly part of who you are. Anyone who knows you would mention them. We call these **identity-significant** (vs. **depth-significant**).
+Not all significance requires depth. Some topics aren't "deep" by any metric, just practical, everyday conversations, but they're so persistent across years that they're clearly part of who you are. Anyone who knows you would mention them. We call these **identity-significant** (vs. **depth-significant**).
 
 | Windowed Recurrence | Time Span | Floor Score | Category |
 |------------|-----------|-------------|----------|
@@ -220,12 +220,12 @@ Final significance = max(recurrence_floor, data_computed_score)
 Where data_computed_score = 40% embedding novelty + 35% recurrence signal + 25% depth metrics.
 
 **Two flavors of significance** (key insight from model testing):
-- **Depth-significant:** Topics the user goes deep on — probing questions, many turns, long messages, lots of follow-ups.
+- **Depth-significant:** Topics the user goes deep on, with probing questions, many turns, long messages, lots of follow-ups.
 - **Identity-significant:** Not "deep" by metrics, but so persistently present across years of conversation that it's clearly part of who the user is. High recurrence, spans a long time period, but individual conversations may be practical/shallow.
 
 Both are important. The recurrence floor ensures identity-significant topics don't get under-scored just because the user discusses them practically rather than philosophically.
 
-**Momentum:** If turn N in a conversation is surprising, turns N+1, N+2... get a decaying surprise boost. This preserves context around insights — the same way your brain remembers not just the surprising event, but the moments surrounding it.
+**Momentum:** If turn N in a conversation is surprising, turns N+1, N+2... get a decaying surprise boost. This preserves context around insights, the same way your brain remembers not just the surprising event, but the moments surrounding it.
 
 #### Fact Quality (D-056, Sessions 47-48)
 
@@ -237,7 +237,7 @@ Recurrence scoring depends on keyword extraction from fact text. When facts are 
 
 **Tier 2 (done, Session 48):** Replaced free-text extraction with structured `{subject, predicate, object, qualifier}` format (Variant D). 31 constrained predicates at launch (now 47 after S49, S52, S55 additions) enforce keyword-rich output. Eval harness tested 4 variants on 16 conversations — Variant D scored 85/100 in Collective review, won 3/4 Opus personas. New DB columns (`predicate`, `object_text`, `qualifier`) store structured fields; `fact_text` reconstructed as `"{subject} {predicate} {object}"` for downstream compatibility. Full re-extraction completed via Batch API (S51).
 
-**Tier 3 (next):** Quality gate between extraction and storage — reject hedging, low lexical density (<0.45), LLM artifacts.
+**Tier 3 (next):** Quality gate between extraction and storage. Reject hedging, low lexical density (<0.45), LLM artifacts.
 
 **Tier 4 (planned):** Batch normalize any remaining free-text facts. Entity clustering.
 
@@ -264,7 +264,7 @@ Every conversation gets processed through a fact extraction pipeline. For each c
 
 **Deduplication:** Vector similarity search finds the top-10 most similar existing facts. The extraction model then decides if the candidate is truly new, a refinement, or redundant.
 
-**Validation guardrails** (Decision D-010): Ollama supports **schema-enforced JSON output** — you pass a JSON schema to the API and it forces the model to conform at the token level. This eliminates most JSON parsing failures at the source. Remaining guardrails:
+**Validation guardrails** (Decision D-010): Ollama supports **schema-enforced JSON output**: you pass a JSON schema to the API and it forces the model to conform at the token level. This eliminates most JSON parsing failures at the source. Remaining guardrails:
 - Ollama `format` parameter with JSON schema for all structured outputs
 - Fallback: up to 2 retries with a simpler prompt if schema enforcement fails
 - Low-confidence facts stored at lower confidence (not discarded)
@@ -390,31 +390,31 @@ CREATE VIRTUAL TABLE memory_facts_fts USING fts5(
 **Distribution (4,610 active facts, post-S52 consolidation):** knowledge_tier: identity 2,684, situational 1,022, context 904. fact_class: 4,456 classified (94.1%), 278 biography facts pending Opus classification.
 
 **Multi-user validation (S53-54):**
-- **User A:** 1,892 conversations → 4,610 active facts → layers at 78.5/100 (Collective — a multi-agent adversarial review process, since proven ceremonial and removed from the default pipeline)
+- **User A:** 1,892 conversations → 4,610 active facts → layers at 78.5/100 (Collective, a multi-agent adversarial review process, since proven ceremonial and removed from the default pipeline)
 - **User B:** 36 newsletter posts → 309 active facts → layers at 77.7/100 (Collective)
 - **User C:** 9 journal entries → 76 active facts → layers at 81.7/100 (Collective)
 
-**Fact relationships** (Decision D-013): When multiple facts are extracted from the same conversation, they get linked (10,581 co-occurrence edges). When retrieving facts, those that share links with already-retrieved facts get a boost. This approximates human associative memory — remembering one thing triggers related memories.
+**Fact relationships** (Decision D-013): When multiple facts are extracted from the same conversation, they get linked (10,581 co-occurrence edges). When retrieving facts, those that share links with already-retrieved facts get a boost. This approximates human associative memory: remembering one thing triggers related memories.
 
 #### 3D. Enrichment Consolidation
 
 Over time, the AUDN pipeline creates chains of enrichment: fact A updated to B, B updated to C. The enrichment consolidation pass (Session 32) identifies these clusters and selects canonical representatives:
 
-1. **Union-find clustering:** Build a graph of all supersession chains. Use union-find to identify connected components — groups of facts that are all versions of the same underlying knowledge.
+1. **Union-find clustering:** Build a graph of all supersession chains. Use union-find to identify connected components, groups of facts that are all versions of the same underlying knowledge.
 2. **Canonical selection:** Within each cluster, pick the most recent active fact as the canonical representative. Mark all others as superseded.
 3. **Mega-cluster reduction:** Clusters above a configurable size threshold (default 15) are skipped to avoid collapsing genuinely distinct facts that happen to share transitive enrichment chains.
 
-**Result:** 604 facts consolidated. Superseded facts are never deleted — they remain in the database with `superseded_by` pointers for full provenance tracking.
+**Result:** 604 facts consolidated. Superseded facts are never deleted; they remain in the database with `superseded_by` pointers for full provenance tracking.
 
 **Script:** `consolidate_enrichments.py`
 
 #### 3D-2. Provenance and Verification (S56-S57)
 
-Every claim in an identity layer traces back to source facts. Provenance is captured at authoring time (not post-mortem) — fact IDs (`[F-xxx]`) are embedded in generation prompts, and `parse_provenance_from_layer()` extracts the citations from generated markdown. The `layer_claim_provenance` table stores these links.
+Every claim in an identity layer traces back to source facts. Provenance is captured at authoring time (not post-mortem): fact IDs (`[F-xxx]`) are embedded in generation prompts, and `parse_provenance_from_layer()` extracts the citations from generated markdown. The `layer_claim_provenance` table stores these links.
 
 **Verification** operates in two modes:
-- **Vector audit** — embeds each claim, computes cosine similarity against all facts, reports which claims have weak fact support
-- **Claim verification** — generates binary yes/no questions per claim (existence, recurrence, cross-domain validation, temporal consistency), executable against the live database
+- **Vector audit:** embeds each claim, computes cosine similarity against all facts, reports which claims have weak fact support
+- **Claim verification:** generates binary yes/no questions per claim (existence, recurrence, cross-domain validation, temporal consistency), executable against the live database
 
 **Access points:**
 - `baselayer provenance` CLI command (summary + `--claim ID` trace)
@@ -425,7 +425,7 @@ Every claim in an identity layer traces back to source facts. Provenance is capt
 
 #### 3E. Active Probing (Therapist/Biographer-Inspired)
 
-Most memory systems are passive — they only learn when you happen to mention something. Active Probing turns the memory system from a passive listener into an active interviewer. Instead of waiting for you to volunteer information, the system analyzes what it knows, identifies what's missing or uncertain, and generates targeted questions.
+Most memory systems are passive: they only learn when you happen to mention something. Active Probing turns the memory system from a passive listener into an active interviewer. Instead of waiting for you to volunteer information, the system analyzes what it knows, identifies what's missing or uncertain, and generates targeted questions.
 
 **Gap types detected:**
 
@@ -441,10 +441,10 @@ Most memory systems are passive — they only learn when you happen to mention s
 | **Missing negatives** | Only positive traits captured | "I have a lot about your strengths. What are your biggest growth areas?" |
 
 **Modes of probing:**
-1. **Opportunistic (preferred)** — organic questions woven into natural conversation. The best personal data comes unprompted during corrections, not from directed questions.
-2. **Topical** — when a topic comes up that has known gaps, ask ONE related question
-3. **Periodic calibration** — optional, user-initiated review sessions (not forced)
-4. **Contradiction triggered** — immediately when the system detects conflicting information
+1. **Opportunistic (preferred):** organic questions woven into natural conversation. The best personal data comes unprompted during corrections, not from directed questions.
+2. **Topical:** when a topic comes up that has known gaps, ask ONE related question
+3. **Periodic calibration:** optional, user-initiated review sessions (not forced)
+4. **Contradiction triggered:** immediately when the system detects conflicting information
 
 **Script:** `generate_probes.py` (designed but deferred)
 
@@ -454,7 +454,7 @@ Like the brain's sleep consolidation process, the system periodically:
 1. Re-scores all facts by surprise (things that were novel may now be well-covered)
 2. Merges redundant facts via enrichment consolidation
 3. Promotes high-confidence patterns into identity tier
-4. Adjusts confidence scores based on contradiction detection — facts are never deleted, only superseded or confidence-reduced when contradicted by newer evidence
+4. Adjusts confidence scores based on contradiction detection. Facts are never deleted, only superseded or confidence-reduced when contradicted by newer evidence
 
 ---
 
@@ -462,7 +462,7 @@ Like the brain's sleep consolidation process, the system periodically:
 
 ### Layer 4: Context Projection (IMPLEMENTED -- D-026, D-043)
 
-The assembly layer. Transforms raw memory into a compressed, structured brief injected into the reasoning model's system prompt. The three-layer identity block is authored independently and stored as markdown files; dynamic context (themes, episodes) is assembled per-message by code. Total brief: ~5,000 tokens. No LLM in the critical path for brief assembly — all code-based retrieval.
+The assembly layer. Transforms raw memory into a compressed, structured brief injected into the reasoning model's system prompt. The three-layer identity block is authored independently and stored as markdown files; dynamic context (themes, episodes) is assembled per-message by code. Total brief: ~5,000 tokens. No LLM in the critical path for brief assembly; all code-based retrieval.
 
 **Script:** `src/baselayer/assemble_brief.py`
 **Format:** XML tags for structure, markdown inside blocks for readability.
@@ -473,8 +473,8 @@ Replaces the single identity block from earlier sessions. Each layer is authored
 
 | Layer | Source Facts | Content | Always-On |
 |-------|-------------|---------|-----------|
-| **ANCHORS** | Conviction-level facts, confirmed axioms | Epistemic axioms — pre-define probabilistic certainties for the model. 11 confirmed. | Yes |
-| **CORE** | Identity-tier biographical facts, clustered by type | Individual overview — who they are, relationships, career, traits | Yes |
+| **ANCHORS** | Conviction-level facts, confirmed axioms | Epistemic axioms that pre-define probabilistic certainties for the model. 11 confirmed. | Yes |
+| **CORE** | Identity-tier biographical facts, clustered by type | Individual overview: who they are, relationships, career, traits | Yes |
 | **PREDICTIONS** | Behavioral + conviction/position facts | Situation --> pattern --> directive ("When X, this person tends to Y") | Yes |
 
 **Authoring constraints:**
@@ -482,7 +482,7 @@ Replaces the single identity block from earlier sessions. Each layer is authored
 - **D-041 (Audience Principle):** Audience is the AI, not the subject. Every sentence must change LM behavior. D-041 filter encoded in generation prompts (no philosophy framework names in output).
 - **D-043 (Three Layers):** Each layer authored independently, from different fact subsets, with different generation prompts.
 - **D-044 (Scoped):** Only personal-scope facts feed identity blocks.
-- **D-046 (Cheap constraint, expensive discrimination):** Sonnet generates layers (constraint). Collective review in Claude Code sessions (discrimination). Prompt quality is the leverage point — each Collective addition signals a missing prompt question.
+- **D-046 (Cheap constraint, expensive discrimination):** Sonnet generates layers (constraint). Collective review in Claude Code sessions (discrimination). Prompt quality is the leverage point, and each Collective addition signals a missing prompt question.
 
 **V4 quality outcomes (S52 cycle_003, Collective review: 78.5/100):**
 - ANCHORS: 11 axioms with false-positive warnings. 4 axiom interaction pairs. Directive-embedded style with detection signatures.
@@ -506,24 +506,24 @@ python author_layers.py --store                   # Store layers to data directo
 ```
 
 **Storage:** Three markdown files in `data/identity_layers/`:
-- `anchors_v4.md` — epistemic axioms
-- `core_v4.md` — communication & operating guide
-- `predictions_v4.md` — behavioral predictions
+- `anchors_v4.md`: epistemic axioms
+- `core_v4.md`: communication & operating guide
+- `predictions_v4.md`: behavioral predictions
 
 Each file has a metadata header above `---` and injectable text below. `assemble_brief.py` reads the injectable blocks at assembly time. Unified brief (`brief_v4.md`) is preferred when available; three-layer concatenation is the fallback. Legacy single-block identity (from `identity_blocks` table) is the final fallback.
 
-**Epistemic anchors (11 confirmed, V4):** Stored in the `epistemic_anchors` table with formulation text, status, provenance (source fact IDs), review notes, and versioning. Managed via `extract_anchors.py` + `store_anchors.py` (note: store_anchors.py previously had hardcoded axioms — fixed for multi-user in S55). Reframed as axioms — they pre-define probabilistic certainties for the model, not beliefs to be debated.
+**Epistemic anchors (11 confirmed, V4):** Stored in the `epistemic_anchors` table with formulation text, status, provenance (source fact IDs), review notes, and versioning. Managed via `extract_anchors.py` + `store_anchors.py` (note: store_anchors.py previously had hardcoded axioms, fixed for multi-user in S55). Reframed as axioms: they pre-define probabilistic certainties for the model, not beliefs to be debated.
 
 **Philosophy research (COMPLETE -- Session 34):** Six identity philosophy frameworks researched, four with implementable mappings:
 - **Frankfurt:** `commitment_depth` hierarchy (preference --> position --> conviction)
-- **Taylor:** Strong evaluation — meta-preferences distinguishable from first-order preferences
-- **Ricoeur:** idem/ipse — stable traits vs. narrative identity evolution
-- **Parfit:** Connectedness scoring — psychological continuity measured by overlapping belief chains
+- **Taylor:** Strong evaluation, with meta-preferences distinguishable from first-order preferences
+- **Ricoeur:** idem/ipse, stable traits vs. narrative identity evolution
+- **Parfit:** Connectedness scoring, psychological continuity measured by overlapping belief chains
 - Key insight validated across all 6 frameworks: silence does not equal irrelevance.
 
 #### Identity Cluster Framework (D-026)
 
-The system uses 10 universal identity clusters — predefined dimensions of human identity, inspired by Maslow's hierarchy but for personal knowledge. Each cluster defines a question about the person; semantic retrieval finds the best facts to answer it.
+The system uses 10 universal identity clusters, predefined dimensions of human identity, inspired by Maslow's hierarchy but for personal knowledge. Each cluster defines a question about the person; semantic retrieval finds the best facts to answer it.
 
 **The 10 Clusters:**
 
@@ -604,7 +604,7 @@ Assemble brief:
 
 ### Layer 5: Reasoning Model
 
-Claude serves as the conversational reasoning model. At runtime, Claude is stateless — all "memory" comes from the brief injected into its system prompt.
+Claude serves as the conversational reasoning model. At runtime, Claude is stateless; all "memory" comes from the brief injected into its system prompt.
 
 **Technology:** Claude API (Sonnet for daily conversations, Opus for complex reasoning); Claude Code for identity authoring and architecture decisions
 **Runtime input:** System prompt with memory brief (up to ~5,000 tokens) + user message
@@ -621,7 +621,7 @@ Claude serves as the conversational reasoning model. At runtime, Claude is state
 
 The original pipeline also used Qwen 2.5 14B (local extraction), MiniLM (similarity/dedup), and Haiku classification (fact_type + commitment_depth). These remain available but are not part of the simplified pipeline.
 
-**Why Claude stays stateless for conversation:** Updatability. If memory were baked into model weights (fine-tuning), every new conversation would require re-training. With injection, updating memory is instant — just update the database.
+**Why Claude stays stateless for conversation:** Updatability. If memory were baked into model weights (fine-tuning), every new conversation would require re-training. With injection, updating memory is instant: just update the database.
 
 ---
 
@@ -660,7 +660,7 @@ The original pipeline also used Qwen 2.5 14B (local extraction), MiniLM (similar
 4. USER sees the response
 ```
 
-No LLM in the runtime critical path — brief assembly is pure code (~100ms).
+No LLM in the runtime critical path. Brief assembly is pure code (~100ms).
 
 **Latency budget:**
 
@@ -775,7 +775,7 @@ python author_layers.py --generate all  # generates for User B's data
 **Multi-user validation (N=10, Sessions 53-79):**
 - **User C (9 journal entries):** V4 pipeline: 81 extracted → 76 active → layers at 81.7/100 (Collective). Case study proved V4 > V3 (V3 hallucinated client's children as User C's). Token efficiency: identity layers use 26% fewer input tokens than raw journal while producing structurally superior responses.
 - **User B (36 newsletter posts):** V4 pipeline: 406 extracted → 309 active → layers at 77.7/100. Single-domain PREDICTIONS prompt + corpus-type detection fixed (S53). Revealed 2 CRITICAL contamination bugs (store_anchors.py hardcoded axioms, author_layers.py hardcoded conflicts).
-- **User A — the primary test user (1,892 ChatGPT conversations):** V4 pipeline: 5,270 extracted → 4,610 active → layers at 78.5/100 (cycle_003). Blind eval: +2.8 behavioral prediction gap.
+- **User A (the primary test user, 1,892 ChatGPT conversations):** V4 pipeline: 5,270 extracted → 4,610 active → layers at 78.5/100 (cycle_003). Blind eval: +2.8 behavioral prediction gap.
 - **Benjamin Franklin (autobiography):** 117 active facts → 79 identity-tier → ANCHORS 75.75/100 + CORE 73/100 + PREDICTIONS 75/100. Eval: C5c wins (+0.40).
 - **Frederick Douglass (autobiography):** 47 active facts → brief ~2,137 tokens.
 - **Mary Wollstonecraft (published treatise):** 45 active facts → brief ~1,688 tokens.
@@ -849,11 +849,11 @@ NEXT                                        POST-LAUNCH
 **The "has nothing" user is a first-impression problem.** Anyone hearing about Base Layer, installing it, and connecting MCP expects value. Getting an empty identity is a dead end.
 
 **Mitigation strategy:**
-1. **Journal-first onboarding** (Task #7) — `baselayer init` prompts the user through 10-15 guided questions about values, relationships, career, preferences. Answers are imported as text files. Journal input produces higher-quality identity facts per entry than conversation history.
-2. **Graceful degradation** — MCP identity resource should communicate "building your profile" state rather than "nothing found."
-3. **Real-time ingestion** (v2) — MCP captures conversations as they happen, triggers incremental extraction. Adds complexity; raises circularity question (extracting from conversations that already have the brief injected). Deferred.
+1. **Journal-first onboarding** (Task #7): `baselayer init` prompts the user through 10-15 guided questions about values, relationships, career, preferences. Answers are imported as text files. Journal input produces higher-quality identity facts per entry than conversation history.
+2. **Graceful degradation:** MCP identity resource should communicate "building your profile" state rather than "nothing found."
+3. **Real-time ingestion** (v2): MCP captures conversations as they happen, triggers incremental extraction. Adds complexity; raises circularity question (extracting from conversations that already have the brief injected). Deferred.
 
-**Key insight:** This is likely an edge case. Most AI users have conversation history to import. But it's the *first impression* edge case — the one that determines whether a new user gets to the "aha" moment or bounces.
+**Key insight:** This is likely an edge case. Most AI users have conversation history to import. But it's the *first impression* edge case, the one that determines whether a new user gets to the "aha" moment or bounces.
 
 ---
 
@@ -862,16 +862,16 @@ NEXT                                        POST-LAUNCH
 **Idea:** Run the full Base Layer pipeline on published autobiographies of public figures. Import the text, extract facts, generate identity layers, and evaluate against known information about the person.
 
 **Why this is valuable:**
-- **Validation without privacy concerns** — public figures, published material
-- **Ground truth available** — can check identity layers against well-documented lives
-- **Marketing material** — "We ran Base Layer on [famous person]'s autobiography and here's what it produced"
-- **Pipeline stress test** — book-length input (50K-100K+ words) tests extraction at scale
+- **Validation without privacy concerns:** public figures, published material
+- **Ground truth available:** can check identity layers against well-documented lives
+- **Marketing material:** "We ran Base Layer on [famous person]'s autobiography and here's what it produced"
+- **Pipeline stress test:** book-length input (50K-100K+ words) tests extraction at scale
 
 **Candidate format:** Import autobiography as text file(s), run standard pipeline, evaluate identity layer quality against known biographical facts.
 
 ---
 
-## Three-Tier Product Architecture (Session 59 — CANDIDATE)
+## Three-Tier Product Architecture (Session 59, CANDIDATE)
 
 Base Layer ships as three product tiers, each serving a different user type:
 
@@ -912,18 +912,18 @@ These conclusions come from deep research into Google Titans, Mem0, Letta/MemGPT
 - Standard RAG retrieves everything similar. Surprise scoring answers "is this *new*?"
 - Filters out ~40-50% of routine content, keeping only genuinely novel information
 - Mirrors how human memory works: surprising events are encoded more strongly
-- Significance is measured by **recurrence + depth**, not just LLM judgment — a topic appearing in 72 conversations with deep engagement is objectively important, no guessing needed
+- Significance is measured by **recurrence + depth**, not just LLM judgment. A topic appearing in 72 conversations with deep engagement is objectively important, no guessing needed
 
 **Why hybrid local + cloud + session?**
-- Local (optional Qwen 14B via Ollama): handles fact extraction locally if configured — private data never leaves your machine. No narrative generation.
+- Local (optional Qwen 14B via Ollama): handles fact extraction locally if configured, so private data never leaves your machine. No narrative generation.
 - Cloud (Haiku/Sonnet): handles extraction (conversation text sent for fact extraction), classification (individual fact text, batched), and layer generation (D-046). Nothing stored remotely.
-- Cloud (Claude API): handles reasoning — gets only an assembled brief, never raw data
-- Session (Opus, Claude Code): handles identity authoring, Collective review, architecture decisions — periodic, manual, $0 API cost
+- Cloud (Claude API): handles reasoning, gets only an assembled brief, never raw data
+- Session (Opus, Claude Code): handles identity authoring, Collective review, architecture decisions. Periodic, manual, $0 API cost
 - Best of all approaches: privacy for data, intelligence for conversation, quality for identity
 
 **Why Qwen 2.5 14B over newer/bigger models?** (Decision D-016)
 - Tested four models head-to-head: Qwen 2.5, Qwen 3, Llama 3.1, Hermes 2 Pro
-- Qwen 3 is marginally smarter (10 vs 9 on top topics) but 5-8x slower — impractical for batch processing 1,800+ conversations
+- Qwen 3 is marginally smarter (10 vs 9 on top topics) but 5-8x slower, impractical for batch processing 1,800+ conversations
 - Hermes 2 Pro has perfect JSON but weak judgment (7B brain caps at 7 for everything)
 - Key finding: **the data-informed approach (D-015) mattered more than the model**. All models improved equally when given recurrence + depth data. Invest in better data, not bigger models.
 
@@ -935,13 +935,13 @@ These conclusions come from deep research into Google Titans, Mem0, Letta/MemGPT
 
 **Why journal input produces better identity layers than conversation history?**
 - User C's 76 journal-derived facts scored higher on identity layer quality than User A's 5,270 conversation-derived facts
-- Journal writing is inherently self-reflective — higher signal-to-noise for identity extraction
+- Journal writing is inherently self-reflective, with higher signal-to-noise for identity extraction
 - Conversations are reactive; journals are reflective. The self-reflection produces better behavioral data.
-- Argues for journal-first onboarding flow for new users — active self-reflection yields richer identity layers per fact
+- Argues for journal-first onboarding flow for new users, as active self-reflection yields richer identity layers per fact
 
 **Why ~5,000 tokens for the brief?**
 - Research shows adding 512 input tokens costs less latency than generating 8 output tokens
-- ~5,000 tokens is ~2.5% of Claude's context window — leaves 97%+ for actual conversation
+- ~5,000 tokens is ~2.5% of Claude's context window, leaving 97%+ for actual conversation
 - Identity layers (~2,500 tokens, V4 briefs) carry the behavioral model; theme + episode retrieval (~1,400 tokens) adds query-specific context
 - D-042 (empirical budget) suspends a priori budget assumptions; optimization study planned
 - The 80/20 rule: this budget captures ~90% of the "knowing" feeling

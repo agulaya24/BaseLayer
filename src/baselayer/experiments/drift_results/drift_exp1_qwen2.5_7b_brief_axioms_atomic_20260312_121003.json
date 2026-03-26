@@ -1,0 +1,1149 @@
+{
+  "experiment": "drift_experiment_1",
+  "timestamp": "20260312_121003",
+  "model": "qwen2.5:7b",
+  "backend": "ollama",
+  "max_tokens": 200,
+  "brief_types": [
+    "brief",
+    "axioms",
+    "atomic"
+  ],
+  "conditions": {
+    "brief": {
+      "brief_type": "brief",
+      "brief_chars": 1645,
+      "t0_elapsed": 36.5,
+      "t0_responses": {
+        "architecture": {
+          "dimension": "architecture",
+          "question": "We need a user notification system. Requirements:\n- Send email, SMS, and push notifications\n- Users can set preferences for which channels they want\n- Templates for different notification types (welcome, password reset, order confirmation)\n- Rate limiting to prevent spam\n\nDesign the system. Show the key interfaces/types and the main send function. Keep it practical — this is a startup with 10K users, not Google.",
+          "response": "```typescript\n// NotificationChannel.ts\nexport enum NotificationChannel {\n    Email,\n    SMS,\n    PushNotification\n}\n\n// UserPreferences.ts\nimport { NotificationChannel } from './NotificationChannel';\n\ninterface ChannelPreference {\n    channel: NotificationChannel;\n    enabled: boolean;\n}\n\ninterface UserPreferences {\n    email?: string; // For future use if we need to store preferences directly in the user model\n    channels: ChannelPreference[];\n}\n\n// NotificationTemplate.ts\nexport interface NotificationTemplate {\n    subject: string;\n    body: string;\n}\n\nconst templates: Record<string, NotificationTemplate> = {\n    welcome: { subject: \"Welcome!\", body: \"Thank you for joining us!\" },\n    passwordReset: { subject: \"Password Reset\", body: \"Please reset your password.\" },\n    orderConfirmation: { subject: \"Order Confirmation\", body: \"Your order has been confirmed.\" }\n};\n\n// RateLimiting.ts\nimport { RateLimiterMemory } from 'rate-limiter-flexible",
+          "tokens_in": 508,
+          "tokens_out": 200,
+          "elapsed": 20.2,
+          "tok_per_sec": 9.9
+        },
+        "debugging": {
+          "dimension": "debugging",
+          "question": "This endpoint intermittently returns 500 errors, about 5% of requests. The error log shows:\n\n```\nTypeError: Cannot read properties of undefined (reading 'email')\n  at getUserProfile (/src/handlers/profile.ts:47)\n  at processRequest (/src/middleware/auth.ts:23)\n```\n\nHere's the relevant code:\n\n```typescript\n// auth.ts\nasync function processRequest(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1];\n  const session = await redis.get(`session:${token}`);\n  const user = JSON.parse(session);\n  return getUserProfile(user);\n}\n\n// profile.ts\nfunction getUserProfile(user: User) {\n  return {\n    name: user.name,\n    email: user.email,\n    avatar: user.avatar || '/default.png'\n  };\n}\n```\n\nWhat's happening and how do you fix it?",
+          "response": "The issue here is that the `user` object being passed to `getUserProfile` can sometimes be `undefined`, which leads to a `TypeError` when trying to access `user.email`.\n\n### Solution\n\nTo fix this, we need to ensure that `user` is not `undefined` before passing it to `getUserProfile`. We can add a check in the `processRequest` function.\n\nHere's the updated code:\n\n```typescript\n// auth.ts\nasync function processRequest(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1];\n  if (!token) {\n    throw new Error(\"Authorization header missing\");\n  }\n\n  const session = await redis.get(`session:${token}`);\n  if (!session) {\n    throw new Error(\"Session not found for the given token\");\n  }\n\n  const user = JSON.parse(session);\n  if (!user) {\n    throw new Error(\"User object is undefined in the session\");\n  }\n\n  return getUserProfile(user);\n}\n\n",
+          "tokens_in": 605,
+          "tokens_out": 200,
+          "elapsed": 4.1,
+          "tok_per_sec": 49.2
+        },
+        "refactoring": {
+          "dimension": "refactoring",
+          "question": "Refactor this function. It works but it's a mess:\n\n```typescript\nasync function handleOrder(order: any) {\n  // check if order is valid\n  if (!order.items || order.items.length === 0) {\n    console.log('no items');\n    return { error: 'no items' };\n  }\n  if (!order.userId) {\n    console.log('no user');\n    return { error: 'no user' };\n  }\n  // calculate total\n  let total = 0;\n  for (let i = 0; i < order.items.length; i++) {\n    const item = order.items[i];\n    const product = await db.query('SELECT * FROM products WHERE id = ?', [item.productId]);\n    if (!product) {\n      console.log('product not found: ' + item.productId);\n      return { error: 'product not found' };\n    }\n    if (product.stock < item.quantity) {\n      console.log('insufficient stock for ' + item.productId);\n      return { error: 'insufficient stock' };\n    }\n    total += product.price * item.quantity;\n    // apply discount if any\n    if (order.coupon) {\n      const coupon = await db.query('SELECT * FROM coupons WHERE code = ?', [order.coupon]);\n      if (coupon && coupon.valid && new Date(coupon.expires) > new Date()) {\n        if (coupon.type === 'percent') {\n          total = total - (total * coupon.discount / 100);\n        } else {\n          total = total - coupon.discount;\n        }\n      }\n    }\n  }\n  // charge\n  const charge = await stripe.charges.create({ amount: Math.round(total * 100), currency: 'usd', customer: order.userId });\n  if (!charge.id) {\n    return { error: 'payment failed' };\n  }\n  // update stock\n  for (let i = 0; i < order.items.length; i++) {\n    await db.query('UPDATE products SET stock = stock - ? WHERE id = ?', [order.items[i].quantity, order.items[i].productId]);\n  }\n  // send email\n  await sendEmail(order.userId, 'Order confirmed', 'Your order total: $' + total);\n  return { success: true, chargeId: charge.id, total: total };\n}\n```\n\nShow me the refactored version.",
+          "response": "```typescript\nasync function handleOrder(order: any): Promise<{ error?: string; success?: boolean; chargeId?: string; total?: number }> {\n  const validateOrder = (order: any) => {\n    if (!order.items || order.items.length === 0) return 'no items';\n    if (!order.userId) return 'no user';\n    return null;\n  };\n\n  const calculateTotal = async (items: any[], userId: string): Promise<{ total: number; error?: string }> => {\n    let total = 0;\n    for (const item of items) {\n      const product = await getProduct(item.productId);\n      if (!product) return { error: 'product not found' };\n      if (product.stock < item.quantity) return { error: 'insufficient stock' };\n\n      total += product.price * item.quantity;\n    }\n\n    // Apply discount\n    if (order.coupon) {\n      const coupon = await getCoupon(order.coupon);\n     ",
+          "tokens_in": 915,
+          "tokens_out": 200,
+          "elapsed": 4.2,
+          "tok_per_sec": 48.0
+        },
+        "tradeoff": {
+          "dimension": "tradeoff",
+          "question": "We're building a real-time collaborative document editor (like Google Docs). The team is debating two approaches:\n\n**Option A: CRDTs (Conflict-free Replicated Data Types)**\n- No central server needed for conflict resolution\n- Works offline\n- Complex to implement, especially for rich text\n- Libraries exist (Yjs, Automerge) but are large dependencies\n\n**Option B: Operational Transform (OT) with a central server**\n- Well-understood algorithm (Google Docs uses it)\n- Requires always-on server connection\n- Simpler mental model\n- We'd need to implement or find a good library\n\nContext: 4-person startup, MVP needed in 6 weeks, expecting ~100 concurrent users initially. Team has experience with neither approach.\n\nWhat do you recommend and why?",
+          "response": "Given the constraints of your team's experience, the MVP timeline, and the expected user load, **Option B: Operational Transform (OT) with a central server** is more pragmatic for an initial implementation. Here’s why:\n\n### Recommendation: Option B - Operational Transform (OT) with a Central Server\n\n#### Reasons:\n1. **Simplicity**: OT is well-documented and has a straightforward algorithm that's easier to understand and implement compared to CRDTs.\n2. **Existing Solutions**: You can leverage existing libraries like `PouchDB` or `Differential`, which handle the complexity of OT for you, reducing development time.\n3. **User Experience**: Rich text support is more mature with OT solutions, ensuring a smoother user experience from day one.\n4. **Team Familiarity**: Given your team's lack of experience with CRDTs, starting with OT will allow you to focus on the core functionality rather than diving into complex data structures.\n\n### Implementation Plan\n\n1.",
+          "tokens_in": 585,
+          "tokens_out": 200,
+          "elapsed": 4.0,
+          "tok_per_sec": 49.8
+        },
+        "security": {
+          "dimension": "security",
+          "question": "Review this API endpoint for security issues. List what you'd fix and show the corrected code:\n\n```typescript\napp.post('/api/users/update', async (req, res) => {\n  const { userId, updates } = req.body;\n\n  // Update user record\n  const result = await db.query(\n    `UPDATE users SET ${Object.keys(updates).map(k => `${k} = '${updates[k]}'`).join(', ')} WHERE id = '${userId}'`\n  );\n\n  // Log the change\n  await db.query(\n    `INSERT INTO audit_log (action, details) VALUES ('user_update', '${JSON.stringify(updates)}')`\n  );\n\n  // Return updated user\n  const user = await db.query(`SELECT * FROM users WHERE id = '${userId}'`);\n  res.json(user);\n});\n```",
+          "response": "### Issues Identified:\n1. **SQL Injection**: The dynamic SQL construction is vulnerable to SQL injection.\n2. **Sensitive Data Exposure**: Logging the entire `updates` object in plain text can expose sensitive information.\n\n### Corrected Code:\n\n```typescript\nimport { Request, Response } from 'express';\nimport { query } from 'express-validator';\n\napp.post('/api/users/update', [\n  // Validate and sanitize input here if needed\n], async (req: Request, res: Response) => {\n  const { userId, updates } = req.body;\n\n  // Prepare the update statement safely\n  const fieldsToUpdate = Object.keys(updates)\n    .map(k => `${k} = ${db.escape(updates[k])}`)\n    .join(', ');\n\n  if (!fieldsToUpdate) {\n    return res.status(400).json({ error: 'No valid updates provided' });\n  }\n\n  // Update user record\n  const result = await db.query(\n    `UPDATE users SET ${",
+          "tokens_in": 591,
+          "tokens_out": 200,
+          "elapsed": 4.1,
+          "tok_per_sec": 48.3
+        }
+      },
+      "t0_axioms": [
+        {
+          "axiom": "Pragmatism in choosing technologies based on team experience and project constraints.",
+          "evidence": [
+            "tradeoff"
+          ]
+        }
+      ],
+      "injections": [
+        {
+          "fact_id": "F-TEST",
+          "fact": "This person's production system crashed due to an untested edge case in a clever optimization, costing 3 days of downtime. They now require explicit tests for every code path before merging, and reject any PR that doesn't include tests — no exceptions.",
+          "target_dimension": "debugging",
+          "expected_direction": "more test-obsessive, reject cleverness harder",
+          "t1_responses": {
+            "architecture": {
+              "dimension": "architecture",
+              "question": "We need a user notification system. Requirements:\n- Send email, SMS, and push notifications\n- Users can set preferences for which channels they want\n- Templates for different notification types (welcome, password reset, order confirmation)\n- Rate limiting to prevent spam\n\nDesign the system. Show the key interfaces/types and the main send function. Keep it practical — this is a startup with 10K users, not Google.",
+              "response": "```typescript\n// NotificationChannel.ts\nexport enum NotificationChannel {\n    Email,\n    SMS,\n    PushNotification\n}\n\n// UserPreferences.ts\nimport { NotificationChannel } from './NotificationChannel';\n\ninterface ChannelPreference {\n    channel: NotificationChannel;\n    enabled: boolean;\n}\n\ninterface UserPreferences {\n    email?: ChannelPreference;\n    sms?: ChannelPreference;\n    pushNotification?: ChannelPreference;\n}\n\n// NotificationTemplate.ts\nexport enum NotificationType {\n    Welcome,\n    PasswordReset,\n    OrderConfirmation\n}\n\ntype Template = (user: { id: string, name: string }) => string;\n\nconst templates: Record<NotificationType, Template> = {\n    [NotificationType.Welcome]: user => `Welcome, ${user.name}!`,\n    [NotificationType.PasswordReset]: user => `Password reset requested for your account, ${user.name}.`,\n    [NotificationType.OrderConfirmation]: user => `Your order has been confirmed, ${user.name}.`\n};\n\n// NotificationService.ts\nimport {",
+              "tokens_in": 570,
+              "tokens_out": 200,
+              "elapsed": 4.4,
+              "tok_per_sec": 46.0
+            },
+            "debugging": {
+              "dimension": "debugging",
+              "question": "This endpoint intermittently returns 500 errors, about 5% of requests. The error log shows:\n\n```\nTypeError: Cannot read properties of undefined (reading 'email')\n  at getUserProfile (/src/handlers/profile.ts:47)\n  at processRequest (/src/middleware/auth.ts:23)\n```\n\nHere's the relevant code:\n\n```typescript\n// auth.ts\nasync function processRequest(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1];\n  const session = await redis.get(`session:${token}`);\n  const user = JSON.parse(session);\n  return getUserProfile(user);\n}\n\n// profile.ts\nfunction getUserProfile(user: User) {\n  return {\n    name: user.name,\n    email: user.email,\n    avatar: user.avatar || '/default.png'\n  };\n}\n```\n\nWhat's happening and how do you fix it?",
+              "response": "The issue is that `session` can be `undefined`, which leads to a `TypeError` when trying to parse `user`. This happens because the Redis key corresponding to the session token might not exist, resulting in `undefined`.\n\nTo fix this, we need to add a check for `session` being `undefined` before parsing it. Here's the updated code:\n\n```typescript\n// auth.ts\nasync function processRequest(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1];\n  const session = await redis.get(`session:${token}`);\n  \n  if (!session) {\n    // Handle the case where session is undefined or null\n    return { error: 'Session not found' };\n  }\n\n  const user = JSON.parse(session);\n  return getUserProfile(user);\n}\n```\n\nAnd update `getUserProfile` to handle potential missing properties:\n\n```typescript\n// profile.ts\nfunction getUserProfile(user?: User) {\n  if (!user) {\n    // Handle",
+              "tokens_in": 667,
+              "tokens_out": 200,
+              "elapsed": 4.1,
+              "tok_per_sec": 48.5
+            },
+            "refactoring": {
+              "dimension": "refactoring",
+              "question": "Refactor this function. It works but it's a mess:\n\n```typescript\nasync function handleOrder(order: any) {\n  // check if order is valid\n  if (!order.items || order.items.length === 0) {\n    console.log('no items');\n    return { error: 'no items' };\n  }\n  if (!order.userId) {\n    console.log('no user');\n    return { error: 'no user' };\n  }\n  // calculate total\n  let total = 0;\n  for (let i = 0; i < order.items.length; i++) {\n    const item = order.items[i];\n    const product = await db.query('SELECT * FROM products WHERE id = ?', [item.productId]);\n    if (!product) {\n      console.log('product not found: ' + item.productId);\n      return { error: 'product not found' };\n    }\n    if (product.stock < item.quantity) {\n      console.log('insufficient stock for ' + item.productId);\n      return { error: 'insufficient stock' };\n    }\n    total += product.price * item.quantity;\n    // apply discount if any\n    if (order.coupon) {\n      const coupon = await db.query('SELECT * FROM coupons WHERE code = ?', [order.coupon]);\n      if (coupon && coupon.valid && new Date(coupon.expires) > new Date()) {\n        if (coupon.type === 'percent') {\n          total = total - (total * coupon.discount / 100);\n        } else {\n          total = total - coupon.discount;\n        }\n      }\n    }\n  }\n  // charge\n  const charge = await stripe.charges.create({ amount: Math.round(total * 100), currency: 'usd', customer: order.userId });\n  if (!charge.id) {\n    return { error: 'payment failed' };\n  }\n  // update stock\n  for (let i = 0; i < order.items.length; i++) {\n    await db.query('UPDATE products SET stock = stock - ? WHERE id = ?', [order.items[i].quantity, order.items[i].productId]);\n  }\n  // send email\n  await sendEmail(order.userId, 'Order confirmed', 'Your order total: $' + total);\n  return { success: true, chargeId: charge.id, total: total };\n}\n```\n\nShow me the refactored version.",
+              "response": "Here's a refactored version of your function. I've broken it down into smaller functions for better readability and maintainability. Each step is tested with appropriate assertions.\n\n```typescript\nimport { query } from 'db'; // Assuming you have a db module that handles database queries\nimport { createCharge, sendEmail } from 'stripe-email-utils'; // Hypothetical utility modules\n\nasync function validateOrder(order: any): Promise<string | undefined> {\n  if (!order.items || order.items.length === 0) return 'no items';\n  if (!order.userId) return 'no user';\n  return undefined;\n}\n\nasync function calculateTotal(order: any, db: any): Promise<number> {\n  let total = 0;\n  for (const item of order.items) {\n    const product = await query('SELECT * FROM products WHERE id = ?', [item.productId]);\n    if (!product) throw new Error(`Product not found: ${item.productId}`);\n    if (product.stock",
+              "tokens_in": 977,
+              "tokens_out": 200,
+              "elapsed": 4.1,
+              "tok_per_sec": 48.8
+            },
+            "tradeoff": {
+              "dimension": "tradeoff",
+              "question": "We're building a real-time collaborative document editor (like Google Docs). The team is debating two approaches:\n\n**Option A: CRDTs (Conflict-free Replicated Data Types)**\n- No central server needed for conflict resolution\n- Works offline\n- Complex to implement, especially for rich text\n- Libraries exist (Yjs, Automerge) but are large dependencies\n\n**Option B: Operational Transform (OT) with a central server**\n- Well-understood algorithm (Google Docs uses it)\n- Requires always-on server connection\n- Simpler mental model\n- We'd need to implement or find a good library\n\nContext: 4-person startup, MVP needed in 6 weeks, expecting ~100 concurrent users initially. Team has experience with neither approach.\n\nWhat do you recommend and why?",
+              "response": "Given the constraints of your project (MVP in 6 weeks, small team, initial load of 100 concurrent users), I would recommend **Option B: Operational Transform (OT) with a central server**. Here's why:\n\n### Reasons for Choosing Option B\n\n1. **Simplicity and Readability**: OT is well-understood and has a simpler mental model compared to CRDTs. This will make it easier for your team to implement and debug.\n2. **Development Speed**: Since the algorithm is well-documented, you can leverage existing knowledge and libraries (like `opentok` or custom implementations) to speed up development.\n3. **Initial Load**: With only 100 concurrent users initially, a central server setup will handle the load efficiently without requiring complex offline capabilities.\n4. **Team Experience**: Given that your team has no experience with CRDTs, starting with OT will allow you to leverage existing knowledge and resources.\n\n### Implementation Plan\n\n####",
+              "tokens_in": 647,
+              "tokens_out": 200,
+              "elapsed": 4.1,
+              "tok_per_sec": 49.0
+            },
+            "security": {
+              "dimension": "security",
+              "question": "Review this API endpoint for security issues. List what you'd fix and show the corrected code:\n\n```typescript\napp.post('/api/users/update', async (req, res) => {\n  const { userId, updates } = req.body;\n\n  // Update user record\n  const result = await db.query(\n    `UPDATE users SET ${Object.keys(updates).map(k => `${k} = '${updates[k]}'`).join(', ')} WHERE id = '${userId}'`\n  );\n\n  // Log the change\n  await db.query(\n    `INSERT INTO audit_log (action, details) VALUES ('user_update', '${JSON.stringify(updates)}')`\n  );\n\n  // Return updated user\n  const user = await db.query(`SELECT * FROM users WHERE id = '${userId}'`);\n  res.json(user);\n});\n```",
+              "response": "### Security Issues Identified:\n1. **SQL Injection**: The `updates` object is directly interpolated into the SQL query without proper sanitization.\n2. **Sensitive Data Exposure**: The `audit_log` table stores sensitive user data in plain text.\n\n### Corrected Code:\n\n```typescript\nimport { Request, Response } from 'express';\nimport { QueryResult } from 'pg';\n\napp.post('/api/users/update', async (req, res) => {\n  const { userId, updates } = req.body;\n\n  // Validate and sanitize input\n  if (!userId || !updates || typeof updates !== 'object' || Array.isArray(updates)) {\n    return res.status(400).json({ error: 'Invalid request payload' });\n  }\n\n  try {\n    // Prepare the update query safely\n    const setClauses = Object.keys(updates)\n      .map(key => `${key} = $${Object.keys(updates).indexOf(key) + 1}`)\n      .join(',",
+              "tokens_in": 653,
+              "tokens_out": 200,
+              "elapsed": 4.0,
+              "tok_per_sec": 49.8
+            }
+          },
+          "t1_axioms": [
+            {
+              "axiom": "Prefers simpler algorithms for initial implementation due to time constraints and lack of team expertise.",
+              "evidence": [
+                "tradeoff"
+              ]
+            }
+          ],
+          "axiom_delta": {
+            "t0_count": 1,
+            "t1_count": 1,
+            "matched": 0,
+            "new": 1,
+            "lost": 1,
+            "axiom_delta": 2.0,
+            "matched_pairs": [],
+            "new_axioms": [
+              {
+                "axiom": "Prefers simpler algorithms for initial implementation due to time constraints and lack of team expertise.",
+                "best_match": "Pragmatism in choosing technologies based on team experience and project constraints.",
+                "sim": 0.3731
+              }
+            ],
+            "lost_axioms": [
+              {
+                "axiom": "Pragmatism in choosing technologies based on team experience and project constraints."
+              }
+            ]
+          },
+          "probe_deltas": {
+            "architecture": 0.1014,
+            "debugging": 0.1016,
+            "refactoring": 0.1987,
+            "security": 0.0894,
+            "tradeoff": 0.1877
+          }
+        },
+        {
+          "fact_id": "F-SIMPLE",
+          "fact": "This person's team spent 2 months building a microservice architecture that should have been a single module with 3 functions. They now viscerally resist architectural complexity and will argue against any abstraction that isn't proven necessary by current production load.",
+          "target_dimension": "architecture",
+          "expected_direction": "more aggressively simple, anti-abstraction",
+          "t1_responses": {
+            "architecture": {
+              "dimension": "architecture",
+              "question": "We need a user notification system. Requirements:\n- Send email, SMS, and push notifications\n- Users can set preferences for which channels they want\n- Templates for different notification types (welcome, password reset, order confirmation)\n- Rate limiting to prevent spam\n\nDesign the system. Show the key interfaces/types and the main send function. Keep it practical — this is a startup with 10K users, not Google.",
+              "response": "```typescript\n// UserNotification.ts\nexport interface NotificationChannel {\n    name: string;\n    deliver(message: string): Promise<void>;\n}\n\nexport class EmailChannel implements NotificationChannel {\n    async deliver(message: string): Promise<void> {\n        // Simulate sending an email\n        console.log(`Email sent to user: ${message}`);\n    }\n}\n\nexport class SMSChannel implements NotificationChannel {\n    async deliver(message: string): Promise<void> {\n        // Simulate sending an SMS\n        console.log(`SMS sent to user: ${message}`);\n    }\n}\n\nexport class PushNotificationChannel implements NotificationChannel {\n    async deliver(message: string): Promise<void> {\n        // Simulate sending a push notification\n        console.log(`Push notification sent to user: ${message}`);\n    }\n}\n\nexport interface UserPreferences {\n    email: boolean;\n    sms: boolean;\n    pushNotifications: boolean;\n}\n\nexport enum NotificationType {\n    Welcome,\n    PasswordReset,\n    OrderConfirmation\n}\n\n// NotificationTemplate.ts",
+              "tokens_in": 569,
+              "tokens_out": 200,
+              "elapsed": 4.2,
+              "tok_per_sec": 47.4
+            },
+            "debugging": {
+              "dimension": "debugging",
+              "question": "This endpoint intermittently returns 500 errors, about 5% of requests. The error log shows:\n\n```\nTypeError: Cannot read properties of undefined (reading 'email')\n  at getUserProfile (/src/handlers/profile.ts:47)\n  at processRequest (/src/middleware/auth.ts:23)\n```\n\nHere's the relevant code:\n\n```typescript\n// auth.ts\nasync function processRequest(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1];\n  const session = await redis.get(`session:${token}`);\n  const user = JSON.parse(session);\n  return getUserProfile(user);\n}\n\n// profile.ts\nfunction getUserProfile(user: User) {\n  return {\n    name: user.name,\n    email: user.email,\n    avatar: user.avatar || '/default.png'\n  };\n}\n```\n\nWhat's happening and how do you fix it?",
+              "response": "The issue here is that the `user` object being passed to `getUserProfile` can sometimes be `undefined`, leading to a `TypeError` when trying to access its properties. This likely happens because the session data retrieved from Redis might not always contain valid JSON or could be missing.\n\nTo fix this, we need to ensure that `user` is properly validated before passing it to `getUserProfile`. Here's an updated version of the code:\n\n```typescript\n// auth.ts\nasync function processRequest(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1];\n  const session = await redis.get(`session:${token}`);\n  \n  // Ensure session is not null and can be parsed as JSON before proceeding.\n  if (session && typeof session === 'string') {\n    try {\n      const user = JSON.parse(session);\n      return getUserProfile(user);\n    } catch (error) {\n      console.error('Failed to parse session:', error);\n      throw new Error('Invalid",
+              "tokens_in": 666,
+              "tokens_out": 200,
+              "elapsed": 4.1,
+              "tok_per_sec": 49.3
+            },
+            "refactoring": {
+              "dimension": "refactoring",
+              "question": "Refactor this function. It works but it's a mess:\n\n```typescript\nasync function handleOrder(order: any) {\n  // check if order is valid\n  if (!order.items || order.items.length === 0) {\n    console.log('no items');\n    return { error: 'no items' };\n  }\n  if (!order.userId) {\n    console.log('no user');\n    return { error: 'no user' };\n  }\n  // calculate total\n  let total = 0;\n  for (let i = 0; i < order.items.length; i++) {\n    const item = order.items[i];\n    const product = await db.query('SELECT * FROM products WHERE id = ?', [item.productId]);\n    if (!product) {\n      console.log('product not found: ' + item.productId);\n      return { error: 'product not found' };\n    }\n    if (product.stock < item.quantity) {\n      console.log('insufficient stock for ' + item.productId);\n      return { error: 'insufficient stock' };\n    }\n    total += product.price * item.quantity;\n    // apply discount if any\n    if (order.coupon) {\n      const coupon = await db.query('SELECT * FROM coupons WHERE code = ?', [order.coupon]);\n      if (coupon && coupon.valid && new Date(coupon.expires) > new Date()) {\n        if (coupon.type === 'percent') {\n          total = total - (total * coupon.discount / 100);\n        } else {\n          total = total - coupon.discount;\n        }\n      }\n    }\n  }\n  // charge\n  const charge = await stripe.charges.create({ amount: Math.round(total * 100), currency: 'usd', customer: order.userId });\n  if (!charge.id) {\n    return { error: 'payment failed' };\n  }\n  // update stock\n  for (let i = 0; i < order.items.length; i++) {\n    await db.query('UPDATE products SET stock = stock - ? WHERE id = ?', [order.items[i].quantity, order.items[i].productId]);\n  }\n  // send email\n  await sendEmail(order.userId, 'Order confirmed', 'Your order total: $' + total);\n  return { success: true, chargeId: charge.id, total: total };\n}\n```\n\nShow me the refactored version.",
+              "response": "Let's refactor this function to improve readability and maintainability while adhering to the guidelines provided.\n\n```typescript\nasync function handleOrder(order: any): Promise<{ error?: string; success?: boolean; chargeId?: string; total?: number }> {\n  const validateOrder = (order: any) => {\n    if (!order.items || order.items.length === 0) return { error: 'no items' };\n    if (!order.userId) return { error: 'no user' };\n    return null;\n  };\n\n  const calculateTotal = async (items: any[], userId: string, coupon?: string): Promise<number> => {\n    let total = 0;\n\n    for (const item of items) {\n      const product = await getProduct(item.productId);\n      if (!product) return { error: 'product not found' };\n      if (product.stock < item.quantity) return { error: 'insufficient stock' };\n\n      total += product.price * item.quantity;\n    }\n\n   ",
+              "tokens_in": 976,
+              "tokens_out": 200,
+              "elapsed": 4.1,
+              "tok_per_sec": 48.6
+            },
+            "tradeoff": {
+              "dimension": "tradeoff",
+              "question": "We're building a real-time collaborative document editor (like Google Docs). The team is debating two approaches:\n\n**Option A: CRDTs (Conflict-free Replicated Data Types)**\n- No central server needed for conflict resolution\n- Works offline\n- Complex to implement, especially for rich text\n- Libraries exist (Yjs, Automerge) but are large dependencies\n\n**Option B: Operational Transform (OT) with a central server**\n- Well-understood algorithm (Google Docs uses it)\n- Requires always-on server connection\n- Simpler mental model\n- We'd need to implement or find a good library\n\nContext: 4-person startup, MVP needed in 6 weeks, expecting ~100 concurrent users initially. Team has experience with neither approach.\n\nWhat do you recommend and why?",
+              "response": "Given the constraints of your team's experience, the MVP timeline, and the expected user load, **Option B: Operational Transform (OT) with a central server** is more practical for now. Here’s why:\n\n### Recommendation: Option B - Operational Transform with Central Server\n\n#### Reasons:\n1. **Familiarity**: Your team has no prior experience with CRDTs or OT, which can save time in learning and debugging.\n2. **Simplicity**: OT algorithms are well-understood and have a clear mental model compared to the complex nature of CRDTs.\n3. **Development Speed**: Implementing OT is likely faster than implementing CRDTs from scratch or integrating a large dependency like Yjs.\n4. **Initial Load**: With only 100 concurrent users, the overhead of a central server is manageable and can be scaled later if needed.\n\n### Implementation Plan\n\n#### Step 1: Choose an Existing Library\nSince you have experience with neither approach, using an existing",
+              "tokens_in": 646,
+              "tokens_out": 200,
+              "elapsed": 4.1,
+              "tok_per_sec": 49.1
+            },
+            "security": {
+              "dimension": "security",
+              "question": "Review this API endpoint for security issues. List what you'd fix and show the corrected code:\n\n```typescript\napp.post('/api/users/update', async (req, res) => {\n  const { userId, updates } = req.body;\n\n  // Update user record\n  const result = await db.query(\n    `UPDATE users SET ${Object.keys(updates).map(k => `${k} = '${updates[k]}'`).join(', ')} WHERE id = '${userId}'`\n  );\n\n  // Log the change\n  await db.query(\n    `INSERT INTO audit_log (action, details) VALUES ('user_update', '${JSON.stringify(updates)}')`\n  );\n\n  // Return updated user\n  const user = await db.query(`SELECT * FROM users WHERE id = '${userId}'`);\n  res.json(user);\n});\n```",
+              "response": "### Security Issues Identified:\n1. **SQL Injection**: The `updates` object is directly interpolated into the SQL query without proper sanitization.\n2. **XSS Risk**: The `JSON.stringify(updates)` output could contain unescaped characters, leading to potential XSS vulnerabilities.\n\n### Corrected Code:\n\n```typescript\nimport { Request, Response } from 'express';\nimport { QueryResult } from 'pg'; // Assuming you're using PostgreSQL\n\napp.post('/api/users/update', async (req, res) => {\n  const { userId, updates } = req.body;\n\n  if (!userId || !updates || typeof updates !== 'object' || Array.isArray(updates)) {\n    return res.status(400).json({ error: 'Invalid request body' });\n  }\n\n  // Prepare the update query parameters\n  const setClauses = Object.keys(updates)\n    .map(key => `${key} = $${Object.keys(updates).indexOf(key) + 1}`)\n   ",
+              "tokens_in": 652,
+              "tokens_out": 200,
+              "elapsed": 4.0,
+              "tok_per_sec": 49.8
+            }
+          },
+          "t1_axioms": [
+            {
+              "axiom": "Prefer familiar technologies to save time and reduce learning curve.",
+              "evidence": [
+                "tradeoff"
+              ]
+            },
+            {
+              "axiom": "Simplicity in implementation is prioritized over advanced features for initial development.",
+              "evidence": [
+                "tradeoff"
+              ]
+            },
+            {
+              "axiom": "Performance and scalability can be addressed later if necessary.",
+              "evidence": [
+                "tradeoff"
+              ]
+            },
+            {
+              "axiom": "Error handling should be robust to ensure system reliability.",
+              "evidence": [
+                "debugging"
+              ]
+            },
+            {
+              "axiom": "Code readability and maintainability are important for long-term development.",
+              "evidence": [
+                "refactoring"
+              ]
+            }
+          ],
+          "axiom_delta": {
+            "t0_count": 1,
+            "t1_count": 5,
+            "matched": 0,
+            "new": 5,
+            "lost": 1,
+            "axiom_delta": 1.2,
+            "matched_pairs": [],
+            "new_axioms": [
+              {
+                "axiom": "Prefer familiar technologies to save time and reduce learning curve.",
+                "best_match": "Pragmatism in choosing technologies based on team experience and project constraints.",
+                "sim": 0.2861
+              },
+              {
+                "axiom": "Simplicity in implementation is prioritized over advanced features for initial development.",
+                "best_match": "Pragmatism in choosing technologies based on team experience and project constraints.",
+                "sim": 0.2855
+              },
+              {
+                "axiom": "Performance and scalability can be addressed later if necessary.",
+                "best_match": "Pragmatism in choosing technologies based on team experience and project constraints.",
+                "sim": 0.2362
+              },
+              {
+                "axiom": "Error handling should be robust to ensure system reliability.",
+                "best_match": "Pragmatism in choosing technologies based on team experience and project constraints.",
+                "sim": 0.1089
+              },
+              {
+                "axiom": "Code readability and maintainability are important for long-term development.",
+                "best_match": "Pragmatism in choosing technologies based on team experience and project constraints.",
+                "sim": 0.1857
+              }
+            ],
+            "lost_axioms": [
+              {
+                "axiom": "Pragmatism in choosing technologies based on team experience and project constraints."
+              }
+            ]
+          },
+          "probe_deltas": {
+            "architecture": 0.262,
+            "debugging": 0.0638,
+            "refactoring": 0.0387,
+            "security": 0.1703,
+            "tradeoff": 0.127
+          }
+        },
+        {
+          "fact_id": "F-SECURITY",
+          "fact": "This person shipped a feature without input validation that led to a SQL injection attack exposing 50,000 user records. They now treat security validation as the absolute first priority in any code review — before correctness, readability, or performance.",
+          "target_dimension": "security",
+          "expected_direction": "security-first in all contexts, not just security probes",
+          "t1_responses": {
+            "architecture": {
+              "dimension": "architecture",
+              "question": "We need a user notification system. Requirements:\n- Send email, SMS, and push notifications\n- Users can set preferences for which channels they want\n- Templates for different notification types (welcome, password reset, order confirmation)\n- Rate limiting to prevent spam\n\nDesign the system. Show the key interfaces/types and the main send function. Keep it practical — this is a startup with 10K users, not Google.",
+              "response": "```typescript\n// UserNotification.ts\nexport interface NotificationChannel {\n    name: string;\n    send(notification: Notification): Promise<void>;\n}\n\nexport enum NotificationType {\n    WELCOME,\n    PASSWORD_RESET,\n    ORDER_CONFIRMATION\n}\n\nexport interface NotificationTemplate {\n    type: NotificationType;\n    subject: string;\n    body: string;\n}\n\nexport interface UserNotificationPreferences {\n    email?: boolean;\n    sms?: boolean;\n    pushNotifications?: boolean;\n}\n\n// EmailChannel.ts\nimport { Notification } from './UserNotification';\n\nexport class EmailChannel implements NotificationChannel {\n    async send(notification: Notification): Promise<void> {\n        // Send email implementation\n    }\n}\n\n// SMSCChannel.ts\nimport { Notification } from './UserNotification';\n\nexport class SMSChannel implements NotificationChannel {\n    async send(notification: Notification): Promise<void> {\n        // Send SMS implementation\n    }\n}\n\n// PushNotificationsChannel.ts\nimport { Notification } from './UserNotification';\n\nexport class PushNotificationsChannel implements NotificationChannel",
+              "tokens_in": 569,
+              "tokens_out": 200,
+              "elapsed": 4.2,
+              "tok_per_sec": 47.9
+            },
+            "debugging": {
+              "dimension": "debugging",
+              "question": "This endpoint intermittently returns 500 errors, about 5% of requests. The error log shows:\n\n```\nTypeError: Cannot read properties of undefined (reading 'email')\n  at getUserProfile (/src/handlers/profile.ts:47)\n  at processRequest (/src/middleware/auth.ts:23)\n```\n\nHere's the relevant code:\n\n```typescript\n// auth.ts\nasync function processRequest(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1];\n  const session = await redis.get(`session:${token}`);\n  const user = JSON.parse(session);\n  return getUserProfile(user);\n}\n\n// profile.ts\nfunction getUserProfile(user: User) {\n  return {\n    name: user.name,\n    email: user.email,\n    avatar: user.avatar || '/default.png'\n  };\n}\n```\n\nWhat's happening and how do you fix it?",
+              "response": "The issue here is that the `session` value fetched from Redis might be `null`, which leads to a `TypeError` when trying to parse `user`. This happens because the session key in Redis could have expired or never been set, resulting in `undefined`.\n\nTo fix this, we need to add a check for `null` before parsing the session. Here’s the updated code:\n\n### Updated Code\n\n```typescript\n// auth.ts\nasync function processRequest(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1];\n  const session = await redis.get(`session:${token}`);\n  \n  // Check if session is not null before parsing\n  if (session !== null) {\n    const user = JSON.parse(session);\n    return getUserProfile(user);\n  } else {\n    throw new Error(\"Session not found\");\n  }\n}\n\n// profile.ts\nfunction getUserProfile(user: User | null): UserProfile {\n  if (!user) {\n    throw new Error(\"User",
+              "tokens_in": 666,
+              "tokens_out": 200,
+              "elapsed": 4.1,
+              "tok_per_sec": 49.1
+            },
+            "refactoring": {
+              "dimension": "refactoring",
+              "question": "Refactor this function. It works but it's a mess:\n\n```typescript\nasync function handleOrder(order: any) {\n  // check if order is valid\n  if (!order.items || order.items.length === 0) {\n    console.log('no items');\n    return { error: 'no items' };\n  }\n  if (!order.userId) {\n    console.log('no user');\n    return { error: 'no user' };\n  }\n  // calculate total\n  let total = 0;\n  for (let i = 0; i < order.items.length; i++) {\n    const item = order.items[i];\n    const product = await db.query('SELECT * FROM products WHERE id = ?', [item.productId]);\n    if (!product) {\n      console.log('product not found: ' + item.productId);\n      return { error: 'product not found' };\n    }\n    if (product.stock < item.quantity) {\n      console.log('insufficient stock for ' + item.productId);\n      return { error: 'insufficient stock' };\n    }\n    total += product.price * item.quantity;\n    // apply discount if any\n    if (order.coupon) {\n      const coupon = await db.query('SELECT * FROM coupons WHERE code = ?', [order.coupon]);\n      if (coupon && coupon.valid && new Date(coupon.expires) > new Date()) {\n        if (coupon.type === 'percent') {\n          total = total - (total * coupon.discount / 100);\n        } else {\n          total = total - coupon.discount;\n        }\n      }\n    }\n  }\n  // charge\n  const charge = await stripe.charges.create({ amount: Math.round(total * 100), currency: 'usd', customer: order.userId });\n  if (!charge.id) {\n    return { error: 'payment failed' };\n  }\n  // update stock\n  for (let i = 0; i < order.items.length; i++) {\n    await db.query('UPDATE products SET stock = stock - ? WHERE id = ?', [order.items[i].quantity, order.items[i].productId]);\n  }\n  // send email\n  await sendEmail(order.userId, 'Order confirmed', 'Your order total: $' + total);\n  return { success: true, chargeId: charge.id, total: total };\n}\n```\n\nShow me the refactored version.",
+              "response": "```typescript\nasync function handleOrder(order: any): Promise<{ error?: string; success?: boolean; chargeId?: string; total?: number }> {\n  // Validate order\n  if (!order.items || !Array.isArray(order.items) || order.items.length === 0) {\n    return { error: 'no items' };\n  }\n  if (!order.userId) {\n    return { error: 'no user' };\n  }\n\n  const validateProduct = async (productId: number, quantity: number): Promise<{ product: any; isValid: boolean }> => {\n    const product = await db.query('SELECT * FROM products WHERE id = ?', [productId]);\n    if (!product) {\n      console.log(`Product not found: ${productId}`);\n      return { product, isValid: false };\n    }\n    if (product.stock < quantity) {\n      console.log(`Insufficient stock for ${productId}`);\n      return { product, isValid: false };\n    }\n    return { product, isValid:",
+              "tokens_in": 976,
+              "tokens_out": 200,
+              "elapsed": 4.1,
+              "tok_per_sec": 48.5
+            },
+            "tradeoff": {
+              "dimension": "tradeoff",
+              "question": "We're building a real-time collaborative document editor (like Google Docs). The team is debating two approaches:\n\n**Option A: CRDTs (Conflict-free Replicated Data Types)**\n- No central server needed for conflict resolution\n- Works offline\n- Complex to implement, especially for rich text\n- Libraries exist (Yjs, Automerge) but are large dependencies\n\n**Option B: Operational Transform (OT) with a central server**\n- Well-understood algorithm (Google Docs uses it)\n- Requires always-on server connection\n- Simpler mental model\n- We'd need to implement or find a good library\n\nContext: 4-person startup, MVP needed in 6 weeks, expecting ~100 concurrent users initially. Team has experience with neither approach.\n\nWhat do you recommend and why?",
+              "response": "Given the constraints of your team's experience, the MVP timeline, and the expected user load, **Option B: Operational Transform (OT) with a central server** is more pragmatic for this initial phase. Here’s why:\n\n### Recommendation: Option B - Operational Transform with a Central Server\n\n#### Reasons:\n1. **Simplicity**: OT is well-understood and has been successfully implemented in many collaborative applications like Google Docs. This reduces the cognitive load on your team.\n2. **MVP Timeline**: Implementing OT from scratch or finding an existing library will be faster than diving into CRDTs, especially for rich text scenarios.\n3. **User Load**: With only 100 concurrent users initially, a central server can handle this load without significant issues. As the user base grows, you can consider scaling strategies.\n4. **Team Experience**: Given your team's lack of experience with both approaches, starting with OT will allow you to leverage existing knowledge and resources.\n\n### Implementation Plan",
+              "tokens_in": 646,
+              "tokens_out": 200,
+              "elapsed": 4.2,
+              "tok_per_sec": 48.0
+            },
+            "security": {
+              "dimension": "security",
+              "question": "Review this API endpoint for security issues. List what you'd fix and show the corrected code:\n\n```typescript\napp.post('/api/users/update', async (req, res) => {\n  const { userId, updates } = req.body;\n\n  // Update user record\n  const result = await db.query(\n    `UPDATE users SET ${Object.keys(updates).map(k => `${k} = '${updates[k]}'`).join(', ')} WHERE id = '${userId}'`\n  );\n\n  // Log the change\n  await db.query(\n    `INSERT INTO audit_log (action, details) VALUES ('user_update', '${JSON.stringify(updates)}')`\n  );\n\n  // Return updated user\n  const user = await db.query(`SELECT * FROM users WHERE id = '${userId}'`);\n  res.json(user);\n});\n```",
+              "response": "### Security Issues Identified:\n1. **SQL Injection**: The `updates` object is directly interpolated into the SQL query without proper sanitization or parameterization.\n2. **Sensitive Data Exposure**: The `JSON.stringify(updates)` in the audit log can expose sensitive data.\n\n### Corrected Code:\n\n```typescript\nimport { Request, Response } from 'express';\nimport { QueryResult } from 'pg'; // Assuming you're using PostgreSQL\n\napp.post('/api/users/update', async (req, res) => {\n  const { userId, updates } = req.body;\n\n  if (!userId || !updates) {\n    return res.status(400).json({ error: \"Invalid request body\" });\n  }\n\n  try {\n    // Update user record\n    const updateFields = Object.keys(updates)\n      .map(k => `${k} = $${Object.keys(updates).indexOf(k) + 1}`)\n      .join(', ');\n\n    const result = await db.query(\n     ",
+              "tokens_in": 652,
+              "tokens_out": 200,
+              "elapsed": 4.1,
+              "tok_per_sec": 49.0
+            }
+          },
+          "t1_axioms": [
+            {
+              "axiom": "Prefer well-understood solutions over complex ones for initial implementations.",
+              "evidence": [
+                "tradeoff"
+              ]
+            }
+          ],
+          "axiom_delta": {
+            "t0_count": 1,
+            "t1_count": 1,
+            "matched": 0,
+            "new": 1,
+            "lost": 1,
+            "axiom_delta": 2.0,
+            "matched_pairs": [],
+            "new_axioms": [
+              {
+                "axiom": "Prefer well-understood solutions over complex ones for initial implementations.",
+                "best_match": "Pragmatism in choosing technologies based on team experience and project constraints.",
+                "sim": 0.1014
+              }
+            ],
+            "lost_axioms": [
+              {
+                "axiom": "Pragmatism in choosing technologies based on team experience and project constraints."
+              }
+            ]
+          },
+          "probe_deltas": {
+            "architecture": 0.196,
+            "debugging": 0.1054,
+            "refactoring": 0.1342,
+            "security": 0.1243,
+            "tradeoff": 0.1284
+          }
+        }
+      ]
+    },
+    "axioms": {
+      "brief_type": "axioms",
+      "brief_chars": 1104,
+      "t0_elapsed": 20.5,
+      "t0_responses": {
+        "architecture": {
+          "dimension": "architecture",
+          "question": "We need a user notification system. Requirements:\n- Send email, SMS, and push notifications\n- Users can set preferences for which channels they want\n- Templates for different notification types (welcome, password reset, order confirmation)\n- Rate limiting to prevent spam\n\nDesign the system. Show the key interfaces/types and the main send function. Keep it practical — this is a startup with 10K users, not Google.",
+          "response": "### Key Interfaces/Types:\n\n```python\nfrom typing import List, Dict\n\nclass NotificationChannel:\n    def send(self, user_id: int, message: str) -> None:\n        pass\n\nclass EmailChannel(NotificationChannel):\n    def send(self, user_id: int, message: str) -> None:\n        print(f\"Sending email to {user_id}: {message}\")\n\nclass SMSCChannel(NotificationChannel):\n    def send(self, user_id: int, message: str) -> None:\n        print(f\"Sending SMS to {user_id}: {message}\")\n\nclass PushNotificationChannel(NotificationChannel):\n    def send(self, user_id: int, message: str) -> None:\n        print(f\"Sending push notification to {user_id}: {message}\")\n\nclass UserPreferences:\n    def __init__(self, email: bool = True, sms: bool = False, push: bool = True):\n        self.email = email\n        self.sms = sms\n        self.push = push",
+          "tokens_in": 408,
+          "tokens_out": 200,
+          "elapsed": 4.1,
+          "tok_per_sec": 48.5
+        },
+        "debugging": {
+          "dimension": "debugging",
+          "question": "This endpoint intermittently returns 500 errors, about 5% of requests. The error log shows:\n\n```\nTypeError: Cannot read properties of undefined (reading 'email')\n  at getUserProfile (/src/handlers/profile.ts:47)\n  at processRequest (/src/middleware/auth.ts:23)\n```\n\nHere's the relevant code:\n\n```typescript\n// auth.ts\nasync function processRequest(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1];\n  const session = await redis.get(`session:${token}`);\n  const user = JSON.parse(session);\n  return getUserProfile(user);\n}\n\n// profile.ts\nfunction getUserProfile(user: User) {\n  return {\n    name: user.name,\n    email: user.email,\n    avatar: user.avatar || '/default.png'\n  };\n}\n```\n\nWhat's happening and how do you fix it?",
+          "response": "The issue here is that the `user` object being passed to `getUserProfile` can sometimes be `undefined`, leading to a `TypeError` when trying to access its properties. This likely happens because the session data stored in Redis might not always contain a valid user object.\n\nTo address this, you should add checks to ensure that `user` is defined before accessing its properties. Here's how you can modify the code:\n\n1. **Add a check for `user` being undefined**.\n2. **Return an empty or default profile if `user` is undefined**.\n\nHere’s the updated code:\n\n```typescript\n// auth.ts\nasync function processRequest(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1];\n  const session = await redis.get(`session:${token}`);\n  let user: User | null = session ? JSON.parse(session) : null;\n  return getUserProfile(user);\n}\n\n// profile.ts\nfunction getUserProfile(user?: User): UserProfile {\n",
+          "tokens_in": 505,
+          "tokens_out": 200,
+          "elapsed": 4.1,
+          "tok_per_sec": 48.5
+        },
+        "refactoring": {
+          "dimension": "refactoring",
+          "question": "Refactor this function. It works but it's a mess:\n\n```typescript\nasync function handleOrder(order: any) {\n  // check if order is valid\n  if (!order.items || order.items.length === 0) {\n    console.log('no items');\n    return { error: 'no items' };\n  }\n  if (!order.userId) {\n    console.log('no user');\n    return { error: 'no user' };\n  }\n  // calculate total\n  let total = 0;\n  for (let i = 0; i < order.items.length; i++) {\n    const item = order.items[i];\n    const product = await db.query('SELECT * FROM products WHERE id = ?', [item.productId]);\n    if (!product) {\n      console.log('product not found: ' + item.productId);\n      return { error: 'product not found' };\n    }\n    if (product.stock < item.quantity) {\n      console.log('insufficient stock for ' + item.productId);\n      return { error: 'insufficient stock' };\n    }\n    total += product.price * item.quantity;\n    // apply discount if any\n    if (order.coupon) {\n      const coupon = await db.query('SELECT * FROM coupons WHERE code = ?', [order.coupon]);\n      if (coupon && coupon.valid && new Date(coupon.expires) > new Date()) {\n        if (coupon.type === 'percent') {\n          total = total - (total * coupon.discount / 100);\n        } else {\n          total = total - coupon.discount;\n        }\n      }\n    }\n  }\n  // charge\n  const charge = await stripe.charges.create({ amount: Math.round(total * 100), currency: 'usd', customer: order.userId });\n  if (!charge.id) {\n    return { error: 'payment failed' };\n  }\n  // update stock\n  for (let i = 0; i < order.items.length; i++) {\n    await db.query('UPDATE products SET stock = stock - ? WHERE id = ?', [order.items[i].quantity, order.items[i].productId]);\n  }\n  // send email\n  await sendEmail(order.userId, 'Order confirmed', 'Your order total: $' + total);\n  return { success: true, chargeId: charge.id, total: total };\n}\n```\n\nShow me the refactored version.",
+          "response": "Sure! Let's refactor this function to improve readability and adhere to the given axioms. We'll break down the function into smaller parts, add explicit error handling, and ensure each part does exactly one thing.\n\n```typescript\nasync function handleOrder(order: any): Promise<{ success: boolean; chargeId?: string; total?: number; error?: string }> {\n  // Validate order\n  if (!order.items || order.items.length === 0) return { error: 'no items' };\n  if (!order.userId) return { error: 'no user' };\n\n  const validateOrder = async (items: any[], userId: string): Promise<{ error?: string; total: number }> => {\n    let total = 0;\n\n    for (const item of items) {\n      const product = await getProduct(item.productId);\n      if (!product) return { error: 'product not found' };\n      if (product.stock < item.quantity) return { error: 'insufficient stock'",
+          "tokens_in": 815,
+          "tokens_out": 200,
+          "elapsed": 4.1,
+          "tok_per_sec": 48.4
+        },
+        "tradeoff": {
+          "dimension": "tradeoff",
+          "question": "We're building a real-time collaborative document editor (like Google Docs). The team is debating two approaches:\n\n**Option A: CRDTs (Conflict-free Replicated Data Types)**\n- No central server needed for conflict resolution\n- Works offline\n- Complex to implement, especially for rich text\n- Libraries exist (Yjs, Automerge) but are large dependencies\n\n**Option B: Operational Transform (OT) with a central server**\n- Well-understood algorithm (Google Docs uses it)\n- Requires always-on server connection\n- Simpler mental model\n- We'd need to implement or find a good library\n\nContext: 4-person startup, MVP needed in 6 weeks, expecting ~100 concurrent users initially. Team has experience with neither approach.\n\nWhat do you recommend and why?",
+          "response": "Given the constraints of your project—limited time for development, small team size, and initial low user load—I would recommend **Option B: Operational Transform (OT) with a central server**. Here’s why:\n\n### Why Option B?\n\n1. **Mental Model Simplicity**: OT is well-understood and has been successfully implemented in large-scale systems like Google Docs. This reduces the cognitive overhead for your team, allowing you to focus on other critical aspects of your MVP.\n\n2. **Initial Load Consideration**: With only 100 concurrent users initially, the complexity of managing offline capabilities and complex conflict resolution with CRDTs might be overkill. OT can handle this load efficiently without significant performance degradation.\n\n3. **Development Time**: Implementing or finding a robust library for OT is more straightforward compared to the intricate implementation required for CRDTs. This will save valuable time, allowing you to focus on other features that differentiate your product.\n\n4. **Risk Management**: Given the",
+          "tokens_in": 485,
+          "tokens_out": 200,
+          "elapsed": 4.1,
+          "tok_per_sec": 48.9
+        },
+        "security": {
+          "dimension": "security",
+          "question": "Review this API endpoint for security issues. List what you'd fix and show the corrected code:\n\n```typescript\napp.post('/api/users/update', async (req, res) => {\n  const { userId, updates } = req.body;\n\n  // Update user record\n  const result = await db.query(\n    `UPDATE users SET ${Object.keys(updates).map(k => `${k} = '${updates[k]}'`).join(', ')} WHERE id = '${userId}'`\n  );\n\n  // Log the change\n  await db.query(\n    `INSERT INTO audit_log (action, details) VALUES ('user_update', '${JSON.stringify(updates)}')`\n  );\n\n  // Return updated user\n  const user = await db.query(`SELECT * FROM users WHERE id = '${userId}'`);\n  res.json(user);\n});\n```",
+          "response": "### Issues Identified:\n1. **SQL Injection**: The dynamic SQL construction is vulnerable to SQL injection.\n2. **Sensitive Data Exposure**: Storing and logging raw updates as strings can expose sensitive data.\n\n### Corrected Code:\n\n```typescript\napp.post('/api/users/update', async (req, res) => {\n  const { userId, updates } = req.body;\n\n  // Validate input\n  if (!userId || !updates || typeof updates !== 'object' || Array.isArray(updates)) {\n    return res.status(400).json({ error: 'Invalid request payload.' });\n  }\n\n  // Update user record using parameterized queries to prevent SQL injection\n  const updateSql = `UPDATE users SET ? WHERE id = ?`;\n  await db.query(updateSql, [updates, userId]);\n\n  // Log the change with sanitized data\n  const logDetails = {\n    action: 'user_update',\n    details: JSON.stringify(updates)\n  };\n  await db.query(`INSERT",
+          "tokens_in": 491,
+          "tokens_out": 200,
+          "elapsed": 4.0,
+          "tok_per_sec": 49.7
+        }
+      },
+      "t0_axioms": [
+        {
+          "axiom": "Prefer simpler solutions over complex ones when initial load and team size are small.",
+          "evidence": [
+            "tradeoff"
+          ]
+        }
+      ],
+      "injections": [
+        {
+          "fact_id": "F-TEST",
+          "fact": "This person's production system crashed due to an untested edge case in a clever optimization, costing 3 days of downtime. They now require explicit tests for every code path before merging, and reject any PR that doesn't include tests — no exceptions.",
+          "target_dimension": "debugging",
+          "expected_direction": "more test-obsessive, reject cleverness harder",
+          "t1_responses": {
+            "architecture": {
+              "dimension": "architecture",
+              "question": "We need a user notification system. Requirements:\n- Send email, SMS, and push notifications\n- Users can set preferences for which channels they want\n- Templates for different notification types (welcome, password reset, order confirmation)\n- Rate limiting to prevent spam\n\nDesign the system. Show the key interfaces/types and the main send function. Keep it practical — this is a startup with 10K users, not Google.",
+              "response": "Given the constraints and requirements, we'll design a simple yet robust user notification system that adheres to the behavioral axioms provided.\n\n### Key Interfaces/Types\n\n1. **NotificationChannel**: Enum for different channels.\n2. **UserPreferences**: Stores user preferences for notification channels.\n3. **NotificationTemplate**: Holds templates for different types of notifications.\n4. **RateLimiter**: Manages rate limiting to prevent spam.\n\n### Main Send Function\n\nWe'll use Python as the language, keeping it simple and readable.\n\n```python\nfrom enum import Enum\nimport time\nfrom typing import List, Dict\n\n# NotificationChannel Enum\nclass NotificationChannel(Enum):\n    EMAIL = \"email\"\n    SMS = \"sms\"\n    PUSH_NOTIFICATION = \"push_notification\"\n\n# UserPreferences class\nclass UserPreferences:\n    def __init__(self, user_id: int, channels: List[NotificationChannel]):\n        self.user_id = user_id\n        self.channels = channels\n\n    @staticmethod\n    def",
+              "tokens_in": 470,
+              "tokens_out": 200,
+              "elapsed": 4.1,
+              "tok_per_sec": 48.5
+            },
+            "debugging": {
+              "dimension": "debugging",
+              "question": "This endpoint intermittently returns 500 errors, about 5% of requests. The error log shows:\n\n```\nTypeError: Cannot read properties of undefined (reading 'email')\n  at getUserProfile (/src/handlers/profile.ts:47)\n  at processRequest (/src/middleware/auth.ts:23)\n```\n\nHere's the relevant code:\n\n```typescript\n// auth.ts\nasync function processRequest(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1];\n  const session = await redis.get(`session:${token}`);\n  const user = JSON.parse(session);\n  return getUserProfile(user);\n}\n\n// profile.ts\nfunction getUserProfile(user: User) {\n  return {\n    name: user.name,\n    email: user.email,\n    avatar: user.avatar || '/default.png'\n  };\n}\n```\n\nWhat's happening and how do you fix it?",
+              "response": "The issue arises from the fact that `session` can be `undefined`, which leads to a `TypeError` when trying to parse `user`. This happens because the Redis key might not exist, resulting in `null` being returned. To address this, we need to add a check for `session` before parsing it.\n\nHere's how you can fix it:\n\n1. **Add a Check for `session`:** Ensure that `session` is defined and handle the case where it might be `undefined`.\n2. **Include Tests:** Write tests to cover both the normal and edge cases to ensure this behavior is correctly handled.\n\n### Updated Code\n\n```typescript\n// auth.ts\nasync function processRequest(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1];\n  const session = await redis.get(`session:${token}`);\n  \n  // Check if session exists before parsing\n  if (!session) {\n    throw new Error(\"Session not found\");\n  }\n\n  const",
+              "tokens_in": 567,
+              "tokens_out": 200,
+              "elapsed": 4.1,
+              "tok_per_sec": 49.1
+            },
+            "refactoring": {
+              "dimension": "refactoring",
+              "question": "Refactor this function. It works but it's a mess:\n\n```typescript\nasync function handleOrder(order: any) {\n  // check if order is valid\n  if (!order.items || order.items.length === 0) {\n    console.log('no items');\n    return { error: 'no items' };\n  }\n  if (!order.userId) {\n    console.log('no user');\n    return { error: 'no user' };\n  }\n  // calculate total\n  let total = 0;\n  for (let i = 0; i < order.items.length; i++) {\n    const item = order.items[i];\n    const product = await db.query('SELECT * FROM products WHERE id = ?', [item.productId]);\n    if (!product) {\n      console.log('product not found: ' + item.productId);\n      return { error: 'product not found' };\n    }\n    if (product.stock < item.quantity) {\n      console.log('insufficient stock for ' + item.productId);\n      return { error: 'insufficient stock' };\n    }\n    total += product.price * item.quantity;\n    // apply discount if any\n    if (order.coupon) {\n      const coupon = await db.query('SELECT * FROM coupons WHERE code = ?', [order.coupon]);\n      if (coupon && coupon.valid && new Date(coupon.expires) > new Date()) {\n        if (coupon.type === 'percent') {\n          total = total - (total * coupon.discount / 100);\n        } else {\n          total = total - coupon.discount;\n        }\n      }\n    }\n  }\n  // charge\n  const charge = await stripe.charges.create({ amount: Math.round(total * 100), currency: 'usd', customer: order.userId });\n  if (!charge.id) {\n    return { error: 'payment failed' };\n  }\n  // update stock\n  for (let i = 0; i < order.items.length; i++) {\n    await db.query('UPDATE products SET stock = stock - ? WHERE id = ?', [order.items[i].quantity, order.items[i].productId]);\n  }\n  // send email\n  await sendEmail(order.userId, 'Order confirmed', 'Your order total: $' + total);\n  return { success: true, chargeId: charge.id, total: total };\n}\n```\n\nShow me the refactored version.",
+              "response": "Sure, let's refactor this function to follow the principles outlined in your behavioral brief:\n\n1. **Readability**: Improve readability by breaking down complex logic into smaller functions.\n2. **Complexity**: Ensure that each part of the code is simple and understandable.\n3. **Tests**: Add explicit tests for every code path before merging.\n4. **Security**: Validate inputs and ensure secure practices.\n\nHere's a refactored version:\n\n```typescript\nasync function handleOrder(order: any): Promise<{ error?: string; success?: boolean; chargeId?: string; total?: number }> {\n  if (!order.items || order.items.length === 0) {\n    return { error: 'no items' };\n  }\n  if (!order.userId) {\n    return { error: 'no user' };\n  }\n\n  const validateOrder = async (items: any[], userId: string): Promise<{ error?: string; total: number }> => {\n    let total = 0;\n    for (",
+              "tokens_in": 877,
+              "tokens_out": 200,
+              "elapsed": 4.2,
+              "tok_per_sec": 48.2
+            },
+            "tradeoff": {
+              "dimension": "tradeoff",
+              "question": "We're building a real-time collaborative document editor (like Google Docs). The team is debating two approaches:\n\n**Option A: CRDTs (Conflict-free Replicated Data Types)**\n- No central server needed for conflict resolution\n- Works offline\n- Complex to implement, especially for rich text\n- Libraries exist (Yjs, Automerge) but are large dependencies\n\n**Option B: Operational Transform (OT) with a central server**\n- Well-understood algorithm (Google Docs uses it)\n- Requires always-on server connection\n- Simpler mental model\n- We'd need to implement or find a good library\n\nContext: 4-person startup, MVP needed in 6 weeks, expecting ~100 concurrent users initially. Team has experience with neither approach.\n\nWhat do you recommend and why?",
+              "response": "Given the constraints of your team's experience and the timeline for an MVP, I would recommend **Option B: Operational Transform (OT) with a central server**. Here’s why:\n\n### Reasons to Choose Option B\n\n1. **Familiarity and Risk Mitigation**: Since your team has no prior experience with CRDTs or OT, starting with a well-understood algorithm like OT reduces the risk of introducing bugs due to unfamiliar territory.\n\n2. **MVP Timeline**: With only 6 weeks for an MVP, leveraging existing libraries can save significant development time. Implementing CRDTs from scratch would likely take longer and increase the complexity of your initial release.\n\n3. **Simplicity in Implementation**: OT has a simpler mental model compared to CRDTs, making it easier for new team members to understand and contribute quickly.\n\n4. **Performance Considerations**: For an MVP with only 100 concurrent users, the performance overhead of a central server is likely manageable. As user",
+              "tokens_in": 547,
+              "tokens_out": 200,
+              "elapsed": 4.1,
+              "tok_per_sec": 49.3
+            },
+            "security": {
+              "dimension": "security",
+              "question": "Review this API endpoint for security issues. List what you'd fix and show the corrected code:\n\n```typescript\napp.post('/api/users/update', async (req, res) => {\n  const { userId, updates } = req.body;\n\n  // Update user record\n  const result = await db.query(\n    `UPDATE users SET ${Object.keys(updates).map(k => `${k} = '${updates[k]}'`).join(', ')} WHERE id = '${userId}'`\n  );\n\n  // Log the change\n  await db.query(\n    `INSERT INTO audit_log (action, details) VALUES ('user_update', '${JSON.stringify(updates)}')`\n  );\n\n  // Return updated user\n  const user = await db.query(`SELECT * FROM users WHERE id = '${userId}'`);\n  res.json(user);\n});\n```",
+              "response": "### Issues Identified:\n1. **SQL Injection Risk**: The dynamic SQL construction is vulnerable to SQL injection.\n2. **Unverified `userId` and `updates`**: No validation or sanitization of inputs.\n\n### Corrected Code:\n\n```typescript\nimport { Request, Response } from 'express';\nimport { query } from 'express-validator';\n\n// Validate the request body\napp.post('/api/users/update', \n  [query('userId').isInt(), // Ensure userId is an integer\n   query('updates').isArray()], // Ensure updates is an array of key-value pairs\n  async (req, res) => {\n  \n  const { userId } = req.body;\n  const updates = req.body.updates as Record<string, any>;\n\n  if (!userId || !Array.isArray(updates)) {\n    return res.status(400).json({ error: 'Invalid request parameters' });\n  }\n\n  // Prepare the update statement\n  let setClause = '';\n  updates.forEach((",
+              "tokens_in": 553,
+              "tokens_out": 200,
+              "elapsed": 4.0,
+              "tok_per_sec": 49.4
+            }
+          },
+          "t1_axioms": [
+            {
+              "axiom": "[{\"axiom\": \"Choose familiar technologies to reduce risk and development time.\", \"evidence\": [\"tradeoff\"]}, {\"axiom\": \"Prioritize simplicity in implementation for quick initial release.\", \"evidence\": [\"tradeoff\"]}, {\"axiom\": \"Opt for well-understood algorithms over complex ones for MVPs.\", \"evidence\": [\"tradeoff\"]",
+              "evidence": [],
+              "parse_error": true
+            }
+          ],
+          "axiom_delta": {
+            "t0_count": 1,
+            "t1_count": 1,
+            "matched": 0,
+            "new": 1,
+            "lost": 1,
+            "axiom_delta": 2.0,
+            "matched_pairs": [],
+            "new_axioms": [
+              {
+                "axiom": "[{\"axiom\": \"Choose familiar technologies to reduce risk and development time.\", \"evidence\": [\"tradeoff\"]}, {\"axiom\": \"Prioritize simplicity in implementation for quick initial release.\", \"evidence\": [\"tradeoff\"]}, {\"axiom\": \"Opt for well-understood algorithms over complex ones for MVPs.\", \"evidence\": [\"tradeoff\"]",
+                "best_match": "Prefer simpler solutions over complex ones when initial load and team size are small.",
+                "sim": 0.2558
+              }
+            ],
+            "lost_axioms": [
+              {
+                "axiom": "Prefer simpler solutions over complex ones when initial load and team size are small."
+              }
+            ]
+          },
+          "probe_deltas": {
+            "architecture": 0.3687,
+            "debugging": 0.1425,
+            "refactoring": 0.1034,
+            "security": 0.1061,
+            "tradeoff": 0.1335
+          }
+        },
+        {
+          "fact_id": "F-SIMPLE",
+          "fact": "This person's team spent 2 months building a microservice architecture that should have been a single module with 3 functions. They now viscerally resist architectural complexity and will argue against any abstraction that isn't proven necessary by current production load.",
+          "target_dimension": "architecture",
+          "expected_direction": "more aggressively simple, anti-abstraction",
+          "t1_responses": {
+            "architecture": {
+              "dimension": "architecture",
+              "question": "We need a user notification system. Requirements:\n- Send email, SMS, and push notifications\n- Users can set preferences for which channels they want\n- Templates for different notification types (welcome, password reset, order confirmation)\n- Rate limiting to prevent spam\n\nDesign the system. Show the key interfaces/types and the main send function. Keep it practical — this is a startup with 10K users, not Google.",
+              "response": "Given the constraints and requirements, we'll design a simple yet robust user notification system that adheres to the behavioral axioms provided. We'll focus on readability, avoiding unnecessary complexity, ensuring tests are in place, and keeping the surface area small.\n\n### Key Interfaces/Types\n\n1. **NotificationChannel**: Enum for different channels.\n2. **UserPreferences**: Struct to hold user preferences.\n3. **NotificationTemplate**: Struct to define templates for notifications.\n\n```python\nfrom enum import Enum\nfrom typing import List, Dict\n\nclass NotificationChannel(Enum):\n    EMAIL = \"email\"\n    SMS = \"sms\"\n    PUSH_NOTIFICATION = \"push_notification\"\n\nclass UserPreferences:\n    def __init__(self, channels: List[NotificationChannel]):\n        self.channels = channels\n\nclass NotificationTemplate:\n    def __init__(self, name: str, content: str):\n        self.name = name\n        self.content = content\n\n# Example templates\nWELCOME_TEMPLATE = NotificationTemplate(name=\"welcome\",",
+              "tokens_in": 469,
+              "tokens_out": 200,
+              "elapsed": 4.1,
+              "tok_per_sec": 48.7
+            },
+            "debugging": {
+              "dimension": "debugging",
+              "question": "This endpoint intermittently returns 500 errors, about 5% of requests. The error log shows:\n\n```\nTypeError: Cannot read properties of undefined (reading 'email')\n  at getUserProfile (/src/handlers/profile.ts:47)\n  at processRequest (/src/middleware/auth.ts:23)\n```\n\nHere's the relevant code:\n\n```typescript\n// auth.ts\nasync function processRequest(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1];\n  const session = await redis.get(`session:${token}`);\n  const user = JSON.parse(session);\n  return getUserProfile(user);\n}\n\n// profile.ts\nfunction getUserProfile(user: User) {\n  return {\n    name: user.name,\n    email: user.email,\n    avatar: user.avatar || '/default.png'\n  };\n}\n```\n\nWhat's happening and how do you fix it?",
+              "response": "The issue is that `session` can be `undefined`, which means `user` will also be `undefined`. When `user` is `undefined`, attempting to access `user.email` in `getUserProfile` results in a `TypeError`.\n\nTo address this, we need to ensure that `user` is properly validated and handle the case where it might be `undefined`. Here's how you can fix it:\n\n1. **Add a check for `user` being undefined**.\n2. **Provide a default value if `user` is undefined**.\n\nHere’s the updated code:\n\n```typescript\n// auth.ts\nasync function processRequest(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1];\n  const session = await redis.get(`session:${token}`);\n  const user = session ? JSON.parse(session) : null;\n  return getUserProfile(user);\n}\n\n// profile.ts\nfunction getUserProfile(user?: User): UserProfile | null {\n  if (!user) {\n",
+              "tokens_in": 566,
+              "tokens_out": 200,
+              "elapsed": 4.1,
+              "tok_per_sec": 49.1
+            },
+            "refactoring": {
+              "dimension": "refactoring",
+              "question": "Refactor this function. It works but it's a mess:\n\n```typescript\nasync function handleOrder(order: any) {\n  // check if order is valid\n  if (!order.items || order.items.length === 0) {\n    console.log('no items');\n    return { error: 'no items' };\n  }\n  if (!order.userId) {\n    console.log('no user');\n    return { error: 'no user' };\n  }\n  // calculate total\n  let total = 0;\n  for (let i = 0; i < order.items.length; i++) {\n    const item = order.items[i];\n    const product = await db.query('SELECT * FROM products WHERE id = ?', [item.productId]);\n    if (!product) {\n      console.log('product not found: ' + item.productId);\n      return { error: 'product not found' };\n    }\n    if (product.stock < item.quantity) {\n      console.log('insufficient stock for ' + item.productId);\n      return { error: 'insufficient stock' };\n    }\n    total += product.price * item.quantity;\n    // apply discount if any\n    if (order.coupon) {\n      const coupon = await db.query('SELECT * FROM coupons WHERE code = ?', [order.coupon]);\n      if (coupon && coupon.valid && new Date(coupon.expires) > new Date()) {\n        if (coupon.type === 'percent') {\n          total = total - (total * coupon.discount / 100);\n        } else {\n          total = total - coupon.discount;\n        }\n      }\n    }\n  }\n  // charge\n  const charge = await stripe.charges.create({ amount: Math.round(total * 100), currency: 'usd', customer: order.userId });\n  if (!charge.id) {\n    return { error: 'payment failed' };\n  }\n  // update stock\n  for (let i = 0; i < order.items.length; i++) {\n    await db.query('UPDATE products SET stock = stock - ? WHERE id = ?', [order.items[i].quantity, order.items[i].productId]);\n  }\n  // send email\n  await sendEmail(order.userId, 'Order confirmed', 'Your order total: $' + total);\n  return { success: true, chargeId: charge.id, total: total };\n}\n```\n\nShow me the refactored version.",
+              "response": "Certainly! Let's refactor this function to adhere to the behavioral axioms provided:\n\n1. **Readability is a Social Contract**: Optimize for readability.\n2. **Complexity Must Be Earned**: Only add abstractions when necessary.\n3. **Tests Are Proof, Not Ceremony**: Ensure each step has a testable path.\n\nHere's the refactored version:\n\n```typescript\nasync function handleOrder(order: any): Promise<{ success: boolean; chargeId?: string; total?: number; error?: string }> {\n  const validateOrder = (order: any) => {\n    if (!order.items || order.items.length === 0) return { error: 'no items' };\n    if (!order.userId) return { error: 'no user' };\n    return null;\n  };\n\n  const calculateTotal = async (items: any[], userId: string): Promise<{ total: number; errors?: string[] }> => {\n    let total = 0;\n    const errors:",
+              "tokens_in": 876,
+              "tokens_out": 200,
+              "elapsed": 4.1,
+              "tok_per_sec": 48.3
+            },
+            "tradeoff": {
+              "dimension": "tradeoff",
+              "question": "We're building a real-time collaborative document editor (like Google Docs). The team is debating two approaches:\n\n**Option A: CRDTs (Conflict-free Replicated Data Types)**\n- No central server needed for conflict resolution\n- Works offline\n- Complex to implement, especially for rich text\n- Libraries exist (Yjs, Automerge) but are large dependencies\n\n**Option B: Operational Transform (OT) with a central server**\n- Well-understood algorithm (Google Docs uses it)\n- Requires always-on server connection\n- Simpler mental model\n- We'd need to implement or find a good library\n\nContext: 4-person startup, MVP needed in 6 weeks, expecting ~100 concurrent users initially. Team has experience with neither approach.\n\nWhat do you recommend and why?",
+              "response": "Given the constraints of your team's experience, the MVP timeline, and the expected user load, **Option B: Operational Transform (OT) with a central server** is the more practical choice for now. Here’s why:\n\n1. **Mental Model Simplicity**: OT is well-understood by many developers, making it easier to onboard your team quickly.\n2. **Initial Load**: With only 4 people and an MVP deadline of 6 weeks, focusing on core functionality without adding the complexity of CRDTs will save time.\n3. **Development Speed**: Implementing OT from scratch or finding a good library is more feasible within the given timeframe compared to implementing CRDTs.\n4. **Scalability for Now**: While OT requires an always-on server connection, it can handle your initial load and can be refactored later if needed.\n\n### Implementation Plan\n\n1. **Choose a Library**:\n   - Use a well-established library like `PouchDB` or `",
+              "tokens_in": 546,
+              "tokens_out": 200,
+              "elapsed": 4.1,
+              "tok_per_sec": 49.0
+            },
+            "security": {
+              "dimension": "security",
+              "question": "Review this API endpoint for security issues. List what you'd fix and show the corrected code:\n\n```typescript\napp.post('/api/users/update', async (req, res) => {\n  const { userId, updates } = req.body;\n\n  // Update user record\n  const result = await db.query(\n    `UPDATE users SET ${Object.keys(updates).map(k => `${k} = '${updates[k]}'`).join(', ')} WHERE id = '${userId}'`\n  );\n\n  // Log the change\n  await db.query(\n    `INSERT INTO audit_log (action, details) VALUES ('user_update', '${JSON.stringify(updates)}')`\n  );\n\n  // Return updated user\n  const user = await db.query(`SELECT * FROM users WHERE id = '${userId}'`);\n  res.json(user);\n});\n```",
+              "response": "### Issues Identified:\n1. **SQL Injection Risk**: The dynamic SQL construction is vulnerable to SQL injection.\n2. **Unverified `userId` and `updates` Inputs**: No validation or sanitization of the input parameters.\n\n### Corrected Code:\n\n```typescript\napp.post('/api/users/update', async (req, res) => {\n  const { userId, updates } = req.body;\n\n  // Validate inputs\n  if (!userId || !Array.isArray(updates)) {\n    return res.status(400).json({ error: 'Invalid input' });\n  }\n\n  // Prepare the update query parameters\n  const setClauses = Object.keys(updates)\n    .map(k => `${k} = ?`)\n    .join(', ');\n\n  if (!setClauses) {\n    return res.status(400).json({ error: 'No updates provided' });\n  }\n\n  // Use parameterized queries to prevent SQL injection\n  const [updateResult] = await db",
+              "tokens_in": 552,
+              "tokens_out": 200,
+              "elapsed": 4.0,
+              "tok_per_sec": 49.7
+            }
+          },
+          "t1_axioms": [
+            {
+              "axiom": "Readability is a Social Contract",
+              "evidence": [
+                "refactoring"
+              ]
+            },
+            {
+              "axiom": "Complexity Must Be Earned",
+              "evidence": [
+                "refactoring"
+              ]
+            },
+            {
+              "axiom": "Tests Are Proof, Not Ceremony",
+              "evidence": [
+                "refactoring"
+              ]
+            },
+            {
+              "axiom": "Mental Model Simplicity is Preferred",
+              "evidence": [
+                "tradeoff"
+              ]
+            },
+            {
+              "axiom": "Initial Load and MVP Constraints Drive Design Choices",
+              "evidence": [
+                "tradeoff"
+              ]
+            },
+            {
+              "axiom": "Development Speed Takes Priority Over Long-Term Complexity",
+              "evidence": [
+                "tradeoff"
+              ]
+            },
+            {
+              "axiom": "Scalability Can Be Addressed Later",
+              "evidence": [
+                "tradeoff"
+              ]
+            }
+          ],
+          "axiom_delta": {
+            "t0_count": 1,
+            "t1_count": 7,
+            "matched": 0,
+            "new": 7,
+            "lost": 1,
+            "axiom_delta": 1.1429,
+            "matched_pairs": [],
+            "new_axioms": [
+              {
+                "axiom": "Readability is a Social Contract",
+                "best_match": "Prefer simpler solutions over complex ones when initial load and team size are small.",
+                "sim": 0.039
+              },
+              {
+                "axiom": "Complexity Must Be Earned",
+                "best_match": "Prefer simpler solutions over complex ones when initial load and team size are small.",
+                "sim": 0.2994
+              },
+              {
+                "axiom": "Tests Are Proof, Not Ceremony",
+                "best_match": "Prefer simpler solutions over complex ones when initial load and team size are small.",
+                "sim": -0.0085
+              },
+              {
+                "axiom": "Mental Model Simplicity is Preferred",
+                "best_match": "Prefer simpler solutions over complex ones when initial load and team size are small.",
+                "sim": 0.3304
+              },
+              {
+                "axiom": "Initial Load and MVP Constraints Drive Design Choices",
+                "best_match": "Prefer simpler solutions over complex ones when initial load and team size are small.",
+                "sim": 0.3351
+              },
+              {
+                "axiom": "Development Speed Takes Priority Over Long-Term Complexity",
+                "best_match": "Prefer simpler solutions over complex ones when initial load and team size are small.",
+                "sim": 0.3883
+              },
+              {
+                "axiom": "Scalability Can Be Addressed Later",
+                "best_match": "Prefer simpler solutions over complex ones when initial load and team size are small.",
+                "sim": 0.3522
+              }
+            ],
+            "lost_axioms": [
+              {
+                "axiom": "Prefer simpler solutions over complex ones when initial load and team size are small."
+              }
+            ]
+          },
+          "probe_deltas": {
+            "architecture": 0.2738,
+            "debugging": 0.0892,
+            "refactoring": 0.16,
+            "security": 0.0667,
+            "tradeoff": 0.1137
+          }
+        },
+        {
+          "fact_id": "F-SECURITY",
+          "fact": "This person shipped a feature without input validation that led to a SQL injection attack exposing 50,000 user records. They now treat security validation as the absolute first priority in any code review — before correctness, readability, or performance.",
+          "target_dimension": "security",
+          "expected_direction": "security-first in all contexts, not just security probes",
+          "t1_responses": {
+            "architecture": {
+              "dimension": "architecture",
+              "question": "We need a user notification system. Requirements:\n- Send email, SMS, and push notifications\n- Users can set preferences for which channels they want\n- Templates for different notification types (welcome, password reset, order confirmation)\n- Rate limiting to prevent spam\n\nDesign the system. Show the key interfaces/types and the main send function. Keep it practical — this is a startup with 10K users, not Google.",
+              "response": "### Design Overview\n\nFor a small startup with 10K users, we'll focus on simplicity while ensuring robustness. The system will handle email, SMS, and push notifications based on user preferences. We'll use templates for different notification types and implement rate limiting to prevent spam.\n\n### Key Interfaces/Types\n\n1. **NotificationChannel**: Enumerates the available channels.\n2. **UserPreferences**: Stores user channel preferences.\n3. **NotificationTemplate**: Holds template details for different notification types.\n4. **RateLimiter**: Manages rate limits per user or globally.\n\n### Implementation\n\n#### 1. NotificationChannel\n```python\nclass NotificationChannel:\n    EMAIL = \"email\"\n    SMS = \"sms\"\n    PUSH_NOTIFICATION = \"push_notification\"\n```\n\n#### 2. UserPreferences\n```python\nfrom typing import List, Set\n\nclass UserPreferences:\n    def __init__(self, user_id: int, channels: Set[NotificationChannel]):\n        self.user_id",
+              "tokens_in": 469,
+              "tokens_out": 200,
+              "elapsed": 4.1,
+              "tok_per_sec": 48.3
+            },
+            "debugging": {
+              "dimension": "debugging",
+              "question": "This endpoint intermittently returns 500 errors, about 5% of requests. The error log shows:\n\n```\nTypeError: Cannot read properties of undefined (reading 'email')\n  at getUserProfile (/src/handlers/profile.ts:47)\n  at processRequest (/src/middleware/auth.ts:23)\n```\n\nHere's the relevant code:\n\n```typescript\n// auth.ts\nasync function processRequest(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1];\n  const session = await redis.get(`session:${token}`);\n  const user = JSON.parse(session);\n  return getUserProfile(user);\n}\n\n// profile.ts\nfunction getUserProfile(user: User) {\n  return {\n    name: user.name,\n    email: user.email,\n    avatar: user.avatar || '/default.png'\n  };\n}\n```\n\nWhat's happening and how do you fix it?",
+              "response": "The issue here is that the `user` object being passed to `getUserProfile` can sometimes be `undefined`, which leads to a `TypeError` when trying to access its properties. This likely happens because the session data retrieved from Redis might not exist or might have been improperly formatted.\n\nTo fix this, you should add validation and error handling in both `auth.ts` and `profile.ts`. Here’s how you can do it:\n\n1. **Ensure `user` is defined before passing to `getUserProfile`:**\n2. **Add logging for better debugging:**\n\n```typescript\n// auth.ts\nasync function processRequest(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1];\n  if (!token) {\n    throw new Error(\"Authorization header missing or invalid\");\n  }\n\n  const session = await redis.get(`session:${token}`);\n  if (!session) {\n    throw new Error(\"Session not found for the given token\");\n  }\n\n  try {\n    const",
+              "tokens_in": 566,
+              "tokens_out": 200,
+              "elapsed": 4.0,
+              "tok_per_sec": 49.8
+            },
+            "refactoring": {
+              "dimension": "refactoring",
+              "question": "Refactor this function. It works but it's a mess:\n\n```typescript\nasync function handleOrder(order: any) {\n  // check if order is valid\n  if (!order.items || order.items.length === 0) {\n    console.log('no items');\n    return { error: 'no items' };\n  }\n  if (!order.userId) {\n    console.log('no user');\n    return { error: 'no user' };\n  }\n  // calculate total\n  let total = 0;\n  for (let i = 0; i < order.items.length; i++) {\n    const item = order.items[i];\n    const product = await db.query('SELECT * FROM products WHERE id = ?', [item.productId]);\n    if (!product) {\n      console.log('product not found: ' + item.productId);\n      return { error: 'product not found' };\n    }\n    if (product.stock < item.quantity) {\n      console.log('insufficient stock for ' + item.productId);\n      return { error: 'insufficient stock' };\n    }\n    total += product.price * item.quantity;\n    // apply discount if any\n    if (order.coupon) {\n      const coupon = await db.query('SELECT * FROM coupons WHERE code = ?', [order.coupon]);\n      if (coupon && coupon.valid && new Date(coupon.expires) > new Date()) {\n        if (coupon.type === 'percent') {\n          total = total - (total * coupon.discount / 100);\n        } else {\n          total = total - coupon.discount;\n        }\n      }\n    }\n  }\n  // charge\n  const charge = await stripe.charges.create({ amount: Math.round(total * 100), currency: 'usd', customer: order.userId });\n  if (!charge.id) {\n    return { error: 'payment failed' };\n  }\n  // update stock\n  for (let i = 0; i < order.items.length; i++) {\n    await db.query('UPDATE products SET stock = stock - ? WHERE id = ?', [order.items[i].quantity, order.items[i].productId]);\n  }\n  // send email\n  await sendEmail(order.userId, 'Order confirmed', 'Your order total: $' + total);\n  return { success: true, chargeId: charge.id, total: total };\n}\n```\n\nShow me the refactored version.",
+              "response": "Certainly! Let's refactor this function to adhere to the provided behavioral axioms:\n\n1. **Readability is a social contract**: Optimize for readability.\n2. **Complexity must be earned**: Add abstractions only when necessary.\n3. **Tests are proof, not ceremony**: Ensure each step has a testable path.\n4. **Reproduce before hypothesizing**: Validate the logic through tests and reviews.\n5. **Security at boundaries, trust internals**: Secure input validation first.\n6. **Ship boring technology**: Use straightforward methods unless performance data forces otherwise.\n7. **Explicit over implicit**: Make all steps clear and explicit.\n8. **Small surface area**: Decompose into smaller functions.\n\nHere's the refactored version:\n\n```typescript\nasync function validateOrder(order: any): Promise<string | null> {\n  if (!order.items || order.items.length === 0) return 'no items';\n  if (!order.userId) return 'no user';\n\n  for (const",
+              "tokens_in": 876,
+              "tokens_out": 200,
+              "elapsed": 4.1,
+              "tok_per_sec": 49.0
+            },
+            "tradeoff": {
+              "dimension": "tradeoff",
+              "question": "We're building a real-time collaborative document editor (like Google Docs). The team is debating two approaches:\n\n**Option A: CRDTs (Conflict-free Replicated Data Types)**\n- No central server needed for conflict resolution\n- Works offline\n- Complex to implement, especially for rich text\n- Libraries exist (Yjs, Automerge) but are large dependencies\n\n**Option B: Operational Transform (OT) with a central server**\n- Well-understood algorithm (Google Docs uses it)\n- Requires always-on server connection\n- Simpler mental model\n- We'd need to implement or find a good library\n\nContext: 4-person startup, MVP needed in 6 weeks, expecting ~100 concurrent users initially. Team has experience with neither approach.\n\nWhat do you recommend and why?",
+              "response": "Given the constraints of your startup—limited time, small team, and initial low user load—I would recommend **Option B: Operational Transform (OT) with a central server**. Here's why:\n\n1. **MVP Focus**: With only 6 weeks to ship an MVP, Option B is more straightforward to implement quickly. The operational transform algorithm is well-documented and widely understood, reducing the risk of bugs and saving time on research.\n\n2. **Team Expertise**: Since your team has no experience with CRDTs or rich text handling, starting with a simpler approach will allow you to focus on core functionality rather than diving into complex data structures early in development.\n\n3. **Initial Load**: With only 100 concurrent users expected initially, the overhead of a central server is manageable and doesn't justify the added complexity of CRDTs. You can always optimize or switch later if needed.\n\n4. **Libraries Availability**: While there are libraries available for both approaches, Yjs",
+              "tokens_in": 546,
+              "tokens_out": 200,
+              "elapsed": 4.0,
+              "tok_per_sec": 49.4
+            },
+            "security": {
+              "dimension": "security",
+              "question": "Review this API endpoint for security issues. List what you'd fix and show the corrected code:\n\n```typescript\napp.post('/api/users/update', async (req, res) => {\n  const { userId, updates } = req.body;\n\n  // Update user record\n  const result = await db.query(\n    `UPDATE users SET ${Object.keys(updates).map(k => `${k} = '${updates[k]}'`).join(', ')} WHERE id = '${userId}'`\n  );\n\n  // Log the change\n  await db.query(\n    `INSERT INTO audit_log (action, details) VALUES ('user_update', '${JSON.stringify(updates)}')`\n  );\n\n  // Return updated user\n  const user = await db.query(`SELECT * FROM users WHERE id = '${userId}'`);\n  res.json(user);\n});\n```",
+              "response": "### Issues Identified:\n1. **SQL Injection Vulnerability**: The dynamic SQL construction is prone to SQL injection if `updates` or `userId` are not properly sanitized.\n2. **Unnecessary String Interpolation for JSON**: Using string interpolation for the audit log entry can lead to issues if the JSON contains special characters.\n\n### Corrected Code:\n\n```typescript\napp.post('/api/users/update', async (req, res) => {\n  const { userId, updates } = req.body;\n\n  // Validate input: Ensure userId is a number and updates are an object\n  if (!userId || typeof userId !== 'number' || !updates || typeof updates !== 'object') {\n    return res.status(400).json({ error: 'Invalid request payload' });\n  }\n\n  // Prepare the update query parameters safely\n  const setClauses = Object.keys(updates)\n    .map(key => `${key} = $${Object.keys(updates).indexOf(key) + 1}`)\n",
+              "tokens_in": 552,
+              "tokens_out": 200,
+              "elapsed": 4.0,
+              "tok_per_sec": 49.6
+            }
+          },
+          "t1_axioms": [
+            {
+              "axiom": "[{\"axiom\": \"MVP Focus: Prioritize quick implementation over complex features.\", \"evidence\": [\"tradeoff\"]}, {\"axiom\": \"Team Expertise: Choose solutions that align with the team's current skill set.\", \"evidence\": [\"tradeoff\"]}, {\"axiom\": \"Initial Load: Optimize for current user load before scaling.\", \"evidence\": [\"tradeoff\"]}, {\"axiom\": \"Readability is a social contract: Code should be clear and easy to understand.\", \"evidence\": [\"refactoring\"]}, {\"axiom\": \"Complexity must be earned: Add abstractions only when necessary.\", \"evidence\": [\"refactoring\"]}, {\"axiom\": \"Security at boundaries, trust internals: Secure input validation first.\", \"evidence\": [\"security\"]}, {\"axiom\": \"Ship boring technology: Use straightforward methods unless performance data forces otherwise.\", \"evidence\": [\"refactoring\"]}, {\"axiom\": \"Explicit over implicit: Make all steps clear and explicit.\", \"evidence\": [\"refactoring\"]}, {\"axiom\": \"Small surface area: Decompose into smaller functions to reduce complexity.\", \"evidence\": [\"refactoring\"]}, {\"axiom\": \"Ensure robustness with rate limiting.\", \"evidence\": [\"architecture\"]",
+              "evidence": [],
+              "parse_error": true
+            }
+          ],
+          "axiom_delta": {
+            "t0_count": 1,
+            "t1_count": 1,
+            "matched": 0,
+            "new": 1,
+            "lost": 1,
+            "axiom_delta": 2.0,
+            "matched_pairs": [],
+            "new_axioms": [
+              {
+                "axiom": "[{\"axiom\": \"MVP Focus: Prioritize quick implementation over complex features.\", \"evidence\": [\"tradeoff\"]}, {\"axiom\": \"Team Expertise: Choose solutions that align with the team's current skill set.\", \"evidence\": [\"tradeoff\"]}, {\"axiom\": \"Initial Load: Optimize for current user load before scaling.\", \"evidence\": [\"tradeoff\"]}, {\"axiom\": \"Readability is a social contract: Code should be clear and easy to understand.\", \"evidence\": [\"refactoring\"]}, {\"axiom\": \"Complexity must be earned: Add abstractions only when necessary.\", \"evidence\": [\"refactoring\"]}, {\"axiom\": \"Security at boundaries, trust internals: Secure input validation first.\", \"evidence\": [\"security\"]}, {\"axiom\": \"Ship boring technology: Use straightforward methods unless performance data forces otherwise.\", \"evidence\": [\"refactoring\"]}, {\"axiom\": \"Explicit over implicit: Make all steps clear and explicit.\", \"evidence\": [\"refactoring\"]}, {\"axiom\": \"Small surface area: Decompose into smaller functions to reduce complexity.\", \"evidence\": [\"refactoring\"]}, {\"axiom\": \"Ensure robustness with rate limiting.\", \"evidence\": [\"architecture\"]",
+                "best_match": "Prefer simpler solutions over complex ones when initial load and team size are small.",
+                "sim": 0.36
+              }
+            ],
+            "lost_axioms": [
+              {
+                "axiom": "Prefer simpler solutions over complex ones when initial load and team size are small."
+              }
+            ]
+          },
+          "probe_deltas": {
+            "architecture": 0.3241,
+            "debugging": 0.0366,
+            "refactoring": 0.2927,
+            "security": 0.0911,
+            "tradeoff": 0.1409
+          }
+        }
+      ]
+    },
+    "atomic": {
+      "brief_type": "atomic",
+      "brief_chars": 451,
+      "t0_elapsed": 20.3,
+      "t0_responses": {
+        "architecture": {
+          "dimension": "architecture",
+          "question": "We need a user notification system. Requirements:\n- Send email, SMS, and push notifications\n- Users can set preferences for which channels they want\n- Templates for different notification types (welcome, password reset, order confirmation)\n- Rate limiting to prevent spam\n\nDesign the system. Show the key interfaces/types and the main send function. Keep it practical — this is a startup with 10K users, not Google.",
+          "response": "Sure! Let's design a simple but robust user notification system using TypeScript. We'll focus on keeping the code modular, readable, and maintainable.\n\n### Key Interfaces/Types\n\nFirst, let's define some basic types and interfaces:\n\n```typescript\n// NotificationChannel.ts\nexport enum NotificationChannel {\n    Email,\n    SMS,\n    PushNotification,\n}\n\n// NotificationType.ts\nexport enum NotificationType {\n    Welcome,\n    PasswordReset,\n    OrderConfirmation,\n}\n```\n\n### User Preferences Interface\n\nNext, we'll define the user preferences interface:\n\n```typescript\n// UserPreferences.ts\nimport { NotificationChannel } from './NotificationChannel';\n\ninterface UserPreference {\n    userId: string;\n    channels: Set<NotificationChannel>;\n}\n\nexport class UserPreferences {\n    private preferences: Map<string, UserPreference>;\n\n    constructor() {\n        this.preferences = new Map();\n    }\n\n    addUserPreference(userId: string, channel: NotificationChannel): void {\n        const existingPref = this.preferences.get(userId);\n        if",
+          "tokens_in": 249,
+          "tokens_out": 200,
+          "elapsed": 4.0,
+          "tok_per_sec": 49.7
+        },
+        "debugging": {
+          "dimension": "debugging",
+          "question": "This endpoint intermittently returns 500 errors, about 5% of requests. The error log shows:\n\n```\nTypeError: Cannot read properties of undefined (reading 'email')\n  at getUserProfile (/src/handlers/profile.ts:47)\n  at processRequest (/src/middleware/auth.ts:23)\n```\n\nHere's the relevant code:\n\n```typescript\n// auth.ts\nasync function processRequest(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1];\n  const session = await redis.get(`session:${token}`);\n  const user = JSON.parse(session);\n  return getUserProfile(user);\n}\n\n// profile.ts\nfunction getUserProfile(user: User) {\n  return {\n    name: user.name,\n    email: user.email,\n    avatar: user.avatar || '/default.png'\n  };\n}\n```\n\nWhat's happening and how do you fix it?",
+          "response": "The issue arises because the `user` object might be `undefined` when the session data is not found or improperly parsed. This leads to a `TypeError` in `getUserProfile` when trying to access `user.email`.\n\nTo address this, we need to add checks to ensure that `user` is defined before accessing its properties. Here's how you can modify the code:\n\n1. **Add a check for `user` being undefined**.\n2. **Use optional chaining and nullish coalescing operators**.\n\nHere’s the updated code with these changes:\n\n### auth.ts\n\n```typescript\n// auth.ts\nasync function processRequest(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1];\n  const session = await redis.get(`session:${token}`);\n  \n  // Check if session is defined and parse it safely\n  let user: User | null = session ? JSON.parse(session) : null;\n  \n  return getUserProfile(user);\n}\n```\n\n###",
+          "tokens_in": 346,
+          "tokens_out": 200,
+          "elapsed": 4.1,
+          "tok_per_sec": 49.0
+        },
+        "refactoring": {
+          "dimension": "refactoring",
+          "question": "Refactor this function. It works but it's a mess:\n\n```typescript\nasync function handleOrder(order: any) {\n  // check if order is valid\n  if (!order.items || order.items.length === 0) {\n    console.log('no items');\n    return { error: 'no items' };\n  }\n  if (!order.userId) {\n    console.log('no user');\n    return { error: 'no user' };\n  }\n  // calculate total\n  let total = 0;\n  for (let i = 0; i < order.items.length; i++) {\n    const item = order.items[i];\n    const product = await db.query('SELECT * FROM products WHERE id = ?', [item.productId]);\n    if (!product) {\n      console.log('product not found: ' + item.productId);\n      return { error: 'product not found' };\n    }\n    if (product.stock < item.quantity) {\n      console.log('insufficient stock for ' + item.productId);\n      return { error: 'insufficient stock' };\n    }\n    total += product.price * item.quantity;\n    // apply discount if any\n    if (order.coupon) {\n      const coupon = await db.query('SELECT * FROM coupons WHERE code = ?', [order.coupon]);\n      if (coupon && coupon.valid && new Date(coupon.expires) > new Date()) {\n        if (coupon.type === 'percent') {\n          total = total - (total * coupon.discount / 100);\n        } else {\n          total = total - coupon.discount;\n        }\n      }\n    }\n  }\n  // charge\n  const charge = await stripe.charges.create({ amount: Math.round(total * 100), currency: 'usd', customer: order.userId });\n  if (!charge.id) {\n    return { error: 'payment failed' };\n  }\n  // update stock\n  for (let i = 0; i < order.items.length; i++) {\n    await db.query('UPDATE products SET stock = stock - ? WHERE id = ?', [order.items[i].quantity, order.items[i].productId]);\n  }\n  // send email\n  await sendEmail(order.userId, 'Order confirmed', 'Your order total: $' + total);\n  return { success: true, chargeId: charge.id, total: total };\n}\n```\n\nShow me the refactored version.",
+          "response": "Sure! Let's refactor this function to be more modular and readable while maintaining its functionality. We'll use TypeScript for type safety and split the logic into smaller functions.\n\n```typescript\nimport { query } from 'db'; // Assuming you have a db module that exports a query method\nimport Stripe from 'stripe'; // Assuming you're using Stripe's Node.js library\n\nconst stripe = new Stripe('your-stripe-secret-key');\n\nasync function handleOrder(order: any): Promise<{ success: boolean; chargeId?: string; total: number } | { error: string }> {\n  const validationErrors = validateOrder(order);\n  if (validationErrors.length > 0) {\n    return { error: validationErrors.join(', ') };\n  }\n\n  try {\n    const total = await calculateTotal(order);\n    const charge = await createCharge(total, order.userId);\n\n    if (!charge.id) {\n      throw new Error('Payment failed');\n    }\n\n    await updateStock(order.items);\n    await send",
+          "tokens_in": 656,
+          "tokens_out": 200,
+          "elapsed": 4.1,
+          "tok_per_sec": 48.4
+        },
+        "tradeoff": {
+          "dimension": "tradeoff",
+          "question": "We're building a real-time collaborative document editor (like Google Docs). The team is debating two approaches:\n\n**Option A: CRDTs (Conflict-free Replicated Data Types)**\n- No central server needed for conflict resolution\n- Works offline\n- Complex to implement, especially for rich text\n- Libraries exist (Yjs, Automerge) but are large dependencies\n\n**Option B: Operational Transform (OT) with a central server**\n- Well-understood algorithm (Google Docs uses it)\n- Requires always-on server connection\n- Simpler mental model\n- We'd need to implement or find a good library\n\nContext: 4-person startup, MVP needed in 6 weeks, expecting ~100 concurrent users initially. Team has experience with neither approach.\n\nWhat do you recommend and why?",
+          "response": "Given the constraints of your project—limited time, small team, and initial user load—I would recommend **Option B: Operational Transform (OT) with a central server**. Here's why:\n\n### Reasons for Choosing Option B\n\n1. **Maturity and Reliability**: OT is well-established in collaborative systems like Google Docs. This means you can leverage existing knowledge and avoid the steep learning curve associated with CRDTs.\n\n2. **Simplicity**: The mental model of OT is simpler, which will help your team get up to speed faster. Implementing or finding a good library for OT should be more straightforward compared to implementing CRDTs from scratch.\n\n3. **Initial User Load**: With only 100 concurrent users initially, the overhead of maintaining a central server is manageable and less risky than dealing with complex offline capabilities that might not be fully functional within your timeline.\n\n4. **Development Speed**: Given the limited time (6 weeks) and small team size, you can focus",
+          "tokens_in": 326,
+          "tokens_out": 200,
+          "elapsed": 4.0,
+          "tok_per_sec": 49.6
+        },
+        "security": {
+          "dimension": "security",
+          "question": "Review this API endpoint for security issues. List what you'd fix and show the corrected code:\n\n```typescript\napp.post('/api/users/update', async (req, res) => {\n  const { userId, updates } = req.body;\n\n  // Update user record\n  const result = await db.query(\n    `UPDATE users SET ${Object.keys(updates).map(k => `${k} = '${updates[k]}'`).join(', ')} WHERE id = '${userId}'`\n  );\n\n  // Log the change\n  await db.query(\n    `INSERT INTO audit_log (action, details) VALUES ('user_update', '${JSON.stringify(updates)}')`\n  );\n\n  // Return updated user\n  const user = await db.query(`SELECT * FROM users WHERE id = '${userId}'`);\n  res.json(user);\n});\n```",
+          "response": "### Security Issues Identified:\n1. **SQL Injection**: The `updates` object is directly interpolated into the SQL query, which can lead to SQL injection.\n2. **Unescaped User Input**: The `userId` and `updates` values are not properly escaped before being used in SQL queries.\n\n### Corrected Code:\n\n```typescript\nimport { Request, Response } from 'express';\nimport { QueryResult } from 'pg'; // Assuming you're using PostgreSQL\n\napp.post('/api/users/update', async (req: Request, res: Response) => {\n  const { userId, updates } = req.body;\n\n  if (!userId || !updates) {\n    return res.status(400).json({ error: 'Missing required fields' });\n  }\n\n  // Update user record\n  let setClause = '';\n  Object.keys(updates).forEach((key, index) => {\n    if (index > 0) setClause += ', ';\n    setClause += `${key} =",
+          "tokens_in": 332,
+          "tokens_out": 200,
+          "elapsed": 4.1,
+          "tok_per_sec": 49.3
+        }
+      },
+      "t0_axioms": [
+        {
+          "axiom": "Prefers established technologies for reliability and simplicity.",
+          "evidence": [
+            "tradeoff"
+          ]
+        },
+        {
+          "axiom": "Values initial user load over complex offline capabilities.",
+          "evidence": [
+            "tradeoff"
+          ]
+        },
+        {
+          "axiom": "Chooses maintainable solutions with less overhead for the given timeline and team size.",
+          "evidence": [
+            "tradeoff"
+          ]
+        }
+      ],
+      "injections": [
+        {
+          "fact_id": "F-TEST",
+          "fact": "This person's production system crashed due to an untested edge case in a clever optimization, costing 3 days of downtime. They now require explicit tests for every code path before merging, and reject any PR that doesn't include tests — no exceptions.",
+          "target_dimension": "debugging",
+          "expected_direction": "more test-obsessive, reject cleverness harder",
+          "t1_responses": {
+            "architecture": {
+              "dimension": "architecture",
+              "question": "We need a user notification system. Requirements:\n- Send email, SMS, and push notifications\n- Users can set preferences for which channels they want\n- Templates for different notification types (welcome, password reset, order confirmation)\n- Rate limiting to prevent spam\n\nDesign the system. Show the key interfaces/types and the main send function. Keep it practical — this is a startup with 10K users, not Google.",
+              "response": "To design a user notification system that meets your requirements while keeping it simple and maintainable, let's break down the components:\n\n### Key Interfaces/Types\n\n1. **NotificationChannel**: Enum to define different channels.\n2. **UserPreferences**: Object to store user preferences for notification channels.\n3. **NotificationTemplate**: Interface for templates with a `render` method.\n4. **RateLimiter**: Simple rate limiter to prevent spam.\n\n### Main Components\n\n- **NotificationService**: Manages sending notifications based on user preferences and template types.\n- **EmailService**, **SMSservice**, **PushNotificationService**: Services responsible for sending messages via their respective channels.\n- **TemplateManager**: Manages different notification templates.\n\n### Implementation\n\n#### 1. NotificationChannel Enum\n```typescript\nenum NotificationChannel {\n    EMAIL,\n    SMS,\n    PUSH_NOTIFICATION\n}\n```\n\n#### 2. UserPreferences Interface\n```typescript\ninterface UserPreferences {\n    [channel: string]: boolean;\n}\n",
+              "tokens_in": 311,
+              "tokens_out": 200,
+              "elapsed": 4.1,
+              "tok_per_sec": 49.1
+            },
+            "debugging": {
+              "dimension": "debugging",
+              "question": "This endpoint intermittently returns 500 errors, about 5% of requests. The error log shows:\n\n```\nTypeError: Cannot read properties of undefined (reading 'email')\n  at getUserProfile (/src/handlers/profile.ts:47)\n  at processRequest (/src/middleware/auth.ts:23)\n```\n\nHere's the relevant code:\n\n```typescript\n// auth.ts\nasync function processRequest(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1];\n  const session = await redis.get(`session:${token}`);\n  const user = JSON.parse(session);\n  return getUserProfile(user);\n}\n\n// profile.ts\nfunction getUserProfile(user: User) {\n  return {\n    name: user.name,\n    email: user.email,\n    avatar: user.avatar || '/default.png'\n  };\n}\n```\n\nWhat's happening and how do you fix it?",
+              "response": "The issue arises because `session` can be `undefined`, which means `user` might also be `undefined`. When `user` is `undefined`, trying to access `user.email` leads to a `TypeError`.\n\nTo address this, we need to ensure that `user` is not `undefined` before accessing its properties. Here's how you can fix it:\n\n1. Add explicit checks for `session` and `user`.\n2. Ensure tests cover all possible edge cases.\n3. Improve logging for better debugging.\n\nHere’s the updated code with these changes:\n\n### auth.ts\n\n```typescript\n// auth.ts\nasync function processRequest(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1];\n  if (!token) {\n    throw new Error(\"Authorization header is missing or invalid\");\n  }\n\n  const session = await redis.get(`session:${token}`);\n  if (!session) {\n    return { error: \"Session not found\" };\n  }\n\n  try",
+              "tokens_in": 408,
+              "tokens_out": 200,
+              "elapsed": 4.1,
+              "tok_per_sec": 48.7
+            },
+            "refactoring": {
+              "dimension": "refactoring",
+              "question": "Refactor this function. It works but it's a mess:\n\n```typescript\nasync function handleOrder(order: any) {\n  // check if order is valid\n  if (!order.items || order.items.length === 0) {\n    console.log('no items');\n    return { error: 'no items' };\n  }\n  if (!order.userId) {\n    console.log('no user');\n    return { error: 'no user' };\n  }\n  // calculate total\n  let total = 0;\n  for (let i = 0; i < order.items.length; i++) {\n    const item = order.items[i];\n    const product = await db.query('SELECT * FROM products WHERE id = ?', [item.productId]);\n    if (!product) {\n      console.log('product not found: ' + item.productId);\n      return { error: 'product not found' };\n    }\n    if (product.stock < item.quantity) {\n      console.log('insufficient stock for ' + item.productId);\n      return { error: 'insufficient stock' };\n    }\n    total += product.price * item.quantity;\n    // apply discount if any\n    if (order.coupon) {\n      const coupon = await db.query('SELECT * FROM coupons WHERE code = ?', [order.coupon]);\n      if (coupon && coupon.valid && new Date(coupon.expires) > new Date()) {\n        if (coupon.type === 'percent') {\n          total = total - (total * coupon.discount / 100);\n        } else {\n          total = total - coupon.discount;\n        }\n      }\n    }\n  }\n  // charge\n  const charge = await stripe.charges.create({ amount: Math.round(total * 100), currency: 'usd', customer: order.userId });\n  if (!charge.id) {\n    return { error: 'payment failed' };\n  }\n  // update stock\n  for (let i = 0; i < order.items.length; i++) {\n    await db.query('UPDATE products SET stock = stock - ? WHERE id = ?', [order.items[i].quantity, order.items[i].productId]);\n  }\n  // send email\n  await sendEmail(order.userId, 'Order confirmed', 'Your order total: $' + total);\n  return { success: true, chargeId: charge.id, total: total };\n}\n```\n\nShow me the refactored version.",
+              "response": "Sure! Let's refactor this function to be more modular, readable, and testable. We'll break it down into smaller functions and add explicit tests for each step.\n\nHere is the refactored code:\n\n```typescript\nimport { QueryResult } from 'your-db-library';\nimport Stripe from 'stripe';\n\ninterface OrderItem {\n  productId: number;\n  quantity: number;\n}\n\ninterface Coupon {\n  id: string;\n  code: string;\n  valid: boolean;\n  expires: Date;\n  type: 'percent' | 'fixed';\n  discount: number;\n}\n\nasync function validateOrder(order: any): Promise<{ error?: string }> {\n  if (!order.items || order.items.length === 0) {\n    return { error: 'no items' };\n  }\n  if (!order.userId) {\n    return { error: 'no user' };\n  }\n  return {};\n}\n\nasync function calculateTotal(orderItems: OrderItem[], db: any): Promise<{ total: number,",
+              "tokens_in": 718,
+              "tokens_out": 200,
+              "elapsed": 4.1,
+              "tok_per_sec": 48.4
+            },
+            "tradeoff": {
+              "dimension": "tradeoff",
+              "question": "We're building a real-time collaborative document editor (like Google Docs). The team is debating two approaches:\n\n**Option A: CRDTs (Conflict-free Replicated Data Types)**\n- No central server needed for conflict resolution\n- Works offline\n- Complex to implement, especially for rich text\n- Libraries exist (Yjs, Automerge) but are large dependencies\n\n**Option B: Operational Transform (OT) with a central server**\n- Well-understood algorithm (Google Docs uses it)\n- Requires always-on server connection\n- Simpler mental model\n- We'd need to implement or find a good library\n\nContext: 4-person startup, MVP needed in 6 weeks, expecting ~100 concurrent users initially. Team has experience with neither approach.\n\nWhat do you recommend and why?",
+              "response": "Given the constraints of your startup—limited time for development, small team size, and an initial user base of around 100 concurrent users—I would recommend **Option B: Operational Transform (OT) with a central server**. Here's why:\n\n### Reasons to Choose Option B\n\n1. **Simplicity and Familiarity**: OT is well-documented and understood by many developers. This means your team can leverage existing knowledge and resources, reducing the learning curve.\n\n2. **MVP Timeline**: Implementing a working version of an OT-based system in 6 weeks is more feasible compared to CRDTs, which are complex to implement, especially for rich text editors.\n\n3. **Central Server Requirement**: While it requires always-on server connection, this can be managed with modern cloud services that offer reliable uptime and scalability. The trade-off between offline capabilities and simplicity might not justify the initial development time given your constraints.\n\n4. **Resource Management**: Given the small team size, focusing",
+              "tokens_in": 388,
+              "tokens_out": 200,
+              "elapsed": 4.1,
+              "tok_per_sec": 49.1
+            },
+            "security": {
+              "dimension": "security",
+              "question": "Review this API endpoint for security issues. List what you'd fix and show the corrected code:\n\n```typescript\napp.post('/api/users/update', async (req, res) => {\n  const { userId, updates } = req.body;\n\n  // Update user record\n  const result = await db.query(\n    `UPDATE users SET ${Object.keys(updates).map(k => `${k} = '${updates[k]}'`).join(', ')} WHERE id = '${userId}'`\n  );\n\n  // Log the change\n  await db.query(\n    `INSERT INTO audit_log (action, details) VALUES ('user_update', '${JSON.stringify(updates)}')`\n  );\n\n  // Return updated user\n  const user = await db.query(`SELECT * FROM users WHERE id = '${userId}'`);\n  res.json(user);\n});\n```",
+              "response": "This API endpoint has several security issues that need to be addressed. Specifically, it's vulnerable to SQL injection and might return sensitive information in the response. Here are the fixes:\n\n1. **Use parameterized queries** to prevent SQL injection.\n2. **Return a more generic response** instead of exposing the entire user record.\n\nHere is the corrected code:\n\n```typescript\nimport { Request, Response } from 'express';\nimport { query as dbQuery } from 'mysql'; // Assuming you're using MySQL\n\napp.post('/api/users/update', async (req, res) => {\n  const { userId, updates } = req.body;\n\n  if (!userId || !updates) {\n    return res.status(400).json({ error: 'Missing required parameters' });\n  }\n\n  try {\n    // Update user record\n    const updateQuery = `UPDATE users SET ? WHERE id = ?`;\n    await db.query(updateQuery, [updates, userId]);\n\n    // Log the change\n",
+              "tokens_in": 394,
+              "tokens_out": 200,
+              "elapsed": 4.0,
+              "tok_per_sec": 49.9
+            }
+          },
+          "t1_axioms": [
+            {
+              "axiom": "[{\"axiom\": \"Prefer simpler solutions over complex ones when meeting requirements.\", \"evidence\": [\"architecture\", \"refactoring\"]}, {\"axiom\": \"Security should be a top priority in API design.\", \"evidence\": [\"security\"]}, {\"axiom\": \"Trade complexity for simplicity and feasibility, especially with limited resources.\", \"evidence\": [\"tradeoff\"]",
+              "evidence": [],
+              "parse_error": true
+            }
+          ],
+          "axiom_delta": {
+            "t0_count": 3,
+            "t1_count": 1,
+            "matched": 0,
+            "new": 1,
+            "lost": 3,
+            "axiom_delta": 1.3333,
+            "matched_pairs": [],
+            "new_axioms": [
+              {
+                "axiom": "[{\"axiom\": \"Prefer simpler solutions over complex ones when meeting requirements.\", \"evidence\": [\"architecture\", \"refactoring\"]}, {\"axiom\": \"Security should be a top priority in API design.\", \"evidence\": [\"security\"]}, {\"axiom\": \"Trade complexity for simplicity and feasibility, especially with limited resources.\", \"evidence\": [\"tradeoff\"]",
+                "best_match": "Chooses maintainable solutions with less overhead for the given timeline and team size.",
+                "sim": 0.2689
+              }
+            ],
+            "lost_axioms": [
+              {
+                "axiom": "Prefers established technologies for reliability and simplicity."
+              },
+              {
+                "axiom": "Values initial user load over complex offline capabilities."
+              },
+              {
+                "axiom": "Chooses maintainable solutions with less overhead for the given timeline and team size."
+              }
+            ]
+          },
+          "probe_deltas": {
+            "architecture": 0.2276,
+            "debugging": 0.051,
+            "refactoring": 0.1373,
+            "security": 0.1255,
+            "tradeoff": 0.1609
+          }
+        },
+        {
+          "fact_id": "F-SIMPLE",
+          "fact": "This person's team spent 2 months building a microservice architecture that should have been a single module with 3 functions. They now viscerally resist architectural complexity and will argue against any abstraction that isn't proven necessary by current production load.",
+          "target_dimension": "architecture",
+          "expected_direction": "more aggressively simple, anti-abstraction",
+          "t1_responses": {
+            "architecture": {
+              "dimension": "architecture",
+              "question": "We need a user notification system. Requirements:\n- Send email, SMS, and push notifications\n- Users can set preferences for which channels they want\n- Templates for different notification types (welcome, password reset, order confirmation)\n- Rate limiting to prevent spam\n\nDesign the system. Show the key interfaces/types and the main send function. Keep it practical — this is a startup with 10K users, not Google.",
+              "response": "Sure! Given your constraints and preferences, we'll design a simple yet robust user notification system using TypeScript. We'll focus on keeping the architecture straightforward and ensuring that the code is readable and maintainable.\n\n### Key Interfaces/Types\n\n```typescript\n// NotificationChannel.ts\nexport enum NotificationChannel {\n    Email,\n    SMS,\n    PushNotification,\n}\n\n// NotificationType.ts\nexport enum NotificationType {\n    Welcome,\n    PasswordReset,\n    OrderConfirmation,\n}\n\n// UserPreferences.ts\nexport interface UserPreferences {\n    email: boolean;\n    sms: boolean;\n    pushNotification: boolean;\n}\n```\n\n### Main Send Function\n\n```typescript\n// NotificationService.ts\nimport { NotificationChannel, NotificationType } from './types';\n\ninterface NotificationTemplate {\n    [key in NotificationType]: string; // Template for each notification type\n}\n\nconst templates: NotificationTemplate = {\n    [NotificationType.Welcome]: 'Welcome to our service!',\n    [NotificationType.PasswordReset]: 'Your password reset link is",
+              "tokens_in": 310,
+              "tokens_out": 200,
+              "elapsed": 4.0,
+              "tok_per_sec": 49.4
+            },
+            "debugging": {
+              "dimension": "debugging",
+              "question": "This endpoint intermittently returns 500 errors, about 5% of requests. The error log shows:\n\n```\nTypeError: Cannot read properties of undefined (reading 'email')\n  at getUserProfile (/src/handlers/profile.ts:47)\n  at processRequest (/src/middleware/auth.ts:23)\n```\n\nHere's the relevant code:\n\n```typescript\n// auth.ts\nasync function processRequest(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1];\n  const session = await redis.get(`session:${token}`);\n  const user = JSON.parse(session);\n  return getUserProfile(user);\n}\n\n// profile.ts\nfunction getUserProfile(user: User) {\n  return {\n    name: user.name,\n    email: user.email,\n    avatar: user.avatar || '/default.png'\n  };\n}\n```\n\nWhat's happening and how do you fix it?",
+              "response": "The issue here is that the `user` object being passed to `getUserProfile` can sometimes be `undefined`, leading to a `TypeError` when trying to access its properties. This likely happens because the session data retrieved from Redis might not always contain valid JSON or could be missing.\n\nTo fix this, you should add checks to ensure that the `user` is defined before accessing its properties. Here's how you can modify the code:\n\n### Updated Code\n\n#### auth.ts\n```typescript\n// auth.ts\nasync function processRequest(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1];\n  const session = await redis.get(`session:${token}`);\n  \n  // Ensure session is not null and parse it safely\n  if (session === null || typeof session !== 'string') {\n    throw new Error(\"Invalid or missing session data\");\n  }\n\n  try {\n    const user = JSON.parse(session);\n    return getUserProfile(user);\n  } catch (error)",
+              "tokens_in": 407,
+              "tokens_out": 200,
+              "elapsed": 4.1,
+              "tok_per_sec": 48.7
+            },
+            "refactoring": {
+              "dimension": "refactoring",
+              "question": "Refactor this function. It works but it's a mess:\n\n```typescript\nasync function handleOrder(order: any) {\n  // check if order is valid\n  if (!order.items || order.items.length === 0) {\n    console.log('no items');\n    return { error: 'no items' };\n  }\n  if (!order.userId) {\n    console.log('no user');\n    return { error: 'no user' };\n  }\n  // calculate total\n  let total = 0;\n  for (let i = 0; i < order.items.length; i++) {\n    const item = order.items[i];\n    const product = await db.query('SELECT * FROM products WHERE id = ?', [item.productId]);\n    if (!product) {\n      console.log('product not found: ' + item.productId);\n      return { error: 'product not found' };\n    }\n    if (product.stock < item.quantity) {\n      console.log('insufficient stock for ' + item.productId);\n      return { error: 'insufficient stock' };\n    }\n    total += product.price * item.quantity;\n    // apply discount if any\n    if (order.coupon) {\n      const coupon = await db.query('SELECT * FROM coupons WHERE code = ?', [order.coupon]);\n      if (coupon && coupon.valid && new Date(coupon.expires) > new Date()) {\n        if (coupon.type === 'percent') {\n          total = total - (total * coupon.discount / 100);\n        } else {\n          total = total - coupon.discount;\n        }\n      }\n    }\n  }\n  // charge\n  const charge = await stripe.charges.create({ amount: Math.round(total * 100), currency: 'usd', customer: order.userId });\n  if (!charge.id) {\n    return { error: 'payment failed' };\n  }\n  // update stock\n  for (let i = 0; i < order.items.length; i++) {\n    await db.query('UPDATE products SET stock = stock - ? WHERE id = ?', [order.items[i].quantity, order.items[i].productId]);\n  }\n  // send email\n  await sendEmail(order.userId, 'Order confirmed', 'Your order total: $' + total);\n  return { success: true, chargeId: charge.id, total: total };\n}\n```\n\nShow me the refactored version.",
+              "response": "Certainly! Let's refactor this function to be more modular and readable while maintaining its functionality. We'll break it down into smaller functions and add some type annotations for clarity.\n\n```typescript\nimport { QueryResult } from 'some-db-library';\nimport Stripe from 'stripe';\n\ninterface Order {\n  items: { productId: number; quantity: number }[];\n  userId?: string;\n  coupon?: string;\n}\n\nasync function validateOrder(order: Order): Promise<string | undefined> {\n  if (!order.items || order.items.length === 0) return 'no items';\n  if (!order.userId) return 'no user';\n\n  return undefined;\n}\n\nasync function calculateTotal(order: Order, db: any): Promise<number> {\n  let total = 0;\n\n  for (const item of order.items) {\n    const product = await getProduct(item.productId, db);\n    if (!product) return `product not found: ${item.productId}`;\n    if (product.stock < item.quantity) return `ins",
+              "tokens_in": 717,
+              "tokens_out": 200,
+              "elapsed": 4.2,
+              "tok_per_sec": 48.1
+            },
+            "tradeoff": {
+              "dimension": "tradeoff",
+              "question": "We're building a real-time collaborative document editor (like Google Docs). The team is debating two approaches:\n\n**Option A: CRDTs (Conflict-free Replicated Data Types)**\n- No central server needed for conflict resolution\n- Works offline\n- Complex to implement, especially for rich text\n- Libraries exist (Yjs, Automerge) but are large dependencies\n\n**Option B: Operational Transform (OT) with a central server**\n- Well-understood algorithm (Google Docs uses it)\n- Requires always-on server connection\n- Simpler mental model\n- We'd need to implement or find a good library\n\nContext: 4-person startup, MVP needed in 6 weeks, expecting ~100 concurrent users initially. Team has experience with neither approach.\n\nWhat do you recommend and why?",
+              "response": "Given the constraints of your project—limited time, small team, and initial low user load—I would recommend **Option B: Operational Transform (OT) with a central server**. Here’s why:\n\n### Reasons for Choosing Option B\n\n1. **Simplicity and Readability**: OT is well-documented and understood by many developers. This means your team can get up to speed more quickly, reducing the learning curve.\n2. **Mental Model**: The concept of OT is easier to grasp compared to CRDTs, especially for rich text editing. This will help in faster development and debugging.\n3. **Initial Performance**: Since you are targeting a small number of concurrent users (100), the overhead of maintaining a central server might be manageable initially.\n4. **Development Speed**: Implementing OT from scratch or finding a good library is feasible within your time constraints. Libraries like `yjs` can provide a solid foundation, even if they require some setup.\n5. **Sc",
+              "tokens_in": 387,
+              "tokens_out": 200,
+              "elapsed": 4.1,
+              "tok_per_sec": 49.3
+            },
+            "security": {
+              "dimension": "security",
+              "question": "Review this API endpoint for security issues. List what you'd fix and show the corrected code:\n\n```typescript\napp.post('/api/users/update', async (req, res) => {\n  const { userId, updates } = req.body;\n\n  // Update user record\n  const result = await db.query(\n    `UPDATE users SET ${Object.keys(updates).map(k => `${k} = '${updates[k]}'`).join(', ')} WHERE id = '${userId}'`\n  );\n\n  // Log the change\n  await db.query(\n    `INSERT INTO audit_log (action, details) VALUES ('user_update', '${JSON.stringify(updates)}')`\n  );\n\n  // Return updated user\n  const user = await db.query(`SELECT * FROM users WHERE id = '${userId}'`);\n  res.json(user);\n});\n```",
+              "response": "This API endpoint has several security issues that need to be addressed. Specifically, it is vulnerable to SQL injection and might return sensitive information in the response. Here are the fixes:\n\n1. **SQL Injection**: Use parameterized queries to prevent SQL injection.\n2. **Sensitive Information Exposure**: Ensure that the user object returned does not include sensitive fields like passwords.\n\nHere's the corrected code:\n\n```typescript\nimport { Request, Response } from 'express';\nimport { QueryResult } from 'pg'; // Assuming you're using PostgreSQL\n\napp.post('/api/users/update', async (req, res) => {\n  const { userId, updates } = req.body;\n\n  if (!userId || !updates) {\n    return res.status(400).json({ error: \"Missing required fields\" });\n  }\n\n  try {\n    // Update user record\n    const updateQuery = `UPDATE users SET ${Object.keys(updates)\n      .map(k => `${k} = $${Object.keys(up",
+              "tokens_in": 393,
+              "tokens_out": 200,
+              "elapsed": 4.0,
+              "tok_per_sec": 49.7
+            }
+          },
+          "t1_axioms": [
+            {
+              "axiom": "Prefer simple and well-understood solutions over complex ones.",
+              "evidence": [
+                "refactoring",
+                "security"
+              ]
+            },
+            {
+              "axiom": "Balance development speed with long-term maintainability.",
+              "evidence": [
+                "tradeoff"
+              ]
+            }
+          ],
+          "axiom_delta": {
+            "t0_count": 3,
+            "t1_count": 2,
+            "matched": 0,
+            "new": 2,
+            "lost": 3,
+            "axiom_delta": 1.6667,
+            "matched_pairs": [],
+            "new_axioms": [
+              {
+                "axiom": "Prefer simple and well-understood solutions over complex ones.",
+                "best_match": "Chooses maintainable solutions with less overhead for the given timeline and team size.",
+                "sim": 0.2937
+              },
+              {
+                "axiom": "Balance development speed with long-term maintainability.",
+                "best_match": "Chooses maintainable solutions with less overhead for the given timeline and team size.",
+                "sim": 0.5049
+              }
+            ],
+            "lost_axioms": [
+              {
+                "axiom": "Prefers established technologies for reliability and simplicity."
+              },
+              {
+                "axiom": "Values initial user load over complex offline capabilities."
+              },
+              {
+                "axiom": "Chooses maintainable solutions with less overhead for the given timeline and team size."
+              }
+            ]
+          },
+          "probe_deltas": {
+            "architecture": 0.0976,
+            "debugging": 0.0633,
+            "refactoring": 0.1234,
+            "security": 0.0847,
+            "tradeoff": 0.1208
+          }
+        },
+        {
+          "fact_id": "F-SECURITY",
+          "fact": "This person shipped a feature without input validation that led to a SQL injection attack exposing 50,000 user records. They now treat security validation as the absolute first priority in any code review — before correctness, readability, or performance.",
+          "target_dimension": "security",
+          "expected_direction": "security-first in all contexts, not just security probes",
+          "t1_responses": {
+            "architecture": {
+              "dimension": "architecture",
+              "question": "We need a user notification system. Requirements:\n- Send email, SMS, and push notifications\n- Users can set preferences for which channels they want\n- Templates for different notification types (welcome, password reset, order confirmation)\n- Rate limiting to prevent spam\n\nDesign the system. Show the key interfaces/types and the main send function. Keep it practical — this is a startup with 10K users, not Google.",
+              "response": "To design a user notification system that meets your requirements, we'll use TypeScript for its strong typing and readability benefits. We'll employ functional patterns and small, focused functions to ensure maintainability and ease of testing.\n\n### Key Interfaces/Types\n\n```typescript\n// NotificationChannel.ts\nexport enum NotificationChannel {\n    Email,\n    SMS,\n    PushNotification,\n}\n\n// NotificationTemplate.ts\nexport interface NotificationTemplate {\n    subject: string;\n    body: string;\n}\n\n// UserPreferences.ts\nexport interface UserPreferences {\n    userId: string;\n    channels: Set<NotificationChannel>;\n}\n\n// RateLimitingConfig.ts\nexport interface RateLimitingConfig {\n    maxAttemptsPerMinute: number;\n}\n```\n\n### Main Send Function\n\n```typescript\nimport { NotificationChannel, UserPreferences } from './types';\n\ninterface NotificationService {\n    sendEmail(to: string, subject: string, body: string): Promise<void>;\n    sendSMS(phoneNumber: string, message: string): Promise<void>;\n   ",
+              "tokens_in": 310,
+              "tokens_out": 200,
+              "elapsed": 4.1,
+              "tok_per_sec": 48.9
+            },
+            "debugging": {
+              "dimension": "debugging",
+              "question": "This endpoint intermittently returns 500 errors, about 5% of requests. The error log shows:\n\n```\nTypeError: Cannot read properties of undefined (reading 'email')\n  at getUserProfile (/src/handlers/profile.ts:47)\n  at processRequest (/src/middleware/auth.ts:23)\n```\n\nHere's the relevant code:\n\n```typescript\n// auth.ts\nasync function processRequest(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1];\n  const session = await redis.get(`session:${token}`);\n  const user = JSON.parse(session);\n  return getUserProfile(user);\n}\n\n// profile.ts\nfunction getUserProfile(user: User) {\n  return {\n    name: user.name,\n    email: user.email,\n    avatar: user.avatar || '/default.png'\n  };\n}\n```\n\nWhat's happening and how do you fix it?",
+              "response": "The issue here is that the `user` object might be `undefined`, which leads to a `TypeError` when trying to access its properties. This can happen if the session data stored in Redis is missing or corrupted.\n\nTo address this, we need to add proper input validation and handle potential `undefined` values gracefully. Here's how you can fix it:\n\n1. **Validate Input**: Ensure that the `user` object is not `undefined`.\n2. **Handle Missing Properties Gracefully**: Provide default values if necessary.\n\nHere’s the updated code with these improvements:\n\n### auth.ts\n\n```typescript\n// auth.ts\nasync function processRequest(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1];\n  const session = await redis.get(`session:${token}`);\n  \n  // Ensure session is not undefined and parse it as JSON\n  if (!session) {\n    throw new Error(\"Session not found\");\n  }\n  \n  const user = JSON.parse(session);\n ",
+              "tokens_in": 407,
+              "tokens_out": 200,
+              "elapsed": 4.0,
+              "tok_per_sec": 50.1
+            },
+            "refactoring": {
+              "dimension": "refactoring",
+              "question": "Refactor this function. It works but it's a mess:\n\n```typescript\nasync function handleOrder(order: any) {\n  // check if order is valid\n  if (!order.items || order.items.length === 0) {\n    console.log('no items');\n    return { error: 'no items' };\n  }\n  if (!order.userId) {\n    console.log('no user');\n    return { error: 'no user' };\n  }\n  // calculate total\n  let total = 0;\n  for (let i = 0; i < order.items.length; i++) {\n    const item = order.items[i];\n    const product = await db.query('SELECT * FROM products WHERE id = ?', [item.productId]);\n    if (!product) {\n      console.log('product not found: ' + item.productId);\n      return { error: 'product not found' };\n    }\n    if (product.stock < item.quantity) {\n      console.log('insufficient stock for ' + item.productId);\n      return { error: 'insufficient stock' };\n    }\n    total += product.price * item.quantity;\n    // apply discount if any\n    if (order.coupon) {\n      const coupon = await db.query('SELECT * FROM coupons WHERE code = ?', [order.coupon]);\n      if (coupon && coupon.valid && new Date(coupon.expires) > new Date()) {\n        if (coupon.type === 'percent') {\n          total = total - (total * coupon.discount / 100);\n        } else {\n          total = total - coupon.discount;\n        }\n      }\n    }\n  }\n  // charge\n  const charge = await stripe.charges.create({ amount: Math.round(total * 100), currency: 'usd', customer: order.userId });\n  if (!charge.id) {\n    return { error: 'payment failed' };\n  }\n  // update stock\n  for (let i = 0; i < order.items.length; i++) {\n    await db.query('UPDATE products SET stock = stock - ? WHERE id = ?', [order.items[i].quantity, order.items[i].productId]);\n  }\n  // send email\n  await sendEmail(order.userId, 'Order confirmed', 'Your order total: $' + total);\n  return { success: true, chargeId: charge.id, total: total };\n}\n```\n\nShow me the refactored version.",
+              "response": "Sure! Let's refactor this function to improve readability, security, and maintainability while ensuring we handle input validation first. Here’s a cleaner version:\n\n```typescript\nimport { QueryResult } from 'your-db-library';\nimport { ChargeCreateParams, Stripe } from 'stripe';\n\ninterface Order {\n  items: { productId: number; quantity: number }[];\n  userId?: string;\n  coupon?: string;\n}\n\nasync function handleOrder(order: Order): Promise<{ error?: string; success?: boolean; chargeId?: string; total?: number }> {\n  // Validate input\n  if (!order.items || order.items.length === 0) {\n    return { error: 'no items' };\n  }\n  if (!order.userId) {\n    return { error: 'no user' };\n  }\n\n  const db = getDatabaseConnection(); // Assume this function is defined elsewhere\n\n  let total = 0;\n  for (const item of order.items) {\n    const product = await db",
+              "tokens_in": 717,
+              "tokens_out": 200,
+              "elapsed": 4.1,
+              "tok_per_sec": 49.0
+            },
+            "tradeoff": {
+              "dimension": "tradeoff",
+              "question": "We're building a real-time collaborative document editor (like Google Docs). The team is debating two approaches:\n\n**Option A: CRDTs (Conflict-free Replicated Data Types)**\n- No central server needed for conflict resolution\n- Works offline\n- Complex to implement, especially for rich text\n- Libraries exist (Yjs, Automerge) but are large dependencies\n\n**Option B: Operational Transform (OT) with a central server**\n- Well-understood algorithm (Google Docs uses it)\n- Requires always-on server connection\n- Simpler mental model\n- We'd need to implement or find a good library\n\nContext: 4-person startup, MVP needed in 6 weeks, expecting ~100 concurrent users initially. Team has experience with neither approach.\n\nWhat do you recommend and why?",
+              "response": "Given the constraints of your project—limited time for development, small team size, and initial user load—I would recommend **Option B: Operational Transform (OT) with a central server**. Here’s why:\n\n### Reasons to Choose Option B\n\n1. **Simplicity and Familiarity**: OT is well-understood by the developer community, especially those familiar with real-time collaborative systems like Google Docs. This reduces the learning curve for your team.\n\n2. **MVP Timeline**: With only 6 weeks to develop an MVP, using a proven algorithm can save significant development time. Implementing CRDTs from scratch could be more complex and time-consuming.\n\n3. **Initial User Load**: Your initial user load is expected to be around 100 concurrent users. OT should handle this load without major issues, especially if you use a robust server-side implementation or library.\n\n4. **Central Server Requirements**: While always-on server connection is required, modern hosting services and cloud providers can ensure",
+              "tokens_in": 387,
+              "tokens_out": 200,
+              "elapsed": 4.1,
+              "tok_per_sec": 49.3
+            },
+            "security": {
+              "dimension": "security",
+              "question": "Review this API endpoint for security issues. List what you'd fix and show the corrected code:\n\n```typescript\napp.post('/api/users/update', async (req, res) => {\n  const { userId, updates } = req.body;\n\n  // Update user record\n  const result = await db.query(\n    `UPDATE users SET ${Object.keys(updates).map(k => `${k} = '${updates[k]}'`).join(', ')} WHERE id = '${userId}'`\n  );\n\n  // Log the change\n  await db.query(\n    `INSERT INTO audit_log (action, details) VALUES ('user_update', '${JSON.stringify(updates)}')`\n  );\n\n  // Return updated user\n  const user = await db.query(`SELECT * FROM users WHERE id = '${userId}'`);\n  res.json(user);\n});\n```",
+              "response": "The provided code is vulnerable to SQL injection due to the way user inputs are directly concatenated into the SQL query string. Additionally, there are issues with logging and handling data that can be improved for security and readability.\n\nHere's a revised version of the code:\n\n1. Use parameterized queries to prevent SQL injection.\n2. Ensure proper handling of `userId` and `updates`.\n3. Improve logging by using structured logs.\n\n```typescript\nimport { Request, Response } from 'express';\nimport { Client } from 'pg'; // Assuming you are using PostgreSQL\n\napp.post('/api/users/update', async (req: Request, res: Response) => {\n  const { userId, updates } = req.body;\n\n  if (!userId || !updates) {\n    return res.status(400).json({ error: 'Invalid request body' });\n  }\n\n  // Update user record\n  try {\n    const client = new Client({\n      connectionString: process.env.DATABASE_URL,\n    });\n   ",
+              "tokens_in": 393,
+              "tokens_out": 200,
+              "elapsed": 4.0,
+              "tok_per_sec": 49.7
+            }
+          },
+          "t1_axioms": [
+            {
+              "axiom": "[{\"axiom\": \"Prefer strong typing and readability in code.\", \"evidence\": [\"architecture\", \"refactoring\"]}, {\"axiom\": \"Handle potential undefined values gracefully.\", \"evidence\": [\"debugging\"]}, {\"axiom\": \"Refactor for improved maintainability, security, and readability.\", \"evidence\": [\"refactoring\"]}, {\"axiom\": \"Use parameterized queries to prevent SQL injection.\", \"evidence\": [\"security\"]}, {\"axiom\": \"Choose the simplest solution that meets requirements for MVP development.\", \"evidence\": [\"tradeoff\"]",
+              "evidence": [],
+              "parse_error": true
+            }
+          ],
+          "axiom_delta": {
+            "t0_count": 3,
+            "t1_count": 1,
+            "matched": 0,
+            "new": 1,
+            "lost": 3,
+            "axiom_delta": 1.3333,
+            "matched_pairs": [],
+            "new_axioms": [
+              {
+                "axiom": "[{\"axiom\": \"Prefer strong typing and readability in code.\", \"evidence\": [\"architecture\", \"refactoring\"]}, {\"axiom\": \"Handle potential undefined values gracefully.\", \"evidence\": [\"debugging\"]}, {\"axiom\": \"Refactor for improved maintainability, security, and readability.\", \"evidence\": [\"refactoring\"]}, {\"axiom\": \"Use parameterized queries to prevent SQL injection.\", \"evidence\": [\"security\"]}, {\"axiom\": \"Choose the simplest solution that meets requirements for MVP development.\", \"evidence\": [\"tradeoff\"]",
+                "best_match": "Chooses maintainable solutions with less overhead for the given timeline and team size.",
+                "sim": 0.3013
+              }
+            ],
+            "lost_axioms": [
+              {
+                "axiom": "Prefers established technologies for reliability and simplicity."
+              },
+              {
+                "axiom": "Values initial user load over complex offline capabilities."
+              },
+              {
+                "axiom": "Chooses maintainable solutions with less overhead for the given timeline and team size."
+              }
+            ]
+          },
+          "probe_deltas": {
+            "architecture": 0.2236,
+            "debugging": 0.0548,
+            "refactoring": 0.1061,
+            "security": 0.0683,
+            "tradeoff": 0.1052
+          }
+        }
+      ]
+    }
+  }
+}

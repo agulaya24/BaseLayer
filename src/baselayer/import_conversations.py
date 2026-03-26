@@ -765,7 +765,9 @@ def import_json_files(conn, filepath, existing_ids):
     total_messages = 0
 
     for file_path in files:
-        conv_id = f"json_{file_path.stem}_{hash(str(file_path)) & 0xFFFFFFFF:08x}"
+        import hashlib
+        path_hash = hashlib.md5(str(file_path).encode()).hexdigest()[:8]
+        conv_id = f"json_{file_path.stem}_{path_hash}"
         if conv_id in existing_ids:
             continue
 
@@ -842,8 +844,10 @@ def import_text_files(conn, filepath, existing_ids):
     new_messages = 0
 
     for file_path in files:
-        # Use file path as stable ID
-        conv_id = f"textfile_{file_path.stem}_{hash(str(file_path)) & 0xFFFFFFFF:08x}"
+        # Use file path as stable ID (hashlib, not hash() which is randomized per-process)
+        import hashlib
+        path_hash = hashlib.md5(str(file_path).encode()).hexdigest()[:8]
+        conv_id = f"textfile_{file_path.stem}_{path_hash}"
         if conv_id in existing_ids:
             continue
 

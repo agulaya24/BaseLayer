@@ -21,14 +21,14 @@ from pathlib import Path
 from collections import defaultdict
 
 # Add memory_system/scripts and archive to path for imports
-SCRIPTS_DIR = Path(__file__).parent
-ARCHIVE_DIR = SCRIPTS_DIR / "archive" / "eval_scripts"
+ARCHIVE_DIR = Path(__file__).parent
+SCRIPTS_DIR = ARCHIVE_DIR.parent.parent  # scripts/archive/eval_scripts -> scripts/
 sys.path.insert(0, str(ARCHIVE_DIR))
 sys.path.insert(0, str(SCRIPTS_DIR))
 
 SUBJECTS_DIR = Path(os.environ.get(
     "TWIN2K_DIR",
-    Path(__file__).parent.parent.parent / "subjects" / "twin2k"
+    Path.home() / "Anthropic" / "subjects" / "twin2k"
 ))
 RESULTS_DIR = SUBJECTS_DIR / "results_v4_rerun"
 BRIEFS_DIR = SUBJECTS_DIR / "briefs_v4_rerun"

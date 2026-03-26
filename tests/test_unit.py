@@ -124,6 +124,8 @@ class TestInitDatabase:
             "layer_claim_provenance",
             "memory_facts",
             "messages",
+            "schema_version",
+            "subjects",
             "topic_scores",
             "turn_pairs",
             "user_corrections",

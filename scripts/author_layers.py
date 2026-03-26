@@ -6,7 +6,7 @@ them as injectable markdown files. Three layers:
 
   ANCHORS  — epistemic axioms (beliefs reasoned FROM, not ABOUT)
   CORE     — communication & operating guide (how to engage with this person)
-  PREDICTIONS — behavioral patterns (situation → pattern → directive)
+  PREDICTIONS — behavioral patterns (situation -> pattern -> directive)
 
 Modes:
   python author_layers.py --retrieve anchors       # Show facts for manual authoring
@@ -734,7 +734,7 @@ CRITICAL: The audience is the intelligence and understanding an AI needs to take
 These are behavioral predictions — recurring patterns observed across conversations. Each names a GENERAL pattern (not domain-specific), how to detect it across specific domains, and what to do when it's active.
 
 For each prediction, use this format:
-PATTERN NAME: When [trigger situation] → [characteristic response]
+PATTERN NAME: When [trigger situation] -> [characteristic response]
 Detection: [how this manifests across MULTIPLE domains — must include at least 2 different life areas per pattern, e.g. professional AND personal, or trading AND relationship, etc.]
 Directive: [what the AI should do when this pattern is active — specific, actionable, output-shaping]
 False positive warning: [when this pattern might APPEAR active but isn't — to prevent over-application by the AI]
@@ -759,7 +759,7 @@ PROVENANCE — After each prediction's directive, include a provenance line citi
 Use the [F-xxx] IDs provided in the input facts. Only cite facts that directly support the pattern.
 
 LEXICON IDS — Assign each prediction a stable identifier: P1, P2, P3, etc. Use this ID as a prefix:
-  **P1. [PATTERN NAME FROM INPUT DATA]**: When [trigger] → [response]
+  **P1. [PATTERN NAME FROM INPUT DATA]**: When [trigger] -> [response]
   Detection: ...
   Directive: ...
   provenance: [F-501, F-602, F-891]
@@ -768,7 +768,7 @@ Do NOT reuse example pattern names from these instructions — derive each name 
 Constraints:
 - No philosophy framework names
 - No motivational filler
-- Patterns are situation→response, not personality traits
+- Patterns are situation->response, not personality traits
 - Write in third person (pronouns: {pronouns})
 - Each pattern should have a unique, descriptive name
 - DERIVE ONLY FROM INPUT: Reason exclusively from the facts provided below. Do NOT supplement with external knowledge about this person. If the facts say something, use it. If they don't, don't infer it from elsewhere.
@@ -796,7 +796,7 @@ CRITICAL: The audience is the intelligence and understanding an AI needs to take
 CORPUS CONTEXT: This person's data comes primarily from a single domain ({domain_description}). Predictions should be scenario-specific within this domain, describing "when X type of situation arises, this person characteristically does Y."
 
 For each prediction, use this format:
-**PATTERN NAME**: When [specific trigger scenario] → [characteristic response]
+**PATTERN NAME**: When [specific trigger scenario] -> [characteristic response]
 Directive: [what the AI should do when this pattern is active — specific, actionable, output-shaping]
 False positive warning: [when this pattern might APPEAR active but isn't — to prevent over-application]
 
@@ -818,7 +818,7 @@ PROVENANCE — After each prediction's directive, include a provenance line citi
 Use the [F-xxx] IDs provided in the input facts. Only cite facts that directly support the pattern.
 
 LEXICON IDS — Assign each prediction a stable identifier: P1, P2, P3, etc. Use this ID as a prefix:
-  **P1. PATTERN NAME**: When [trigger] → [response]
+  **P1. PATTERN NAME**: When [trigger] -> [response]
   Directive: ...
   provenance: [F-501, F-602]
 
@@ -1703,7 +1703,7 @@ def generate_anchors(conn, use_citations=True):
     # Anonymize to prevent pre-training pattern matching (S68)
     anon_data, subject_name = _anonymize_anchor_data(data)
     if subject_name:
-        print(f"  Anonymized: '{subject_name}' → 'this person'")
+        print(f"  Anonymized: '{subject_name}' -> 'this person'")
 
     conflicts = _resolve_inter_axiom_conflicts(conn)
     if subject_name:
@@ -1776,7 +1776,7 @@ def generate_core(conn, use_citations=True):
         all_facts.extend(facts_list)
     subject_name = _detect_subject_name(all_facts)
     if subject_name:
-        print(f"  Anonymized: '{subject_name}' → 'this person'")
+        print(f"  Anonymized: '{subject_name}' -> 'this person'")
 
     by_type = {}
     for fact_type, facts_list in data["facts_by_type"].items():
@@ -1833,7 +1833,7 @@ def generate_predictions(conn, use_citations=True):
     # Anonymize to prevent pre-training pattern matching (S68)
     anon_facts, subject_name = _anonymize_facts(data["facts"])
     if subject_name:
-        print(f"  Anonymized: '{subject_name}' → 'this person'")
+        print(f"  Anonymized: '{subject_name}' -> 'this person'")
 
     pronouns = _get_user_pronouns()
     profile = generate_data_profile(conn)

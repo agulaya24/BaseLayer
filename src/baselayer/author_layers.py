@@ -6,7 +6,7 @@ them as injectable markdown files. Three layers:
 
   ANCHORS  — epistemic axioms (beliefs reasoned FROM, not ABOUT)
   CORE     — communication & operating guide (how to engage with this person)
-  PREDICTIONS — behavioral patterns (situation → pattern → directive)
+  PREDICTIONS — behavioral patterns (situation -> pattern -> directive)
 
 Modes:
   python author_layers.py --retrieve anchors       # Show facts for manual authoring
@@ -747,7 +747,7 @@ CRITICAL: The audience is the intelligence and understanding an AI needs to take
 These are behavioral predictions — recurring patterns observed across conversations. Each names a GENERAL pattern (not domain-specific), how to detect it across specific domains, and what to do when it's active.
 
 For each prediction, use this format:
-PATTERN NAME: When [trigger situation] → [characteristic response]
+PATTERN NAME: When [trigger situation] -> [characteristic response]
 Detection: [how this manifests across MULTIPLE domains — must include at least 2 different life areas per pattern, e.g. professional AND personal, or trading AND relationship, etc.]
 Directive: [what the AI should do when this pattern is active — specific, actionable, output-shaping]
 False positive warning: [when this pattern might APPEAR active but isn't — to prevent over-application by the AI]
@@ -757,6 +757,7 @@ Rules:
 - Detection examples MUST span multiple domains. If a pattern only shows up in one domain, it belongs in a domain-specific brief, not here. Spread detection examples across: professional, personal, relational, intellectual, financial.
 - MULTI-SOURCE GROUNDING: Each prediction must be supported by facts from 2+ source documents. Single-source patterns may appear in detection examples but cannot drive the prediction title or directive. This prevents overgeneralizing a single opinion into a personality trait.
 - Directives must be actionable — tell the AI what to output differently, not what to understand
+- DIRECTIVE ≠ TRIGGER: The directive must add information beyond the trigger. If the trigger is "names tensions rather than resolving them," the directive CANNOT be "name the tensions and don't resolve them." Instead, describe HOW this person specifically processes tension — do they deflect with humor? Build exhaustive analyses? Escalate to structural diagnosis? Sit with paradox through literary framing? The trigger detects the pattern; the directive tells the AI what this person's SPECIFIC version of that pattern looks like and how to match it.
 - If a pattern is time-bounded, mark it [time-bounded]
 - Open with a framing sentence explaining what these predictions are and how to use them
 - Include patterns for: success responses, setback responses, feedback handling, relationship dynamics, decision-making patterns, self-accountability, learning/revision patterns
@@ -773,7 +774,7 @@ PROVENANCE — After each prediction's directive, include a provenance line citi
 Use the [F-xxx] IDs provided in the input facts. Only cite facts that directly support the pattern.
 
 LEXICON IDS — Assign each prediction a stable identifier: P1, P2, P3, etc. Use this ID as a prefix:
-  **P1. [PATTERN NAME FROM INPUT DATA]**: When [trigger] → [response]
+  **P1. [PATTERN NAME FROM INPUT DATA]**: When [trigger] -> [response]
   Detection: ...
   Directive: ...
   provenance: [F-501, F-602, F-891]
@@ -782,7 +783,7 @@ Do NOT reuse example pattern names from these instructions — derive each name 
 Constraints:
 - No philosophy framework names
 - No motivational filler
-- Patterns are situation→response, not personality traits
+- Patterns are situation->response, not personality traits
 - Write in third person (pronouns: {pronouns})
 - Each pattern should have a unique, descriptive name
 - DERIVE ONLY FROM INPUT: Reason exclusively from the facts provided below. Do NOT supplement with external knowledge about this person. If the facts say something, use it. If they don't, don't infer it from elsewhere.
@@ -810,7 +811,7 @@ CRITICAL: The audience is the intelligence and understanding an AI needs to take
 CORPUS CONTEXT: This person's data comes primarily from a single domain ({domain_description}). Predictions should be scenario-specific within this domain, describing "when X type of situation arises, this person characteristically does Y."
 
 For each prediction, use this format:
-**PATTERN NAME**: When [specific trigger scenario] → [characteristic response]
+**PATTERN NAME**: When [specific trigger scenario] -> [characteristic response]
 Directive: [what the AI should do when this pattern is active — specific, actionable, output-shaping]
 False positive warning: [when this pattern might APPEAR active but isn't — to prevent over-application]
 
@@ -819,6 +820,7 @@ Rules:
 - Each prediction describes an observable "when X, they do Y" — not a belief or stance
 - MULTI-SOURCE GROUNDING: Each prediction must be supported by facts from 2+ source documents. Single-source patterns may appear in detection examples but cannot drive the prediction title or directive. This prevents overgeneralizing a single opinion into a personality trait.
 - Directives must be actionable — tell the AI what to output differently
+- DIRECTIVE ≠ TRIGGER: The directive must add information beyond the trigger. If the trigger is "names tensions rather than resolving them," the directive CANNOT be "name the tensions and don't resolve them." Instead, describe HOW this person specifically processes tension — do they deflect with humor? Build exhaustive analyses? Escalate to structural diagnosis? The trigger detects the pattern; the directive tells the AI what this person's SPECIFIC version looks like.
 - Where evidence is thin, mark with [THIN DATA] and keep brief
 - Open with a framing sentence explaining what these predictions are
 - Include a mix of: routine handling, disruption response, evaluation patterns, communication patterns
@@ -833,7 +835,7 @@ PROVENANCE — After each prediction's directive, include a provenance line citi
 Use the [F-xxx] IDs provided in the input facts. Only cite facts that directly support the pattern.
 
 LEXICON IDS — Assign each prediction a stable identifier: P1, P2, P3, etc. Use this ID as a prefix:
-  **P1. PATTERN NAME**: When [trigger] → [response]
+  **P1. PATTERN NAME**: When [trigger] -> [response]
   Directive: ...
   provenance: [F-501, F-602]
 
@@ -1718,7 +1720,7 @@ def generate_anchors(conn, use_citations=True):
     # Anonymize to prevent pre-training pattern matching (S68)
     anon_data, subject_name = _anonymize_anchor_data(data)
     if subject_name:
-        print(f"  Anonymized: '{subject_name}' → 'this person'")
+        print(f"  Anonymized: '{subject_name}' -> 'this person'")
 
     conflicts = _resolve_inter_axiom_conflicts(conn)
     if subject_name:
@@ -1791,7 +1793,7 @@ def generate_core(conn, use_citations=True):
         all_facts.extend(facts_list)
     subject_name = _detect_subject_name(all_facts)
     if subject_name:
-        print(f"  Anonymized: '{subject_name}' → 'this person'")
+        print(f"  Anonymized: '{subject_name}' -> 'this person'")
 
     by_type = {}
     for fact_type, facts_list in data["facts_by_type"].items():
@@ -1848,7 +1850,7 @@ def generate_predictions(conn, use_citations=True):
     # Anonymize to prevent pre-training pattern matching (S68)
     anon_facts, subject_name = _anonymize_facts(data["facts"])
     if subject_name:
-        print(f"  Anonymized: '{subject_name}' → 'this person'")
+        print(f"  Anonymized: '{subject_name}' -> 'this person'")
 
     pronouns = _get_user_pronouns()
     profile = generate_data_profile(conn)
@@ -1979,19 +1981,35 @@ def store_layer(layer_name, text, file_path, metadata_lines=None, is_regen=False
     timestamp_file = datetime.now().strftime('%Y%m%d_%H%M%S')
     gen_label = f"regen{gen_num}" if is_regen else f"gen{gen_num}"
 
-    header_lines = [
-        f"# {layer_name} Layer v{version} — {descriptions.get(layer_name, '')}",
-        f"# Generated: {timestamp}",
-        f"# Version: v{version} {gen_label}",
-        f"# Model: {LAYER_GENERATION_MODEL}",
-        "# Constraints: D-040 (blind from facts), D-041 (audience is understanding), D-043 (three-layer), D-053 (blind regen)",
-    ]
-    if citation_provenance is not None:
-        header_lines.append("# Provenance: citation_api (Anthropic Citations API)")
-    if metadata_lines:
-        header_lines.extend(f"# {line}" for line in metadata_lines)
+    # S98 Phase 7: YAML frontmatter (machine-parseable) replaces comment header
+    import re
+    # Count items in the generated text
+    item_pattern = {"ANCHORS": r'\*\*A\d+', "CORE": r'\*\*[MC]\d+', "PREDICTIONS": r'\*\*P\d+'}
+    item_count = len(re.findall(item_pattern.get(layer_name, r'\*\*[A-Z]\d+'), text))
 
-    content = "\n".join(header_lines) + "\n\n---\n\n## Injectable Block\n\n" + text + "\n"
+    provenance_method = "citation_api" if citation_provenance is not None else "self_citation"
+    input_info = ""
+    if metadata_lines:
+        for m in metadata_lines:
+            if "Input:" in m or "input:" in m.lower():
+                input_info = m.split(":", 1)[-1].strip()
+                break
+
+    frontmatter_lines = [
+        "---",
+        f"layer: {layer_name.lower()}",
+        f"description: {descriptions.get(layer_name, '')}",
+        f"generated: {timestamp}",
+        f"version: v{version} {gen_label}",
+        f"model: {LAYER_GENERATION_MODEL}",
+        f"provenance: {provenance_method}",
+        f"item_count: {item_count}",
+    ]
+    if input_info:
+        frontmatter_lines.append(f"input: {input_info}")
+    frontmatter_lines.append("---")
+
+    content = "\n".join(frontmatter_lines) + "\n\n## Injectable Block\n\n" + text + "\n"
 
     # Write deployed version
     file_path.write_text(content, encoding="utf-8")
@@ -2130,6 +2148,17 @@ def main():
         return
 
     if args.generate:
+        # S98 gate: block if extraction incomplete
+        with contextlib.closing(get_db()) as _gate_conn:
+            total_convs = _gate_conn.execute("SELECT COUNT(*) FROM conversations").fetchone()[0]
+            extracted = _gate_conn.execute("SELECT COUNT(*) FROM extraction_log").fetchone()[0]
+            if total_convs > 0 and extracted < total_convs:
+                pct = extracted / total_convs * 100
+                print(f"\nError: Extraction incomplete — {extracted}/{total_convs} ({pct:.0f}%).")
+                print(f"Finish extraction before authoring. Set BASELAYER_SKIP_EXTRACTION_GATE=1 to override.")
+                if not os.environ.get("BASELAYER_SKIP_EXTRACTION_GATE"):
+                    sys.exit(1)
+
         with contextlib.closing(get_db()) as conn:
             layers = [args.generate] if args.generate != "all" else ["anchors", "core", "predictions"]
             use_citations = not getattr(args, 'no_citations', False)

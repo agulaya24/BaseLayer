@@ -1,0 +1,128 @@
+{
+  "experiment": "drift_experiment_1",
+  "timestamp": "20260312_115650",
+  "model": "phi4-mini:3.8b",
+  "backend": "ollama",
+  "max_tokens": 200,
+  "brief_chars": 1645,
+  "t0_responses": {
+    "architecture": {
+      "dimension": "architecture",
+      "question": "We need a user notification system. Requirements:\n- Send email, SMS, and push notifications\n- Users can set preferences for which channels they want\n- Templates for different notification types (welcome, password reset, order confirmation)\n- Rate limiting to prevent spam\n\nDesign the system. Show the key interfaces/types and the main send function. Keep it practical — this is a startup with 10K users, not Google.",
+      "response": "```typescript\n// Interfaces/Types\ninterface UserPreferences {\n  email: boolean;\n  sms: boolean;\n  push: boolean;\n}\n\ntype NotificationType = 'welcome' | 'passwordReset' | 'orderConfirmation';\n\ninterface Template {\n  type: NotificationType;\n  content: string; // Simplified for brevity, should be structured based on the template\n}\n\n// Main Send Function (simplified)\nasync function sendNotification(userId: number, preferences: UserPreferences, notificationType: NotificationType, messageContent: any): Promise<void> {\n  const user = await getUserById(userId);\n  \n  if (!user) throw new Error('User not found');\n\n  // Check for rate limiting\n  if (isRateLimited(user)) return;\n\n  let template;\n  switch (notificationType) {\n    case 'welcome':\n      template = { type: NotificationType, content: getWelcomeTemplate() };\n      break;\n    case 'passwordReset':\n      template = { type",
+      "tokens_in": 498,
+      "tokens_out": 200,
+      "elapsed": 10.5,
+      "tok_per_sec": 19.0
+    },
+    "debugging": {
+      "dimension": "debugging",
+      "question": "This endpoint intermittently returns 500 errors, about 5% of requests. The error log shows:\n\n```\nTypeError: Cannot read properties of undefined (reading 'email')\n  at getUserProfile (/src/handlers/profile.ts:47)\n  at processRequest (/src/middleware/auth.ts:23)\n```\n\nHere's the relevant code:\n\n```typescript\n// auth.ts\nasync function processRequest(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1];\n  const session = await redis.get(`session:${token}`);\n  const user = JSON.parse(session);\n  return getUserProfile(user);\n}\n\n// profile.ts\nfunction getUserProfile(user: User) {\n  return {\n    name: user.name,\n    email: user.email,\n    avatar: user.avatar || '/default.png'\n  };\n}\n```\n\nWhat's happening and how do you fix it?",
+      "response": "```typescript\n\n// auth.ts updated with input validation for token extraction.\n\nasync function processRequest(req: Request): Promise<UserProfile> {\n\n  if (!req.headers.authorization) throw new Error('Missing authorization header');\n\n  const parts = req.headers.authorization?.split(' ');\n\n  if (parts.length < 2 || !/^Bearer$/i.test(parts[1])) throw new Error('Invalid token format');\n\n\n  const sessionKey = `session:${parts[1]}`;\n\n  try {\n\n    const sessionData: string | undefined = await redis.get(sessionKey);\n\n    return getUserProfile(JSON.parse(sessionData));\n\n  } catch (error) { // Explicit error handling at boundary\n\n    console.error(`Error retrieving user profile for token ${parts[1]}:`, error.message);\n\n    throw new Error('Failed to retrieve session data');\n  }\n\n}\n\n\n// profile.ts remains unchanged as it already handles undefined 'email' gracefully.\n\n```\n\nThe TypeScript code now includes input validation and explicit errors handling. It",
+      "tokens_in": 592,
+      "tokens_out": 200,
+      "elapsed": 3.5,
+      "tok_per_sec": 57.6
+    },
+    "refactoring": {
+      "dimension": "refactoring",
+      "question": "Refactor this function. It works but it's a mess:\n\n```typescript\nasync function handleOrder(order: any) {\n  // check if order is valid\n  if (!order.items || order.items.length === 0) {\n    console.log('no items');\n    return { error: 'no items' };\n  }\n  if (!order.userId) {\n    console.log('no user');\n    return { error: 'no user' };\n  }\n  // calculate total\n  let total = 0;\n  for (let i = 0; i < order.items.length; i++) {\n    const item = order.items[i];\n    const product = await db.query('SELECT * FROM products WHERE id = ?', [item.productId]);\n    if (!product) {\n      console.log('product not found: ' + item.productId);\n      return { error: 'product not found' };\n    }\n    if (product.stock < item.quantity) {\n      console.log('insufficient stock for ' + item.productId);\n      return { error: 'insufficient stock' };\n    }\n    total += product.price * item.quantity;\n    // apply discount if any\n    if (order.coupon) {\n      const coupon = await db.query('SELECT * FROM coupons WHERE code = ?', [order.coupon]);\n      if (coupon && coupon.valid && new Date(coupon.expires) > new Date()) {\n        if (coupon.type === 'percent') {\n          total = total - (total * coupon.discount / 100);\n        } else {\n          total = total - coupon.discount;\n        }\n      }\n    }\n  }\n  // charge\n  const charge = await stripe.charges.create({ amount: Math.round(total * 100), currency: 'usd', customer: order.userId });\n  if (!charge.id) {\n    return { error: 'payment failed' };\n  }\n  // update stock\n  for (let i = 0; i < order.items.length; i++) {\n    await db.query('UPDATE products SET stock = stock - ? WHERE id = ?', [order.items[i].quantity, order.items[i].productId]);\n  }\n  // send email\n  await sendEmail(order.userId, 'Order confirmed', 'Your order total: $' + total);\n  return { success: true, chargeId: charge.id, total: total };\n}\n```\n\nShow me the refactored version.",
+      "response": "```typescript\nimport db from './db';\nimport stripe from './stripe';\nimport sendEmail from './sendEmail';\n\ninterface Order {\n  items?: Array<{ productId: number; quantity: number }>;\n  userId?: string;\n  coupon?: { code: string; type?: 'percent' | null; discount?: number; expires?: Date };\n}\n\nasync function calculateDiscount(couponCode, total): Promise<number> {\n  const coupon = await db.query('SELECT * FROM coupons WHERE code = ?', [couponCode]);\n  if (!coupon || !coupon.valid || new Date() > new Date(coupon.expires)) return total;\n  \n  switch (coupon.type) {\n    case 'percent':\n      return Math.round(total - (total * coupon.discount / 100));\n    default:\n      return total - coupon.discount;\n  }\n}\n\nasync function handleOrder(order: Order): Promise<{ success?: boolean; chargeId?: string; total?: number }> {\n  if (!order.items ||",
+      "tokens_in": 908,
+      "tokens_out": 200,
+      "elapsed": 3.6,
+      "tok_per_sec": 55.5
+    },
+    "tradeoff": {
+      "dimension": "tradeoff",
+      "question": "We're building a real-time collaborative document editor (like Google Docs). The team is debating two approaches:\n\n**Option A: CRDTs (Conflict-free Replicated Data Types)**\n- No central server needed for conflict resolution\n- Works offline\n- Complex to implement, especially for rich text\n- Libraries exist (Yjs, Automerge) but are large dependencies\n\n**Option B: Operational Transform (OT) with a central server**\n- Well-understood algorithm (Google Docs uses it)\n- Requires always-on server connection\n- Simpler mental model\n- We'd need to implement or find a good library\n\nContext: 4-person startup, MVP needed in 6 weeks, expecting ~100 concurrent users initially. Team has experience with neither approach.\n\nWhat do you recommend and why?",
+      "response": "```typescript\n// Recommendation based on the behavioral brief:\n\nimport Y from 'yjs';\nimport { WebrtcProvider } from '@yewjs/webrtc';\n\n// Initialize CRDT-based collaborative document editor (Option A)\nasync function initializeCRDTEditor() {\n  const ydoc = new Y.Doc();\n  const provider = await WebrtcProvider('crdt-docs', ydoc);\n  \n  // Create a shared text type for the documents\n  const doc = ydoc.getText('document');\n  if (!doc) {\n    doc = ydoc.createText('document').insert(0, 'Initial content of your document.');\n  }\n\n  return { provider, doc };\n}\n\n// Initialize OT-based collaborative editor (Option B)\nasync function initializeOTEditor() {\n  // Assuming an existing library or custom implementation is used\n  const otProvider = new OtServer(); // Hypothetical class for server-side handling\n\n  let connection;\n  try {\n    connection = await WebrtcConnection.connect(",
+      "tokens_in": 572,
+      "tokens_out": 200,
+      "elapsed": 3.5,
+      "tok_per_sec": 56.6
+    },
+    "security": {
+      "dimension": "security",
+      "question": "Review this API endpoint for security issues. List what you'd fix and show the corrected code:\n\n```typescript\napp.post('/api/users/update', async (req, res) => {\n  const { userId, updates } = req.body;\n\n  // Update user record\n  const result = await db.query(\n    `UPDATE users SET ${Object.keys(updates).map(k => `${k} = '${updates[k]}'`).join(', ')} WHERE id = '${userId}'`\n  );\n\n  // Log the change\n  await db.query(\n    `INSERT INTO audit_log (action, details) VALUES ('user_update', '${JSON.stringify(updates)}')`\n  );\n\n  // Return updated user\n  const user = await db.query(`SELECT * FROM users WHERE id = '${userId}'`);\n  res.json(user);\n});\n```",
+      "response": "Security Review:\n\n1. SQL Injection vulnerability due to direct inclusion of `updates` and `userId` in the query.\n2. Lack of input validation for both `userId` (should be an integer) and any fields within `updates`.\n3. Potential logging sensitive information without proper sanitization.\n\nCorrected Code with Comments on Changes:\n\n```typescript\napp.post('/api/users/update', async (req, res) => {\n  try {\n    const { userId: idStr, updates } = req.body;\n\n    // Validate input types and sanitize inputs to prevent SQL injection.\n    if (!Number(idStr)) throw new Error('Invalid User ID');\n    \n    for (const key in updates) {\n      if (typeof updates[key] !== 'string') throw new Error(`Invalid value type for ${key}`);\n      \n      const sanitizedValue = db.escapeSingleQuotes(updates[key]);\n      Object.keys(updates).forEach(k => req.body[k] = sanitizedValue);\n    }\n\n   ",
+      "tokens_in": 584,
+      "tokens_out": 200,
+      "elapsed": 3.6,
+      "tok_per_sec": 55.7
+    }
+  },
+  "t0_elapsed": 24.7,
+  "t0_axioms": [
+    {
+      "axiom": "Input validation and sanitization are crucial to prevent security vulnerabilities such as SQL injection.",
+      "evidence": [
+        "security"
+      ]
+    },
+    {
+      "axiom": "Explicit error handling improves code reliability by managing exceptions gracefully instead of allowing them to propagate unchecked.",
+      "evidence": [
+        "debugging",
+        "tradeoff"
+      ]
+    },
+    {
+      "axiom": "Using CRDTs (Conflict-free Replicated Data Types) for real-time collaborative applications ensures consistency and conflict resolution without central coordination.",
+      "evidence": [
+        "tradeoff"
+      ]
+    },
+    {
+      "axiom": "Explicit error handling at boundary conditions is essential to prevent silent failures in asynchronous operations or when dealing with external resources like databases or network connections.",
+      "evidence": [
+        "debugging"
+      ]
+    },
+    {
+      "axiom": "Input validation and sanitization are crucial for security, especially against injection attacks such as SQL Injection by ensuring that only expected data types can be processed.",
+      "evidence": [
+        "security"
+      ]
+    },
+    {
+      "axiom": "Explicit error handling improves code reliability in asynchronous operations or when dealing with external resources like databases or network connections to prevent silent failures and provide meaningful feedback for debugging purposes.",
+      "evidence": [
+        "debugging",
+        "tradeoff"
+      ]
+    },
+    {
+      "axiom": "CRDTs are preferred over traditional locking mechanisms because they allow concurrent updates without conflicts, making them ideal for real-time collaborative applications where multiple users can edit simultaneously.",
+      "evidence": [
+        "tradeoff"
+      ]
+    },
+    {
+      "axiom": "Explicit error handling at boundary conditions is essential to prevent silent failures in asynchronous operations or when dealing with external resources like databases or network connections by providing meaningful feedback and preventing the propagation of errors that could lead to inconsistent states.",
+      "evidence": [
+        "debugging",
+        "security"
+      ]
+    },
+    {
+      "axiom": "Input validation, sanitization against SQL injection vulnerabilities is crucial for security as it ensures only expected data types are processed which prevents malicious code execution through input fields.",
+      "evidence": [
+        "security"
+      ]
+    },
+    {
+      "axiom": "Explicit error handling at boundary conditions improves reliability and maintainability of the system by preventing silent failures that could lead to unexpected behavior or difficult-to-diagnose bugs in asynchronous operations, external resource interactions like databases, network connections, etc.",
+      "evidence": [
+        "debugging",
+        "security"
+      ]
+    },
+    {
+      "axiom": "CRDTs are preferred for real-time collaborative applications because they inherently handle concurrent updates and conflict resolution without the need for central coordination or locking mechanisms which simplifies development and improves scalability.",
+      "evidence": [
+        "tradeoff"
+      ]
+    }
+  ]
+}

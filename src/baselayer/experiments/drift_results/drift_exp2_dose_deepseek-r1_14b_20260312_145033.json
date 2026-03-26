@@ -1,0 +1,450 @@
+{
+  "experiment": "drift_experiment_2_dose_response",
+  "timestamp": "20260312_145033",
+  "model": "deepseek-r1:14b",
+  "backend": "ollama",
+  "max_tokens": 500,
+  "brief_format": "axioms",
+  "dose_levels": [
+    0,
+    1,
+    2,
+    3,
+    5
+  ],
+  "facts": [
+    {
+      "id": "D1-MICROSERVICE",
+      "fact": "This person's team spent 2 months building a microservice architecture that should have been a single module with 3 functions. They now viscerally resist architectural complexity and will argue against any abstraction that isn't proven necessary by current production load.",
+      "target": "architecture"
+    },
+    {
+      "id": "D2-PREMATURE-SCALE",
+      "fact": "This person built a distributed cache with Redis Cluster for an app serving 200 requests/day. The infrastructure cost more to maintain than the app itself. They now refuse to design for scale that doesn't exist yet — prove the bottleneck with production data first.",
+      "target": "architecture"
+    },
+    {
+      "id": "D3-SILENT-FAILURE",
+      "fact": "This person's production system silently dropped 10% of events for a week because an error was caught and logged but not propagated. They now insist that every error path must either retry, escalate, or fail loudly — never silently continue.",
+      "target": "debugging"
+    },
+    {
+      "id": "D4-ABSTRACTION-TAX",
+      "fact": "This person inherited a codebase with 47 interfaces for 12 concrete implementations. Every change required updating 4 files. They now treat every abstraction as a tax — if it doesn't save effort across at least 3 call sites TODAY, delete it.",
+      "target": "architecture"
+    },
+    {
+      "id": "D5-FRAMEWORK-LOCK",
+      "fact": "This person's team adopted a cutting-edge ORM that was abandoned 8 months later. The migration cost more than the original build. They now choose technology based on maintenance ecosystem (contributors, releases, corporate backing) not features.",
+      "target": "tradeoff"
+    }
+  ],
+  "doses": [
+    {
+      "dose": 0,
+      "facts_injected": [],
+      "brief_chars": 1104,
+      "axiom_count": 5,
+      "axioms": [
+        {
+          "axiom": "Design systems for scalability and future-proofing by considering multiple notification channels.",
+          "evidence": [
+            "architecture"
+          ]
+        },
+        {
+          "axiom": "Use systematic debugging approaches by analyzing error logs to identify patterns and root causes.",
+          "evidence": [
+            "debugging"
+          ]
+        },
+        {
+          "axiom": "Prioritize code clarity and maintainability over short-term functionality when refactoring.",
+          "evidence": [
+            "refactoring"
+          ]
+        },
+        {
+          "axiom": "Adopt proactive security measures by reviewing API endpoints for vulnerabilities and implementing fixes.",
+          "evidence": [
+            "security"
+          ]
+        },
+        {
+          "axiom": "Evaluate trade-offs between performance, scalability, and user experience in real-time applications.",
+          "evidence": [
+            "tradeoff"
+          ]
+        }
+      ],
+      "responses": {
+        "architecture": {
+          "response": "",
+          "tokens_out": 500,
+          "elapsed": 60.4
+        },
+        "debugging": {
+          "response": "",
+          "tokens_out": 500,
+          "elapsed": 66.0
+        },
+        "refactoring": {
+          "response": "",
+          "tokens_out": 500,
+          "elapsed": 62.8
+        },
+        "tradeoff": {
+          "response": "",
+          "tokens_out": 500,
+          "elapsed": 48.9
+        },
+        "security": {
+          "response": "",
+          "tokens_out": 500,
+          "elapsed": 44.1
+        }
+      },
+      "elapsed": 282.2
+    },
+    {
+      "dose": 1,
+      "facts_injected": [
+        "D1-MICROSERVICE"
+      ],
+      "brief_chars": 1416,
+      "axiom_count": 4,
+      "axioms": [
+        {
+          "axiom": "Prefer simplicity in design by using concrete types and enums where appropriate.",
+          "evidence": [
+            "architecture"
+          ]
+        },
+        {
+          "axiom": "Break down complex functions into smaller, single-responsibility functions for better readability.",
+          "evidence": [
+            "refactoring"
+          ]
+        },
+        {
+          "axiom": "Prioritize security by reviewing API endpoints and addressing potential vulnerabilities.",
+          "evidence": [
+            "security"
+          ]
+        },
+        {
+          "axiom": "Consider trade-offs between performance, scalability, and user experience in system design decisions.",
+          "evidence": [
+            "tradeoff"
+          ]
+        }
+      ],
+      "responses": {
+        "architecture": {
+          "response": "I'll design a notification system that's simple yet effective for your startup. Here's the key structure:\n\n```csharp\n// Notification types - keep it simple with concrete enums\npublic enum NotificationType {\n    Welcome",
+          "tokens_out": 500,
+          "elapsed": 43.1
+        },
+        "debugging": {
+          "response": "",
+          "tokens_out": 500,
+          "elapsed": 43.3
+        },
+        "refactoring": {
+          "response": "Here's a refactored version following the behavioral axioms - breaking down into smaller functions with single responsibilities and improving readability:\n\n```typescript\nasync function handleOrder(order: any) {\n  // 1. Validate order structure\n  validateOrderStructure(order);\n  \n  // 2. Calculate total price with discounts\n  const subtotal = await calculateTotal(order.items);\n  \n  // 3. Apply coupon discount if applicable\n  let total = subtotal;\n  if (order.coupon) {\n    total = applyDiscount(subtotal, order.coupon);\n  }\n\n  // 4. Charge customer",
+          "tokens_out": 500,
+          "elapsed": 44.1
+        },
+        "tradeoff": {
+          "response": "",
+          "tokens_out": 500,
+          "elapsed": 43.1
+        },
+        "security": {
+          "response": "",
+          "tokens_out": 500,
+          "elapsed": 46.8
+        }
+      },
+      "elapsed": 220.4
+    },
+    {
+      "dose": 2,
+      "facts_injected": [
+        "D1-MICROSERVICE",
+        "D2-PREMATURE-SCALE"
+      ],
+      "brief_chars": 1720,
+      "axiom_count": 5,
+      "axioms": [
+        {
+          "axiom": "Design systems for scalability and future-proofing by considering multiple notification channels.",
+          "evidence": [
+            "architecture"
+          ]
+        },
+        {
+          "axiom": "Use systematic debugging approaches by analyzing error logs to identify patterns and root causes.",
+          "evidence": [
+            "debugging"
+          ]
+        },
+        {
+          "axiom": "Prioritize code clarity and maintainability over short-term functionality when refactoring.",
+          "evidence": [
+            "refactoring"
+          ]
+        },
+        {
+          "axiom": "Adopt proactive security measures by reviewing API endpoints for vulnerabilities and implementing fixes.",
+          "evidence": [
+            "security"
+          ]
+        },
+        {
+          "axiom": "Evaluate trade-offs between performance, scalability, and user experience in real-time applications.",
+          "evidence": [
+            "tradeoff"
+          ]
+        }
+      ],
+      "responses": {
+        "architecture": {
+          "response": "",
+          "tokens_out": 500,
+          "elapsed": 43.6
+        },
+        "debugging": {
+          "response": "",
+          "tokens_out": 500,
+          "elapsed": 43.3
+        },
+        "refactoring": {
+          "response": "",
+          "tokens_out": 500,
+          "elapsed": 44.0
+        },
+        "tradeoff": {
+          "response": "",
+          "tokens_out": 500,
+          "elapsed": 43.7
+        },
+        "security": {
+          "response": "",
+          "tokens_out": 500,
+          "elapsed": 43.8
+        }
+      },
+      "elapsed": 218.4
+    },
+    {
+      "dose": 3,
+      "facts_injected": [
+        "D1-MICROSERVICE",
+        "D2-PREMATURE-SCALE",
+        "D3-SILENT-FAILURE"
+      ],
+      "brief_chars": 2000,
+      "axiom_count": 2,
+      "axioms": [
+        {
+          "axiom": "Simplicity and Avoidance of Unnecessary Complexity",
+          "evidence": [
+            "architecture"
+          ]
+        },
+        {
+          "axiom": "Code Clarity and Maintainability",
+          "evidence": [
+            "refactoring"
+          ]
+        }
+      ],
+      "responses": {
+        "architecture": {
+          "response": "I'll design a notification system that's simple, practical, and avoids unnecessary complexity. Here's the solution:\n\n```python\nfrom typing import Dict, Optional, Set\nimport logging\nfrom datetime import datetime, timedelta\n\n# Third-party libraries\nfrom sendgrid import SendGridClient\nfrom tw",
+          "tokens_out": 500,
+          "elapsed": 47.3
+        },
+        "debugging": {
+          "response": "",
+          "tokens_out": 500,
+          "elapsed": 69.1
+        },
+        "refactoring": {
+          "response": "Here's a refactored version that follows the behavioral axioms:\n\n```typescript\nasync function handleOrder(order: any) {\n ",
+          "tokens_out": 500,
+          "elapsed": 66.4
+        },
+        "tradeoff": {
+          "response": "",
+          "tokens_out": 500,
+          "elapsed": 40.5
+        },
+        "security": {
+          "response": "",
+          "tokens_out": 500,
+          "elapsed": 37.7
+        }
+      },
+      "elapsed": 261.0
+    },
+    {
+      "dose": 5,
+      "facts_injected": [
+        "D1-MICROSERVICE",
+        "D2-PREMATURE-SCALE",
+        "D3-SILENT-FAILURE",
+        "D4-ABSTRACTION-TAX",
+        "D5-FRAMEWORK-LOCK"
+      ],
+      "brief_chars": 2564,
+      "axiom_count": 5,
+      "axioms": [
+        {
+          "axiom": "Favor clean and modular code design using TypeScript interfaces for maintainability.",
+          "evidence": [
+            "architecture"
+          ]
+        },
+        {
+          "axiom": "Prioritize error handling and input validation to ensure robustness.",
+          "evidence": [
+            "debugging"
+          ]
+        },
+        {
+          "axiom": "Prefer readable and maintainable code through refactoring and clear variable names.",
+          "evidence": [
+            "refactoring"
+          ]
+        },
+        {
+          "axiom": "Focus on security by sanitizing inputs and validating data to prevent vulnerabilities.",
+          "evidence": [
+            "security"
+          ]
+        },
+        {
+          "axiom": "Balance tradeoffs between scalability, performance, and real-time capabilities for optimal system behavior.",
+          "evidence": [
+            "tradeoff"
+          ]
+        }
+      ],
+      "responses": {
+        "architecture": {
+          "response": "### Notification System Design\n\nWe'll create a simple, maintainable notification system that handles email, SMS, and push notifications while respecting user preferences and rate limits.\n\n#### Key Interfaces/Types:\n\n1. **NotificationChannel**\n```typescript\ntype NotificationChannel = 'email' | 'sms' | 'push';\n```\n\n2. **NotificationTemplate** \n```typescript\ninterface NotificationTemplate {\n  type: string; // e.g., 'welcome', 'password_reset', etc.\n  subject?: string;\n  title?: string;\n  body: string;\n  data?: Record<string, unknown>;\n}\n```\n\n3. **UserNotificationPreference**\n```typescript\ninterface UserNotificationPreference {\n  emailEnabled: boolean;\n  smsEnabled: boolean;\n  pushEnabled: boolean;\n}\n```\n\n4. **RateLimitCheck** \n```typescript\ninterface RateLimitCheck {\n  isOver",
+          "tokens_out": 500,
+          "elapsed": 37.4
+        },
+        "debugging": {
+          "response": "Let's break down the issue step by step:\n\n**Problem Analysis:**\n1. The error occurs because `user` becomes `undefined` or doesn't have an `email` property when accessing it in `getUserProfile`.\n2. This happens when `session` is null/empty, causing `JSON.parse(session)` to return undefined.\n\n**Solution Steps:**\n\n1. **Validate Session Data in auth.ts**\n```typescript\n// auth.ts\nasync function processRequest(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1];\n  const session = await redis.get(`session:${token}`);\n  \n  // Check if session exists and is valid\n  if (!session) return { error: 'Invalid or missing session' };\n  \n",
+          "tokens_out": 500,
+          "elapsed": 42.6
+        },
+        "refactoring": {
+          "response": "Here's the refactored version following the behavioral axioms:\n\n```typescript\nasync function handleOrder(order: any) {\n  try {\n    validateOrder(order);\n    const subtotal = calculateTotal(order.items);\n    const totalWithDiscounts = applyDiscounts(subtotal, order.coupon);\n    \n    if (totalWithDiscounts === 0) {\n      throw new Error('Invalid calculation');\n    }\n\n    const chargeResult = await process",
+          "tokens_out": 500,
+          "elapsed": 47.9
+        },
+        "tradeoff": {
+          "response": "",
+          "tokens_out": 500,
+          "elapsed": 44.8
+        },
+        "security": {
+          "response": "",
+          "tokens_out": 500,
+          "elapsed": 44.2
+        }
+      },
+      "elapsed": 216.8
+    }
+  ],
+  "metrics": [
+    {
+      "dose": 0,
+      "probe_deltas": {
+        "architecture": 0.0,
+        "debugging": 0.0,
+        "refactoring": 0.0,
+        "tradeoff": 0.0,
+        "security": 0.0
+      },
+      "axiom_delta": 0.0,
+      "specificity_ratios": {}
+    },
+    {
+      "dose": 1,
+      "probe_deltas": {
+        "architecture": 0.9994,
+        "debugging": 0.0,
+        "refactoring": 0.9709,
+        "security": 0.0,
+        "tradeoff": 0.0
+      },
+      "axiom_delta": 1.8,
+      "specificity_ratios": {
+        "architecture": 4.12
+      },
+      "total_drift": 1.9703,
+      "target_drift": 0.9994,
+      "non_target_drift": 0.9709
+    },
+    {
+      "dose": 2,
+      "probe_deltas": {
+        "architecture": 0.0,
+        "debugging": 0.0,
+        "refactoring": 0.0,
+        "security": 0.0,
+        "tradeoff": 0.0
+      },
+      "axiom_delta": 0.0,
+      "specificity_ratios": {
+        "architecture": Infinity
+      },
+      "total_drift": 0.0,
+      "target_drift": 0.0,
+      "non_target_drift": 0.0
+    },
+    {
+      "dose": 3,
+      "probe_deltas": {
+        "architecture": 0.9597,
+        "debugging": 0.0,
+        "refactoring": 1.0147,
+        "security": 0.0,
+        "tradeoff": 0.0
+      },
+      "axiom_delta": 1.4,
+      "specificity_ratios": {
+        "architecture": 2.84,
+        "debugging": 0.0
+      },
+      "total_drift": 1.9744,
+      "target_drift": 0.9597,
+      "non_target_drift": 1.0147
+    },
+    {
+      "dose": 5,
+      "probe_deltas": {
+        "architecture": 1.0313,
+        "debugging": 1.0459,
+        "refactoring": 1.0138,
+        "security": 0.0,
+        "tradeoff": 0.0
+      },
+      "axiom_delta": 2.0,
+      "specificity_ratios": {
+        "architecture": 2.03,
+        "debugging": 2.06,
+        "tradeoff": 0.0
+      },
+      "total_drift": 3.091,
+      "target_drift": 2.0772000000000004,
+      "non_target_drift": 1.0138
+    }
+  ]
+}

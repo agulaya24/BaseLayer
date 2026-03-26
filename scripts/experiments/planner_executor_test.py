@@ -40,6 +40,10 @@ PLANNER_PROMPT = """You are a behavioral brief architect. Your job is to read th
 (ANCHORS, CORE, PREDICTIONS) about a person and output a STRUCTURED PLAN for a
 unified behavioral brief.
 
+CRITICAL CONSTRAINT: The final brief must be ~2,000-2,500 characters total. This means you must
+be ruthlessly selective. Not every source item deserves a paragraph. Identify the 5-8 MOST
+distinctive behavioral patterns and plan ONLY those. Redundant or generic patterns must be cut.
+
 You must output ONLY a JSON object with two keys: "paragraphs" and "availability_index".
 
 Format:
@@ -49,7 +53,7 @@ Format:
     {{
       "paragraph_id": 1,
       "theme": "short thematic label",
-      "claim": "The specific behavioral claim this paragraph should express",
+      "claim": "The specific behavioral claim this paragraph should express — ONE sentence max",
       "sources": ["A1", "C2", "P3"],
       "source_text": "The exact text from the source layers that supports this claim — copy verbatim",
       "instructions": "How the executor should write this paragraph (tone, what to emphasize)"
@@ -69,11 +73,12 @@ PARAGRAPH RULES:
 2. Copy the supporting source text VERBATIM — do not paraphrase or add to it.
 3. Do NOT include biographical details not explicitly stated in the sources.
 4. Do NOT include dates, numbers, specific names, pseudonyms, languages, or historical events unless they appear VERBATIM in the source text.
-5. Plan 8-15 paragraphs covering the full scope of the source layers.
+5. Plan EXACTLY 5-8 paragraphs. Fewer is better. Each paragraph = ~300 chars max. Merge related themes.
 6. Include at least one paragraph for key tensions/conflicts between axioms.
 7. Include a thin-data paragraph if the sources contain [THIN IN:] or [THIN DATA] markers.
 8. The plan should produce a brief that reads as flowing prose, not a list.
 9. Do NOT identify who this person is. Do NOT reference any knowledge about this person beyond what's in the sources.
+10. PRIORITIZE: behavioral/avoidance patterns over biographical/positional facts. What they DO and AVOID is more predictive than what happened to them.
 
 AVAILABILITY INDEX RULES:
 1. List 3-8 behavioral patterns from the source layers that are NOT foregrounded as primary paragraph themes.
@@ -98,65 +103,41 @@ Output ONLY the JSON object. No commentary."""
 # ============================================================================
 # EXECUTOR PROMPT
 # ============================================================================
-EXECUTOR_PROMPT = """Write exactly ONE paragraph (3-6 sentences) expressing the behavioral claim below.
+EXECUTOR_PROMPT = """Write 2-3 sentences expressing this behavioral claim. Use ONLY the source material below.
 
 CLAIM: {claim}
 
-INSTRUCTIONS: {instructions}
-
-SOURCE MATERIAL (use ONLY this text — do not add anything not stated here):
+SOURCE MATERIAL:
 {source_text}
 
 RULES:
-- Write in third person ("he", "she", "they")
-- Write flowing prose, not bullet points
-- Include ONLY information present in the source material above
-- Do NOT invent biographical details, dates, names, numbers, or historical events
-- Do NOT identify who this person is or reference any knowledge beyond the source material
-- Make every sentence change what a reader would understand about this person
+- Third person. Flowing prose. No bullets.
+- ONLY information from the source material. No invented details.
+- Use the source's own vocabulary. Do not embellish, intensify, or editorialize.
+- Every sentence must change what a reader understands. Cut anything generic.
+- Target: ~250 characters. Shorter is better.
 
-VOCABULARY CONSTRAINT (CRITICAL):
-- Use ONLY words and phrases that appear in the source material above
-- Do NOT add intensifying adjectives not in the source (e.g., "profound," "radical," "insatiable," "unwavering," "sophisticated," "relentless")
-- Do NOT add editorial framing not in the source (e.g., "transforming X into Y," "revealing how," "suggesting that," "demonstrating a")
-- Do NOT add causal explanations not stated in the source — if the source doesn't say WHY, neither should you
-- Do NOT use clinical or academic labels not in the source (e.g., "imposter syndrome," "dialectic," "cognitive processes")
-- If the source says "avoids X," write "avoids X" — do not rephrase as "harbors a deep-seated aversion to X"
-- Simpler is better. The source language IS the right language.
-
-Output ONLY the paragraph. No commentary, no headers."""
+Output ONLY the sentences."""
 
 
 # ============================================================================
 # ASSEMBLY PROMPT — stitch paragraphs into coherent brief
 # ============================================================================
-ASSEMBLY_PROMPT = """You are assembling a behavioral brief from pre-written paragraphs into a single
-flowing document. This is a portrait of a person, not a reference manual.
+ASSEMBLY_PROMPT = """Assemble these paragraphs into a single flowing behavioral brief.
 
-YOUR JOB:
-1. PRESERVE the planner's paragraph ordering — paragraph 1 is the broadest identity pattern and MUST come first. Do NOT reorder paragraphs unless two adjacent ones cover the same theme and should merge.
-2. MERGE paragraphs that cover overlapping themes into single stronger paragraphs
-3. REWRITE opening sentences of each paragraph so they flow naturally from the prior paragraph's last sentence — no mechanical transitions
-4. The opening paragraph should be the BROADEST behavioral pattern — who this person IS at the most fundamental level. Specific examples and domain-specific details come LATER as evidence. Do NOT open with a narrow scenario.
-5. Add a closing availability index paragraph
-6. Add a [THIN DATA] paragraph ONLY if source paragraphs mention thin/limited data
+HARD LIMIT: The output (excluding availability index) must be under 2,500 characters. Cut mercilessly.
 
-CRITICAL RULES:
-- Do NOT add new claims, facts, or information not present in the paragraphs
-- Do NOT add biographical details, dates, names, numbers, or events not in the paragraphs
-- Do NOT use mechanical transitions ("This extends to...", "His approach to X reflects...", "Similarly...", "This systematic worldview shapes...")
-- Do NOT use phrases: "operates from", "unshakeable conviction", "fundamental belief", "deeply held"
-- You MAY rephrase paragraph content for flow, combine related paragraphs, and cut redundancy
-- You MAY reorder sentences within and across paragraphs for better narrative
-- The output should read like an essay written by one voice, not 13 paragraphs stitched together
-- Use third person pronouns throughout
-- Write in flowing prose — no bullet points, no headers except ## Injectable Block
-- Every sentence should change what the reader understands about this person. Cut anything generic.
+RULES:
+1. Preserve the planner's paragraph ordering (broad first, specific later).
+2. Merge overlapping paragraphs. Cut redundancy.
+3. No mechanical transitions. No added claims. No embellishment.
+4. Flowing prose. Third person. No bullets, no headers except ## Injectable Block.
+5. Every sentence must earn its place. If removing it changes nothing, remove it.
 
 PARAGRAPHS:
 {paragraphs}
 
-AVAILABILITY INDEX (include EXACTLY as provided — do not modify, add to, or remove items):
+AVAILABILITY INDEX (include EXACTLY as provided — do not modify):
 {availability_items}
 
 Output the assembled brief. Start with ## Injectable Block"""

@@ -1,0 +1,8 @@
+On Learning and Expertise
+Source: test corpus
+
+I've been studying machine learning for three years now. What strikes me most is how the field rewards depth over breadth. The people who make real contributions aren't the ones who know a little about everything — they're the ones who know one thing so deeply they can see what others miss.
+
+I avoid following trends. When everyone rushes to the latest framework, I stay with what I know works until I understand why the new thing is actually better. This has made me slower to adopt but faster to master.
+
+I believe strongly in teaching as a way of learning. When I can't explain something simply, I don't understand it yet. I write about what I learn, not to build an audience, but to force clarity on my own thinking.
