@@ -1,0 +1,57 @@
+#!/bin/bash
+# Pre-commit security gate — blocks commits containing sensitive data
+# Install: git config core.hooksPath .githooks
+
+echo "Running security gate..."
+
+BLOCKED=0
+
+# Check staged files for passwords, API keys, tokens
+PATTERNS=(
+    'sk-ant-api'
+    'ANTHROPIC_API_KEY=sk-'
+    'INDUSTRY_ADMIN_SECRET=.'
+    '"password":\s*"[a-z]+-[a-z]+-[a-z0-9]+'
+    'passwordHash.*=.*"[^$]'
+    'REDACTED'
+    'REDACTED'
+)
+
+for pattern in "${PATTERNS[@]}"; do
+    MATCHES=$(git diff --cached --diff-filter=ACM -S "$pattern" --name-only 2>/dev/null | grep -v '.githooks/' | grep -v 'test_privacy')
+    if [ -n "$MATCHES" ]; then
+        echo "BLOCKED: Pattern '$pattern' found in staged files:"
+        echo "$MATCHES"
+        BLOCKED=1
+    fi
+done
+
+# Check for large personal data files
+LARGE_FILES=$(git diff --cached --diff-filter=ACM --name-only | while read f; do
+    SIZE=$(git cat-file -s ":$f" 2>/dev/null || echo 0)
+    if [ "$SIZE" -gt 100000 ]; then
+        echo "  $f ($SIZE bytes)"
+    fi
+done)
+
+if [ -n "$LARGE_FILES" ]; then
+    echo "WARNING: Large files staged (>100KB):"
+    echo "$LARGE_FILES"
+    echo "Verify no personal data is included."
+fi
+
+# Check for identity model content in test files
+IDENTITY_IN_TESTS=$(git diff --cached --diff-filter=ACM -S "mother-in-law\|married\|wife.*support\|SAFA.*collapse" -- tests/ 2>/dev/null)
+if [ -n "$IDENTITY_IN_TESTS" ]; then
+    echo "BLOCKED: Personal identity content found in test files"
+    BLOCKED=1
+fi
+
+if [ "$BLOCKED" -eq 1 ]; then
+    echo ""
+    echo "Commit blocked by security gate. Fix the issues above."
+    echo "To bypass (NOT recommended): git commit --no-verify"
+    exit 1
+fi
+
+echo "Security gate passed."
