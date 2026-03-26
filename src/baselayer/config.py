@@ -454,11 +454,34 @@ AGENT_RUNS_DIR = IDENTITY_LAYERS_DIR / "runs"
 _LLM_DEFAULTS = {
     "extraction": "claude-haiku-4-5-20251001",
     "classification": "claude-haiku-4-5-20251001",   # LEGACY — classification removed in S79
-    "tiering": "claude-sonnet-4-20250514",             # LEGACY — tiering removed in S79
-    "authoring": "claude-sonnet-4-20250514",
-    "review": "claude-opus-4-20250514",                # Used as compose model in agent_pipeline.py
-    "contradiction": "claude-sonnet-4-20250514",       # Used by detect_contradictions.py (experimental)
+    "tiering": "claude-sonnet-4-6",                    # LEGACY — tiering removed in S79
+    "authoring": "claude-sonnet-4-6",                  # S98: updated from claude-sonnet-4-20250514
+    "review": "claude-opus-4-6",                       # S98: updated from claude-opus-4-20250514 (3x cheaper)
+    "contradiction": "claude-sonnet-4-6",              # Used by detect_contradictions.py (experimental)
 }
+
+# S98: Known latest model versions — used for freshness check
+_LATEST_MODELS = {
+    "haiku": "claude-haiku-4-5-20251001",
+    "sonnet": "claude-sonnet-4-6",
+    "opus": "claude-opus-4-6",
+}
+
+
+def check_model_freshness():
+    """Check if configured models are the latest available. Prints warnings for outdated models."""
+    warnings = []
+    for role, model_id in LLM_PROVIDER_CONFIG.items():
+        for family, latest in _LATEST_MODELS.items():
+            if family in model_id.lower() and model_id != latest:
+                warnings.append(f"  {role}: using {model_id}, latest is {latest}")
+    if warnings:
+        print("Model freshness warning — outdated models detected:")
+        for w in warnings:
+            print(w)
+        print("  Update _LLM_DEFAULTS in config.py or set BASELAYER_LLM_<ROLE> env vars.")
+        print()
+    return len(warnings) == 0
 
 LLM_PROVIDER_CONFIG = {
     role: os.environ.get(f"BASELAYER_LLM_{role.upper()}", default_model)

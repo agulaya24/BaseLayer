@@ -17,46 +17,35 @@ import pytest
 class TestExtractionGate:
     """Extraction completeness gate — blocks author/compose if extraction incomplete."""
 
-    def test_gate_blocks_on_incomplete_extraction(self, populated_db):
-        """Author should be blocked if extraction_log < conversations."""
+    def test_gate_blocks_on_no_facts(self, populated_db):
+        """Author should be blocked if zero facts extracted."""
         conn, db_path = populated_db
 
-        # Ensure conversations exist but extraction_log is empty
-        conv_count = conn.execute("SELECT COUNT(*) FROM conversations").fetchone()[0]
-        assert conv_count > 0, "Need conversations for this test"
-
-        extracted = conn.execute("SELECT COUNT(*) FROM extraction_log").fetchone()[0]
-        # populated_db may have extraction_log entries — clear them
+        # Clear all facts and extraction log
+        conn.execute("DELETE FROM memory_facts")
         conn.execute("DELETE FROM extraction_log")
         conn.commit()
 
-        extracted_after = conn.execute("SELECT COUNT(*) FROM extraction_log").fetchone()[0]
-        assert extracted_after == 0, "extraction_log should be empty"
+        fact_count = conn.execute("SELECT COUNT(*) FROM memory_facts").fetchone()[0]
+        assert fact_count == 0, "Should have zero facts"
 
-        # The gate should detect incomplete extraction
         with patch("baselayer.config.DATABASE_FILE", db_path):
             from baselayer.cli import _check_extraction_complete
             with pytest.raises(SystemExit) as exc_info:
                 _check_extraction_complete()
             assert exc_info.value.code == 1
 
-    def test_gate_passes_on_complete_extraction(self, populated_db):
-        """Author should proceed if extraction_log matches conversations."""
+    def test_gate_passes_when_facts_exist(self, populated_db):
+        """Author should proceed if facts have been extracted."""
         conn, db_path = populated_db
 
-        # Make extraction_log match conversations
-        conv_ids = conn.execute("SELECT id FROM conversations").fetchall()
-        for row in conv_ids:
-            conn.execute(
-                "INSERT OR IGNORE INTO extraction_log (conversation_id, facts_extracted) VALUES (?, ?)",
-                (row["id"], 5)
-            )
-        conn.commit()
+        # populated_db has facts already
+        fact_count = conn.execute("SELECT COUNT(*) FROM memory_facts WHERE superseded_by IS NULL").fetchone()[0]
+        assert fact_count > 0, "populated_db should have facts"
 
         with patch("baselayer.config.DATABASE_FILE", db_path):
             from baselayer.cli import _check_extraction_complete
-            # Should NOT raise
-            _check_extraction_complete()
+            _check_extraction_complete()  # Should NOT raise
 
     def test_gate_allows_override(self, populated_db):
         """BASELAYER_SKIP_EXTRACTION_GATE=1 should bypass the gate."""

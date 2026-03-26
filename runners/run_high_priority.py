@@ -70,13 +70,9 @@ def update_registry(subject_id, source_dir_name, mem_dir):
 
 def run_pipeline(subject_id):
     """Run baselayer pipeline for a subject."""
-    env = os.environ.copy()
-    env["BASELAYER_SKIP_EXTRACTION_GATE"] = "1"  # First run — extraction_log won't match until complete
-
     result = subprocess.run(
         [sys.executable, "-u", "-m", "baselayer.cli", "pipeline", subject_id],
         cwd=str(MS / "src"),
-        env=env,
         capture_output=False,
         timeout=7200,  # 2 hour timeout per subject
     )

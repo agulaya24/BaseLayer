@@ -1103,6 +1103,10 @@ def cmd_pipeline(args):
     _check_api_key()
     _check_pipeline_lock()
 
+    # S98: Check model freshness on every pipeline run
+    from baselayer.config import check_model_freshness
+    check_model_freshness()
+
     # Resolve subject from registry
     from baselayer.config import DATABASE_FILE
     main_db = DATABASE_FILE
@@ -1209,14 +1213,48 @@ def cmd_pipeline(args):
     else:
         print(f"  No source directory — skipping import.")
 
-    # Step 2: Extract (batch if available, sequential fallback)
-    print(f"\n  Step 2: Extracting facts...")
-    import baselayer.extract_facts as extract_facts
-    argv = ["extract_facts.py"]
-    if doc_mode:
-        argv.append("--document-mode")
-    sys.argv = argv
-    extract_facts.main()
+    # Step 2: Extract (batch API — 50% cheaper, ~1hr turnaround)
+    print(f"\n  Step 2: Extracting facts (batch API)...")
+    import baselayer.batch_extract as batch_extract
+
+    # Submit batch
+    batch_extract.run_submit(document_mode=doc_mode, skip_extracted=True)
+
+    # Poll until complete
+    import time as _time
+    while True:
+        state = batch_extract._load_batch_state()
+        if not state or state.get("status") in ("completed", "failed", "expired", "ended"):
+            break
+        if state.get("batch_id"):
+            try:
+                from baselayer.api_client import get_anthropic_client
+                client = get_anthropic_client()
+                batch = client.messages.batches.retrieve(state["batch_id"])
+                status = batch.processing_status
+                counts = batch.request_counts
+                processing = getattr(counts, 'processing', 0)
+                succeeded = getattr(counts, 'succeeded', 0)
+                total = state.get("total_requests", 0)
+                print(f"  Batch: {status} — {succeeded}/{total} succeeded, {processing} processing")
+                if status == "ended":
+                    state["status"] = "ended"
+                    batch_extract._save_batch_state(state)
+                    break
+            except Exception as e:
+                print(f"  Status check error: {e}")
+        _time.sleep(30)
+
+    # Process results
+    if state and state.get("status") in ("ended", "completed"):
+        print(f"\n  Processing batch results...")
+        batch_extract.run_process(resume=True)
+    elif state and state.get("total_requests", 0) == 0:
+        # No conversations to extract (all already done)
+        print(f"  No new conversations to extract.")
+    else:
+        print(f"  Batch extraction did not complete. Status: {state.get('status') if state else 'unknown'}")
+        print(f"  Run 'baselayer batch-extract --status' to check, then '--process' when ready.")
 
     # Gates before authoring
     print(f"\n  Checking gates...")
@@ -1388,29 +1426,25 @@ def _check_api_key():
 
 
 def _check_extraction_complete():
-    """S98 gate: Block author/compose if extraction is incomplete.
+    """S98 gate: Block author/compose if no facts have been extracted.
 
-    Compares extraction_log count against conversations that MEET the minimum
-    message threshold — not all conversations. Short conversations (< MIN_MESSAGES)
-    are intentionally skipped by extraction and shouldn't block the gate.
+    Simple check: are there extracted facts in the database? If zero facts,
+    extraction hasn't run. Works correctly for both conversation mode (multi-message)
+    and document mode (1-message-per-file).
     """
-    from baselayer.config import DATABASE_FILE, MIN_MESSAGES_FOR_EXTRACTION
+    from baselayer.config import DATABASE_FILE
     if not DATABASE_FILE.exists():
-        return  # No DB yet — let downstream handle it
+        return
 
     import sqlite3
     conn = sqlite3.connect(str(DATABASE_FILE))
     try:
-        # Only count conversations that meet extraction threshold
-        extractable = conn.execute(
-            "SELECT COUNT(*) FROM conversations WHERE message_count >= ?",
-            (MIN_MESSAGES_FOR_EXTRACTION,)
-        ).fetchone()[0]
-        extracted = conn.execute("SELECT COUNT(*) FROM extraction_log").fetchone()[0]
         total_convs = conn.execute("SELECT COUNT(*) FROM conversations").fetchone()[0]
+        fact_count = conn.execute("SELECT COUNT(*) FROM memory_facts WHERE superseded_by IS NULL").fetchone()[0]
+        extracted = conn.execute("SELECT COUNT(*) FROM extraction_log").fetchone()[0]
     except Exception:
         conn.close()
-        return  # Tables may not exist yet
+        return
 
     conn.close()
 
@@ -1418,18 +1452,14 @@ def _check_extraction_complete():
         print("Error: No conversations imported. Run 'baselayer import' first.")
         sys.exit(1)
 
-    if extractable > 0 and extracted < extractable:
-        pct = (extracted / extractable * 100) if extractable > 0 else 0
-        skipped = total_convs - extractable
-        print(f"Error: Extraction incomplete — {extracted}/{extractable} extractable conversations ({pct:.0f}%).")
-        if skipped > 0:
-            print(f"  ({skipped} conversations below {MIN_MESSAGES_FOR_EXTRACTION}-message threshold, excluded)")
-        print(f"Run 'baselayer extract' to finish extraction before authoring.")
-        print(f"To force anyway (not recommended): set BASELAYER_SKIP_EXTRACTION_GATE=1")
+    if fact_count == 0 and extracted == 0:
+        print(f"Error: No facts extracted from {total_convs} conversations.")
+        print(f"Run extraction before authoring.")
+        print(f"To force anyway: set BASELAYER_SKIP_EXTRACTION_GATE=1")
         if not os.environ.get("BASELAYER_SKIP_EXTRACTION_GATE"):
             sys.exit(1)
         else:
-            print(f"  WARNING: Proceeding despite incomplete extraction (gate overridden).")
+            print(f"  WARNING: Proceeding with zero facts (gate overridden).")
 
 
 def _check_fact_floor():
