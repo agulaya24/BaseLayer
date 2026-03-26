@@ -13,8 +13,6 @@ PATTERNS=(
     'INDUSTRY_ADMIN_SECRET=.'
     '"password":\s*"[a-z]+-[a-z]+-[a-z0-9]+'
     'passwordHash.*=.*"[^$]'
-    'REDACTED'
-    'REDACTED'
 )
 
 for pattern in "${PATTERNS[@]}"; do
