@@ -158,10 +158,14 @@ def extract_with_model(conv, model_name, backend, prompt_variant="standard"):
 
     # Validate
     validated = []
-    for f in facts:
-        v = validate_structured_response(f)
-        if v:
-            validated.append(v)
+    try:
+        v_list = validate_structured_response(facts, message_count=10)
+        validated = v_list if v_list else []
+    except Exception:
+        # Fallback: basic validation without the full pipeline function
+        for f in facts:
+            if f.get("subject") and f.get("predicate"):
+                validated.append(f)
 
     return {"facts": validated, "time": elapsed, "raw_count": len(facts)}
 

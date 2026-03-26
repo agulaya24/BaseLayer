@@ -698,7 +698,7 @@ def compose_unified_brief(run_dir=None, layer_texts=None, source_facts_text=None
         )
         brief_text = response.content[0].text
         tokens_used = response.usage.input_tokens + response.usage.output_tokens
-        cost = (response.usage.input_tokens * 15 + response.usage.output_tokens * 75) / 1_000_000
+        cost = (response.usage.input_tokens * 5 + response.usage.output_tokens * 25) / 1_000_000
         total_cost += cost
 
         print(f"  Generated: {len(brief_text)} chars, ~{len(brief_text) // 4} tokens")
@@ -747,7 +747,7 @@ def compose_unified_brief(run_dir=None, layer_texts=None, source_facts_text=None
                         timeout=httpx.Timeout(600.0, connect=30.0),
                     )
                     brief_text = response.content[0].text
-                    retry_cost = (response.usage.input_tokens * 15 + response.usage.output_tokens * 75) / 1_000_000
+                    retry_cost = (response.usage.input_tokens * 5 + response.usage.output_tokens * 25) / 1_000_000
                     total_cost += retry_cost
                     print(f"  Retry generated: {len(brief_text)} chars, ~${retry_cost:.3f}")
                 except Exception as e:

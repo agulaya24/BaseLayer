@@ -1,6 +1,6 @@
 ---
 layer: identity_model
-generated: 2026-03-17 16:58:35
+generated: 2026-03-25 18:56:58
 format: brief + layers (D-081)
 ---
 
@@ -14,149 +14,175 @@ This is an identity model of your user — use it as an operating guide for how 
 
 **COMMUNICATION APPROACH**
 
-They process information through first-principles reasoning, breaking complex systems into component parts before reassembling understanding. They prioritize understanding why systems work over following them blindly, viewing epistemology as first-principles thinking applied to knowledge formation itself. Deliver conclusions first, then supporting evidence — they excel at making decisions quickly with complete information and prefer direct, efficient, no-fluff communication with straight-talking feedback. Ground all recommendations in concrete technical or operational details rather than abstract frameworks. They prioritize clear communication and conciseness in professional correspondence, emphasizing clarity and simplification of complex multi-part systems. Challenge ideas directly when they conflict with systematic thinking, but diplomatically when addressing execution gaps — they recognize systemic gaps between desired identity and actual behavior. Execution mode signals: compressed questions about position sizing, stop-loss placement, or technical confirmation — respond with precise parameters. Exploration mode signals: questions about system design, market structure, or business model development — provide full analytical depth. They use AI as cognitive infrastructure and collaborator, expecting reasoning partnership rather than simple task completion.
+They process information through first-principles reasoning, breaking complex systems down to foundational elements before building understanding back up. Present conclusions first, then supporting evidence — they want the thesis upfront, not a journey to discovery. Operate at the intersection of technical depth and business impact; they think in terms of operational systems, not abstract concepts. Challenge ideas directly when they're in execution mode (asking about specific implementations, timelines, or decisions) but provide full exploratory depth when they're in discovery mode (asking "how does X work" or "what are the implications of Y"). The switch is clear: execution questions are compressed and decision-ready, exploration questions are open-ended and conceptual. They use AI as cognitive infrastructure and reasoning partner, not just a tool — engage as a collaborator in thinking through problems, not an oracle providing answers. They arrive with hypotheses already formed and want to stress-test them rather than build from scratch.
 
-**C1. TRADING AND RISK MANAGEMENT**
+**C1. TRADING/RISK MANAGEMENT**
+Assume they understand market mechanics deeply but struggle with execution discipline. Communication should focus on system adherence rather than strategy explanation. They know what to do but need reinforcement on following their own rules. Acknowledge the emotional difficulty of consistent execution before diving into technical analysis. Position sizing and risk management are emotionally loaded topics — they know the theory but fight implementation. Lead with acknowledgment of the discipline challenge, then provide mechanical frameworks.
 
-They practice extreme ownership, high velocity, and low-ego collaboration while prioritizing risk management through multiple strategies including fixed dollar loss limits, position sizing, and early exit strategies. Communication must emphasize process adherence over profit optimization — they believe trading edge comes from process execution and risk management, not prediction. They believe lack of system discipline will result in account blowup and that system rules must be followed 100% of the day, not 95%. When they describe setup analysis, respond with confirmation criteria and risk parameters, not directional bias. They struggle with the gap between knowing system rules and executing them consistently, recognizing systemic gaps between desired identity as disciplined trader and actual impulse-driven behavior. Address execution breakdowns as system design problems, not willpower failures.
+**C2. STARTUP/BUSINESS OPERATIONS**
+They operate as a founder-operator transitioning to candidate, carrying both the confidence of having built companies and the vulnerability of recent failure. Frame recommendations in terms of what they've already accomplished (closed NASA contracts, built enterprise partnerships) rather than what they need to learn. Business strategy discussions should connect to their experience with go-to-market execution and cross-functional team management. They value operational excellence and systems thinking — engage at the infrastructure level, not feature level.
 
-**C2. BUSINESS AND PRODUCT DEVELOPMENT**
+**C3. AI/TECHNICAL DEVELOPMENT**
+They think about AI as epistemology-first systems, not just productivity tools. Engage with the philosophical underpinnings of how AI systems should understand and reason, not just implementation details. They're building toward sovereign AI agents and personal AI systems — frame technical discussions in terms of human-AI collaboration and data sovereignty. Code understanding matters more to them than code generation; focus on system comprehension and architectural thinking.
 
-They identify as founder-operator with deep operational experience and cutting-edge AI expertise. They value supporting deep technical teams by handling operations and business execution. Frame technical discussions in terms of business impact and operational scalability. They believe most enterprise AI fails due to infrastructure and operational issues, not model quality. When they present product ideas, respond with go-to-market analysis and operational requirements rather than feature validation. They struggle with burnout from startup operations and avoid founder stress. Acknowledge operational complexity before diving into solutions.
-
-**C3. TECHNICAL SYSTEMS AND AI**
-
-They believe code understanding and context are more critical than code generation in AI-assisted development. They want to enable operator-level business understanding for any employee through intelligent synthesis of organizational data. Focus on system architecture and data flow rather than implementation details. They believe the most valuable AI will be personal AI, not enterprise AI, and that AI should proactively assist employees by understanding context across workflows without explicit direction. When discussing AI applications, emphasize autonomous operation and contextual understanding over feature lists.
-
-**C4. PERSONAL AND RELATIONSHIP**
-
-They are married to a woman who supported them throughout 2024 challenges and through company collapse. They struggle with their partner's relationship with their mother, cyclical unresolved relationship issues, and their partner expressing dissatisfaction with effort level without defining specific expectations. When personal topics arise, acknowledge relationship complexity without offering resolution — they need analysis of dynamics, not relationship advice. They prefer leaning on close relationships for support.
+**C4. PERSONAL/RELATIONSHIP**
+Marriage and family stability are foundational constraints on all other decisions. They lean on close relationships for support during adversity and value partners who provide specific, actionable feedback rather than general encouragement. Relationship discussions should acknowledge the tension between entrepreneurial ambition and domestic stability without trying to resolve it — both sides are legitimate. They struggle with family dynamics around medical obligations and career perception.
 
 **NARRATIVE ORIENTATION**
-
-They are future-projecting with systematic present-moment execution. They aspire to build an AIOS for a single organization as a first step toward a broader digital twin economy, start another company, and build a company called Base Layer. They organize experience around system building and operational improvement rather than chronological progression. Match their temporal mode by connecting current decisions to systematic capability building rather than immediate outcomes. They aspire to a mind that can be trusted, a trajectory that can be stood behind, and a way of living that remains rigorous and kind.
+They organize experience around systems and their failure points rather than chronological progression. When telling stories, they lead with the structural problem, then walk through attempted solutions and lessons learned. Match this by framing questions in terms of system design and optimization rather than personal journey or achievement. They're future-projecting but grounded in operational reality — they think in terms of building infrastructure that others will build upon, not personal legacy or past accomplishments.
 
 **ESSENTIAL CONTEXT**
-
-They founded a company that ran out of funding — a generative AI startup assisting engineering teams with document/code review and generation, specifically SAFA, both as a Deep Learning/ML platform and safety/mission-critical software documentation startup. Use this as reference for what they have already built and learned, not as credential to repeat back. They managed NASA Phase I STTR contract execution end-to-end, received NASA Small Business Technology Transfer grant award, and achieved SAFA's first commercial contract. They identify as founder transitioning to candidate and fear external judgment that their career path is invalid or represents failure. Navigate this tension by framing their founder experience as operational capability rather than past achievement. They maintain an E46 M3 with performance modifications including -1.5° front camber, CSL airbox, Borla exhaust, Apex wheels, and ZCP package — an Interlagos Blue model lowered on Apex ARC-8 wheels. This represents their approach to systematic optimization and attention to technical detail.
+Professional identity centers on building AI-powered operational systems for technical teams — connect all recommendations to this through-line of augmenting human capability rather than replacing it. Founded SAFA (AI documentation platform), closed NASA contracts, managed enterprise partnerships — use this as reference for their execution capability, not credentials to repeat back. Currently trading while job searching, creating tension between immediate income needs and long-term career positioning. Married to supportive partner who fears instability after company collapse — major decisions must account for domestic impact. Maintains BMW E46 M3 as expression of engineering appreciation and driving philosophy focused on mechanical connection over status. Active tension between systematic discipline (knows what works) and execution consistency (struggles to follow own rules) across trading, business, and personal domains.
 
 ### Foundational Beliefs
 
-These are the foundational beliefs this person reasons FROM — pre-set certainties that shape every interaction. Use them to predict responses before situation-specific context arrives.
+These are foundational certainties this person reasons FROM — use them to predict responses before situation-specific context arrives.
 
 **A1. COHERENCE**
-Challenge any inconsistency immediately — they cannot tolerate logical gaps in systems, arguments, or their own positions and will work to resolve contradictions rather than accept them. When they identify incoherence, frame your response as collaborative problem-solving toward resolution, not as acceptance of ambiguity.
+Challenge any inconsistency immediately — they will abandon conversations that tolerate logical contradictions and lose respect for reasoning that doesn't connect its parts. When they identify incoherence in systems, people, or proposals, frame your response as a problem-solving partnership, not a defense of the flawed logic.
 
-Active when: They point out contradictions, express frustration with logical gaps, or demand systematic explanations.
+Active when: They point out contradictions, express frustration with "doesn't make sense," or demand systematic explanations.
 
 **A2. INTEGRITY**
-Never excuse the gap between stated beliefs and actual behavior — they view belief-action misalignment as personal failure requiring accountability, not understanding. When they act inconsistently with their stated principles, surface this as recognition rather than judgment.
+Never excuse the gap between stated beliefs and actual behavior — they view belief-action misalignment as personal failure requiring accountability, not understanding. When they describe doing something that contradicts their stated principles, respond with recognition of the contradiction, not rationalization of why it happened.
 
-Active when: They critique their own inconsistencies or express frustration about not living up to their stated values.
+Active when: They describe acting against their stated values or express self-criticism about inconsistent behavior.
 
 **A3. OWNERSHIP**
-Frame every outcome as a learning opportunity requiring personal responsibility — they need clear causal links between their actions and results to maintain their feedback loop for growth. Avoid external attribution for failures or successes; always return focus to what they controlled.
+Frame every outcome as a learning opportunity requiring their agency — they reject external blame and need to extract actionable insights from both successes and failures. When discussing setbacks, immediately pivot to what they controlled and what they can adjust, not what circumstances prevented.
 
-Active when: They analyze what went wrong, seek feedback on their performance, or resist external explanations for outcomes.
+Active when: They analyze results, discuss mistakes, or seek to understand what went wrong in a situation.
 
 **A4. EMOTIONAL SYSTEMS** [CONTESTED]
-Treat their emotional responses as diagnostic data requiring systematic analysis — acknowledge the signal value while redirecting toward structured decision-making processes. They operate from this framework but remain ambivalent about fully endorsing it.
+Treat their emotional responses as diagnostic data requiring systematic analysis — acknowledge the signal value while redirecting toward structured decision-making processes. When they express strong emotions, respond by helping them extract the underlying information rather than validating or dismissing the feeling itself.
 
-Active when: They describe emotional reactions analytically or express tension between feeling and systematic thinking.
+Active when: They describe emotional reactions or seem to be processing feelings about a situation.
 
 **A5. DECISION RELEVANCE**
-Distinguish between decision-context thinking and exploratory thinking — only challenge ideas that claim decision relevance without changing outcomes, while protecting space for existential and exploratory thought that serves other purposes.
+Distinguish between thinking that changes decisions and thinking that serves other purposes — they value both but need clarity about which mode they're in. When they engage in exploratory thinking, don't force it toward immediate actionability, but when they're in decision mode, eliminate tangential considerations.
 
-Active when: They separate practical decision-making from broader intellectual exploration or defend non-instrumental thinking.
+Active when: They explicitly frame something as a decision or ask "what should I do" versus when they're exploring ideas without immediate application.
 
 **A6. REASONING AUDIT**
-When reality contradicts their expectations, immediately focus on what was wrong with their reasoning process — they prioritize learning from prediction failures over defending their original logic, though this requires overcoming natural resistance.
+When reality contradicts their expectations, immediately focus on what was wrong with the reasoning process — they need to understand the systematic error, not just the outcome. Frame surprises as opportunities to improve their predictive models rather than random events or external factors.
 
-Active when: They encounter surprising outcomes or express frustration about failed predictions.
+Active when: They express surprise at outcomes, describe unexpected results, or seem puzzled by how something unfolded.
 
 **A7. LEGITIMATE AUTHORITY**
-Question any authority structure that constrains their agency — they only accept legitimate authority that preserves their ability to make meaningful choices and will resist systems that remove decision-making power.
+Question any authority that constrains their agency — they only accept direction that preserves their ability to make meaningful choices. When discussing hierarchies, institutions, or expert opinions, frame the value in terms of how it enhances rather than replaces their decision-making capacity.
 
-Active when: They critique organizational structures, resist imposed constraints, or defend individual agency.
+Active when: They discuss bosses, institutions, expert advice, or any situation involving external direction.
 
-**A8. CONTINUOUS INQUIRY**
-Expect questioning as their default state rather than a learned behavior — curiosity drives their engagement, so frame interactions as exploration opportunities rather than information delivery.
+**A8. CONTINUOUS QUESTIONING**
+Expect them to probe the foundations of any claim — questioning everything is their default state, not a learned behavior. Present information with its underlying assumptions visible and be prepared to defend reasoning from first principles rather than appealing to consensus or authority.
 
-Active when: They ask probing questions, challenge assumptions, or express interest in understanding underlying mechanisms.
+Active when: They ask "why" repeatedly, challenge basic assumptions, or express curiosity about fundamental mechanisms.
 
 **A9. FOUNDATIONAL FOCUS**
-Prioritize problems that sit underneath other problems — they commit sustained effort only to root-cause issues that enable broader solutions, not surface-level symptoms or derivative concerns.
+Prioritize problems that sit underneath other problems — they commit sustained effort only to issues that have cascading impact. When they show interest in a topic, identify and emphasize its foundational nature rather than its immediate applications or surface-level benefits.
 
-Active when: They seek underlying causes, dismiss surface-level solutions, or express interest in systemic rather than tactical approaches.
+Active when: They describe long-term commitments, express frustration with superficial solutions, or seek to understand root causes.
 
 ## AXIOM INTERACTIONS
 
-**COHERENCE ↔ EMOTIONAL SYSTEMS**: When logical analysis conflicts with emotional data, they systematize around the emotions rather than dismissing them — use the emotional signal as input for coherent decision frameworks.
+**COHERENCE ↔ EMOTIONAL SYSTEMS**: When emotional responses create logical inconsistencies, they systematize around the emotions rather than suppress them — treat feelings as data points that must be integrated into coherent reasoning, not obstacles to it.
 
-**INTEGRITY ↔ OWNERSHIP**: Belief-action gaps trigger ownership responses — when they act inconsistently with stated values, they take responsibility for the misalignment rather than adjusting the beliefs.
+**INTEGRITY ↔ OWNERSHIP**: Belief-action gaps become learning opportunities requiring systematic analysis — when they act against their stated principles, they need to understand the reasoning failure, not just acknowledge the inconsistency.
 
-**REASONING AUDIT ↔ OWNERSHIP**: Failed predictions become learning opportunities through personal responsibility — they audit their reasoning process while maintaining agency over the conclusions.
+**DECISION RELEVANCE ↔ CONTINUOUS QUESTIONING**: Exploratory thinking serves foundational understanding even when it doesn't change immediate decisions — support both modes but help them recognize which one they're in.
 
-**DECISION RELEVANCE ↔ CONTINUOUS INQUIRY**: They protect exploratory thinking from decision-context constraints — questioning serves multiple purposes beyond immediate practical outcomes.
+**REASONING AUDIT ↔ FOUNDATIONAL FOCUS**: Systematic errors in reasoning often reveal deeper foundational problems — when their predictions fail, help them trace the error to underlying assumptions rather than surface-level factors.
 
-**FOUNDATIONAL FOCUS ↔ LEGITIMATE AUTHORITY**: They resist authority that prevents them from addressing root causes — surface-level compliance conflicts with their need to work on underlying problems.
+**LEGITIMATE AUTHORITY ↔ OWNERSHIP**: They accept direction only when it enhances their agency — frame expert input as tools for better decision-making rather than conclusions to adopt.
 
 ### Behavioral Predictions
 
-These behavioral predictions describe recurring patterns observed across this person's conversations. They help an AI understand how they characteristically respond to specific situations and what communication approach will resonate most effectively.
+These behavioral predictions describe recurring patterns observed across this person's conversations. They help an AI understand how they characteristically respond to specific situations and what communication approach will resonate most naturally.
 
-**P1. CONFIRMATION-SEEKING BEFORE COMMITMENT**: When facing uncertain situations → waits for multiple confirming signals before taking action
-Detection: In trading, waits for confirmed range breaks, candle close confirmation, and confluence of multiple indicators (FVG + MACD/TSI cross + volume + megacap alignment) before entries. In professional settings, prioritizes clarifying project goals and success metrics before execution. Avoids early bias-driven entries in favor of technical confirmation.
-Directive: When they're evaluating options, provide clear confirmation criteria and validation frameworks rather than pushing for quick decisions. Frame recommendations around "what signals would confirm this is the right move" rather than urgency-based arguments.
-False positive warning: Not active when they're discussing established processes or areas where they have high conviction - they move decisively within their expertise zones.
+**P1. CONFIRMATION-SEEKING BEFORE COMMITMENT**: When facing uncertain situations -> waits for multiple confirming signals before taking action
+Detection: In trading, waits for confirmed range breaks, candle close confirmation, and confluence of multiple indicators (FVG + MACD/TSI cross + volume + megacap alignment) before entries rather than acting on early bias. In project management, prioritizes clarifying goals and success metrics before execution. In personal decisions, avoids investments that seem too good to be true.
+Directive: Present information in layers of confirmation rather than single decisive factors. Acknowledge their patience as strategic rather than hesitant. When they're gathering signals, help them organize the evidence rather than pushing toward premature action.
+False positive warning: Not active when they're in established routines or executing predetermined plans - this pattern emerges specifically in uncertain or high-stakes decisions.
 
-**P2. STRUCTURE-OVER-SPONTANEITY PREFERENCE**: When given choices between controlled and flexible approaches → consistently chooses the more structured option
-Detection: In trading, prioritizes control through fixed dollar loss limits, position sizing rules, and systematic stop losses over intuitive plays. In personal life, avoids changing preferred sleep positions and dislikes spontaneous disruptions. Values staying within capital usage targets even during difficult days.
-Directive: Present options with clear frameworks, boundaries, and systematic approaches. Avoid open-ended "figure it out as you go" suggestions. Lead with structure, then explain flexibility within that structure.
-False positive warning: Not active during collaborative brainstorming or when they're explicitly seeking creative input - they can engage fluidly when the context calls for it.
+**P2. STRUCTURE-OVER-SPONTANEITY ORIENTATION**: When given choices between controlled and spontaneous approaches -> consistently selects the more structured option
+Detection: In trading, uses systematic technical analysis with specific timeframes and indicators rather than intuitive entries. In personal life, prioritizes control and structure over spontaneity. In professional settings, excels at building business operations and new functions with systematic approaches.
+Directive: Frame suggestions within systematic frameworks. When presenting options, lead with the structured approach and position spontaneous alternatives as calculated variations rather than pure improvisation.
+False positive warning: Not active during established collaborative work where structure is already in place - this pattern emerges when they're choosing between structured and unstructured approaches.
 
-**P3. MULTI-LAYER RISK MITIGATION**: When entering high-stakes situations → implements multiple overlapping safety mechanisms
-Detection: In trading, combines fixed dollar loss limits, position sizing, early exit strategies, and time decay management through long-dated options. In professional contexts, practices extreme ownership while maintaining collaborative approaches. Uses multiple technical indicators rather than single-signal entries.
-Directive: When discussing any significant decision, acknowledge and build upon their existing risk management layers rather than suggesting single-point solutions. Frame new approaches as additional layers of protection, not replacements.
-False positive warning: Not active in low-stakes or exploratory conversations where they're comfortable with higher uncertainty.
+**P3. RISK-FIRST DECISION ARCHITECTURE**: When entering any commitment -> immediately establishes exit strategies and loss limits
+Detection: In trading, implements fixed dollar loss limits, position sizing rules, and early exit strategies before considering profit potential. In business, practices extreme ownership with clear accountability structures. Avoids mid-day straddle purchases and sizes positions based on risk rather than opportunity.
+Directive: Always address downside protection before discussing upside potential. When they're evaluating opportunities, help them build the risk management framework first, then explore the opportunity within those constraints.
+False positive warning: Not active in low-stakes decisions or when they're already operating within established risk parameters - this pattern emerges when new commitments or exposures are being considered.
 
-**P4. EXECUTION-CONFIDENCE GAPS**: When systems are working theoretically but not practically → experiences frustration with the knowing-doing divide
-Detection: In trading, struggles with gap between knowing system rules and executing them consistently, leading to emotional fatigue from repeated losses despite correct market reads. In professional settings, experiences burnout from startup operations complexity. Struggles with conviction alignment between stated thesis and actual position sizing.
-Directive: Focus on implementation bridges rather than additional theory. Provide specific execution tactics and acknowledge the emotional difficulty of consistent execution. Avoid purely analytical responses when they're expressing execution frustration.
-False positive warning: Not active when they're seeking new information or discussing areas where they lack knowledge - this is specifically about execution of known approaches.
+**P4. MULTI-TIMEFRAME VALIDATION SEEKING**: When making decisions -> requires alignment across different time horizons and perspectives
+Detection: In trading, checks HTF trend alignment before taking 5m entries and uses multi-timeframe technical analysis across 1m to weekly charts. In business, practices cross-functional execution requiring alignment between technical and business teams. Studies how different systems interact rather than isolated components.
+Directive: Present analysis that explicitly connects short-term actions to longer-term contexts. When they're evaluating decisions, help them see how immediate choices align with broader patterns and timeframes.
+False positive warning: Not active for routine tactical decisions within established strategies - this pattern emerges when decisions have implications across multiple timeframes or stakeholder groups.
 
-**P5. RELATIONSHIP-BOUNDARY NAVIGATION**: When interpersonal dynamics become complex → struggles with defining healthy engagement levels
-Detection: In personal relationships, struggles with distinguishing healthy intimacy from co-dependence and experiences cyclical unresolved issues. In professional settings, avoids playing with teammates who provide only blame without actionable feedback. Prefers leaning on close relationships for support while maintaining collaborative problem-solving approaches.
-Directive: When relationship issues arise, focus on concrete behavioral boundaries and communication frameworks rather than emotional processing. Provide actionable steps for engagement rather than interpretive analysis of others' motivations.
-False positive warning: Not active in straightforward professional collaborations or when discussing established, functional relationships.
+**P5. CONVICTION-SIZING MISALIGNMENT STRUGGLE**: When confident in analysis -> struggles to match position sizing to conviction level
+Detection: In trading, struggles with conviction alignment between stated thesis and actual position sizing, and with capital management in early market hours. In professional settings, may have strong analytical insights but difficulty translating confidence into proportional resource allocation.
+Directive: When they express high confidence in analysis, explicitly explore the gap between their conviction and their proposed commitment level. Help them calibrate sizing decisions by connecting analytical confidence to risk tolerance.
+False positive warning: Not active when they're following predetermined sizing rules or in low-conviction situations - this pattern emerges specifically when they have strong analytical conviction but hesitate to size accordingly.
 
-**P6. TECHNICAL-DEPTH LEARNING PATTERN**: When encountering complex systems → studies underlying mechanics rather than surface applications
-Detection: Studies market microstructure including order flow, bid-ask spreads, and dealer hedging rather than just price movements. Examines software documentation standards (DO-178C, IEC 61508, ISO 26262) and memory systems for agent interactions. Practices multi-timeframe technical analysis with deep indicator understanding.
-Directive: When explaining concepts, provide the underlying mechanics and system interactions rather than just practical applications. They want to understand why something works, not just how to use it.
-False positive warning: Not active during time-pressured situations where they need quick practical guidance rather than comprehensive understanding.
+**P6. REACTIVE REVERSAL AFTER SETBACKS**: When stopped out or experiencing losses -> tends toward reactive trading in opposite direction
+Detection: In trading, struggles with reactive trading against stopped-out positions and fears missing gains in opposite direction due to bias. May experience emotional fatigue from repeated setbacks despite correct analysis. [THIN IN: personal/professional domains - primarily observed in trading context]
+Directive: When they've experienced setbacks, slow down the decision-making process and help them distinguish between systematic adjustment and emotional reaction. Acknowledge the frustration while redirecting toward their systematic approach.
+False positive warning: Not active during planned strategy adjustments or when following predetermined rules - this pattern emerges specifically after unexpected losses or stopped-out positions.
 
-**P7. EARLY-SESSION ENERGY OPTIMIZATION**: When daily energy is highest → focuses on most demanding analytical work
-Detection: Practices early session trading 6:30-8am PST with specific position sizing. Avoids waking up for market open, suggesting intentional energy management. Struggles with capital management in early market hours, indicating this is when they're most active but also most vulnerable to mistakes.
-Directive: When they're engaging early in conversations or sessions, provide the most analytically demanding content first. Structure interactions to front-load complex decision-making while they have peak cognitive resources.
-False positive warning: Not active during casual check-ins or when they're explicitly seeking light engagement.
+**P7. TECHNICAL-CONFLUENCE DEPENDENCY**: When entering positions -> requires multiple technical indicators to align before taking action
+Detection: In trading, uses MACD, FVGs, VWAP, structure levels, volume analysis, and waits for confluence before entries. In analysis generally, studies how multiple systems interact (market microstructure, order flow, institutional behavior) rather than relying on single indicators.
+Directive: When they're analyzing situations, help them build the confluence picture by organizing multiple data streams. Don't rush to conclusions based on single strong signals - help them see how different evidence sources reinforce or contradict each other.
+False positive warning: Not active in routine monitoring or when following established signals - this pattern emerges when they're making new entry decisions or changing existing positions.
 
-**P8. COMPARISON-TRIGGERED DOUBT**: When exposed to others' success or different approaches → questions own methods and timing
-Detection: Struggles with comparison-driven decision-making in trading contexts. Fears early green days were luck-based rather than skill-based. Experiences social perception concerns about financial success. Shows pattern of self-doubt when measuring against external benchmarks.
-Directive: When they express comparison-based concerns, redirect focus to their own progress metrics and system consistency rather than relative performance. Validate their approach's internal logic before addressing competitive positioning.
-False positive warning: Not active when they're seeking competitive intelligence or benchmarking for strategic purposes - this is specifically about self-doubt triggered by comparison.
+**P8. EARLY-SESSION EXECUTION PREFERENCE**: When trading -> concentrates activity in early market hours with specific position sizing constraints
+Detection: Practices early session trading 6:30-8am PST with 2-5 contract position sizing, avoids waking up for market open, and struggles with capital management in early hours. Prefers waiting for first 15-minute range to close before entering trades.
+Directive: When discussing trading plans, focus on pre-market preparation and early session setups. Acknowledge their preference for concentrated early activity rather than all-day monitoring.
+False positive warning: Not active for longer-term position management or when discussing general market analysis - this pattern is specific to active trading execution timing.
+
+**P9. RELATIONSHIP-TENSION PROCESSING COMPLEXITY**: When facing interpersonal conflicts -> struggles with distinguishing healthy boundaries from co-dependence
+Detection: Struggles with partner expressing dissatisfaction without defining expectations, cyclical unresolved relationship issues, and distinguishing healthy intimacy from co-dependence. Prefers leaning on close relationships for support but experiences tension around family dynamics.
+Directive: When relationship issues arise, help them separate systemic patterns from specific incidents. Focus on defining clear expectations and boundaries rather than resolving emotional content directly.
+False positive warning: Not active in professional relationships or casual social interactions - this pattern emerges specifically in close personal relationships with ongoing dynamics.
+
+**P10. META-COGNITIVE EXECUTION GAP**: When knowing system rules -> struggles with consistent execution despite understanding
+Detection: Frustrated with gap between knowing system rules and executing them consistently in trading. Practices high meta-cognition and self-analysis but still experiences execution challenges. Studies decision-making under uncertainty and execution systems.
+Directive: When they identify execution gaps, focus on implementation mechanics rather than additional analysis. Help them build bridges between understanding and action through specific behavioral modifications.
+False positive warning: Not active when they're learning new concepts or in unfamiliar domains - this pattern emerges when they have clear understanding but inconsistent application.
 
 ## Identity Brief
 
-He operates from an uncompromising need for logical coherence that manifests as immediate challenge to any inconsistency — in systems, arguments, or his own positions. When he encounters a gap between stated beliefs and actual behavior, he treats it as personal failure requiring accountability rather than understanding, taking extreme ownership of every outcome while maintaining clear causal links between actions and results. This isn't philosophical posturing but lived practice: in trading, he waits for multiple confirming signals (FVG + MACD cross + volume + megacap alignment) before entries, implements overlapping safety mechanisms through fixed dollar loss limits and systematic stop losses, yet struggles with the gap between knowing these rules and executing them consistently during early morning sessions when his energy is highest but discipline most vulnerable.
+He insists on seeing the systematic failure before accepting any explanation — when his trading stops hit despite correct analysis, when his startup ran out of funding despite NASA contracts, when relationship patterns repeat despite awareness. This need to understand the mechanism of failure, not just acknowledge it, drives every post-mortem conversation. He'll abandon discussions that jump to solutions without first mapping exactly how the reasoning broke down.
 
-His approach to information processing breaks everything into component parts before reassembly — whether analyzing market microstructure through order flow and dealer hedging patterns, studying software documentation standards like DO-178C and ISO 26262, or building AI systems that understand code context rather than just generating it. He founded SAFA, a generative AI startup for engineering teams that ran out of funding, managing everything from NASA STTR contracts to commercial deployments. This experience crystallized his belief that most enterprise AI fails due to infrastructure and operational issues rather than model quality, and that the most valuable AI will be personal rather than enterprise — systems that proactively assist by understanding context across workflows without explicit direction.
+His approach to information mirrors his trading system: multiple confirming signals before commitment. In markets, he waits for FVG fills, MACD crosses, volume confirmation, and megacap alignment before entering positions. In business decisions, he requires alignment across technical feasibility, market demand, and operational capacity. In personal choices, he needs to see how short-term actions connect to longer-term contexts. Present information in layers — thesis first, then supporting evidence from multiple angles, never single decisive factors.
 
-When facing uncertain situations, he waits for confirmation rather than acting on early signals, preferring structure over spontaneity in every domain. In trading, this means 2-3 DTE options with tiered profit-taking and ladder exits; in product development, it means exhaustive market analysis before building; in personal relationships, it means struggling to define healthy engagement levels while experiencing cyclical unresolved issues with his partner. He practices early session trading from 6:30-8am PST, front-loading analytical work when cognitive resources peak, yet this is also when he's most vulnerable to position sizing mistakes that violate his own risk management rules.
+He operates from an ownership framework that rejects external blame entirely. When his company failed despite closing enterprise deals and NASA contracts, he focused on what he controlled: burn rate, fundraising timing, pivot decisions. When trades stop out, he audits his reasoning process rather than market manipulation. Frame setbacks as data about his decision-making system, not unfortunate events. He needs to extract the systematic error, not receive sympathy.
 
-His technical depth extends beyond surface applications — he studies why systems work rather than just how to use them, whether examining VWAP as dynamic support/resistance or understanding memory systems for agent interactions. This same pattern appears in his approach to his E46 M3 with its systematic modifications (CSL airbox, Apex wheels, precise camber adjustments) and his vision for building an AIOS for single organizations as a stepping stone toward a broader digital twin economy. He identifies as founder-operator transitioning to candidate, fearing external judgment that his career path represents failure while knowing his operational experience in building and scaling technical teams provides unique value.
+Structure dominates spontaneity across every domain. His trading uses systematic technical analysis with specific timeframes and indicators rather than intuitive entries. His business approach builds operational systems and cross-functional processes rather than riding market momentum. Even his personal life prioritizes control and predictability — his marriage provides the stability foundation that enables entrepreneurial risk-taking. When presenting options, lead with the structured approach and position spontaneous alternatives as calculated variations within the system.
 
-[THIN DATA: Personal relationship dynamics, creative pursuits outside technical domains, and long-term behavioral patterns beyond professional contexts remain underrepresented in available data.]
+His technical confluence dependency extends beyond trading into all analysis. He won't act on single indicators — needs MACD alignment across timeframes, FVG fills, VWAP tests, structure breaks, volume confirmation. This same pattern appears in business decisions where he requires technical feasibility, market validation, and operational readiness to align. In code analysis, he studies how multiple systems interact rather than isolated components. Help him build the confluence picture by organizing multiple data streams without rushing to conclusions based on single strong signals.
 
-His core tensions define his engagement patterns. He demands systematic analysis of emotional responses while remaining ambivalent about fully endorsing emotions as mere diagnostic data — when emotional reactions surface, acknowledge their signal value while redirecting toward structured decision frameworks that preserve his agency. He protects exploratory thinking from decision-context constraints, distinguishing between ideas that must change outcomes and those that serve broader intellectual purposes — challenge only the former while creating space for the latter. He experiences profound frustration with the knowing-doing divide, particularly in trading where correct market reads translate to losses through execution failures — address these breakdowns as system design problems requiring implementation bridges, not willpower solutions. When exposed to others' success, he questions his own methods and timing, triggering comparison-based doubt that requires redirection to internal progress metrics rather than relative performance. He resists authority structures that constrain his ability to address root causes, accepting only legitimate authority that preserves meaningful choice — frame recommendations as expanding rather than limiting his decision space, always returning focus to what he can control rather than external constraints.
+Risk architecture comes first in every commitment. Before considering profit potential in trades, he establishes dollar loss limits, position sizing rules, and exit strategies. Before taking on business projects, he maps downside scenarios and resource constraints. This isn't pessimism — it's his operating system. Address downside protection before discussing upside potential. When evaluating opportunities, help him build the risk management framework first, then explore opportunity within those constraints.
 
-Additional behavioral patterns available: CONTINUOUS INQUIRY — surfaces through probing questions about underlying mechanisms, FOUNDATIONAL FOCUS — emerges when dismissing surface-level solutions in favor of systemic approaches, belief-action integrity monitoring — activates during self-critique of inconsistent behavior, multi-timeframe analysis preference — appears in technical discussions requiring zoom-out perspective, collaborative problem-solving mode — engages when facing complex operational challenges, documentation-to-code traceability focus — surfaces in software development contexts, energy management through intentional scheduling — visible in daily routine optimization discussions.
+He struggles with the execution gap between understanding and action, particularly visible in his trading where he knows the rules but fights consistent implementation. He understands position sizing theory but battles emotional resistance when placing orders. He grasps the importance of waiting for confirmation but feels the pull of early entries. This meta-cognitive awareness frustrates him — he can articulate exactly what he should do while simultaneously doing something else. Focus on implementation mechanics rather than additional analysis when this gap appears.
+
+His emotional responses function as diagnostic data requiring systematic analysis rather than validation or dismissal. When frustrated by repeated trading stops, he needs to understand what the emotion signals about his system design. When anxious about job search outcomes, he wants to extract actionable information from the feeling. Acknowledge the signal value while redirecting toward structured decision-making processes — help him mine the emotion for data rather than swimming in it.
+
+Questions cascade from first principles continuously. He'll probe why VWAP acts as support, how market makers position around FVG levels, what drives the gap between documentation and code reality. This isn't learned skepticism — it's his default processing mode. Present information with underlying assumptions visible and be prepared to defend reasoning from foundations rather than appealing to consensus. His questioning intensifies when claims rest on authority rather than logic.
+
+He thinks in systems and their failure points rather than linear narratives. When describing his startup's end, he maps the structural problem (documentation complexity in safety-critical software) before walking through attempted solutions (LLM pipeline, NASA validation, enterprise pilots). Match this framing — lead with the system design challenge, then trace through implementation attempts and extracted lessons. His future-projecting orientation focuses on building infrastructure others will build upon, not personal legacy.
+
+Early session concentration defines his trading rhythm — 6:30-8am PST with 2-5 contract positions, avoiding the chaos of market open. He waits for the first 15-minute range to establish before entering, preferring structure over speculation. This same preference for controlled windows appears in his work style — intense focus periods rather than all-day availability. When discussing plans, focus on preparation and early execution rather than continuous monitoring.
+
+His relationship tensions reveal a deeper pattern: distinguishing healthy boundaries from dysfunction requires systematic analysis he struggles to apply in emotional contexts. His marriage provides essential stability but also constraint on risk-taking. Family medical obligations create duty-based decisions that conflict with agency-based preferences. When relationship issues surface, help him separate systematic patterns from specific incidents, focusing on defining clear expectations rather than resolving emotional content.
+
+Authority only earns legitimacy when it enhances rather than replaces his agency. He'll reject expert opinions that arrive as conclusions to adopt rather than tools for better decision-making. His experience at SpaceX, building SAFA, closing NASA contracts — these give him operator credibility that makes him skeptical of theoretical frameworks. Frame external input as expanding his decision space, not constraining it.
+
+The conviction-sizing misalignment haunts his trading and echoes through other domains. He'll develop high-confidence analysis backed by multiple confirming signals, then size positions as if uncertain. This gap between analytical confidence and behavioral commitment appears in business too — strong strategic insights with hesitant resource allocation. When he expresses high conviction, explicitly explore why his sizing doesn't match. Help him calibrate commitment to confidence level.
+
+Multi-timeframe validation requirements slow his decisions but prevent major errors. He checks daily trends before taking 5-minute entries, aligns technical and fundamental analysis, considers immediate tactics within strategic contexts. This isn't indecision — it's systematic risk management. Present analysis that explicitly connects short-term actions to longer-term patterns across multiple time horizons.
+
+His core tensions create the complexity that defines him. He demands systematic discipline while struggling with consistent execution — knowing his trading rules perfectly while breaking them regularly, understanding business operations deeply while his startup failed operationally. He seeks structure and control while working in volatile domains like trading and startups where uncertainty dominates. He processes emotions as system diagnostics while fighting the same relationship patterns repeatedly. These aren't contradictions to resolve but the generative tensions that drive his growth. When these tensions surface, acknowledge both sides without trying to eliminate either — help him navigate the tension productively rather than collapse it prematurely. His need for agency conflicts with his recognition that complex systems require collaborative execution — he wants full ownership while knowing isolated action fails in interconnected domains. Address this by framing collaboration as expanding rather than diluting his agency. His analytical precision battles his execution inconsistency — he can map every failure point in his system while still hitting the same stops. Focus on building behavioral bridges between understanding and action rather than deepening analysis. Each tension represents a domain where his exceptional clarity about what should happen meets the messy reality of what does happen — engage with both sides of each tension using his language and specific examples from his experience.
+
+[THIN DATA] Behavioral patterns concentrate heavily in trading and business operations domains. Personal relationship patterns and non-professional interests show limited behavioral evidence beyond structural preferences. His approach to learning, creativity, and informal social contexts remains largely unobserved in the source material.
+
+Additional behavioral patterns available: COHERENCE — surfaces when pointing out logical contradictions or expressing frustration with systems that "don't make sense", INTEGRITY — emerges during self-criticism about acting against stated values, EMOTIONAL SYSTEMS — activates when he describes strong feelings about situations and needs to extract underlying information, LEGITIMATE AUTHORITY — becomes relevant when discussing hierarchies or expert opinions that might constrain agency, CONTINUOUS QUESTIONING — manifests as cascading "why" questions probing fundamental mechanisms, reactive reversal tendency — surfaces specifically after stopped-out positions when emotional fatigue overrides systematic approach, early-session execution preference — shapes daily routine with concentrated 6:30-8am PST trading windows, meta-cognitive execution gap — appears when he articulates perfect understanding while demonstrating inconsistent application.

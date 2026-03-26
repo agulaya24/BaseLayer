@@ -145,6 +145,9 @@ def run_submit(document_mode=False, skip_extracted=False):
     print("\nLoading conversations from database...")
 
     with contextlib.closing(get_db()) as conn:
+        # Document mode: no minimum message count (each file = 1 "conversation")
+        min_msgs = 1 if document_mode else MIN_MESSAGES_FOR_EXTRACTION
+
         # Get conversations — optionally skip already-extracted ones
         if skip_extracted:
             rows = conn.execute("""
@@ -153,16 +156,16 @@ def run_submit(document_mode=False, skip_extracted=False):
                 LEFT JOIN extraction_log e ON c.id = e.conversation_id
                 WHERE c.message_count >= ? AND e.conversation_id IS NULL
                 ORDER BY c.created_at
-            """, (MIN_MESSAGES_FOR_EXTRACTION,)).fetchall()
-            print(f"  Found {len(rows)} unextracted conversations")
+            """, (min_msgs,)).fetchall()
+            print(f"  Found {len(rows)} unextracted conversations (min {min_msgs} messages)")
         else:
             rows = conn.execute("""
                 SELECT id, title, message_count, source
                 FROM conversations
                 WHERE message_count >= ?
                 ORDER BY created_at
-            """, (MIN_MESSAGES_FOR_EXTRACTION,)).fetchall()
-            print(f"  Found {len(rows)} conversations with >= {MIN_MESSAGES_FOR_EXTRACTION} messages")
+            """, (min_msgs,)).fetchall()
+            print(f"  Found {len(rows)} conversations with >= {min_msgs} messages")
 
         # Build batch requests
         requests = []
@@ -192,9 +195,9 @@ def run_submit(document_mode=False, skip_extracted=False):
                 conv_text = _build_conv_text(messages)
                 prompt = build_extraction_prompt(conv_title, conv_text)
 
-            # Build batch request
+            # Build batch request (custom_id max 64 chars per API spec)
             requests.append({
-                "custom_id": conv_id,
+                "custom_id": conv_id[:64],
                 "params": {
                     "model": EXTRACTION_API_MODEL,
                     "max_tokens": BATCH_MAX_TOKENS,

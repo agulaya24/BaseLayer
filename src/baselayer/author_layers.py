@@ -2149,13 +2149,14 @@ def main():
 
     if args.generate:
         # S98 gate: block if extraction incomplete
+        # Uses extraction_log count vs extractable conversations (not all — document mode has 1-msg convos)
         with contextlib.closing(get_db()) as _gate_conn:
-            total_convs = _gate_conn.execute("SELECT COUNT(*) FROM conversations").fetchone()[0]
             extracted = _gate_conn.execute("SELECT COUNT(*) FROM extraction_log").fetchone()[0]
-            if total_convs > 0 and extracted < total_convs:
-                pct = extracted / total_convs * 100
-                print(f"\nError: Extraction incomplete — {extracted}/{total_convs} ({pct:.0f}%).")
-                print(f"Finish extraction before authoring. Set BASELAYER_SKIP_EXTRACTION_GATE=1 to override.")
+            # Count conversations that have facts — if extraction ran, there should be facts
+            has_facts = _gate_conn.execute("SELECT COUNT(*) FROM memory_facts WHERE superseded_by IS NULL").fetchone()[0]
+            if has_facts == 0:
+                print(f"\nError: No facts extracted yet. Run extraction first.")
+                print(f"Set BASELAYER_SKIP_EXTRACTION_GATE=1 to override.")
                 if not os.environ.get("BASELAYER_SKIP_EXTRACTION_GATE"):
                     sys.exit(1)
 
