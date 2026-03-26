@@ -8,6 +8,7 @@ Sources supported:
   1. ChatGPT export (conversations.json) — incremental re-import
   2. Claude Code sessions (.claude/ directory) — local JSONL files
   3. Claude web export (ZIP from claude.ai settings) — conversation data
+  4. Generic JSON files — extracts text from common fields (content, text, message, etc.)
 
 Usage:
   python import_conversations.py --chatgpt path/to/conversations.json
@@ -667,13 +668,158 @@ def show_stats(conn):
 
 
 # ===========================================================================
+# SOURCE 4: Generic JSON Files
+# ===========================================================================
+
+# Common field names for text content in JSON structures
+_JSON_TEXT_FIELDS = ("content", "text", "message", "body", "reflection",
+                     "note", "entry", "summary", "description", "thought")
+
+
+def _extract_texts_from_json(data) -> list[str]:
+    """Extract text strings from arbitrary JSON structures.
+
+    Walks the JSON tree and pulls text from common field names.
+    Falls back to collecting all string values over 50 chars.
+    Returns a list of text strings suitable for import.
+    """
+    texts = []
+
+    def _walk(obj, depth=0):
+        if depth > 20:  # prevent infinite recursion
+            return
+        if isinstance(obj, dict):
+            # Try known text fields first
+            for field in _JSON_TEXT_FIELDS:
+                val = obj.get(field)
+                if isinstance(val, str) and len(val.strip()) >= 50:
+                    texts.append(val.strip())
+            # Recurse into all values
+            for v in obj.values():
+                _walk(v, depth + 1)
+        elif isinstance(obj, list):
+            for item in obj:
+                _walk(item, depth + 1)
+
+    _walk(data)
+
+    # If known fields found nothing, fall back to all long strings
+    if not texts:
+        fallback = []
+
+        def _collect_strings(obj, depth=0):
+            if depth > 20:
+                return
+            if isinstance(obj, str) and len(obj.strip()) >= 50:
+                fallback.append(obj.strip())
+            elif isinstance(obj, dict):
+                for v in obj.values():
+                    _collect_strings(v, depth + 1)
+            elif isinstance(obj, list):
+                for item in obj:
+                    _collect_strings(item, depth + 1)
+
+        _collect_strings(data)
+        texts = fallback
+
+    # Deduplicate while preserving order
+    seen = set()
+    unique = []
+    for t in texts:
+        if t not in seen:
+            seen.add(t)
+            unique.append(t)
+
+    return unique
+
+
+def import_json_files(conn, filepath, existing_ids):
+    """Import generic JSON files as conversations.
+
+    Walks the JSON structure and extracts text from common field names
+    (content, text, message, body, reflection, etc.). Falls back to
+    collecting all string values over 50 characters.
+
+    Each extracted text block becomes one conversation message.
+    If only one text block is found, it becomes a single conversation.
+    If multiple are found, they are grouped into one conversation
+    with sequential messages.
+    """
+    print(f"\n=== Importing JSON File ===")
+    print(f"  Path: {filepath}")
+
+    path = Path(filepath)
+    files = []
+    if path.is_dir():
+        files.extend(sorted(path.glob("*.json")))
+        files.extend(sorted(path.glob("**/*.json")))
+        files = sorted(set(files))
+    elif path.is_file():
+        files = [path]
+    else:
+        print(f"  ERROR: Path not found: {filepath}")
+        return 0
+
+    print(f"  Found {len(files)} JSON files")
+
+    new_count = 0
+    total_messages = 0
+
+    for file_path in files:
+        import hashlib
+        path_hash = hashlib.md5(str(file_path).encode()).hexdigest()[:8]
+        conv_id = f"json_{file_path.stem}_{path_hash}"
+        if conv_id in existing_ids:
+            continue
+
+        try:
+            raw = file_path.read_text(encoding="utf-8")
+            data = json.loads(raw)
+        except (UnicodeDecodeError, json.JSONDecodeError) as e:
+            print(f"  Skipping {file_path.name}: {e}")
+            continue
+
+        texts = _extract_texts_from_json(data)
+        if not texts:
+            print(f"  Skipping {file_path.name}: no text content found")
+            continue
+
+        try:
+            created_at = file_path.stat().st_mtime
+        except Exception:
+            created_at = time.time()
+
+        title = file_path.stem.replace("_", " ").replace("-", " ").title()
+
+        conn.execute("""
+            INSERT INTO conversations (id, title, created_at, updated_at, message_count, source)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (conv_id, title, created_at, created_at, len(texts), "json_file"))
+
+        for seq, text in enumerate(texts):
+            msg_id = str(uuid.uuid4())
+            conn.execute("""
+                INSERT INTO messages (id, conversation_id, role, content_text, sequence_order, created_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (msg_id, conv_id, "user", text, seq, created_at))
+
+        new_count += 1
+        total_messages += len(texts)
+        existing_ids.add(conv_id)
+
+    conn.commit()
+    print(f"  Imported: {new_count} files ({total_messages} messages)")
+    return new_count
+
+
+# ===========================================================================
 # MAIN
 # ===========================================================================
 
 def import_text_files(conn, filepath, existing_ids):
     """Import personal notes, journals, or text files as conversations.
 
-    Supports: .txt, .md, .docx files or a directory containing them.
+    Supports: .txt, .md, .docx, .rst files or a directory containing them.
     Each file becomes one conversation. High-quality identity input —
     journal/notes tend to be self-reflective (finding: journal > chat for identity signal).
     """
@@ -683,7 +829,7 @@ def import_text_files(conn, filepath, existing_ids):
     path = Path(filepath)
     files = []
     if path.is_dir():
-        for ext in ("*.txt", "*.md", "*.docx"):
+        for ext in ("*.txt", "*.md", "*.docx", "*.rst"):
             files.extend(path.glob(ext))
             files.extend(path.glob(f"**/{ext}"))
         files = sorted(set(files))
@@ -699,8 +845,10 @@ def import_text_files(conn, filepath, existing_ids):
     new_messages = 0
 
     for file_path in files:
-        # Use file path as stable ID
-        conv_id = f"textfile_{file_path.stem}_{hash(str(file_path)) & 0xFFFFFFFF:08x}"
+        # Use file path as stable ID (hashlib, not hash() which is randomized per-process)
+        import hashlib
+        path_hash = hashlib.md5(str(file_path).encode()).hexdigest()[:8]
+        conv_id = f"textfile_{file_path.stem}_{path_hash}"
         if conv_id in existing_ids:
             continue
 
@@ -768,7 +916,9 @@ def main():
     parser.add_argument("--claude-web", type=str, metavar="FILE",
                         help="Import from Claude.ai export (ZIP file)")
     parser.add_argument("--text", type=str, metavar="PATH",
-                        help="Import text files (.txt, .md, .docx) or a directory of them")
+                        help="Import text files (.txt, .md, .docx, .rst) or a directory of them")
+    parser.add_argument("--json", type=str, metavar="PATH",
+                        help="Import generic JSON files or a directory of them")
     parser.add_argument("--stats", action="store_true",
                         help="Show import statistics")
     parser.add_argument("--all", action="store_true",
@@ -780,7 +930,7 @@ def main():
             show_stats(conn)
             return
 
-        if not any([args.chatgpt, args.claude_code, args.claude_web, args.text, args.all]):
+        if not any([args.chatgpt, args.claude_code, args.claude_web, args.text, args.json, args.all]):
             parser.print_help()
             return
 
@@ -807,6 +957,9 @@ def main():
 
         if args.text:
             total_new += import_text_files(conn, args.text, existing_ids)
+
+        if args.json:
+            total_new += import_json_files(conn, args.json, existing_ids)
 
         # Summary
         print(f"\n{'='*50}")

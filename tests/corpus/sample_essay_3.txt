@@ -1,0 +1,8 @@
+Reflections on Building Products
+Source: test corpus
+
+The hardest part of building anything isn't the technical work — it's deciding what to build. I've wasted months on features nobody wanted because I was solving my own problems instead of listening to users.
+
+I now follow a simple rule: talk to five people before writing a single line of code. If at least three of them describe the same pain point, it's worth building. If they don't, I move on. This discipline has been transformative.
+
+I cook every evening as a way to decompress. There's something about the tactile, immediate feedback loop of cooking that resets my brain after a day of abstract problem-solving. My wife appreciates it too — we've made it a ritual.

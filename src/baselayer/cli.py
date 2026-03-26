@@ -2,7 +2,7 @@
 """
 Base Layer CLI — Personal AI Memory System
 
-Pipeline (4 steps): Import → Extract → Author → Compose
+Pipeline (4 steps): Import -> Extract -> Author -> Compose
 
 Usage:
     baselayer run <file> [-y]               One-command pipeline: import > extract > author > compose
@@ -32,9 +32,15 @@ Usage:
 
 import contextlib
 import sys
+import io
 import os
 import argparse
 from pathlib import Path
+
+# Fix Windows encoding — prevent UnicodeEncodeError on cp1252 stdout
+if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
 
 
@@ -277,7 +283,7 @@ def cmd_embed(args):
     """Generate vector embeddings for facts and messages.
 
     NOTE: embed.py is an optional utility from the pre-simplified pipeline.
-    It is no longer part of the default 4-step pipeline (Import → Extract → Author → Compose).
+    It is no longer part of the default 4-step pipeline (Import -> Extract -> Author -> Compose).
     Run directly: python scripts/embed.py
     """
     import baselayer.embed as embed
@@ -289,6 +295,8 @@ def cmd_embed(args):
 def cmd_author(args):
     """Generate identity layers (ANCHORS, CORE, PREDICTIONS)."""
     _check_api_key()
+    _check_extraction_complete()
+    _check_fact_floor()
 
     import baselayer.author_layers as author_layers
 
@@ -320,6 +328,8 @@ def cmd_author(args):
 def cmd_compose(args):
     """Compose a unified narrative brief from deployed identity layers."""
     _check_api_key()
+    _check_extraction_complete()
+    _check_fact_floor()
     from baselayer.agent_pipeline import compose_unified_brief
     brief = compose_unified_brief()
     if brief:
@@ -964,7 +974,7 @@ def _run_traceability():
 
     conn = sqlite3.connect(str(DATABASE_FILE))
 
-    # 5a: Rule-based tiering (predicate → knowledge_tier)
+    # 5a: Rule-based tiering (predicate -> knowledge_tier)
     print("  5a. Tiering facts by predicate...")
     IDENTITY_PREDS = (
         'values', 'believes', 'fears', 'identifies_as', 'aspires_to',
@@ -984,7 +994,7 @@ def _run_traceability():
         WHERE knowledge_tier IS NULL OR knowledge_tier = 'untiered'
     """).rowcount
     conn.commit()
-    print(f"      {id_count} → identity, {ctx_count} → contextual")
+    print(f"      {id_count} -> identity, {ctx_count} -> contextual")
 
     # 5b: Embed facts into ChromaDB (if not already done)
     print("  5b. Checking embeddings...")
@@ -1078,8 +1088,184 @@ def _run_traceability():
     print("  Traceability complete.\n")
 
 
+def cmd_pipeline(args):
+    """S98 Phase 4: Unified pipeline — one command, all gates enforced.
+
+    Usage:
+        baselayer pipeline <subject_id>          # V1: fresh run
+        baselayer pipeline <subject_id> --v2     # V2: re-extract with expanded corpus
+    """
+    import sqlite3 as _sql
+
+    subject_id = args.subject_id
+    v2_mode = getattr(args, 'v2', False)
+
+    _check_api_key()
+    _check_pipeline_lock()
+
+    # Resolve subject from registry
+    from baselayer.config import DATABASE_FILE
+    main_db = DATABASE_FILE
+    if not main_db.exists():
+        print("Error: No database. Run 'baselayer init' first.")
+        sys.exit(1)
+
+    conn = _sql.connect(str(main_db))
+    conn.row_factory = _sql.Row
+    subject = conn.execute("SELECT * FROM subjects WHERE id = ?", (subject_id,)).fetchone()
+    conn.close()
+
+    if not subject:
+        print(f"Error: Subject '{subject_id}' not found in registry.")
+        print(f"Run 'baselayer subject list' to see available subjects.")
+        sys.exit(1)
+
+    env_dir = subject["environment_dir"]
+    source_dir_name = subject["source_dir"]
+    doc_mode = bool(subject["document_mode"])
+    name = subject["name"]
+
+    # Resolve paths
+    from baselayer.seed_industry import ANTHROPIC_ROOT
+    memory_dir = ANTHROPIC_ROOT / "subjects" / env_dir
+    if not memory_dir.exists():
+        memory_dir = ANTHROPIC_ROOT / env_dir
+
+    # Find source directory
+    source_dir = None
+    if source_dir_name:
+        source_dir = ANTHROPIC_ROOT / "memory_system" / "data" / source_dir_name
+    else:
+        # Try common patterns
+        for pattern in [f"{subject_id}_source", f"{subject_id.replace('_', '_')}_source"]:
+            candidate = ANTHROPIC_ROOT / "memory_system" / "data" / pattern
+            if candidate.exists():
+                source_dir = candidate
+                break
+
+    print(f"\n{'='*60}")
+    print(f"  Base Layer Pipeline — {name}")
+    print(f"  Mode: {'V2 (re-extract)' if v2_mode else 'V1 (fresh)'}")
+    print(f"  Memory: {memory_dir}")
+    print(f"  Source: {source_dir or 'N/A'}")
+    print(f"  Document mode: {'Yes' if doc_mode else 'No'}")
+    print(f"{'='*60}\n")
+
+    if not memory_dir.exists():
+        print(f"Error: Memory directory not found: {memory_dir}")
+        sys.exit(1)
+
+    # V2: Check manifest + snapshot + clear
+    if v2_mode:
+        if source_dir:
+            _check_manifest(subject_id, str(source_dir))
+
+        print(f"  V2 mode: Creating snapshot before clearing...")
+        _snapshot_before_clear(memory_dir=str(memory_dir))
+
+        # Clear extraction data (both SQLite + ChromaDB per S65)
+        os.environ["MEMORY_SYSTEM_ROOT"] = str(memory_dir)
+        from baselayer.config import DATABASE_FILE as SUBJ_DB
+        # Re-resolve after env change
+        from importlib import reload
+        import baselayer.config as _cfg
+        reload(_cfg)
+
+        import baselayer.extract_facts as ef
+        sys.argv = ["extract_facts.py", "--reset"]
+        ef.main()
+        print(f"  V2: Extraction data cleared.")
+
+    # Set environment for this subject
+    os.environ["MEMORY_SYSTEM_ROOT"] = str(memory_dir)
+    from importlib import reload
+    import baselayer.config as _cfg
+    reload(_cfg)
+
+    # Init DB if needed
+    from baselayer.config import DATABASE_FILE as SUBJ_DB_FILE
+    if not SUBJ_DB_FILE.exists():
+        print(f"  Initializing database...")
+        from baselayer.init_database import init_database
+        init_database(SUBJ_DB_FILE)
+
+    # Step 1: Import
+    _conn = _sql.connect(str(SUBJ_DB_FILE))
+    _existing = _conn.execute("SELECT COUNT(*) FROM conversations").fetchone()[0]
+    _conn.close()
+
+    if _existing > 0 and not v2_mode:
+        print(f"  {_existing} conversations already imported. Skipping import.")
+    elif source_dir and source_dir.exists():
+        print(f"\n  Step 1: Importing from {source_dir.name}...")
+        # Create a minimal args object for cmd_import
+        class _ImportArgs:
+            file = str(source_dir)
+            source = "text"
+            document_mode = doc_mode
+            subject = name
+            force = False
+        cmd_import(_ImportArgs())
+    else:
+        print(f"  No source directory — skipping import.")
+
+    # Step 2: Extract (batch if available, sequential fallback)
+    print(f"\n  Step 2: Extracting facts...")
+    import baselayer.extract_facts as extract_facts
+    argv = ["extract_facts.py"]
+    if doc_mode:
+        argv.append("--document-mode")
+    sys.argv = argv
+    extract_facts.main()
+
+    # Gates before authoring
+    print(f"\n  Checking gates...")
+    _check_extraction_complete()
+    _check_fact_floor()
+
+    # Step 3: Author layers
+    print(f"\n  Step 3: Authoring identity layers...")
+    import baselayer.author_layers as author_layers
+    sys.argv = ["author_layers.py", "--generate", "all"]
+    author_layers.main()
+
+    # Step 4: Compose brief
+    print(f"\n  Step 4: Composing unified brief...")
+    from baselayer.agent_pipeline import compose_unified_brief, store_unified_brief
+    brief = compose_unified_brief()
+    if brief:
+        store_unified_brief(None, brief)
+        print(f"  Brief composed: {len(brief)} chars")
+    else:
+        print(f"  Composition failed.")
+        sys.exit(1)
+
+    # Update registry
+    if source_dir:
+        _update_manifest(subject_id, str(source_dir))
+
+    # Update version + fact count in subjects table
+    conn = _sql.connect(str(main_db))
+    _subj_conn = _sql.connect(str(SUBJ_DB_FILE))
+    fact_count = _subj_conn.execute("SELECT COUNT(*) FROM memory_facts WHERE superseded_by IS NULL").fetchone()[0]
+    _subj_conn.close()
+
+    new_version = f"V{(int(subject['version'].replace('V', '')) if subject['version'] else 1) + (1 if v2_mode else 0)}"
+    conn.execute(
+        "UPDATE subjects SET fact_count=?, version=?, status='complete', updated_at=datetime('now') WHERE id=?",
+        (fact_count, new_version, subject_id)
+    )
+    conn.commit()
+    conn.close()
+
+    print(f"\n{'='*60}")
+    print(f"  Pipeline complete — {name}")
+    print(f"  Facts: {fact_count} | Version: {new_version}")
+    print(f"{'='*60}\n")
+
+
 def cmd_run(args):
-    """One-command pipeline: import → extract → author → compose + traceability (5 steps)."""
+    """One-command pipeline: import -> extract -> author -> compose + traceability (5 steps)."""
     from baselayer.config import DATABASE_FILE
 
     file_path = args.file
@@ -1101,11 +1287,18 @@ def cmd_run(args):
     else:
         print(f"\n  Database exists. Skipping init.")
 
-    # Step 1: Import
-    print(f"\n{'='*60}")
-    print(f"  Step 1/4: Importing data")
-    print(f"{'='*60}\n")
-    cmd_import(args)
+    # Step 1: Import (skip if conversations already exist — prevents duplication on re-run)
+    import sqlite3 as _sql
+    _conn = _sql.connect(str(DATABASE_FILE))
+    _existing = _conn.execute("SELECT COUNT(*) FROM conversations").fetchone()[0]
+    _conn.close()
+    if _existing > 0:
+        print(f"\n  {_existing} conversations already imported. Skipping import.")
+    else:
+        print(f"\n{'='*60}")
+        print(f"  Step 1/4: Importing data")
+        print(f"{'='*60}\n")
+        cmd_import(args)
 
     # Cost estimate + confirm
     print(f"\n{'='*60}")
@@ -1192,6 +1385,289 @@ def _check_api_key():
         print("Get your key at https://console.anthropic.com/")
         print("Then: export ANTHROPIC_API_KEY=sk-ant-...")
         sys.exit(1)
+
+
+def _check_extraction_complete():
+    """S98 gate: Block author/compose if extraction is incomplete.
+
+    Compares extraction_log count against conversations that MEET the minimum
+    message threshold — not all conversations. Short conversations (< MIN_MESSAGES)
+    are intentionally skipped by extraction and shouldn't block the gate.
+    """
+    from baselayer.config import DATABASE_FILE, MIN_MESSAGES_FOR_EXTRACTION
+    if not DATABASE_FILE.exists():
+        return  # No DB yet — let downstream handle it
+
+    import sqlite3
+    conn = sqlite3.connect(str(DATABASE_FILE))
+    try:
+        # Only count conversations that meet extraction threshold
+        extractable = conn.execute(
+            "SELECT COUNT(*) FROM conversations WHERE message_count >= ?",
+            (MIN_MESSAGES_FOR_EXTRACTION,)
+        ).fetchone()[0]
+        extracted = conn.execute("SELECT COUNT(*) FROM extraction_log").fetchone()[0]
+        total_convs = conn.execute("SELECT COUNT(*) FROM conversations").fetchone()[0]
+    except Exception:
+        conn.close()
+        return  # Tables may not exist yet
+
+    conn.close()
+
+    if total_convs == 0:
+        print("Error: No conversations imported. Run 'baselayer import' first.")
+        sys.exit(1)
+
+    if extractable > 0 and extracted < extractable:
+        pct = (extracted / extractable * 100) if extractable > 0 else 0
+        skipped = total_convs - extractable
+        print(f"Error: Extraction incomplete — {extracted}/{extractable} extractable conversations ({pct:.0f}%).")
+        if skipped > 0:
+            print(f"  ({skipped} conversations below {MIN_MESSAGES_FOR_EXTRACTION}-message threshold, excluded)")
+        print(f"Run 'baselayer extract' to finish extraction before authoring.")
+        print(f"To force anyway (not recommended): set BASELAYER_SKIP_EXTRACTION_GATE=1")
+        if not os.environ.get("BASELAYER_SKIP_EXTRACTION_GATE"):
+            sys.exit(1)
+        else:
+            print(f"  WARNING: Proceeding despite incomplete extraction (gate overridden).")
+
+
+def _check_fact_floor():
+    """S98 Phase 3A: Block author/compose if fact quality is insufficient.
+
+    Multi-dimensional check:
+    - Identity-tier facts (behavioral + positional) >= 50
+    - Distinct predicates >= 15
+    - Source documents >= 5
+    """
+    from baselayer.config import DATABASE_FILE
+    if not DATABASE_FILE.exists():
+        return
+
+    import sqlite3
+    conn = sqlite3.connect(str(DATABASE_FILE))
+    try:
+        # Identity-tier behavioral + positional facts
+        identity_facts = conn.execute("""
+            SELECT COUNT(*) FROM memory_facts
+            WHERE superseded_by IS NULL
+              AND fact_type IN ('behavioral', 'positional')
+              AND knowledge_tier = 'identity'
+        """).fetchone()[0]
+
+        # Distinct predicates
+        distinct_preds = conn.execute("""
+            SELECT COUNT(DISTINCT predicate) FROM memory_facts
+            WHERE superseded_by IS NULL AND predicate IS NOT NULL
+        """).fetchone()[0]
+
+        # Source documents
+        source_docs = conn.execute("""
+            SELECT COUNT(DISTINCT source_conversation_id) FROM memory_facts
+            WHERE superseded_by IS NULL
+        """).fetchone()[0]
+    except Exception:
+        conn.close()
+        return
+    conn.close()
+
+    failures = []
+    if identity_facts < 50:
+        failures.append(f"identity-tier facts: {identity_facts}/50")
+    if distinct_preds < 15:
+        failures.append(f"distinct predicates: {distinct_preds}/15")
+    if source_docs < 5:
+        failures.append(f"source documents: {source_docs}/5")
+
+    if failures:
+        print(f"Error: Fact quality below threshold — {', '.join(failures)}.")
+        print(f"Extract more data or check extraction quality.")
+        print(f"To force anyway: set BASELAYER_SKIP_FACT_FLOOR=1")
+        if not os.environ.get("BASELAYER_SKIP_FACT_FLOOR"):
+            sys.exit(1)
+        else:
+            print(f"  WARNING: Proceeding despite low fact quality (gate overridden).")
+
+
+def _check_pipeline_lock():
+    """S98 Phase 3A: Prevent concurrent pipeline runs (max 2).
+
+    Uses a simple lock file with PID. Checks if PID is still alive.
+    """
+    from baselayer.config import PROJECT_ROOT
+    lock_file = PROJECT_ROOT / "data" / ".pipeline.lock"
+    lock_file.parent.mkdir(parents=True, exist_ok=True)
+
+    current_pid = os.getpid()
+
+    if lock_file.exists():
+        try:
+            content = lock_file.read_text().strip()
+            pids = [int(p) for p in content.split("\n") if p.strip()]
+            # Check which PIDs are still alive
+            alive = []
+            for pid in pids:
+                try:
+                    os.kill(pid, 0)  # Signal 0 = check if alive
+                    alive.append(pid)
+                except (OSError, ProcessLookupError):
+                    pass  # Process dead
+
+            if len(alive) >= 2:
+                print(f"Error: {len(alive)} pipelines already running (max 2). PIDs: {alive}")
+                print(f"Wait for one to finish or kill a process.")
+                sys.exit(1)
+
+            # Add our PID
+            alive.append(current_pid)
+            lock_file.write_text("\n".join(str(p) for p in alive))
+        except (ValueError, IOError):
+            # Corrupted lock file — overwrite
+            lock_file.write_text(str(current_pid))
+    else:
+        lock_file.write_text(str(current_pid))
+
+    # Register cleanup on exit
+    import atexit
+    def _cleanup_lock():
+        try:
+            if lock_file.exists():
+                content = lock_file.read_text().strip()
+                pids = [p for p in content.split("\n") if p.strip() and int(p) != current_pid]
+                if pids:
+                    lock_file.write_text("\n".join(pids))
+                else:
+                    lock_file.unlink(missing_ok=True)
+        except Exception:
+            pass
+    atexit.register(_cleanup_lock)
+
+
+def _snapshot_before_clear(memory_dir=None):
+    """S98 Phase 3A: Snapshot current state before V2 clear.
+
+    Copies memory.db + ChromaDB vectors to .snapshot/ directory.
+    Returns snapshot path for potential restore.
+    """
+    from baselayer.config import DATABASE_FILE, VECTORS_DIR, PROJECT_ROOT
+    import shutil
+    from datetime import datetime
+
+    base = Path(memory_dir) if memory_dir else PROJECT_ROOT
+    db_path = base / "data" / "database" / "memory.db"
+    vectors_path = base / "data" / "vectors"
+    snapshot_dir = base / "data" / ".snapshot" / datetime.now().strftime("%Y%m%d_%H%M%S")
+    snapshot_dir.mkdir(parents=True, exist_ok=True)
+
+    if db_path.exists():
+        shutil.copy2(str(db_path), str(snapshot_dir / "memory.db"))
+        print(f"  Snapshot: database -> {snapshot_dir / 'memory.db'}")
+
+    if vectors_path.exists():
+        shutil.copytree(str(vectors_path), str(snapshot_dir / "vectors"))
+        print(f"  Snapshot: vectors -> {snapshot_dir / 'vectors'}")
+
+    print(f"  Snapshot saved: {snapshot_dir}")
+    return snapshot_dir
+
+
+def _check_manifest(subject_id, source_dir):
+    """S98 Phase 3B: Block pipeline if source fingerprint unchanged since last run."""
+    from baselayer.config import DATABASE_FILE, compute_source_fingerprint
+    if not DATABASE_FILE.exists() or not source_dir:
+        return
+
+    import sqlite3
+    fingerprint = compute_source_fingerprint(source_dir)
+    if not fingerprint:
+        return
+
+    conn = sqlite3.connect(str(DATABASE_FILE))
+    try:
+        row = conn.execute(
+            "SELECT source_fingerprint FROM subjects WHERE id = ?", (subject_id,)
+        ).fetchone()
+    except Exception:
+        conn.close()
+        return
+    conn.close()
+
+    if row and row[0] == fingerprint:
+        print(f"Error: Source data unchanged since last pipeline run (fingerprint: {fingerprint[:12]}...).")
+        print(f"Scrape new content before re-running, or set BASELAYER_SKIP_MANIFEST_GATE=1")
+        if not os.environ.get("BASELAYER_SKIP_MANIFEST_GATE"):
+            sys.exit(1)
+        else:
+            print(f"  WARNING: Proceeding despite unchanged source (gate overridden).")
+
+
+def _update_manifest(subject_id, source_dir):
+    """Store current source fingerprint in subjects table after successful run."""
+    from baselayer.config import DATABASE_FILE, compute_source_fingerprint
+    if not DATABASE_FILE.exists() or not source_dir:
+        return
+
+    import sqlite3
+    fingerprint = compute_source_fingerprint(source_dir)
+    if not fingerprint:
+        return
+
+    conn = sqlite3.connect(str(DATABASE_FILE))
+    try:
+        conn.execute(
+            "UPDATE subjects SET source_fingerprint = ?, updated_at = datetime('now') WHERE id = ?",
+            (fingerprint, subject_id)
+        )
+        conn.commit()
+    except Exception:
+        pass
+    conn.close()
+
+
+def cmd_subject(args):
+    """S98 Phase 3B: Subject registry commands."""
+    from baselayer.config import DATABASE_FILE
+    import sqlite3
+
+    if not DATABASE_FILE.exists():
+        print("Error: No database. Run 'baselayer init' first.")
+        sys.exit(1)
+
+    conn = sqlite3.connect(str(DATABASE_FILE))
+    conn.row_factory = sqlite3.Row
+
+    if args.subject_action == "list":
+        rows = conn.execute("""
+            SELECT id, name, status, version, wave, tier, fact_count, sent
+            FROM subjects ORDER BY wave, name
+        """).fetchall()
+
+        if not rows:
+            print("No subjects in registry. Run migration script first.")
+            conn.close()
+            return
+
+        print(f"\n{'ID':25s} {'Name':25s} {'Status':15s} {'Ver':4s} {'Wave':5s} {'Facts':>6s} {'Sent':>5s}")
+        print("-" * 90)
+        for r in rows:
+            wave = str(r["wave"]) if r["wave"] else "-"
+            sent = "Y" if r["sent"] else ""
+            facts = str(r["fact_count"]) if r["fact_count"] else "-"
+            print(f"{r['id']:25s} {r['name']:25s} {r['status']:15s} {r['version'] or 'V1':4s} {wave:5s} {facts:>6s} {sent:>5s}")
+        print(f"\nTotal: {len(rows)} subjects")
+
+    elif args.subject_action == "show":
+        if not args.subject_id:
+            print("Error: --id required for 'show'")
+            sys.exit(1)
+        row = conn.execute("SELECT * FROM subjects WHERE id = ?", (args.subject_id,)).fetchone()
+        if not row:
+            print(f"Subject '{args.subject_id}' not found")
+            sys.exit(1)
+        for key in row.keys():
+            print(f"  {key:25s}: {row[key]}")
+
+    conn.close()
 
 
 def cmd_batch_extract(args):
@@ -1325,6 +1801,13 @@ def cmd_rebuild_fts(args):
 
 
 def main():
+    # Force UTF-8 stdout/stderr on Windows to prevent UnicodeEncodeError (cp1252)
+    import sys as _sys
+    if _sys.stdout.encoding and _sys.stdout.encoding.lower() != 'utf-8':
+        import io
+        _sys.stdout = io.TextIOWrapper(_sys.stdout.buffer, encoding='utf-8', errors='replace')
+        _sys.stderr = io.TextIOWrapper(_sys.stderr.buffer, encoding='utf-8', errors='replace')
+
     parser = argparse.ArgumentParser(
         prog="baselayer",
         description="Base Layer - Personal AI Memory System",
@@ -1394,6 +1877,12 @@ def main():
         help="[ARCHIVED] Interactive memory-augmented chat via assemble_brief.py — "
              "kept for compatibility, not part of the 4-step pipeline")
     p_chat.set_defaults(func=cmd_chat)
+
+    # subject (S98 Phase 3B)
+    p_subject = subparsers.add_parser("subject", help="Subject registry (list/show)")
+    p_subject.add_argument("subject_action", choices=["list", "show"], help="Action")
+    p_subject.add_argument("--id", dest="subject_id", help="Subject ID (for show)")
+    p_subject.set_defaults(func=cmd_subject)
 
     # stats
     p_stats = subparsers.add_parser("stats", help="Show database statistics")
@@ -1506,7 +1995,17 @@ def main():
     p_ui.add_argument("--no-browser", action="store_true", help="Don't auto-open browser")
     p_ui.set_defaults(func=lambda args: __import__('ui').main())
 
-    # run (one-command pipeline: import > extract > author > compose)
+    # pipeline (S98 Phase 4 — unified command with gates)
+    p_pipeline = subparsers.add_parser("pipeline",
+        help="Unified pipeline: import > extract > author > compose (with all gates)")
+    p_pipeline.add_argument("subject_id", help="Subject ID from registry (e.g., kevin_kelly)")
+    p_pipeline.add_argument("--v2", action="store_true",
+        help="V2 mode: snapshot, clear, re-extract with expanded corpus")
+    p_pipeline.add_argument("--yes", "-y", action="store_true",
+        help="Skip confirmation prompts")
+    p_pipeline.set_defaults(func=cmd_pipeline)
+
+    # run (legacy — kept for backward compat, use 'pipeline' for new work)
     p_run = subparsers.add_parser("run",
         help="One-command pipeline: import > extract > author > compose")
     p_run.add_argument("file", help="Path to export file (.zip, .json) or text file/directory")

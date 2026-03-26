@@ -1,0 +1,63 @@
+[08:45:54] ======================================================================
+[08:45:54] SONNET VALIDATION — Verify Qwen Findings with Sonnet
+[08:45:54] ======================================================================
+[08:45:54] Total facts: 212, Identity-tier: 135
+[08:45:54] 
+======================================================================
+[08:45:54] EXP 1: COMPRESSION SATURATION — Does 20% still peak with Sonnet?
+[08:45:54] ======================================================================
+[08:45:54]   split_10pct: 13 train -> 122 test
+[08:46:05]     composite=23.4  m1=0.197  pred=0.0%
+[08:46:05]   split_20pct: 27 train -> 108 test
+[08:46:19]     composite=25.1  m1=0.191  pred=0.9%
+[08:46:19]   split_50pct: 67 train -> 68 test
+[08:46:29]     composite=24.1  m1=0.211  pred=0.0%
+[08:46:29] 
+======================================================================
+[08:46:29] EXP 2: TEMPORAL DIRECTION — Early->Late vs Late->Early
+[08:46:29] ======================================================================
+[08:46:29]   early_to_late: 67 train -> 68 test
+[08:46:41]     composite=20.2  m1=0.206  pred=0.0%
+[08:46:41]   late_to_early: 68 train -> 67 test
+[08:46:52]     composite=22.0  m1=0.216  pred=3.0%
+[08:46:52]   middle_to_edges: 68 train -> 67 test
+[08:47:04]     composite=23.9  m1=0.232  pred=3.0%
+[08:47:04]   random_baseline: 67 train -> 68 test
+[08:47:17]     composite=19.9  m1=0.189  pred=1.5%
+[08:47:17] 
+======================================================================
+[08:47:17] EXP 3: CROSS-TYPE PREDICTION — Which fact types predict others?
+[08:47:17] ======================================================================
+[08:47:17]   type_biographical_predicts_others: 65 train -> 70 test
+[08:47:31]     composite=20.0  m1=0.190  pred=0.0%
+[08:47:31]   type_positional_predicts_others: 39 train -> 96 test
+[08:47:45]     composite=19.9  m1=0.183  pred=1.0%
+[08:47:45]   type_behavioral_predicts_others: 20 train -> 115 test
+[08:47:55]     composite=25.7  m1=0.203  pred=0.9%
+[08:47:55]   type_preference_predicts_others: 11 train -> 124 test
+[08:48:06]     composite=25.4  m1=0.190  pred=0.0%
+[08:48:06]   all_types_baseline: 67 train -> 68 test
+[08:48:19]     composite=24.3  m1=0.241  pred=1.5%
+[08:48:19] 
+======================================================================
+[08:48:19] EXP 4: TIER COMPARISON — Identity-only vs All Tiers
+[08:48:19] ======================================================================
+[08:48:19]   Tiers: identity=135, context=53, situational=24
+[08:48:19]   identity_only: 67 train -> 68 test
+[08:48:33]     composite=21.7  m1=0.197  pred=0.0%
+[08:48:33]   non_identity_tiers: 67 train -> 68 test
+[08:48:47]     composite=24.0  m1=0.180  pred=0.0%
+[08:48:47]   mixed_tiers: 66 train -> 68 test
+[08:49:02]     composite=22.5  m1=0.172  pred=0.0%
+[08:49:02] 
+======================================================================
+[08:49:02] SUMMARY — Qwen vs Sonnet Comparison
+[08:49:02] ======================================================================
+[08:49:02]   Compression peak: 20% (Qwen: 20%)
+[08:49:02]   Temporal: early->late=0.0%, late->early=3.0%, diff=3.0% (Qwen: ~0%)
+[08:49:02]   Best cross-type: type_positional_predicts_others pred=1.0% (Qwen: biographical 26.7%)
+[08:49:02]   Tier identity_only: pred=0.0%
+[08:49:02]   Tier non_identity_tiers: pred=0.0%
+[08:49:02]   Tier mixed_tiers: pred=0.0%
+[08:49:02] 
+Saved: C:\Users\Aarik\Anthropic\memory_system\docs\eval\sonnet_validation\sonnet_validation_results.json

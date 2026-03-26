@@ -1,0 +1,513 @@
+[23:56:11] ======================================================================
+[23:56:11] PREDICATE & FACT TYPE QUALITY ABLATION — MECHANICAL SCORING
+[23:56:11] ======================================================================
+[23:56:11] Loaded 135 identity-tier facts
+[23:56:11] Types: biographical=65, positional=39, behavioral=20, preference=11
+[23:56:11] Predicates: 34 unique
+[23:56:11] 
+======================================================================
+[23:56:11] EXP 0: BASELINE — Production brief
+[23:56:11] ======================================================================
+[23:56:11]   -> Production: composite=22.0, 9144 chars
+[23:56:11] 
+======================================================================
+[23:56:11] EXP 1: FACT TYPE ISOLATION
+[23:56:11] ======================================================================
+[23:56:11]   type_biographical: 65 train, 70 held-out
+[23:56:23]     composite=23.9  m1=0.198  m2=0.0%  m3=2.4  chars=1654
+[23:56:23]   type_positional: 39 train, 96 held-out
+[23:56:34]     composite=20.1  m1=0.154  m2=0.0%  m3=1.6  chars=1893
+[23:56:34]   type_behavioral: 20 train, 115 held-out
+[23:56:44]     composite=24.4  m1=0.169  m2=0.9%  m3=3.6  chars=1663
+[23:56:44]   type_preference: 11 train, 124 held-out
+[23:56:55]     composite=25.4  m1=0.203  m2=1.6%  m3=3.0  chars=1684
+[23:56:55] 
+======================================================================
+[23:56:55] EXP 2: PREDICATE GROUP ISOLATION
+[23:56:55] ======================================================================
+[23:56:55]   group_epistemic: 40 train, 95 held-out
+[23:57:05]     composite=22.6  m1=0.205  m2=0.0%  m3=1.2  chars=1597
+[23:57:05]   group_capability: 26 train, 109 held-out
+[23:57:15]     composite=28.9  m1=0.202  m2=1.8%  m3=5.4  chars=1674
+[23:57:15]   group_experiential: 17 train, 118 held-out
+[23:57:26]     composite=22.2  m1=0.138  m2=0.0%  m3=3.5  chars=1734
+[23:57:26]   group_relational: 12 train, 123 held-out
+[23:57:37]     composite=25.6  m1=0.179  m2=0.0%  m3=4.2  chars=1661
+[23:57:37]   group_preference: 11 train, 124 held-out
+[23:57:48]     composite=24.9  m1=0.186  m2=1.6%  m3=3.4  chars=1788
+[23:57:48]   group_identity_markers: 13 train, 122 held-out
+[23:57:59]     composite=23.3  m1=0.183  m2=0.0%  m3=2.5  chars=1615
+[23:57:59] 
+======================================================================
+[23:57:59] EXP 3: INDIVIDUAL PREDICATE ISOLATION
+[23:57:59] ======================================================================
+[23:57:59]   pred_values: 14 train, 121 held-out
+[23:58:09]     composite=21.6  m1=0.190  m2=0.0%  m3=1.2  chars=1678
+[23:58:09]   pred_practices: 13 train, 122 held-out
+[23:58:20]     composite=25.3  m1=0.195  m2=3.3%  m3=3.0  chars=1688
+[23:58:20]   pred_excels_at: 13 train, 122 held-out
+[23:58:30]     composite=25.2  m1=0.173  m2=1.6%  m3=3.8  chars=1575
+[23:58:30]   pred_believes: 11 train, 124 held-out
+[23:58:41]     composite=24.0  m1=0.201  m2=3.2%  m3=1.8  chars=1629
+[23:58:41]   pred_founded: 8 train, 127 held-out
+[23:58:50]     composite=24.4  m1=0.168  m2=0.0%  m3=3.8  chars=1586
+[23:58:50]   pred_experienced: 6 train, 129 held-out
+[23:59:01]     composite=21.4  m1=0.141  m2=0.0%  m3=2.6  chars=1524
+[23:59:01]   pred_works_at: 6 train, 129 held-out
+[23:59:10]     composite=25.0  m1=0.209  m2=0.8%  m3=2.6  chars=1561
+[23:59:10]   pred_avoids: 6 train, 129 held-out
+[23:59:21]     composite=25.3  m1=0.214  m2=2.3%  m3=2.4  chars=1651
+[23:59:21]   pred_prioritizes: 6 train, 129 held-out
+[23:59:32]     composite=27.2  m1=0.180  m2=0.8%  m3=5.2  chars=1724
+[23:59:32]   pred_interested_in: 5 train, 130 held-out
+[23:59:43]     composite=26.9  m1=0.170  m2=0.8%  m3=5.3  chars=1696
+[23:59:43]   pred_friends_with: 5 train, 130 held-out
+[23:59:52]     composite=21.8  m1=0.155  m2=0.8%  m3=2.4  chars=1664
+[23:59:52]   pred_dislikes: 5 train, 130 held-out
+[00:00:02]     composite=30.0  m1=0.166  m2=0.8%  m3=7.5  chars=1603
+[00:00:02] 
+======================================================================
+[00:00:02] EXP 4: ADDITIVE VALUE
+[00:00:02] ======================================================================
+[00:00:02]   base_epistemic: 40 train, 95 held-out
+[00:00:12]     composite=23.1  m1=0.174  m2=1.1%  m3=2.5  chars=1600
+[00:00:12]   additive_+capability: 66 train, 69 held-out
+[00:00:22]     composite=21.6  m1=0.199  m2=1.5%  m3=0.6  chars=1649
+[00:00:22]     delta from base: -1.5
+[00:00:22]   additive_+experiential: 57 train, 78 held-out
+[00:00:32]     composite=22.2  m1=0.189  m2=0.0%  m3=1.7  chars=1768
+[00:00:32]     delta from base: -0.9
+[00:00:32]   additive_+relational: 49 train, 86 held-out
+[00:00:43]     composite=23.6  m1=0.190  m2=0.0%  m3=2.5  chars=1614
+[00:00:43]     delta from base: +0.6
+[00:00:43]   additive_+preference: 51 train, 84 held-out
+[00:00:54]     composite=21.5  m1=0.190  m2=0.0%  m3=1.2  chars=1723
+[00:00:54]     delta from base: -1.6
+[00:00:54]   additive_+identity: 51 train, 84 held-out
+[00:01:04]     composite=18.8  m1=0.136  m2=0.0%  m3=1.2  chars=1670
+[00:01:04]     delta from base: -4.3
+[00:01:04] 
+======================================================================
+[00:01:04] EXP 5: OPTIMAL COMBINATIONS
+[00:01:04] ======================================================================
+[00:01:04]   combo_epistemic+capability: 66 train, 69 held-out
+[00:01:15]     composite=24.4  m1=0.197  m2=1.5%  m3=2.5  chars=1599
+[00:01:15]   combo_epistemic+capability+preference: 71 train, 64 held-out
+[00:01:26]     composite=21.6  m1=0.200  m2=0.0%  m3=1.0  chars=1923
+[00:01:26]   combo_top6_by_count: 65 train, 70 held-out
+[00:01:36]     composite=25.2  m1=0.210  m2=0.0%  m3=2.9  chars=1713
+[00:01:36]   combo_all_behavioral_type: 20 train, 115 held-out
+[00:01:47]     composite=26.4  m1=0.178  m2=0.9%  m3=4.7  chars=1707
+[00:01:47]   combo_no_biographical: 70 train, 65 held-out
+[00:01:56]     composite=21.6  m1=0.189  m2=0.0%  m3=1.2  chars=1662
+[00:01:56]   combo_all_identity: 135 train, 0 held-out
+[00:02:06]     composite=13.6  m1=0.000  m2=0.0%  m3=2.5  chars=1625
+[00:02:06] 
+======================================================================
+[00:02:06] ANALYSIS — ALL CONDITIONS RANKED
+[00:02:06] ======================================================================
+[00:02:06] 
+Rank  Condition                                     Composite  M1(cov)    M2(pred)   M3(patt)   Facts  Chars 
+[00:02:06] ------------------------------------------------------------------------------------------------------
+[00:02:06] 1     pred_dislikes                                 30.0       0.166      0.008      7.5        5      1603  
+[00:02:06] 2     group_capability                              28.9       0.202      0.018      5.4        26     1674  
+[00:02:06] 3     pred_prioritizes                              27.2       0.180      0.008      5.2        6      1724  
+[00:02:06] 4     pred_interested_in                            26.9       0.170      0.008      5.3        5      1696  
+[00:02:06] 5     combo_all_behavioral_type                     26.4       0.178      0.009      4.7        20     1707  
+[00:02:06] 6     group_relational                              25.6       0.179      0.000      4.2        12     1661  
+[00:02:06] 7     type_preference                               25.4       0.203      0.016      3.0        11     1684  
+[00:02:06] 8     pred_practices                                25.3       0.195      0.033      3.0        13     1688  
+[00:02:06] 9     pred_avoids                                   25.3       0.214      0.023      2.4        6      1651  
+[00:02:06] 10    pred_excels_at                                25.2       0.173      0.016      3.8        13     1575  
+[00:02:06] 11    combo_top6_by_count                           25.2       0.210      0.000      2.9        65     1713  
+[00:02:06] 12    pred_works_at                                 25.0       0.209      0.008      2.6        6      1561  
+[00:02:06] 13    group_preference                              24.9       0.186      0.016      3.4        11     1788  
+[00:02:06] 14    pred_founded                                  24.4       0.168      0.000      3.8        8      1586  
+[00:02:06] 15    combo_epistemic+capability                    24.4       0.197      0.015      2.5        66     1599  
+[00:02:06] 16    type_behavioral                               24.4       0.169      0.009      3.6        20     1663  
+[00:02:06] 17    pred_believes                                 24.0       0.201      0.032      1.8        11     1629  
+[00:02:06] 18    type_biographical                             23.9       0.198      0.000      2.4        65     1654  
+[00:02:06] 19    additive_+relational                          23.6       0.190      0.000      2.5        49     1614  
+[00:02:06] 20    group_identity_markers                        23.3       0.183      0.000      2.5        13     1615  
+[00:02:06] 21    base_epistemic                                23.1       0.174      0.011      2.5        40     1600  
+[00:02:06] 22    group_epistemic                               22.6       0.205      0.000      1.2        40     1597  
+[00:02:06] 23    group_experiential                            22.2       0.138      0.000      3.5        17     1734  
+[00:02:06] 24    additive_+experiential                        22.2       0.189      0.000      1.7        57     1768  
+[00:02:06] 25    production_baseline                           22.0       0.198      0.015      2.2        135    9144  
+[00:02:06] 26    pred_friends_with                             21.8       0.155      0.008      2.4        5      1664  
+[00:02:06] 27    additive_+capability                          21.6       0.199      0.015      0.6        66     1649  
+[00:02:06] 28    pred_values                                   21.6       0.190      0.000      1.2        14     1678  
+[00:02:06] 29    combo_epistemic+capability+preference         21.6       0.200      0.000      1.0        71     1923  
+[00:02:06] 30    combo_no_biographical                         21.6       0.189      0.000      1.2        70     1662  
+[00:02:06] 31    additive_+preference                          21.5       0.190      0.000      1.2        51     1723  
+[00:02:06] 32    pred_experienced                              21.4       0.141      0.000      2.6        6      1524  
+[00:02:06] 33    type_positional                               20.1       0.154      0.000      1.6        39     1893  
+[00:02:06] 34    additive_+identity                            18.8       0.136      0.000      1.2        51     1670  
+[00:02:06] 35    combo_all_identity                            13.6       0.000      0.000      2.5        135    1625  
+[00:02:06] 
+BEST PER EXPERIMENT:
+[00:02:06]   0_baseline: production_baseline (composite=22.0)
+[00:02:06]   1_fact_type: type_preference (composite=25.4)
+[00:02:06]   2_predicate_group: group_capability (composite=28.9)
+[00:02:06]   3_individual_predicate: pred_dislikes (composite=30.0)
+[00:02:06]   4_additive: additive_+relational (composite=23.6)
+[00:02:06]   5_combinations: combo_all_behavioral_type (composite=26.4)
+[00:02:06] 
+KEY FINDINGS:
+[00:02:06]   Best fact type: type_preference (25.4)
+[00:02:06]   Worst fact type: type_positional (20.1)
+[00:02:06]   Best predicate group: group_capability (28.9)
+[00:02:06]   Worst predicate group: group_experiential (22.2)
+[00:02:06]   Best single predicate: pred_dislikes (30.0)
+[00:02:06]   Worst single predicate: pred_experienced (21.4)
+[00:02:06] 
+  ADDITIVE DELTAS (from epistemic base):
+[00:02:06]     additive_+capability: -1.5
+[00:02:06]     additive_+experiential: -0.9
+[00:02:06]     additive_+relational: +0.6
+[00:02:06]     additive_+preference: -1.6
+[00:02:06]     additive_+identity: -4.3
+[00:02:06] 
+Results saved: C:\Users\Aarik\Anthropic\memory_system\docs\eval\predicate_ablation\ablation_results.json
+[06:12:48] ======================================================================
+[06:12:48] PREDICATE & FACT TYPE QUALITY ABLATION — MECHANICAL SCORING
+[06:12:48] ======================================================================
+[06:12:48] Loaded 135 identity-tier facts
+[06:12:48] Types: biographical=65, positional=39, behavioral=20, preference=11
+[06:12:48] Predicates: 34 unique
+[06:12:48] 
+======================================================================
+[06:12:48] EXP 0: BASELINE — Production brief
+[06:12:48] ======================================================================
+[06:12:49]   -> Production: composite=22.0, 9144 chars
+[06:12:49] 
+======================================================================
+[06:12:49] EXP 1: FACT TYPE ISOLATION
+[06:12:49] ======================================================================
+[06:12:49]   type_biographical: 65 train, 70 held-out
+[06:13:00]     composite=29.1  m1=0.216  m2=0.0%  m3=5.3  chars=1696
+[06:13:00]   type_positional: 39 train, 96 held-out
+[06:13:12]     composite=18.8  m1=0.139  m2=0.0%  m3=1.1  chars=1767
+[06:13:12]   type_behavioral: 20 train, 115 held-out
+[06:13:22]     composite=25.1  m1=0.194  m2=0.9%  m3=3.4  chars=1778
+[06:13:22]   type_preference: 11 train, 124 held-out
+[06:13:33]     composite=21.4  m1=0.171  m2=2.4%  m3=1.2  chars=1610
+[06:13:33] 
+======================================================================
+[06:13:33] EXP 2: PREDICATE GROUP ISOLATION
+[06:13:33] ======================================================================
+[06:13:33]   group_epistemic: 40 train, 95 held-out
+[06:13:45]     composite=20.6  m1=0.190  m2=0.0%  m3=0.6  chars=1721
+[06:13:45]   group_capability: 26 train, 109 held-out
+[06:13:56]     composite=24.3  m1=0.218  m2=4.6%  m3=1.2  chars=1651
+[06:13:56]   group_experiential: 17 train, 118 held-out
+[06:14:07]     composite=27.2  m1=0.175  m2=0.0%  m3=5.4  chars=1660
+[06:14:07]   group_relational: 12 train, 123 held-out
+[06:14:18]     composite=22.9  m1=0.165  m2=0.0%  m3=2.9  chars=1716
+[06:14:18]   group_preference: 11 train, 124 held-out
+[06:14:29]     composite=23.5  m1=0.171  m2=1.6%  m3=2.9  chars=1739
+[06:14:29]   group_identity_markers: 13 train, 122 held-out
+[06:14:39]     composite=26.4  m1=0.218  m2=0.8%  m3=3.2  chars=1574
+[06:14:39] 
+======================================================================
+[06:14:39] EXP 3: INDIVIDUAL PREDICATE ISOLATION
+[06:14:39] ======================================================================
+[06:14:39]   pred_values: 14 train, 121 held-out
+[06:14:50]     composite=22.3  m1=0.154  m2=0.0%  m3=2.9  chars=1705
+[06:14:50]   pred_practices: 13 train, 122 held-out
+[06:14:59]     composite=23.8  m1=0.204  m2=4.1%  m3=1.3  chars=1522
+[06:14:59]   pred_excels_at: 13 train, 122 held-out
+[06:15:08]     composite=25.6  m1=0.168  m2=0.8%  m3=4.4  chars=1596
+[06:15:08]   pred_believes: 11 train, 124 held-out
+[06:15:19]     composite=25.3  m1=0.190  m2=2.4%  m3=3.1  chars=1589
+[06:15:19]   pred_founded: 8 train, 127 held-out
+[06:15:28]     composite=26.3  m1=0.188  m2=0.0%  m3=4.2  chars=1445
+[06:15:28]   pred_experienced: 6 train, 129 held-out
+[06:15:38]     composite=21.3  m1=0.125  m2=0.0%  m3=3.2  chars=1584
+[06:15:38]   pred_works_at: 6 train, 129 held-out
+[06:15:47]     composite=24.0  m1=0.176  m2=0.0%  m3=3.2  chars=1570
+[06:15:47]   pred_avoids: 6 train, 129 held-out
+[06:15:58]     composite=24.6  m1=0.207  m2=1.6%  m3=2.4  chars=1704
+[06:15:58]   pred_prioritizes: 6 train, 129 held-out
+[06:16:09]     composite=19.7  m1=0.148  m2=0.8%  m3=1.2  chars=1639
+[06:16:09]   pred_interested_in: 5 train, 130 held-out
+[06:16:18] ======================================================================
+[06:16:18] PREDICATE & FACT TYPE QUALITY ABLATION — MECHANICAL SCORING
+[06:16:18] ======================================================================
+[06:16:18] Loaded 135 identity-tier facts
+[06:16:18] Types: biographical=65, positional=39, behavioral=20, preference=11
+[06:16:18] Predicates: 34 unique
+[06:16:18] 
+======================================================================
+[06:16:18] EXP 0: BASELINE — Production brief
+[06:16:18] ======================================================================
+[06:16:18]   -> Production: composite=22.0, 9144 chars
+[06:16:18] 
+======================================================================
+[06:16:18] EXP 1: FACT TYPE ISOLATION
+[06:16:18] ======================================================================
+[06:16:18]   type_biographical: 65 train, 70 held-out
+[06:16:18]     composite=24.7  m1=0.179  m2=2.3%  m3=3.1  chars=1592
+[06:16:18]   pred_friends_with: 5 train, 130 held-out
+[06:16:29]     composite=34.0  m1=0.200  m2=0.0%  m3=9.1  chars=1648
+[06:16:29]   type_positional: 39 train, 96 held-out
+[06:16:30]     composite=22.3  m1=0.149  m2=2.3%  m3=2.8  chars=1796
+[06:16:30]   pred_dislikes: 5 train, 130 held-out
+[06:16:40]     composite=22.0  m1=0.165  m2=0.0%  m3=2.3  chars=1708
+[06:16:40]   type_behavioral: 20 train, 115 held-out
+[06:16:41]     composite=21.2  m1=0.160  m2=0.8%  m3=1.8  chars=1657
+[06:16:41] 
+======================================================================
+[06:16:41] EXP 4: ADDITIVE VALUE
+[06:16:41] ======================================================================
+[06:16:41]   base_epistemic: 40 train, 95 held-out
+[06:16:50]     composite=23.7  m1=0.194  m2=0.0%  m3=2.4  chars=1670
+[06:16:50]   additive_+capability: 66 train, 69 held-out
+[06:16:50]     composite=24.9  m1=0.188  m2=0.9%  m3=3.4  chars=1764
+[06:16:50]   type_preference: 11 train, 124 held-out
+[06:17:01]     composite=25.5  m1=0.207  m2=1.5%  m3=3.0  chars=1687
+[06:17:01]     delta from base: +1.9
+[06:17:01]   additive_+experiential: 57 train, 78 held-out
+[06:17:02]     composite=25.7  m1=0.196  m2=1.6%  m3=3.5  chars=1719
+[06:17:02] 
+======================================================================
+[06:17:02] EXP 2: PREDICATE GROUP ISOLATION
+[06:17:02] ======================================================================
+[06:17:02]   group_epistemic: 40 train, 95 held-out
+[06:17:11]     composite=20.6  m1=0.171  m2=0.0%  m3=1.2  chars=1667
+[06:17:11]     delta from base: -3.0
+[06:17:11]   additive_+relational: 49 train, 86 held-out
+[06:17:14]     composite=20.2  m1=0.181  m2=0.0%  m3=0.6  chars=1713
+[06:17:14]   group_capability: 26 train, 109 held-out
+[06:17:23]     composite=24.4  m1=0.195  m2=1.2%  m3=2.8  chars=1786
+[06:17:23]     delta from base: +0.8
+[06:17:23]   additive_+preference: 51 train, 84 held-out
+[06:17:25]     composite=20.5  m1=0.177  m2=0.0%  m3=1.1  chars=1859
+[06:17:25]   group_experiential: 17 train, 118 held-out
+[06:17:33]     composite=20.9  m1=0.176  m2=0.0%  m3=1.2  chars=1695
+[06:17:33]     delta from base: -2.8
+[06:17:33]   additive_+identity: 51 train, 84 held-out
+[06:17:37]     composite=21.6  m1=0.146  m2=0.0%  m3=2.8  chars=1784
+[06:17:37]   group_relational: 12 train, 123 held-out
+[06:17:45]     composite=24.2  m1=0.184  m2=0.0%  m3=3.3  chars=1834
+[06:17:45]     delta from base: +0.6
+[06:17:45] 
+======================================================================
+[06:17:45] EXP 5: OPTIMAL COMBINATIONS
+[06:17:45] ======================================================================
+[06:17:45]   combo_epistemic+capability: 66 train, 69 held-out
+[06:17:47]     composite=23.4  m1=0.157  m2=0.0%  m3=3.5  chars=1702
+[06:17:47]   group_preference: 11 train, 124 held-out
+[06:17:55]     composite=23.2  m1=0.194  m2=0.0%  m3=2.2  chars=1818
+[06:17:55]   combo_epistemic+capability+preference: 71 train, 64 held-out
+[06:17:58]     composite=24.9  m1=0.189  m2=1.6%  m3=3.1  chars=1607
+[06:17:58]   group_identity_markers: 13 train, 122 held-out
+[06:18:05]     composite=22.3  m1=0.206  m2=0.0%  m3=1.2  chars=1706
+[06:18:05]   combo_top6_by_count: 65 train, 70 held-out
+[06:18:09]     composite=23.6  m1=0.192  m2=0.0%  m3=2.4  chars=1666
+[06:18:09] 
+======================================================================
+[06:18:09] EXP 3: INDIVIDUAL PREDICATE ISOLATION
+[06:18:09] ======================================================================
+[06:18:09]   pred_values: 14 train, 121 held-out
+[06:18:16]     composite=22.5  m1=0.181  m2=0.0%  m3=2.2  chars=1810
+[06:18:16]   combo_all_behavioral_type: 20 train, 115 held-out
+[06:18:19]     composite=25.2  m1=0.179  m2=0.0%  m3=3.9  chars=1553
+[06:18:19]   pred_practices: 13 train, 122 held-out
+[06:18:27]     composite=23.8  m1=0.205  m2=2.6%  m3=1.7  chars=1723
+[06:18:27]   combo_no_biographical: 70 train, 65 held-out
+[06:18:29]     composite=22.6  m1=0.173  m2=0.0%  m3=2.4  chars=1649
+[06:18:29]   pred_excels_at: 13 train, 122 held-out
+[06:18:36]     composite=19.4  m1=0.163  m2=0.0%  m3=0.6  chars=1580
+[06:18:36]   combo_all_identity: 135 train, 0 held-out
+[06:18:38]     composite=23.4  m1=0.193  m2=0.8%  m3=2.0  chars=1504
+[06:18:38]   pred_believes: 11 train, 124 held-out
+[06:18:46]     composite=14.3  m1=0.000  m2=0.0%  m3=2.9  chars=1731
+[06:18:46] 
+======================================================================
+[06:18:46] ANALYSIS — ALL CONDITIONS RANKED
+[06:18:46] ======================================================================
+[06:18:46] 
+Rank  Condition                                     Composite  M1(cov)    M2(pred)   M3(patt)   Facts  Chars 
+[06:18:46] ------------------------------------------------------------------------------------------------------
+[06:18:46] 1     type_biographical                             29.1       0.216      0.000      5.3        65     1696  
+[06:18:46] 2     group_experiential                            27.2       0.175      0.000      5.4        17     1660  
+[06:18:46] 3     group_identity_markers                        26.4       0.218      0.008      3.2        13     1574  
+[06:18:46] 4     pred_founded                                  26.3       0.188      0.000      4.2        8      1445  
+[06:18:46] 5     pred_excels_at                                25.6       0.168      0.008      4.4        13     1596  
+[06:18:46] 6     additive_+capability                          25.5       0.207      0.015      3.0        66     1687  
+[06:18:46] 7     pred_believes                                 25.3       0.190      0.024      3.1        11     1589  
+[06:18:46] 8     type_behavioral                               25.1       0.194      0.009      3.4        20     1778  
+[06:18:46] 9     pred_interested_in                            24.7       0.179      0.023      3.1        5      1592  
+[06:18:46] 10    pred_avoids                                   24.6       0.207      0.015      2.4        6      1704  
+[06:18:46] 11    additive_+relational                          24.4       0.195      0.012      2.8        49     1786  
+[06:18:46] 12    group_capability                              24.3       0.218      0.046      1.2        26     1651  
+[06:18:46] 13    additive_+identity                            24.2       0.184      0.000      3.3        51     1834  
+[06:18:46] 14    pred_works_at                                 24.0       0.176      0.000      3.2        6      1570  
+[06:18:46] 15    pred_practices                                23.8       0.204      0.041      1.3        13     1522  
+[06:18:46] 16    combo_all_behavioral_type                     23.8       0.205      0.026      1.7        20     1723  
+[06:18:46] 17    base_epistemic                                23.7       0.194      0.000      2.4        40     1670  
+[06:18:46] 18    group_preference                              23.5       0.171      0.016      2.9        11     1739  
+[06:18:46] 19    combo_epistemic+capability                    23.2       0.194      0.000      2.2        66     1818  
+[06:18:46] 20    group_relational                              22.9       0.165      0.000      2.9        12     1716  
+[06:18:46] 21    combo_top6_by_count                           22.5       0.181      0.000      2.2        65     1810  
+[06:18:46] 22    combo_epistemic+capability+preference         22.3       0.206      0.000      1.2        71     1706  
+[06:18:46] 23    pred_friends_with                             22.3       0.149      0.023      2.8        5      1796  
+[06:18:46] 24    pred_values                                   22.3       0.154      0.000      2.9        14     1705  
+[06:18:46] 25    production_baseline                           22.0       0.198      0.015      2.2        135    9144  
+[06:18:46] 26    type_preference                               21.4       0.171      0.024      1.2        11     1610  
+[06:18:46] 27    pred_experienced                              21.3       0.125      0.000      3.2        6      1584  
+[06:18:46] 28    pred_dislikes                                 21.2       0.160      0.008      1.8        5      1657  
+[06:18:46] 29    additive_+preference                          20.9       0.176      0.000      1.2        51     1695  
+[06:18:46] 30    additive_+experiential                        20.6       0.171      0.000      1.2        57     1667  
+[06:18:46] 31    group_epistemic                               20.6       0.190      0.000      0.6        40     1721  
+[06:18:46] 32    pred_prioritizes                              19.7       0.148      0.008      1.2        6      1639  
+[06:18:46] 33    combo_no_biographical                         19.4       0.163      0.000      0.6        70     1580  
+[06:18:46] 34    type_positional                               18.8       0.139      0.000      1.1        39     1767  
+[06:18:46] 35    combo_all_identity                            14.3       0.000      0.000      2.9        135    1731  
+[06:18:46] 
+BEST PER EXPERIMENT:
+[06:18:46]   0_baseline: production_baseline (composite=22.0)
+[06:18:46]   1_fact_type: type_biographical (composite=29.1)
+[06:18:46]   2_predicate_group: group_experiential (composite=27.2)
+[06:18:46]   3_individual_predicate: pred_founded (composite=26.3)
+[06:18:46]   4_additive: additive_+capability (composite=25.5)
+[06:18:46]   5_combinations: combo_all_behavioral_type (composite=23.8)
+[06:18:46] 
+KEY FINDINGS:
+[06:18:46]   Best fact type: type_biographical (29.1)
+[06:18:46]   Worst fact type: type_positional (18.8)
+[06:18:46]   Best predicate group: group_experiential (27.2)
+[06:18:46]   Worst predicate group: group_epistemic (20.6)
+[06:18:46]   Best single predicate: pred_founded (26.3)
+[06:18:46]   Worst single predicate: pred_prioritizes (19.7)
+[06:18:46] 
+  ADDITIVE DELTAS (from epistemic base):
+[06:18:46]     additive_+capability: +1.9
+[06:18:46]     additive_+experiential: -3.0
+[06:18:46]     additive_+relational: +0.8
+[06:18:46]     additive_+preference: -2.8
+[06:18:46]     additive_+identity: +0.6
+[06:18:46] 
+Results saved: C:\Users\Aarik\Anthropic\memory_system\docs\eval\predicate_ablation\ablation_results.json
+[06:18:49]     composite=22.3  m1=0.167  m2=0.8%  m3=2.3  chars=1719
+[06:18:49]   pred_founded: 8 train, 127 held-out
+[06:18:59]     composite=26.5  m1=0.200  m2=0.0%  m3=3.9  chars=1524
+[06:18:59]   pred_experienced: 6 train, 129 held-out
+[06:19:10]     composite=19.8  m1=0.122  m2=0.0%  m3=2.3  chars=1717
+[06:19:10]   pred_works_at: 6 train, 129 held-out
+[06:19:21]     composite=24.8  m1=0.207  m2=0.0%  m3=2.8  chars=1786
+[06:19:21]   pred_avoids: 6 train, 129 held-out
+[06:19:32]     composite=27.0  m1=0.241  m2=3.1%  m3=2.4  chars=1645
+[06:19:32]   pred_prioritizes: 6 train, 129 held-out
+[06:19:42]     composite=27.4  m1=0.216  m2=1.6%  m3=3.8  chars=1594
+[06:19:42]   pred_interested_in: 5 train, 130 held-out
+[06:19:53]     composite=27.9  m1=0.181  m2=0.0%  m3=5.8  chars=1739
+[06:19:53]   pred_friends_with: 5 train, 130 held-out
+[06:20:04]     composite=22.7  m1=0.170  m2=0.0%  m3=2.7  chars=1834
+[06:20:04]   pred_dislikes: 5 train, 130 held-out
+[06:20:15]     composite=22.7  m1=0.171  m2=0.8%  m3=2.4  chars=1640
+[06:20:15] 
+======================================================================
+[06:20:15] EXP 4: ADDITIVE VALUE
+[06:20:15] ======================================================================
+[06:20:15]   base_epistemic: 40 train, 95 held-out
+[06:20:26]     composite=21.9  m1=0.185  m2=0.0%  m3=1.7  chars=1792
+[06:20:26]   additive_+capability: 66 train, 69 held-out
+[06:20:36]     composite=21.8  m1=0.200  m2=0.0%  m3=1.1  chars=1809
+[06:20:36]     delta from base: -0.1
+[06:20:36]   additive_+experiential: 57 train, 78 held-out
+[06:20:47]     composite=22.3  m1=0.189  m2=0.0%  m3=1.7  chars=1734
+[06:20:47]     delta from base: +0.4
+[06:20:47]   additive_+relational: 49 train, 86 held-out
+[06:20:58]     composite=22.8  m1=0.191  m2=0.0%  m3=2.1  chars=1867
+[06:20:58]     delta from base: +0.9
+[06:20:58]   additive_+preference: 51 train, 84 held-out
+[06:21:08]     composite=22.7  m1=0.188  m2=0.0%  m3=1.9  chars=1568
+[06:21:08]     delta from base: +0.8
+[06:21:08]   additive_+identity: 51 train, 84 held-out
+[06:21:19]     composite=21.9  m1=0.179  m2=0.0%  m3=1.8  chars=1681
+[06:21:19]     delta from base: -0.0
+[06:21:19] 
+======================================================================
+[06:21:19] EXP 5: OPTIMAL COMBINATIONS
+[06:21:19] ======================================================================
+[06:21:19]   combo_epistemic+capability: 66 train, 69 held-out
+[06:21:30]     composite=24.7  m1=0.223  m2=0.0%  m3=2.2  chars=1801
+[06:21:30]   combo_epistemic+capability+preference: 71 train, 64 held-out
+[06:21:40]     composite=22.2  m1=0.205  m2=0.0%  m3=1.1  chars=1755
+[06:21:40]   combo_top6_by_count: 65 train, 70 held-out
+[06:21:51]     composite=23.3  m1=0.196  m2=0.0%  m3=2.2  chars=1788
+[06:21:51]   combo_all_behavioral_type: 20 train, 115 held-out
+[06:22:02]     composite=28.7  m1=0.214  m2=5.2%  m3=4.3  chars=1838
+[06:22:02]   combo_no_biographical: 70 train, 65 held-out
+[06:22:12]     composite=20.8  m1=0.172  m2=0.0%  m3=1.2  chars=1643
+[06:22:12]   combo_all_identity: 135 train, 0 held-out
+[06:22:22]     composite=15.0  m1=0.000  m2=0.0%  m3=3.4  chars=1774
+[06:22:22] 
+======================================================================
+[06:22:22] ANALYSIS — ALL CONDITIONS RANKED
+[06:22:22] ======================================================================
+[06:22:22] 
+Rank  Condition                                     Composite  M1(cov)    M2(pred)   M3(patt)   Facts  Chars 
+[06:22:22] ------------------------------------------------------------------------------------------------------
+[06:22:22] 1     type_biographical                             34.0       0.200      0.000      9.1        65     1648  
+[06:22:22] 2     combo_all_behavioral_type                     28.7       0.214      0.052      4.3        20     1838  
+[06:22:22] 3     pred_interested_in                            27.9       0.181      0.000      5.8        5      1739  
+[06:22:22] 4     pred_prioritizes                              27.4       0.216      0.015      3.8        6      1594  
+[06:22:22] 5     pred_avoids                                   27.0       0.241      0.031      2.4        6      1645  
+[06:22:22] 6     pred_founded                                  26.5       0.200      0.000      3.9        8      1524  
+[06:22:22] 7     type_preference                               25.7       0.196      0.016      3.5        11     1719  
+[06:22:22] 8     pred_values                                   25.2       0.179      0.000      3.9        14     1553  
+[06:22:22] 9     type_behavioral                               24.9       0.188      0.009      3.4        20     1764  
+[06:22:22] 10    group_preference                              24.9       0.189      0.016      3.1        11     1607  
+[06:22:22] 11    pred_works_at                                 24.8       0.207      0.000      2.8        6      1786  
+[06:22:22] 12    combo_epistemic+capability                    24.7       0.223      0.000      2.2        66     1801  
+[06:22:22] 13    group_identity_markers                        23.6       0.192      0.000      2.4        13     1666  
+[06:22:22] 14    pred_excels_at                                23.4       0.193      0.008      2.0        13     1504  
+[06:22:22] 15    group_relational                              23.4       0.157      0.000      3.5        12     1702  
+[06:22:22] 16    combo_top6_by_count                           23.3       0.196      0.000      2.2        65     1788  
+[06:22:22] 17    additive_+relational                          22.8       0.191      0.000      2.1        49     1867  
+[06:22:22] 18    pred_friends_with                             22.7       0.170      0.000      2.7        5      1834  
+[06:22:22] 19    pred_dislikes                                 22.7       0.171      0.008      2.4        5      1640  
+[06:22:22] 20    additive_+preference                          22.7       0.188      0.000      1.9        51     1568  
+[06:22:22] 21    pred_practices                                22.6       0.173      0.000      2.4        13     1649  
+[06:22:22] 22    additive_+experiential                        22.3       0.189      0.000      1.7        57     1734  
+[06:22:22] 23    pred_believes                                 22.3       0.167      0.008      2.3        11     1719  
+[06:22:22] 24    combo_epistemic+capability+preference         22.2       0.205      0.000      1.1        71     1755  
+[06:22:22] 25    type_positional                               22.0       0.165      0.000      2.3        39     1708  
+[06:22:22] 26    production_baseline                           22.0       0.198      0.015      2.2        135    9144  
+[06:22:22] 27    base_epistemic                                21.9       0.185      0.000      1.7        40     1792  
+[06:22:22] 28    additive_+identity                            21.9       0.179      0.000      1.8        51     1681  
+[06:22:22] 29    additive_+capability                          21.8       0.200      0.000      1.1        66     1809  
+[06:22:22] 30    group_experiential                            21.6       0.146      0.000      2.8        17     1784  
+[06:22:22] 31    combo_no_biographical                         20.8       0.172      0.000      1.2        70     1643  
+[06:22:22] 32    group_capability                              20.5       0.177      0.000      1.1        26     1859  
+[06:22:22] 33    group_epistemic                               20.2       0.181      0.000      0.6        40     1713  
+[06:22:22] 34    pred_experienced                              19.8       0.122      0.000      2.3        6      1717  
+[06:22:22] 35    combo_all_identity                            15.0       0.000      0.000      3.4        135    1774  
+[06:22:22] 
+BEST PER EXPERIMENT:
+[06:22:22]   0_baseline: production_baseline (composite=22.0)
+[06:22:22]   1_fact_type: type_biographical (composite=34.0)
+[06:22:22]   2_predicate_group: group_preference (composite=24.9)
+[06:22:22]   3_individual_predicate: pred_interested_in (composite=27.9)
+[06:22:22]   4_additive: additive_+relational (composite=22.8)
+[06:22:22]   5_combinations: combo_all_behavioral_type (composite=28.7)
+[06:22:22] 
+KEY FINDINGS:
+[06:22:22]   Best fact type: type_biographical (34.0)
+[06:22:22]   Worst fact type: type_positional (22.0)
+[06:22:22]   Best predicate group: group_preference (24.9)
+[06:22:22]   Worst predicate group: group_epistemic (20.2)
+[06:22:22]   Best single predicate: pred_interested_in (27.9)
+[06:22:22]   Worst single predicate: pred_experienced (19.8)
+[06:22:22] 
+  ADDITIVE DELTAS (from epistemic base):
+[06:22:22]     additive_+capability: -0.1
+[06:22:22]     additive_+experiential: +0.4
+[06:22:22]     additive_+relational: +0.9
+[06:22:22]     additive_+preference: +0.8
+[06:22:22]     additive_+identity: -0.0
+[06:22:22] 
+Results saved: C:\Users\Aarik\Anthropic\memory_system\docs\eval\predicate_ablation\ablation_results.json

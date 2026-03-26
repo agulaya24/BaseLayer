@@ -1,0 +1,165 @@
+[08:51:26] ======================================================================
+[08:51:26] GPU OVERNIGHT RUNNER — SESSION 78
+[08:51:26] Model: qwen2.5:14b via Ollama
+[08:51:26] Cost: $0 (all local)
+[08:51:26] ======================================================================
+[08:51:28] Ollama models: ['qwen2.5:14b']
+[08:51:28] Franklin identity-tier facts: 135
+[08:51:28] 
+######################################################################
+[08:51:28] STARTING PHASE: 1_temporal_quarters
+[08:51:28] ######################################################################
+[08:51:28] 
+======================================================================
+[08:51:28] PHASE 1: TEMPORAL QUARTER PREDICTION
+[08:51:28] ======================================================================
+[08:51:28]   Q1_predicts_rest: 33 train -> 102 test
+[08:52:31]     composite=23.0  m1=0.227  pred=0.0%  chars=4577
+[08:52:31]   Q2_predicts_rest: 33 train -> 102 test
+[08:53:29]     composite=21.2  m1=0.226  pred=0.0%  chars=6142
+[08:53:29]   Q3_predicts_rest: 33 train -> 102 test
+[08:54:25]     composite=19.4  m1=0.197  pred=0.0%  chars=5935
+[08:54:25]   Q4_predicts_rest: 36 train -> 99 test
+[08:55:12]     composite=20.8  m1=0.193  pred=0.0%  chars=4827
+[08:55:12]   Phase 1_temporal_quarters complete in 3.7 min
+[08:55:12] 
+######################################################################
+[08:55:12] STARTING PHASE: 2_accumulation
+[08:55:12] ######################################################################
+[08:55:12] 
+======================================================================
+[08:55:12] PHASE 2: BIDIRECTIONAL TEMPORAL ACCUMULATION
+[08:55:12] ======================================================================
+[08:55:12]   fwd_Q1->Q4: 33 train -> 36 test
+[08:55:49]     composite=21.9  m1=0.186  pred=0.0%  chars=4081
+[08:55:49]   fwd_Q1+Q2->Q4: 66 train -> 36 test
+[08:56:24]     composite=16.1  m1=0.132  pred=0.0%  chars=3526
+[08:56:24]   fwd_Q1+Q2+Q3->Q4: 99 train -> 36 test
+[08:56:57]     composite=19.6  m1=0.186  pred=0.0%  chars=3427
+[08:56:57]   rev_Q4->Q1: 36 train -> 33 test
+[08:57:32]     composite=24.9  m1=0.202  pred=0.0%  chars=3543
+[08:57:32]   rev_Q4+Q3->Q1: 69 train -> 33 test
+[08:59:31]     composite=24.2  m1=0.190  pred=0.0%  chars=12408
+[08:59:31]   rev_Q4+Q3+Q2->Q1: 102 train -> 33 test
+[09:00:08]     composite=19.7  m1=0.214  pred=3.0%  chars=3843
+[09:00:08]   Phase 2_accumulation complete in 4.9 min
+[09:00:08] 
+######################################################################
+[09:00:08] STARTING PHASE: 3_subtype_cross
+[09:00:08] ######################################################################
+[09:00:08] 
+======================================================================
+[09:00:08] PHASE 3: IDENTITY SUBTYPE CROSS-PREDICTION
+[09:00:08] ======================================================================
+[09:00:08]   biographical_predicts_others: 65 train -> 70 test
+[09:00:44]     composite=19.5  m1=0.153  pred=0.0%  chars=3512
+[09:00:44]   positional_predicts_others: 39 train -> 96 test
+[09:01:44]     composite=16.3  m1=0.117  pred=0.0%  chars=6352
+[09:01:44]   behavioral_predicts_others: 20 train -> 115 test
+[09:02:25]     composite=20.9  m1=0.193  pred=0.0%  chars=4281
+[09:02:25]   preference_predicts_others: 11 train -> 124 test
+[09:02:50]     composite=18.4  m1=0.200  pred=1.6%  chars=2663
+[09:02:50]   Phase 3_subtype_cross complete in 2.7 min
+[09:02:50] 
+######################################################################
+[09:02:50] STARTING PHASE: 4_predicate_extended
+[09:02:50] ######################################################################
+[09:02:50] 
+======================================================================
+[09:02:50] PHASE 4: PREDICATE QUALITY — 3 ROUNDS PER GROUP (reduce variance)
+[09:02:50] ======================================================================
+[09:02:50]   epistemic_r1: 40 train -> 47 test
+[09:04:01]     composite=19.0  m1=0.192  pred=0.0%  chars=6867
+[09:04:01]   epistemic_r2: 40 train -> 47 test
+[09:04:58]     composite=18.7  m1=0.156  pred=0.0%  chars=5974
+[09:04:58]   epistemic_r3: 40 train -> 47 test
+[09:06:10]     composite=18.7  m1=0.181  pred=0.0%  chars=7364
+[09:06:10]   epistemic: avg=18.8 +/- 0.1 (40 facts)
+[09:06:10]   capability_r1: 26 train -> 54 test
+[09:07:04]     composite=23.4  m1=0.189  pred=0.0%  chars=5705
+[09:07:04]   capability_r2: 26 train -> 54 test
+[09:07:43]     composite=15.6  m1=0.130  pred=0.0%  chars=4102
+[09:07:43]   capability_r3: 26 train -> 54 test
+[09:08:33]     composite=17.4  m1=0.179  pred=0.0%  chars=5610
+[09:08:33]   capability: avg=18.8 +/- 3.3 (26 facts)
+[09:08:33]   experiential_r1: 14 train -> 60 test
+[09:09:22]     composite=24.8  m1=0.176  pred=0.0%  chars=5018
+[09:09:22]   experiential_r2: 14 train -> 60 test
+[09:09:49]     composite=23.8  m1=0.212  pred=0.0%  chars=2819
+[09:09:49]   experiential_r3: 14 train -> 60 test
+[09:10:26]     composite=23.7  m1=0.213  pred=1.7%  chars=3762
+[09:10:26]   experiential: avg=24.1 +/- 0.5 (14 facts)
+[09:10:26]   preference_r1: 11 train -> 62 test
+[09:11:00]     composite=20.3  m1=0.236  pred=0.0%  chars=3653
+[09:11:00]   preference_r2: 11 train -> 62 test
+[09:11:30]     composite=19.7  m1=0.185  pred=0.0%  chars=3293
+[09:11:30]   preference_r3: 11 train -> 62 test
+[09:12:00]     composite=22.9  m1=0.206  pred=1.6%  chars=3156
+[09:12:00]   preference: avg=21.0 +/- 1.4 (11 facts)
+[09:12:00]   relational_r1: 9 train -> 63 test
+[09:12:31]     composite=20.9  m1=0.152  pred=1.6%  chars=3039
+[09:12:31]   relational_r2: 9 train -> 63 test
+[09:13:05]     composite=16.5  m1=0.153  pred=0.0%  chars=3551
+[09:13:05]   relational_r3: 9 train -> 63 test
+[09:14:58]     composite=17.9  m1=0.143  pred=1.6%  chars=11660
+[09:14:58]   relational: avg=18.4 +/- 1.8 (9 facts)
+[09:14:58]   Phase 4_predicate_extended complete in 12.1 min
+[09:14:58] 
+######################################################################
+[09:14:58] STARTING PHASE: 5_length_sweep
+[09:14:58] ######################################################################
+[09:14:58] 
+======================================================================
+[09:14:58] PHASE 5: BRIEF LENGTH SWEEP (Qwen)
+[09:14:58] ======================================================================
+[09:15:16]   target=500  actual=1675  composite=17.2  eff=0.421
+[09:16:04]   target=1000  actual=4587  composite=16.3  eff=0.130
+[09:16:42]   target=1500  actual=3780  composite=18.2  eff=0.211
+[09:17:18]   target=2000  actual=3602  composite=17.8  eff=0.194
+[09:19:05]   target=2500  actual=10501  composite=17.6  eff=0.068
+[09:19:53]   target=3500  actual=5066  composite=17.4  eff=0.136
+[09:19:53]   Phase 5_length_sweep complete in 4.9 min
+[09:19:53] 
+######################################################################
+[09:19:53] STARTING PHASE: 6_voice_replication
+[09:19:53] ######################################################################
+[09:19:53] 
+======================================================================
+[09:19:53] PHASE 6: VOICE REPLICATION — Qwen versions of all 5 voices
+[09:19:53] ======================================================================
+[09:20:29]   core_dominant: composite=18.4  chars=3670  eff=0.201
+[09:20:55]   pure_directive: composite=22.2  chars=2493  eff=0.367
+[09:21:38]   pure_narrative: composite=19.4  chars=4402  eff=0.199
+[09:21:55]   annotated_guide: composite=21.6  chars=1644  eff=0.453
+[09:22:28]   compressed_telegram: composite=17.4  chars=2858  eff=0.260
+[09:22:28]   Phase 6_voice_replication complete in 2.6 min
+[09:22:28] 
+######################################################################
+[09:22:28] STARTING PHASE: 7_marks_cross_subject
+[09:22:28] ######################################################################
+[09:22:28] 
+======================================================================
+[09:22:28] PHASE 7: MARKS CROSS-SUBJECT VALIDATION
+[09:22:28] ======================================================================
+[09:22:28]   Marks identity-tier facts: 272
+[09:22:28]   marks_Q1_predicts_rest: 68 train -> 204 test
+[09:23:46]     composite=29.6  m1=0.347  pred=8.3%  chars=7868
+[09:23:46]   marks_Q2_predicts_rest: 68 train -> 204 test
+[09:25:40]     composite=38.1  m1=0.411  pred=42.2%  chars=11620
+[09:25:40]   marks_Q3_predicts_rest: 68 train -> 204 test
+[09:26:23]     composite=28.9  m1=0.331  pred=3.4%  chars=4414
+[09:26:23]   marks_Q4_predicts_rest: 68 train -> 204 test
+[09:27:43]     composite=31.1  m1=0.363  pred=24.0%  chars=7942
+[09:27:43]   marks_positional_cross: 255 train -> 17 test
+[09:29:50]     composite=25.4  m1=0.318  pred=5.9%  chars=11542
+[09:29:50]   marks_preference_cross: 17 train -> 255 test
+[09:30:26]     composite=30.2  m1=0.348  pred=17.6%  chars=3926
+[09:30:26]   marks_split_10pct: 27 train -> 245 test
+[09:31:16]     composite=26.7  m1=0.323  pred=8.6%  chars=5305
+[09:31:16]   marks_split_20pct: 54 train -> 218 test
+[09:32:34]     composite=28.7  m1=0.353  pred=11.9%  chars=8460
+[09:32:34]   marks_split_50pct: 136 train -> 136 test
+[09:34:34]     composite=32.4  m1=0.373  pred=22.8%  chars=11175
+[09:34:34]   Phase 7_marks_cross_subject complete in 12.1 min
+[09:34:34] 
+All results saved: C:\Users\Aarik\Anthropic\memory_system\docs\eval\gpu_overnight_s78\gpu_s78_results.json

@@ -12,8 +12,8 @@ Usage:
     baselayer checkpoint classification — After classify+tier (archived step): spot-check 20 facts
 
 Checkpoint Architecture (simplified pipeline, S79):
-  1. Extract → STOP → checkpoint extraction → review
-  2. Author + Compose → done
+  1. Extract -> STOP -> checkpoint extraction -> review
+  2. Author + Compose -> done
 
   Note: scoring, classification, and tiering stages were removed in S79 (pipeline simplification).
   The simplified pipeline routes facts by predicate type, not by tier or classification label.
@@ -361,7 +361,7 @@ def checkpoint_classification(conn, spot_check_count=20):
                     print(f"    [{ftype:12s}] [{pred:15s}] {ft[:65]}")
                 print()
                 print(f"  RECOMMENDATION: Run Opus spot-check on these {len(suspects)} facts (~$0.10).")
-                print(f"  If Opus flags >30% as misclassified → re-classify subject with Sonnet.")
+                print(f"  If Opus flags >30% as misclassified -> re-classify subject with Sonnet.")
                 print(f"  Also consider expanding PREDICTIONS retrieval to include positional")
                 print(f"  facts with action predicates (author_layers.py retrieve_predictions_facts).")
         else:

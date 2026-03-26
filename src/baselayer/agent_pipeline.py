@@ -26,6 +26,7 @@ from baselayer.config import (
     PREDICTIONS_LAYER_FILE,
     UNIFIED_BRIEF_FILE, UNIFIED_BRIEF_CITED_FILE,
     IDENTITY_MODEL_FILE,
+    V1_STAGING_DIR,
     get_db,
 )
 
@@ -612,15 +613,23 @@ def compose_unified_brief(run_dir=None, layer_texts=None, source_facts_text=None
     # Limit to top 100 — layers already encode fact-derived patterns;
     # facts here are supplementary context, not primary input.
     if source_facts_text is None:
+        from baselayer.config import COMPOSE_FACT_LIMIT_SMALL, COMPOSE_FACT_LIMIT_LARGE, COMPOSE_FACT_THRESHOLD
         with contextlib.closing(get_db()) as conn:
+            # D-085: Scale fact sampling with corpus size
+            total_identity = conn.execute(
+                "SELECT COUNT(*) FROM memory_facts WHERE superseded_by IS NULL AND knowledge_tier = 'identity'"
+            ).fetchone()[0]
+            fact_limit = COMPOSE_FACT_LIMIT_LARGE if total_identity >= COMPOSE_FACT_THRESHOLD else COMPOSE_FACT_LIMIT_SMALL
+            print(f"  Compose: {total_identity} identity-tier facts, sampling top {fact_limit}")
+
             rows = conn.execute("""
                 SELECT id, fact_text, fact_type, category, recurrence_count
                 FROM memory_facts
                 WHERE superseded_by IS NULL
                   AND knowledge_tier = 'identity'
                 ORDER BY recurrence_count DESC
-                LIMIT 100
-            """).fetchall()
+                LIMIT ?
+            """, (fact_limit,)).fetchall()
             fact_count = len(rows)
             # Detect subject name from DB subject field, not regex on text (S68)
             from collections import Counter as _Counter
@@ -786,6 +795,13 @@ def store_unified_brief(run_dir, brief_text):
         brief_text: The composed brief text
     """
     IDENTITY_LAYERS_DIR.mkdir(parents=True, exist_ok=True)
+
+    # S98: Archive previous identity model before overwriting
+    if IDENTITY_MODEL_FILE.exists():
+        import shutil
+        V1_STAGING_DIR.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(str(IDENTITY_MODEL_FILE), str(V1_STAGING_DIR / "identity_model.md"))
+        print(f"  Archived previous identity model to v1_staging/")
 
     header_lines = [
         f"layer: unified_brief",

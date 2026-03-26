@@ -1,0 +1,301 @@
+[23:39:43] ======================================================================
+[23:39:43] HUMAN-MACHINE COLLABORATION BCB STUDY
+[23:39:43] ======================================================================
+[23:39:43] Tasks: 20
+[23:39:43] Conditions: C1 (bare), C2 (CLAUDE.md), C3 (brief), C4 (stacked)
+[23:39:43] Context sizes: C1=31 chars, C2=11368 chars, C3=6585 chars, C4=17855 chars
+[23:39:43] 
+======================================================================
+[23:39:43] CONDITION: C1_bare — No context
+[23:39:43] ======================================================================
+[23:39:43]   [1/20] T01: We need to generate narrative text for a subject's identity ...
+[23:39:52]     WRONG (score=33.3, hits=1/3)
+[23:39:52]   [2/20] T02: I'm generating the PREDICTIONS identity layer. I have the AN...
+[23:39:59]     WRONG (score=66.7, hits=2/3)
+[23:39:59]   [3/20] T03: The brief currently says 'this person uses Bayesian reasonin...
+[23:40:04]     WRONG (score=50.0, hits=1/2)
+[23:40:04]   [4/20] T04: I want to re-extract facts for a subject. I've cleared the S...
+[23:40:08]     WRONG (score=0, hits=0/3)
+[23:40:08]   [5/20] T05: The brief says 'Base Layer is a 14-step pipeline that proces...
+[23:40:14]     WRONG (score=33.3, hits=1/3)
+[23:40:14]   [6/20] T06: What model should we use for fact extraction?...
+[23:42:13] ======================================================================
+[23:42:13] HUMAN-MACHINE COLLABORATION BCB STUDY
+[23:42:13] ======================================================================
+[23:42:13] Tasks: 20
+[23:42:13] Conditions: C1 (bare), C2 (CLAUDE.md), C3 (brief), C4 (stacked)
+[23:42:13] Context sizes: C1=31 chars, C2=11368 chars, C3=6585 chars, C4=17855 chars
+[23:42:13] 
+======================================================================
+[23:42:13] CONDITION: C1_bare — No context
+[23:42:13] ======================================================================
+[23:42:13]   [1/20] T01: We need to generate narrative text for a subject's identity ...
+[23:42:22]     WRONG (score=33.3, hits=1/3)
+[23:42:22]   [2/20] T02: I'm generating the PREDICTIONS identity layer. I have the AN...
+[23:42:29]     WRONG (score=66.7, hits=2/3)
+[23:42:29]   [3/20] T03: The brief currently says 'this person uses Bayesian reasonin...
+[23:42:36]     WRONG (score=50.0, hits=1/2)
+[23:42:36]   [4/20] T04: I want to re-extract facts for a subject. I've cleared the S...
+[23:42:40]     WRONG (score=0, hits=0/3)
+[23:42:40]   [5/20] T05: The brief says 'Base Layer is a 14-step pipeline that proces...
+[23:42:46]     WRONG (score=33.3, hits=1/3)
+[23:42:46]   [6/20] T06: What model should we use for fact extraction?...
+[23:42:54]     WRONG (score=0, hits=0/1)
+[23:42:54]   [7/20] T07: What model should we use for knowledge tier classification?...
+[23:43:01]     WRONG (score=0, hits=0/1)
+[23:43:01]   [8/20] T08: What is the final artifact of the pipeline — the layers or t...
+[23:43:07]     CORRECT (score=100)
+[23:43:07]   [9/20] T09: How does ChromaDB compute similarity in this system?...
+[23:43:14]     CORRECT (score=100)
+[23:43:14]   [10/20] T10: When processing non-conversation text like patents or autobi...
+[23:43:22]     WRONG (score=0, hits=0/2)
+[23:43:22]   [11/20] T11: Two facts about a subject contradict each other. Should we d...
+[23:43:29]     WRONG (score=66.7, hits=2/3)
+[23:43:29]   [12/20] T12: How should Base Layer be positioned relative to existing mem...
+[23:43:40]     WRONG (score=35.0, hits=1/2)
+[23:43:40]   [13/20] T13: The system will never perfectly model someone. Is this a bug...
+[23:43:48]     WRONG (score=0, hits=0/3)
+[23:43:48]   [14/20] T14: Should we use an LLM-as-judge to evaluate brief quality?...
+[23:43:57]     WRONG (score=50.0, hits=1/2)
+[23:43:57]   [15/20] T15: A user corrects the system about themselves: 'I actually don...
+[23:44:04]     WRONG (score=66.7, hits=2/3)
+[23:44:04]   [16/20] T16: Someone wants to run the pipeline on their Slack messages. T...
+[23:44:15]     CORRECT (score=100)
+[23:44:15]   [17/20] T17: Sonnet tiering on a patent corpus only classified 3.5% of fa...
+[23:44:25]     WRONG (score=0, hits=0/2)
+[23:44:25]   [18/20] T18: We want to evaluate whether compression amplifies signal. Wh...
+[23:44:32]     WRONG (score=43.3, hits=1/3)
+[23:44:32]   [19/20] T19: If Anthropic adds 'Generate behavioral summary' to Claude's ...
+[23:44:39]     WRONG (score=0, hits=0/2)
+[23:44:39]   [20/20] T20: A community member submits a PR that adds a 15th pipeline st...
+[23:44:47]     WRONG (score=0, hits=0/2)
+[23:44:47] 
+  C1_bare SUMMARY: 3/20 correct (15%), avg score=37.2
+[23:44:47] 
+======================================================================
+[23:44:47] CONDITION: C2_claude_md — CLAUDE.md only
+[23:44:47] ======================================================================
+[23:44:47]   [1/20] T01: We need to generate narrative text for a subject's identity ...
+[23:44:52]     CORRECT (score=100)
+[23:44:52]   [2/20] T02: I'm generating the PREDICTIONS identity layer. I have the AN...
+[23:44:57]     CORRECT (score=100)
+[23:44:57]   [3/20] T03: The brief currently says 'this person uses Bayesian reasonin...
+[23:45:02]     CORRECT (score=100)
+[23:45:02]   [4/20] T04: I want to re-extract facts for a subject. I've cleared the S...
+[23:45:07]     CORRECT (score=100)
+[23:45:07]   [5/20] T05: The brief says 'Base Layer is a 14-step pipeline that proces...
+[23:45:13]     CORRECT (score=100)
+[23:45:13]   [6/20] T06: What model should we use for fact extraction?...
+[23:45:19]     CORRECT (score=100)
+[23:45:19]   [7/20] T07: What model should we use for knowledge tier classification?...
+[23:45:28]     CORRECT (score=100)
+[23:45:28]   [8/20] T08: What is the final artifact of the pipeline — the layers or t...
+[23:45:32]     CORRECT (score=100)
+[23:45:32]   [9/20] T09: How does ChromaDB compute similarity in this system?...
+[23:45:38]     CORRECT (score=100)
+[23:45:38]   [10/20] T10: When processing non-conversation text like patents or autobi...
+[23:45:45]     CORRECT (score=100)
+[23:45:45]   [11/20] T11: Two facts about a subject contradict each other. Should we d...
+[23:45:52]     WRONG (score=85.0, hits=3/3)
+[23:45:52]   [12/20] T12: How should Base Layer be positioned relative to existing mem...
+[23:46:05]     WRONG (score=0, hits=0/2)
+[23:46:05]   [13/20] T13: The system will never perfectly model someone. Is this a bug...
+[23:46:16]     WRONG (score=0, hits=0/3)
+[23:46:16]   [14/20] T14: Should we use an LLM-as-judge to evaluate brief quality?...
+[23:46:26]     WRONG (score=60.0, hits=1/2)
+[23:46:26]   [15/20] T15: A user corrects the system about themselves: 'I actually don...
+[23:46:39]     WRONG (score=66.7, hits=2/3)
+[23:46:39]   [16/20] T16: Someone wants to run the pipeline on their Slack messages. T...
+[23:46:52]     CORRECT (score=100)
+[23:46:52]   [17/20] T17: Sonnet tiering on a patent corpus only classified 3.5% of fa...
+[23:47:04]     CORRECT (score=100)
+[23:47:04]   [18/20] T18: We want to evaluate whether compression amplifies signal. Wh...
+[23:47:25]     CORRECT (score=100)
+[23:47:25]   [19/20] T19: If Anthropic adds 'Generate behavioral summary' to Claude's ...
+[23:47:37]     CORRECT (score=100)
+[23:47:37]   [20/20] T20: A community member submits a PR that adds a 15th pipeline st...
+[23:47:51]     WRONG (score=50.0, hits=1/2)
+[23:47:51] 
+  C2_claude_md SUMMARY: 14/20 correct (70%), avg score=83.1
+[23:47:51] 
+======================================================================
+[23:47:51] CONDITION: C3_brief — Compressed brief only
+[23:47:51] ======================================================================
+[23:47:51]   [1/20] T01: We need to generate narrative text for a subject's identity ...
+[23:48:01]     WRONG (score=33.3, hits=1/3)
+[23:48:01]   [2/20] T02: I'm generating the PREDICTIONS identity layer. I have the AN...
+[23:48:07]     CORRECT (score=100)
+[23:48:07]   [3/20] T03: The brief currently says 'this person uses Bayesian reasonin...
+[23:48:14]     CORRECT (score=100)
+[23:48:14]   [4/20] T04: I want to re-extract facts for a subject. I've cleared the S...
+[23:48:20]     WRONG (score=0, hits=0/3)
+[23:48:20]   [5/20] T05: The brief says 'Base Layer is a 14-step pipeline that proces...
+[23:48:28]     WRONG (score=66.7, hits=2/3)
+[23:48:28]   [6/20] T06: What model should we use for fact extraction?...
+[23:48:38]     WRONG (score=0, hits=0/1)
+[23:48:38]   [7/20] T07: What model should we use for knowledge tier classification?...
+[23:48:47]     WRONG (score=0, hits=0/1)
+[23:48:47]   [8/20] T08: What is the final artifact of the pipeline — the layers or t...
+[23:48:53]     CORRECT (score=100)
+[23:48:53]   [9/20] T09: How does ChromaDB compute similarity in this system?...
+[23:49:02]     CORRECT (score=100)
+[23:49:02]   [10/20] T10: When processing non-conversation text like patents or autobi...
+[23:49:12]     WRONG (score=50.0, hits=1/2)
+[23:49:12]   [11/20] T11: Two facts about a subject contradict each other. Should we d...
+[23:49:22]     CORRECT (score=100)
+[23:49:22]   [12/20] T12: How should Base Layer be positioned relative to existing mem...
+[23:49:34]     WRONG (score=0, hits=0/2)
+[23:49:34]   [13/20] T13: The system will never perfectly model someone. Is this a bug...
+[23:49:45]     WRONG (score=33.3, hits=1/3)
+[23:49:45]   [14/20] T14: Should we use an LLM-as-judge to evaluate brief quality?...
+[23:49:55]     WRONG (score=50.0, hits=1/2)
+[23:49:55]   [15/20] T15: A user corrects the system about themselves: 'I actually don...
+[23:50:06]     CORRECT (score=100)
+[23:50:06]   [16/20] T16: Someone wants to run the pipeline on their Slack messages. T...
+[23:50:19]     WRONG (score=50.0, hits=1/2)
+[23:50:19]   [17/20] T17: Sonnet tiering on a patent corpus only classified 3.5% of fa...
+[23:50:31]     WRONG (score=0, hits=0/2)
+[23:50:31]   [18/20] T18: We want to evaluate whether compression amplifies signal. Wh...
+[23:50:44]     WRONG (score=33.3, hits=1/3)
+[23:50:44]   [19/20] T19: If Anthropic adds 'Generate behavioral summary' to Claude's ...
+[23:50:57]     WRONG (score=50.0, hits=1/2)
+[23:50:57]   [20/20] T20: A community member submits a PR that adds a 15th pipeline st...
+[23:51:08]     WRONG (score=50.0, hits=1/2)
+[23:51:08] 
+  C3_brief SUMMARY: 6/20 correct (30%), avg score=50.8
+[23:51:08] 
+======================================================================
+[23:51:08] CONDITION: C4_stacked — CLAUDE.md + brief (stacked)
+[23:51:08] ======================================================================
+[23:51:08]   [1/20] T01: We need to generate narrative text for a subject's identity ...
+[23:51:13]     CORRECT (score=100)
+[23:51:13]   [2/20] T02: I'm generating the PREDICTIONS identity layer. I have the AN...
+[23:51:22]     CORRECT (score=100)
+[23:51:22]   [3/20] T03: The brief currently says 'this person uses Bayesian reasonin...
+[23:51:28]     CORRECT (score=100)
+[23:51:28]   [4/20] T04: I want to re-extract facts for a subject. I've cleared the S...
+[23:51:35]     CORRECT (score=100)
+[23:51:35]   [5/20] T05: The brief says 'Base Layer is a 14-step pipeline that proces...
+[23:51:41]     CORRECT (score=100)
+[23:51:41]   [6/20] T06: What model should we use for fact extraction?...
+[23:51:48]     CORRECT (score=100)
+[23:51:48]   [7/20] T07: What model should we use for knowledge tier classification?...
+[23:51:57]     CORRECT (score=100)
+[23:51:57]   [8/20] T08: What is the final artifact of the pipeline — the layers or t...
+[23:52:02]     CORRECT (score=100)
+[23:52:02]   [9/20] T09: How does ChromaDB compute similarity in this system?...
+[23:52:09]     CORRECT (score=100)
+[23:52:09]   [10/20] T10: When processing non-conversation text like patents or autobi...
+[23:52:18]     CORRECT (score=100)
+[23:52:18]   [11/20] T11: Two facts about a subject contradict each other. Should we d...
+[23:52:28]     CORRECT (score=100)
+[23:52:28]   [12/20] T12: How should Base Layer be positioned relative to existing mem...
+[23:52:48]     WRONG (score=0, hits=0/2)
+[23:52:48]   [13/20] T13: The system will never perfectly model someone. Is this a bug...
+[23:52:58]     WRONG (score=33.3, hits=1/3)
+[23:52:58]   [14/20] T14: Should we use an LLM-as-judge to evaluate brief quality?...
+[23:53:07]     WRONG (score=50.0, hits=1/2)
+[23:53:07]   [15/20] T15: A user corrects the system about themselves: 'I actually don...
+[23:53:18]     CORRECT (score=100)
+[23:53:18]   [16/20] T16: Someone wants to run the pipeline on their Slack messages. T...
+[23:53:33]     CORRECT (score=100)
+[23:53:33]   [17/20] T17: Sonnet tiering on a patent corpus only classified 3.5% of fa...
+[23:53:45]     CORRECT (score=100)
+[23:53:45]   [18/20] T18: We want to evaluate whether compression amplifies signal. Wh...
+[23:54:02]     CORRECT (score=100)
+[23:54:02]   [19/20] T19: If Anthropic adds 'Generate behavioral summary' to Claude's ...
+[23:54:16]     CORRECT (score=100)
+[23:54:16]   [20/20] T20: A community member submits a PR that adds a 15th pipeline st...
+[23:54:28]     WRONG (score=50.0, hits=1/2)
+[23:54:28] 
+  C4_stacked SUMMARY: 16/20 correct (80%), avg score=86.7
+[23:54:28] 
+======================================================================
+[23:54:28] ANALYSIS
+[23:54:28] ======================================================================
+[23:54:28] 
+OVERALL ACCURACY:
+[23:54:28]   C1_bare          3/20 (15%) ####  avg=37.2
+[23:54:28]   C2_claude_md    14/20 (70%) #####################  avg=83.1
+[23:54:28]   C3_brief         6/20 (30%) #########  avg=50.8
+[23:54:28]   C4_stacked      16/20 (80%) ########################  avg=86.7
+[23:54:28] 
+BY CATEGORY:
+[23:54:28]   architecture:
+[23:54:28]     C1_bare         2/5 (40%)
+[23:54:28]     C2_claude_md    5/5 (100%)
+[23:54:28]     C3_brief        2/5 (40%)
+[23:54:28]     C4_stacked      5/5 (100%)
+[23:54:28]   do_not:
+[23:54:28]     C1_bare         0/5 (0%)
+[23:54:28]     C2_claude_md    5/5 (100%)
+[23:54:28]     C3_brief        2/5 (40%)
+[23:54:28]     C4_stacked      5/5 (100%)
+[23:54:28]   novel:
+[23:54:28]     C1_bare         1/5 (20%)
+[23:54:28]     C2_claude_md    4/5 (80%)
+[23:54:28]     C3_brief        0/5 (0%)
+[23:54:28]     C4_stacked      4/5 (80%)
+[23:54:28]   philosophy:
+[23:54:28]     C1_bare         0/5 (0%)
+[23:54:28]     C2_claude_md    0/5 (0%)
+[23:54:28]     C3_brief        2/5 (40%)
+[23:54:28]     C4_stacked      2/5 (40%)
+[23:54:28] 
+STACKING ANALYSIS:
+[23:54:28]   C1 (bare):     15%
+[23:54:28]   C2 (CLAUDE.md): 70%  delta from bare: +55%
+[23:54:28]   C3 (brief):    30%  delta from bare: +15%
+[23:54:28]   C4 (stacked):  80%  delta from bare: +65%
+[23:54:28]   C4 vs C2:      +10% (does brief ADD to CLAUDE.md?)
+[23:54:28]   C4 vs C3:      +50% (does CLAUDE.md ADD to brief?)
+[23:54:28]   VERDICT: STACKING WORKS — C4 > both C2 and C3 individually
+[23:54:28] 
+MISSED TASKS (by condition):
+[23:54:28]   C1_bare:
+[23:54:28]     T01: 1/3 keywords
+[23:54:28]     T02: 2/3 keywords
+[23:54:28]     T03: 1/2 keywords
+[23:54:28]     T04: 0/3 keywords
+[23:54:28]     T05: 1/3 keywords
+[23:54:28]     T06: 0/1 keywords
+[23:54:28]     T07: 0/1 keywords
+[23:54:28]     T10: 0/2 keywords
+[23:54:28]     T11: 2/3 keywords
+[23:54:28]     T12: 1/2 keywords
+[23:54:28]     T13: 0/3 keywords
+[23:54:28]     T14: 1/2 keywords
+[23:54:28]     T15: 2/3 keywords
+[23:54:28]     T17: 0/2 keywords
+[23:54:28]     T18: 1/3 keywords
+[23:54:28]     T19: 0/2 keywords
+[23:54:28]     T20: 0/2 keywords
+[23:54:28]   C2_claude_md:
+[23:54:28]     T11: 3/3 keywords
+[23:54:28]     T12: 0/2 keywords
+[23:54:28]     T13: 0/3 keywords
+[23:54:28]     T14: 1/2 keywords
+[23:54:28]     T15: 2/3 keywords
+[23:54:28]     T20: 1/2 keywords
+[23:54:28]   C3_brief:
+[23:54:28]     T01: 1/3 keywords
+[23:54:28]     T04: 0/3 keywords
+[23:54:28]     T05: 2/3 keywords
+[23:54:28]     T06: 0/1 keywords
+[23:54:28]     T07: 0/1 keywords
+[23:54:28]     T10: 1/2 keywords
+[23:54:28]     T12: 0/2 keywords
+[23:54:28]     T13: 1/3 keywords
+[23:54:28]     T14: 1/2 keywords
+[23:54:28]     T16: 1/2 keywords
+[23:54:28]     T17: 0/2 keywords
+[23:54:28]     T18: 1/3 keywords
+[23:54:28]     T19: 1/2 keywords
+[23:54:28]     T20: 1/2 keywords
+[23:54:28]   C4_stacked:
+[23:54:28]     T12: 0/2 keywords
+[23:54:28]     T13: 1/3 keywords
+[23:54:28]     T14: 1/2 keywords
+[23:54:28]     T20: 1/2 keywords
+[23:54:28] 
+Results saved: C:\Users\Aarik\Anthropic\memory_system\docs\eval\collaboration_bcb\collaboration_bcb_results.json

@@ -1,0 +1,125 @@
+[08:49:09] ======================================================================
+[08:49:09] EXPANDED IDENTITY-TIER ABLATION + TEMPORAL EXPERIMENTS
+[08:49:09] ======================================================================
+[08:49:09] Identity-tier facts: 135
+[08:49:09] Types: biographical=65, positional=39, behavioral=20, preference=11
+[08:49:09] Commitment depths: factual=85, conviction=28, preference=11, position=11
+[08:49:09] Unique predicates: 34
+[08:49:09] 
+======================================================================
+[08:49:09] EXP 1: IDENTITY FACT SUBTYPE ISOLATION
+[08:49:09] ======================================================================
+[08:49:09]   subtype_biographical: 65 train -> 70 test
+[08:49:24]     composite=18.1  m1=0.175  pred=0.0%
+[08:49:24]   subtype_positional: 39 train -> 96 test
+[08:49:38]     composite=22.9  m1=0.200  pred=0.0%
+[08:49:38]   subtype_behavioral: 20 train -> 115 test
+[08:49:50]     composite=26.1  m1=0.215  pred=1.7%
+[08:49:50]   subtype_preference: 11 train -> 124 test
+[08:50:03]     composite=17.7  m1=0.144  pred=0.0%
+[08:50:03] 
+======================================================================
+[08:50:03] EXP 2: PREDICATE CLUSTERS (epistemic vs capability vs experiential)
+[08:50:03] ======================================================================
+[08:50:03]   cluster_epistemic: 31 train -> 104 test
+[08:50:14]     composite=19.4  m1=0.180  pred=0.0%
+[08:50:14]   cluster_capability: 26 train -> 109 test
+[08:50:25]     composite=23.4  m1=0.199  pred=0.0%
+[08:50:25]   cluster_experiential: 14 train -> 121 test
+[08:50:36]     composite=24.6  m1=0.205  pred=0.0%
+[08:50:36]   cluster_avoidance: 14 train -> 121 test
+[08:50:47]     composite=26.2  m1=0.210  pred=1.7%
+[08:50:47]   cluster_relational: 10 train -> 125 test
+[08:50:58]     composite=19.6  m1=0.157  pred=0.0%
+[08:50:58]   cluster_preference: 6 train -> 129 test
+[08:51:08]     composite=20.4  m1=0.171  pred=0.0%
+[08:51:08] 
+======================================================================
+[08:51:08] EXP 3: TEMPORAL WINDOWS — Which quarter predicts best?
+[08:51:08] ======================================================================
+[08:51:08]   quarter_Q1_early: 33 train -> 102 test
+[08:51:21]     composite=19.2  m1=0.200  pred=0.0%
+[08:51:21]   quarter_Q2_mid_early: 33 train -> 102 test
+[08:51:33]     composite=25.4  m1=0.223  pred=0.0%
+[08:51:33]   quarter_Q3_mid_late: 33 train -> 102 test
+[08:51:47]     composite=24.2  m1=0.202  pred=0.0%
+[08:51:47]   quarter_Q4_late: 36 train -> 99 test
+[08:52:00]     composite=21.0  m1=0.185  pred=1.0%
+[08:52:00] 
+======================================================================
+[08:52:00] EXP 4: BIDIRECTIONAL TEMPORAL — Q1->Q4 vs Q4->Q1 etc.
+[08:52:00] ======================================================================
+[08:52:00]   bidir_Q1->Q4: 33 train -> 36 test
+[08:52:16]     composite=21.8  m1=0.211  pred=0.0%
+[08:52:16]   bidir_Q4->Q1: 36 train -> 33 test
+[08:52:29]     composite=24.2  m1=0.185  pred=0.0%
+[08:52:29]   bidir_Q1->Q3: 33 train -> 33 test
+[08:52:40]     composite=20.1  m1=0.195  pred=0.0%
+[08:52:40]   bidir_Q3->Q1: 33 train -> 33 test
+[08:52:52]     composite=26.4  m1=0.230  pred=3.0%
+[08:52:52]   bidir_Q2->Q4: 33 train -> 36 test
+[08:53:04]     composite=26.3  m1=0.214  pred=0.0%
+[08:53:04]   bidir_Q4->Q2: 36 train -> 33 test
+[08:53:17]     composite=24.8  m1=0.195  pred=3.0%
+[08:53:17] 
+======================================================================
+[08:53:17] EXP 5: TEMPORAL ACCUMULATION — When does compression saturate?
+[08:53:17] ======================================================================
+[08:53:17]   accum_Q1_only: 33 train -> 36 test
+[08:53:29]     composite=25.0  m1=0.240  pred=0.0%
+[08:53:29]   accum_Q1+Q2: 66 train -> 36 test
+[08:53:39]     composite=22.8  m1=0.216  pred=0.0%
+[08:53:39]   accum_Q1+Q2+Q3: 99 train -> 36 test
+[08:53:51]     composite=20.4  m1=0.245  pred=0.0%
+[08:53:51]   accum_all_quarters: 99 train -> 36 test
+[08:54:03]     composite=20.7  m1=0.251  pred=2.8%
+[08:54:03] 
+======================================================================
+[08:54:03] EXP 6: COMMITMENT DEPTH — High vs Low commitment facts
+[08:54:03] ======================================================================
+[08:54:03]   Commitment depth values: ['conviction', 'factual', 'position', 'preference']
+[08:54:03]   high_commitment: 13 train -> 45 test
+[08:54:14]     composite=23.7  m1=0.207  pred=2.2%
+[08:54:14]   low_commitment: 77 train -> 45 test
+[08:54:26]     composite=23.6  m1=0.214  pred=0.0%
+[08:54:26] 
+======================================================================
+[08:54:26] ANALYSIS SUMMARY
+[08:54:26] ======================================================================
+[08:54:26] 
+  1_subtype_isolation:
+[08:54:26]     Best:  subtype_behavioral (composite=26.1, pred=1.7%)
+[08:54:26]     Worst: subtype_preference (composite=17.7, pred=0.0%)
+[08:54:26] 
+  2_predicate_clusters:
+[08:54:26]     Best:  cluster_avoidance (composite=26.2, pred=1.7%)
+[08:54:26]     Worst: cluster_epistemic (composite=19.4, pred=0.0%)
+[08:54:26] 
+  3_temporal_windows:
+[08:54:26]     Best:  quarter_Q2_mid_early (composite=25.4, pred=0.0%)
+[08:54:26]     Worst: quarter_Q1_early (composite=19.2, pred=0.0%)
+[08:54:26] 
+  4_bidirectional_temporal:
+[08:54:26]     Best:  bidir_Q3->Q1 (composite=26.4, pred=3.0%)
+[08:54:26]     Worst: bidir_Q1->Q3 (composite=20.1, pred=0.0%)
+[08:54:26] 
+  5_temporal_accumulation:
+[08:54:26]     Best:  accum_Q1_only (composite=25.0, pred=0.0%)
+[08:54:26]     Worst: accum_Q1+Q2+Q3 (composite=20.4, pred=0.0%)
+[08:54:26] 
+  6_commitment_depth:
+[08:54:26]     Best:  high_commitment (composite=23.7, pred=2.2%)
+[08:54:26]     Worst: low_commitment (composite=23.6, pred=0.0%)
+[08:54:26] 
+  BIDIRECTIONAL TEMPORAL PAIRS:
+[08:54:26]     bidir_Q1->Q4: 0.0% vs bidir_Q4->Q1: 0.0% (diff=0.0%)
+[08:54:26]     bidir_Q1->Q3: 0.0% vs bidir_Q3->Q1: 3.0% (diff=3.0%)
+[08:54:26]     bidir_Q2->Q4: 0.0% vs bidir_Q4->Q2: 3.0% (diff=3.0%)
+[08:54:26] 
+  TEMPORAL ACCUMULATION CURVE:
+[08:54:26]     accum_Q1_only: train=33, pred=0.0%
+[08:54:26]     accum_Q1+Q2: train=66, pred=0.0%
+[08:54:26]     accum_Q1+Q2+Q3: train=99, pred=0.0%
+[08:54:26]     accum_all_quarters: train=99, pred=2.8%
+[08:54:26] 
+Saved: C:\Users\Aarik\Anthropic\memory_system\docs\eval\expanded_ablation\expanded_ablation_results.json

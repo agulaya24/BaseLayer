@@ -131,6 +131,43 @@ THEME_TOKEN_BUDGET = 800       # Block 2: what matters right now (retrieved)
 EPISODE_TOKEN_BUDGET = 600     # Block 3: "I remember when..." moments (retrieved)
 TOTAL_TOKEN_BUDGET = 5000      # Combined budget for the full brief
 
+# D-085 (S98): Compose fact sampling — scales with corpus size
+# Small corpora (<500 identity facts): sample all up to 100
+# Large corpora (500+): sample up to 300 to capture V2 depth
+COMPOSE_FACT_LIMIT_SMALL = 100   # corpora with <500 identity-tier facts
+COMPOSE_FACT_LIMIT_LARGE = 300   # corpora with 500+ identity-tier facts
+COMPOSE_FACT_THRESHOLD = 500     # identity-tier fact count that triggers large limit
+
+
+def compute_source_fingerprint(source_dir, extraction_model=None):
+    """S98 Phase 3B: Compute input fingerprint for manifest gate.
+
+    Fingerprint includes: file list + total bytes + extraction model + extraction caps.
+    Changes to any of these mean the pipeline should re-run.
+    """
+    import hashlib
+    source_path = Path(source_dir)
+    if not source_path.exists():
+        return None
+
+    h = hashlib.md5()
+
+    # File list + sizes (sorted for determinism)
+    files = sorted(source_path.glob("*"))
+    for f in files:
+        if f.is_file():
+            h.update(f.name.encode())
+            h.update(str(f.stat().st_size).encode())
+
+    # Extraction model
+    model = extraction_model or EXTRACTION_API_MODEL
+    h.update(model.encode())
+
+    # Extraction caps (ceiling + budget)
+    h.update(str(EXTRACTION_CAPS.get("max_facts_ceiling", 600)).encode())
+
+    return h.hexdigest()
+
 
 # ==========================================================================
 # RETRIEVAL SETTINGS (assemble_brief.py)
@@ -235,10 +272,13 @@ EXTRACTION_CAPS = {
         {"min_chars": 0,      "max_chars": 12000,    "max_facts": 10, "input_char_budget": 12000},
         {"min_chars": 12001,  "max_chars": 30000,    "max_facts": 20, "input_char_budget": 18000},
         {"min_chars": 30001,  "max_chars": 60000,    "max_facts": 35, "input_char_budget": 24000},
-        {"min_chars": 60001,  "max_chars": 99999999, "max_facts": 200, "input_char_budget": 24000},
+        {"min_chars": 60001,  "max_chars": 200000,   "max_facts": 200, "input_char_budget": 24000},
+        # S97: Large documents (textbooks, full corpora >200K chars). 833K agentic patterns was hitting 200 ceiling.
+        {"min_chars": 200001, "max_chars": 500000,   "max_facts": 400, "input_char_budget": 24000},
+        {"min_chars": 500001, "max_chars": 99999999, "max_facts": 600, "input_char_budget": 24000},
     ],
-    # Absolute ceiling regardless of message count
-    "max_facts_ceiling": 200,
+    # Absolute ceiling regardless of message count (S97: raised from 200 for large documents)
+    "max_facts_ceiling": 600,
     "max_input_char_budget": 24000,
 }
 
@@ -392,6 +432,7 @@ PREDICTIONS_LAYER_FILE = IDENTITY_LAYERS_DIR / "predictions_v4.md"
 UNIFIED_BRIEF_FILE = IDENTITY_LAYERS_DIR / "brief_v5_clean.md"  # Stripped citations — for serving
 UNIFIED_BRIEF_CITED_FILE = IDENTITY_LAYERS_DIR / "brief_v5.md"  # With citations — for audit
 IDENTITY_MODEL_FILE = IDENTITY_LAYERS_DIR / "identity_model.md"  # D-081: brief + layers combined — primary AI artifact
+V1_STAGING_DIR = IDENTITY_LAYERS_DIR / "v1_staging"  # S98: previous identity model archived here before pipeline overwrites
 
 # D-054: Agent pipeline directories
 AGENT_DEFINITIONS_DIR = PROJECT_ROOT / "agents"

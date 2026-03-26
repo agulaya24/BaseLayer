@@ -235,10 +235,13 @@ EXTRACTION_CAPS = {
         {"min_chars": 0,      "max_chars": 12000,    "max_facts": 10, "input_char_budget": 12000},
         {"min_chars": 12001,  "max_chars": 30000,    "max_facts": 20, "input_char_budget": 18000},
         {"min_chars": 30001,  "max_chars": 60000,    "max_facts": 35, "input_char_budget": 24000},
-        {"min_chars": 60001,  "max_chars": 99999999, "max_facts": 200, "input_char_budget": 24000},
+        {"min_chars": 60001,  "max_chars": 200000,   "max_facts": 200, "input_char_budget": 24000},
+        # S97: Large documents (textbooks, full corpora >200K chars)
+        {"min_chars": 200001, "max_chars": 500000,   "max_facts": 400, "input_char_budget": 24000},
+        {"min_chars": 500001, "max_chars": 99999999, "max_facts": 600, "input_char_budget": 24000},
     ],
-    # Absolute ceiling regardless of message count
-    "max_facts_ceiling": 200,
+    # Absolute ceiling regardless of message count (S97: raised from 200)
+    "max_facts_ceiling": 600,
     "max_input_char_budget": 24000,
 }
 

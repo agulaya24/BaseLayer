@@ -1353,6 +1353,13 @@ def extract_facts_from_conversation(conv_id: str, conv_title: str, messages: lis
             print(f"  {discarded} facts ({pct:.0f}%) will be discarded.")
             print(f"  Consider raising max_facts_ceiling or splitting into chapters.\n")
 
+            # S98 Phase 3A: Coverage discard gate — block if >20% discarded
+            if pct > 20 and not os.environ.get("BASELAYER_SKIP_COVERAGE_GATE"):
+                print(f"  COVERAGE GATE: {pct:.0f}% discard rate exceeds 20% threshold.")
+                print(f"  Pipeline blocked to prevent silent data loss.")
+                print(f"  Options: raise max_facts_ceiling, split into smaller files, or set BASELAYER_SKIP_COVERAGE_GATE=1")
+                raise SystemExit(1)
+
         # Apply overall max_facts cap — sort by confidence to keep best, not first
         if len(all_facts) > max_facts:
             all_facts.sort(key=lambda f: f.get("confidence", 0.5), reverse=True)

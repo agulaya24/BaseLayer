@@ -1,0 +1,63 @@
+[09:12:20] ======================================================================
+[09:12:20] BRIEF LENGTH + DENSITY OPTIMIZATION
+[09:12:20] ======================================================================
+[09:12:20] Franklin: 135 identity-tier facts
+[09:12:20] 
+  LENGTH SWEEP — franklin (135 facts)
+[09:12:20]   Target: 500 chars
+[09:12:27]     actual=1023chars  composite=25.8  m1=0.234  efficiency=0.919
+[09:12:27]   Target: 1000 chars
+[09:12:36]     actual=1553chars  composite=19.8  m1=0.212  efficiency=0.547
+[09:12:36]   Target: 1500 chars
+[09:12:49]     actual=2273chars  composite=19.0  m1=0.171  efficiency=0.301
+[09:12:49]   Target: 2000 chars
+[09:13:07]     actual=3283chars  composite=23.1  m1=0.209  efficiency=0.255
+[09:13:07]   Target: 2500 chars
+[09:13:27]     actual=3936chars  composite=21.4  m1=0.219  efficiency=0.223
+[09:13:27]   Target: 3500 chars
+[09:13:51]     actual=5156chars  composite=25.6  m1=0.211  efficiency=0.164
+[09:13:51] Marks: 272 identity-tier facts
+[09:13:51] 
+  LENGTH SWEEP — marks (272 facts)
+[09:13:51]   Target: 500 chars
+[09:13:58]     actual=939chars  composite=35.0  m1=0.342  efficiency=1.463
+[09:13:58]   Target: 1000 chars
+[09:14:09]     actual=1522chars  composite=32.3  m1=0.370  efficiency=0.974
+[09:14:09]   Target: 1500 chars
+[09:14:22]     actual=2252chars  composite=33.3  m1=0.388  efficiency=0.688
+[09:14:22]   Target: 2000 chars
+[09:14:39]     actual=2862chars  composite=39.0  m1=0.385  efficiency=0.539
+[09:14:39]   Target: 2500 chars
+[09:14:59]     actual=3938chars  composite=32.5  m1=0.364  efficiency=0.370
+[09:14:59]   Target: 3500 chars
+[09:15:25]     actual=4814chars  composite=33.7  m1=0.364  efficiency=0.303
+[09:15:25] 
+======================================================================
+[09:15:25] ANALYSIS
+[09:15:25] ======================================================================
+[09:15:25] 
+  franklin_length_sweep:
+[09:15:25]   Target     Actual     Composite    M1         Efficiency  
+[09:15:25]   ------------------------------------------------------
+[09:15:25]   500        1023       25.8         0.234      0.919       
+[09:15:25]   1000       1553       19.8         0.212      0.547       
+[09:15:25]   1500       2273       19.0         0.171      0.301       
+[09:15:25]   2000       3283       23.1         0.209      0.255       
+[09:15:25]   2500       3936       21.4         0.219      0.223       
+[09:15:25]   3500       5156       25.6         0.211      0.164       
+[09:15:25]   Best composite: 500 chars (score=25.8)
+[09:15:25]   Best efficiency: 500 chars (eff=0.919)
+[09:15:25] 
+  marks_length_sweep:
+[09:15:25]   Target     Actual     Composite    M1         Efficiency  
+[09:15:25]   ------------------------------------------------------
+[09:15:25]   500        939        35.0         0.342      1.463       
+[09:15:25]   1000       1522       32.3         0.370      0.974       
+[09:15:25]   1500       2252       33.3         0.388      0.688       
+[09:15:25]   2000       2862       39.0         0.385      0.539       
+[09:15:25]   2500       3938       32.5         0.364      0.370       
+[09:15:25]   3500       4814       33.7         0.364      0.303       
+[09:15:25]   Best composite: 2000 chars (score=39.0)
+[09:15:25]   Best efficiency: 500 chars (eff=1.463)
+[09:15:25] 
+Saved: C:\Users\Aarik\Anthropic\memory_system\docs\eval\brief_optimization\brief_optimization_results.json

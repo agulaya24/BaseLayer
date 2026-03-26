@@ -1,0 +1,201 @@
+[08:54:27] ======================================================================
+[08:54:27] VOICE DOWNSTREAM EVALUATION — Sonnet on Collaboration Tasks
+[08:54:27] ======================================================================
+[08:54:27] Loaded 5 voice briefs: ['A_baseline', 'B_core_dominant', 'C_pure_directive', 'D_pure_narrative', 'E_annotated_guide']
+[08:54:27]   A_baseline: 9144 chars
+[08:54:27]   B_core_dominant: 2466 chars
+[08:54:27]   C_pure_directive: 2587 chars
+[08:54:27]   D_pure_narrative: 2252 chars
+[08:54:27]   E_annotated_guide: 2851 chars
+[08:54:27] 
+==================================================
+[08:54:27] CONDITION: A_baseline (9144 chars)
+[08:54:27] ==================================================
+[08:54:27]   F01: reasoning — Tests understanding of Franklin's approach to financial partnerships
+[08:54:39]     score=0.63  keywords=['written', 'document', 'agreement']
+[08:54:39]   F02: reasoning — Tests Socratic method and humility patterns
+[08:54:49]     score=0.60  keywords=['socratic', 'question', 'dogmatic']
+[08:54:49]   F03: failure_mode — Tests knowledge of pride as his acknowledged weakness
+[08:55:00]     score=0.28  keywords=[]
+[08:55:00]   F04: decision — Tests public benefit axiom
+[08:55:09]     score=0.84  keywords=['public', 'benefit', 'service', 'useful']
+[08:55:09]   F05: reasoning — Tests systematic experimentation pattern
+[08:55:18]     score=0.84  keywords=['experiment', 'systematic', 'observation', 'document']
+[08:55:18]   F06: interaction — Tests engagement rules
+[08:55:29]     score=0.63  keywords=['public', 'benefit']
+[08:55:29]   F07: failure_mode — Tests Order as admitted weakness
+[08:55:41]     score=0.63  keywords=['organiz', 'struggle']
+[08:55:41]   F08: decision — Tests financial exploitation sensitivity (Keith experience)
+[08:55:52]     score=0.56  keywords=['clear', 'terms', 'written']
+[08:55:52]   F09: reasoning — Tests conflict avoidance + written communication preference
+[08:56:03]     score=0.39  keywords=['dispute']
+[08:56:03]   F10: interaction — Tests engagement rules for withdrawal
+[08:56:14]     score=0.42  keywords=['avoid']
+[08:56:14]   F11: decision — Tests sharing discoveries for public benefit
+[08:56:24]     score=0.56  keywords=['public', 'benefit']
+[08:56:24]   F12: reasoning — Tests persuasion through writing and consensus-building
+[08:56:34]     score=0.81  keywords=['voluntary', 'persua', 'written', 'anonymous']
+[08:56:34]   F13: failure_mode — Tests Socratic approach to disagreement
+[08:56:44]     score=0.56  keywords=['socratic', 'question']
+[08:56:44]   F14: interaction — Tests specific preference knowledge
+[08:56:53]     score=0.83  keywords=['refined', 'read', 'intellectual', 'avoid', 'tavern']
+[08:56:53]   F15: decision — Tests systematic self-improvement commitment
+[08:57:05]     score=0.70  keywords=['systematic', 'track', 'virtue']
+[08:57:05]   AVG SCORE: 0.618
+[08:57:05] 
+==================================================
+[08:57:05] CONDITION: B_core_dominant (2466 chars)
+[08:57:05] ==================================================
+[08:57:05]   F01: reasoning — Tests understanding of Franklin's approach to financial partnerships
+[08:57:14]     score=0.48  keywords=['document', 'agreement']
+[08:57:14]   F02: reasoning — Tests Socratic method and humility patterns
+[08:57:22]     score=0.68  keywords=['socratic', 'question', 'avoid', 'dogmatic']
+[08:57:22]   F03: failure_mode — Tests knowledge of pride as his acknowledged weakness
+[08:57:31]     score=0.63  keywords=['pride', 'struggle']
+[08:57:31]   F04: decision — Tests public benefit axiom
+[08:57:42]     score=0.81  keywords=['public', 'benefit', 'service', 'honest']
+[08:57:42]   F05: reasoning — Tests systematic experimentation pattern
+[08:57:51]     score=0.95  keywords=['experiment', 'systematic', 'observation', 'document', 'share']
+[08:57:51]   F06: interaction — Tests engagement rules
+[08:58:01]     score=0.63  keywords=['public', 'benefit']
+[08:58:01]   F07: failure_mode — Tests Order as admitted weakness
+[08:58:10]     score=0.81  keywords=['order', 'organiz', 'struggle']
+[08:58:10]   F08: decision — Tests financial exploitation sensitivity (Keith experience)
+[08:58:21]     score=0.71  keywords=['clear', 'terms', 'written', 'agreement']
+[08:58:21]   F09: reasoning — Tests conflict avoidance + written communication preference
+[08:58:31]     score=0.67  keywords=['goodwill', 'avoid', 'dispute']
+[08:58:31]   F10: interaction — Tests engagement rules for withdrawal
+[08:58:41]     score=0.56  keywords=['space', 'avoid']
+[08:58:41]   F11: decision — Tests sharing discoveries for public benefit
+[08:58:50]     score=0.67  keywords=['public', 'benefit', 'free']
+[08:58:50]   F12: reasoning — Tests persuasion through writing and consensus-building
+[08:59:01]     score=0.67  keywords=['voluntary', 'persua', 'anonymous']
+[08:59:01]   F13: failure_mode — Tests Socratic approach to disagreement
+[08:59:10]     score=0.67  keywords=['socratic', 'question', 'suggest']
+[08:59:10]   F14: interaction — Tests specific preference knowledge
+[08:59:18]     score=0.71  keywords=['read', 'intellectual', 'avoid', 'frivolous']
+[08:59:18]   F15: decision — Tests systematic self-improvement commitment
+[08:59:29]     score=0.98  keywords=['systematic', 'track', 'virtue', 'persist', 'practice']
+[08:59:29]   AVG SCORE: 0.708
+[08:59:29] 
+==================================================
+[08:59:29] CONDITION: C_pure_directive (2587 chars)
+[08:59:29] ==================================================
+[08:59:29]   F01: reasoning — Tests understanding of Franklin's approach to financial partnerships
+[08:59:39]     score=0.60  keywords=['industry', 'document', 'agreement']
+[08:59:39]   F02: reasoning — Tests Socratic method and humility patterns
+[08:59:48]     score=0.71  keywords=['socratic', 'question', 'avoid', 'dogmatic']
+[08:59:48]   F03: failure_mode — Tests knowledge of pride as his acknowledged weakness
+[08:59:57]     score=0.46  keywords=['vanity']
+[08:59:57]   F04: decision — Tests public benefit axiom
+[09:00:07]     score=0.63  keywords=['public', 'benefit', 'service']
+[09:00:07]   F05: reasoning — Tests systematic experimentation pattern
+[09:00:16]     score=0.95  keywords=['experiment', 'systematic', 'observation', 'document', 'share']
+[09:00:16]   F06: interaction — Tests engagement rules
+[09:00:25]     score=0.98  keywords=['public', 'benefit', 'practical', 'utility']
+[09:00:25]   F07: failure_mode — Tests Order as admitted weakness
+[09:00:35]     score=0.81  keywords=['order', 'organiz', 'struggle']
+[09:00:35]   F08: decision — Tests financial exploitation sensitivity (Keith experience)
+[09:00:44]     score=0.71  keywords=['clear', 'terms', 'written', 'agreement']
+[09:00:44]   F09: reasoning — Tests conflict avoidance + written communication preference
+[09:00:53]     score=0.81  keywords=['goodwill', 'avoid', 'dispute', 'written']
+[09:00:53]   F10: interaction — Tests engagement rules for withdrawal
+[09:01:04]     score=0.39  keywords=['avoid']
+[09:01:04]   F11: decision — Tests sharing discoveries for public benefit
+[09:01:13]     score=0.67  keywords=['public', 'benefit', 'free']
+[09:01:13]   F12: reasoning — Tests persuasion through writing and consensus-building
+[09:01:23]     score=0.39  keywords=['consensus']
+[09:01:23]   F13: failure_mode — Tests Socratic approach to disagreement
+[09:01:32]     score=0.70  keywords=['socratic', 'question', 'suggest']
+[09:01:32]   F14: interaction — Tests specific preference knowledge
+[09:01:42]     score=0.60  keywords=['read', 'intellectual', 'avoid']
+[09:01:42]   F15: decision — Tests systematic self-improvement commitment
+[09:01:52]     score=0.98  keywords=['systematic', 'track', 'virtue', 'persist', 'practice']
+[09:01:52]   AVG SCORE: 0.691
+[09:01:52] 
+==================================================
+[09:01:52] CONDITION: D_pure_narrative (2252 chars)
+[09:01:52] ==================================================
+[09:01:52]   F01: reasoning — Tests understanding of Franklin's approach to financial partnerships
+[09:02:02]     score=0.75  keywords=['written', 'document', 'agreement', 'clear terms']
+[09:02:02]   F02: reasoning — Tests Socratic method and humility patterns
+[09:02:11]     score=0.83  keywords=['socratic', 'question', 'avoid', 'dogmatic', 'indirect']
+[09:02:11]   F03: failure_mode — Tests knowledge of pride as his acknowledged weakness
+[09:02:21]     score=0.42  keywords=['pride']
+[09:02:21]   F04: decision — Tests public benefit axiom
+[09:02:29]     score=0.67  keywords=['public', 'benefit', 'service']
+[09:02:29]   F05: reasoning — Tests systematic experimentation pattern
+[09:02:33]     score=0.79  keywords=['experiment', 'systematic', 'observation', 'document']
+[09:02:33]   F06: interaction — Tests engagement rules
+[09:02:43]     score=0.63  keywords=['public', 'benefit']
+[09:02:43]   F07: failure_mode — Tests Order as admitted weakness
+[09:02:52]     score=0.63  keywords=['organiz', 'struggle']
+[09:02:52]   F08: decision — Tests financial exploitation sensitivity (Keith experience)
+[09:03:01]     score=0.75  keywords=['clear', 'terms', 'written', 'agreement']
+[09:03:01]   F09: reasoning — Tests conflict avoidance + written communication preference
+[09:03:10]     score=0.70  keywords=['goodwill', 'avoid', 'dispute']
+[09:03:10]   F10: interaction — Tests engagement rules for withdrawal
+[09:03:20]     score=0.56  keywords=['processing', 'avoid']
+[09:03:20]   F11: decision — Tests sharing discoveries for public benefit
+[09:03:28]     score=0.67  keywords=['public', 'benefit', 'free']
+[09:03:28]   F12: reasoning — Tests persuasion through writing and consensus-building
+[09:03:38]     score=0.81  keywords=['voluntary', 'persua', 'consensus', 'anonymous']
+[09:03:38]   F13: failure_mode — Tests Socratic approach to disagreement
+[09:03:47]     score=0.70  keywords=['indirect', 'socratic', 'question']
+[09:03:47]   F14: interaction — Tests specific preference knowledge
+[09:03:56]     score=0.63  keywords=['intellectual', 'avoid', 'frivolous']
+[09:03:56]   F15: decision — Tests systematic self-improvement commitment
+[09:04:05]     score=0.84  keywords=['systematic', 'track', 'virtue', 'practice']
+[09:04:05]   AVG SCORE: 0.691
+[09:04:05] 
+==================================================
+[09:04:05] CONDITION: E_annotated_guide (2851 chars)
+[09:04:05] ==================================================
+[09:04:05]   F01: reasoning — Tests understanding of Franklin's approach to financial partnerships
+[09:04:17]     score=0.71  keywords=['written', 'document', 'agreement', 'clear terms']
+[09:04:17]   F02: reasoning — Tests Socratic method and humility patterns
+[09:04:25]     score=0.71  keywords=['socratic', 'question', 'avoid', 'dogmatic']
+[09:04:25]   F03: failure_mode — Tests knowledge of pride as his acknowledged weakness
+[09:04:32]     score=0.65  keywords=['pride', 'struggle']
+[09:04:32]   F04: decision — Tests public benefit axiom
+[09:04:41]     score=0.95  keywords=['public', 'benefit', 'service', 'useful', 'honest']
+[09:04:41]   F05: reasoning — Tests systematic experimentation pattern
+[09:04:51]     score=0.84  keywords=['experiment', 'systematic', 'observation', 'document']
+[09:04:51]   F06: interaction — Tests engagement rules
+[09:05:01]     score=0.63  keywords=['public', 'benefit']
+[09:05:01]   F07: failure_mode — Tests Order as admitted weakness
+[09:05:11]     score=0.98  keywords=['order', 'organiz', 'struggle', 'weakness']
+[09:05:11]   F08: decision — Tests financial exploitation sensitivity (Keith experience)
+[09:05:20]     score=0.95  keywords=['clear', 'terms', 'written', 'agreement', 'exploit', 'decei']
+[09:05:20]   F09: reasoning — Tests conflict avoidance + written communication preference
+[09:05:29]     score=0.95  keywords=['harmony', 'goodwill', 'avoid', 'dispute', 'written']
+[09:05:29]   F10: interaction — Tests engagement rules for withdrawal
+[09:05:39]     score=0.98  keywords=['reflect', 'processing', 'space', 'avoid', 'dispute']
+[09:05:39]   F11: decision — Tests sharing discoveries for public benefit
+[09:05:48]     score=0.70  keywords=['public', 'benefit', 'free']
+[09:05:48]   F12: reasoning — Tests persuasion through writing and consensus-building
+[09:05:58]     score=0.56  keywords=['written', 'consensus']
+[09:05:58]   F13: failure_mode — Tests Socratic approach to disagreement
+[09:06:09]     score=0.70  keywords=['gentle', 'socratic', 'question']
+[09:06:09]   F14: interaction — Tests specific preference knowledge
+[09:06:20]     score=0.63  keywords=['intellectual', 'avoid', 'frivolous']
+[09:06:20]   F15: decision — Tests systematic self-improvement commitment
+[09:06:31]     score=0.56  keywords=['systematic', 'virtue']
+[09:06:31]   AVG SCORE: 0.766
+[09:06:31] 
+======================================================================
+[09:06:31] RANKINGS
+[09:06:31] ======================================================================
+[09:06:31]   1. E_annotated_guide         avg=0.766  chars=2851
+[09:06:31]   2. B_core_dominant           avg=0.708  chars=2466
+[09:06:31]   3. C_pure_directive          avg=0.691  chars=2587
+[09:06:31]   4. D_pure_narrative          avg=0.691  chars=2252
+[09:06:31]   5. A_baseline                avg=0.618  chars=9144
+[09:06:31] 
+BEST PER CATEGORY:
+[09:06:31]   decision: B_core_dominant (0.792)
+[09:06:31]   failure_mode: E_annotated_guide (0.777)
+[09:06:31]   interaction: E_annotated_guide (0.747)
+[09:06:31]   reasoning: D_pure_narrative (0.775)
+[09:06:31] 
+Saved: C:\Users\Aarik\Anthropic\memory_system\docs\eval\voice_downstream\voice_downstream_results.json

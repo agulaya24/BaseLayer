@@ -1,0 +1,1075 @@
+{
+  "experiment": "drift_experiment_2_dose_response",
+  "timestamp": "20260312_145855",
+  "model": "claude-sonnet-4-20250514",
+  "backend": "anthropic",
+  "max_tokens": 300,
+  "brief_format": "axioms",
+  "dose_levels": [
+    0,
+    1,
+    2,
+    3,
+    5,
+    8,
+    12,
+    15
+  ],
+  "facts": [
+    {
+      "id": "D1-MICROSERVICE",
+      "fact": "This person's team spent 2 months building a microservice architecture that should have been a single module with 3 functions. They now viscerally resist architectural complexity and will argue against any abstraction that isn't proven necessary by current production load.",
+      "target": "architecture"
+    },
+    {
+      "id": "D2-PREMATURE-SCALE",
+      "fact": "This person built a distributed cache with Redis Cluster for an app serving 200 requests/day. The infrastructure cost more to maintain than the app itself. They now refuse to design for scale that doesn't exist yet — prove the bottleneck with production data first.",
+      "target": "architecture"
+    },
+    {
+      "id": "D3-SILENT-FAILURE",
+      "fact": "This person's production system silently dropped 10% of events for a week because an error was caught and logged but not propagated. They now insist that every error path must either retry, escalate, or fail loudly — never silently continue.",
+      "target": "debugging"
+    },
+    {
+      "id": "D4-ABSTRACTION-TAX",
+      "fact": "This person inherited a codebase with 47 interfaces for 12 concrete implementations. Every change required updating 4 files. They now treat every abstraction as a tax — if it doesn't save effort across at least 3 call sites TODAY, delete it.",
+      "target": "architecture"
+    },
+    {
+      "id": "D5-FRAMEWORK-LOCK",
+      "fact": "This person's team adopted a cutting-edge ORM that was abandoned 8 months later. The migration cost more than the original build. They now choose technology based on maintenance ecosystem (contributors, releases, corporate backing) not features.",
+      "target": "tradeoff"
+    },
+    {
+      "id": "D6-CONFIG-HELL",
+      "fact": "This person spent a week debugging a production outage caused by a YAML config file where a boolean was parsed as a string. They now require all configuration to be validated through typed schemas at startup — the app crashes immediately if config is invalid, rather than failing mysteriously at runtime.",
+      "target": "debugging"
+    },
+    {
+      "id": "D7-MONOLITH-SPLIT",
+      "fact": "This person watched a team split a working monolith into 6 services 'for scalability' at 500 users. Deployment went from 1 command to 6, debugging required distributed tracing, and latency tripled from network hops. They now argue that monoliths are correct until you can prove a specific component needs independent scaling.",
+      "target": "architecture"
+    },
+    {
+      "id": "D8-DRY-TRAP",
+      "fact": "This person merged two 'similar' functions into one parameterized function with 8 boolean flags. Every bug fix in one caller's path broke the other. They now prefer explicit duplication over premature DRY — copy-paste is safer than wrong abstraction.",
+      "target": "refactoring"
+    },
+    {
+      "id": "D9-PERF-GUESS",
+      "fact": "This person spent 3 weeks optimizing a database query that turned out to account for 0.2% of total latency. The actual bottleneck was a synchronous HTTP call in a loop. They now refuse to optimize anything without profiler data showing it's in the top 3 hotspots.",
+      "target": "tradeoff"
+    },
+    {
+      "id": "D10-MAGIC-MIDDLEWARE",
+      "fact": "This person inherited an Express app with 14 middleware layers that mutated the request object. No one knew what state the request was in by the time it reached the handler. They now require that middleware be pure — read request, write response headers, but never mutate shared state.",
+      "target": "architecture"
+    },
+    {
+      "id": "D11-TEST-MOCK",
+      "fact": "This person's mocked tests passed for 6 months while the actual database schema had drifted. The first integration test caught 23 bugs. They now require at least one integration test per endpoint that hits the real database — mocks are for unit tests only.",
+      "target": "debugging"
+    },
+    {
+      "id": "D12-CLEVER-CODE",
+      "fact": "This person found a one-liner regex that replaced 40 lines of parsing logic. It worked perfectly until an edge case crashed production. The regex was undebuggable. They now ban 'clever' solutions — if a junior engineer can't understand it in 30 seconds, rewrite it as boring explicit code.",
+      "target": "refactoring"
+    },
+    {
+      "id": "D13-ASYNC-EVERYWHERE",
+      "fact": "This person made every function async 'for future-proofing.' The codebase became riddled with unnecessary awaits, promise chains, and race conditions in code that was purely synchronous. They now only use async at actual I/O boundaries — never speculatively.",
+      "target": "architecture"
+    },
+    {
+      "id": "D14-LOG-FLOOD",
+      "fact": "This person's logging was so verbose that the log aggregator cost more than the application infrastructure. When an actual incident occurred, the signal was buried in noise. They now enforce structured logging with severity levels — ERROR means wake someone up, WARN means investigate tomorrow, INFO means never page.",
+      "target": "debugging"
+    },
+    {
+      "id": "D15-DEPENDENCY-BLOAT",
+      "fact": "This person's project had 847 npm dependencies for a CRUD app. A single transitive dependency update broke the build for 2 days. They now audit every new dependency against three criteria: does it save more than 100 lines of code, is it actively maintained (commits in last 3 months), and does it have fewer than 5 transitive dependencies?",
+      "target": "tradeoff"
+    }
+  ],
+  "doses": [
+    {
+      "dose": 0,
+      "facts_injected": [],
+      "brief_chars": 1104,
+      "axiom_count": 9,
+      "axioms": [
+        {
+          "axiom": "Prioritize practical, proven solutions over theoretical elegance when building systems for real users.",
+          "evidence": [
+            "architecture",
+            "tradeoff"
+          ]
+        },
+        {
+          "axiom": "Reproduce and understand the exact failure mode before proposing solutions.",
+          "evidence": [
+            "debugging"
+          ]
+        },
+        {
+          "axiom": "Explicit error handling and validation should be built into every system boundary.",
+          "evidence": [
+            "debugging",
+            "security",
+            "refactoring"
+          ]
+        },
+        {
+          "axiom": "Use established, boring technology unless you have concrete evidence that newer alternatives solve actual problems.",
+          "evidence": [
+            "tradeoff"
+          ]
+        },
+        {
+          "axiom": "Security vulnerabilities must be identified and fixed systematically, not treated as afterthoughts.",
+          "evidence": [
+            "security"
+          ]
+        },
+        {
+          "axiom": "Code structure should make the business logic and data flow immediately clear to readers.",
+          "evidence": [
+            "refactoring"
+          ]
+        },
+        {
+          "axiom": "Build for your current scale and actual requirements, not hypothetical future needs.",
+          "evidence": [
+            "architecture",
+            "tradeoff"
+          ]
+        },
+        {
+          "axiom": "Validate and constrain inputs at every system boundary to prevent malicious or malformed data.",
+          "evidence": [
+            "security",
+            "refactoring"
+          ]
+        },
+        {
+          "axiom": "Time-box architectural decisions and validate with working prototypes rather than extended theoretical debate.",
+          "evidence": [
+            "tradeoff"
+          ]
+        }
+      ],
+      "responses": {
+        "architecture": {
+          "response": "Here's a practical notification system for a 10K user startup:\n\n## Core Types\n\n```python\nfrom enum import Enum\nfrom dataclasses import dataclass\nfrom typing import Dict, List, Optional\nimport time\n\nclass Channel(Enum):\n    EMAIL = \"email\"\n    SMS = \"sms\" \n    PUSH = \"push\"\n\nclass NotificationType(Enum):\n    WELCOME = \"welcome\"\n    PASSWORD_RESET = \"password_reset\"\n    ORDER_CONFIRMATION = \"order_confirmation\"\n\n@dataclass\nclass UserPreferences:\n    user_id: str\n    enabled_channels: List[Channel]\n    \n@dataclass\nclass NotificationTemplate:\n    notification_type: NotificationType\n    channel: Channel\n    subject: str  # email subject or push title\n    body: str     # supports {variable} placeholders\n\n@dataclass \nclass NotificationRequest:\n    user_id: str\n    notification_type: NotificationType\n    variables: Dict[str, str]  # for template substitution\n```\n\n## Rate Limiter\n\n```python\nclass RateLimiter:\n    def __init__(self):\n        # user_id -> list of timestamps\n        self._user_sends: Dict[str, List[float]] = {}\n        \n    def",
+          "tokens_out": 300,
+          "elapsed": 0
+        },
+        "debugging": {
+          "response": "**REPRODUCE BEFORE HYPOTHESIZING** — The error is clear: `user` is undefined when `getUserProfile` tries to access `user.email`.\n\n**Root cause analysis:**\n1. `redis.get()` returns `null` when key doesn't exist\n2. `JSON.parse(null)` returns `null` \n3. `getUserProfile(null)` tries to access `null.email` → TypeError\n\n**The fix:**\n\n```typescript\n// auth.ts\nasync function processRequest(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1];\n  if (!token) {\n    throw new Error('No authorization token provided');\n  }\n  \n  const session = await redis.get(`session:${token}`);\n  if (!session) {\n    throw new Error('Invalid or expired session');\n  }\n  \n  const user = JSON.parse(session);\n  if (!user) {\n    throw new Error('Invalid session data');\n  }\n  \n  return getUserProfile(user);\n}\n\n// profile.ts\nfunction getUserProfile(user: User) {\n  if (!user || !user.email) {\n    throw new Error('Invalid user data');\n  }\n  \n  return {\n    name: user.name,\n    email: user.",
+          "tokens_out": 300,
+          "elapsed": 0
+        },
+        "refactoring": {
+          "response": "Here's the refactored version following the behavioral axioms:\n\n```typescript\ninterface OrderItem {\n  productId: string;\n  quantity: number;\n}\n\ninterface Order {\n  userId: string;\n  items: OrderItem[];\n  coupon?: string;\n}\n\ninterface Product {\n  id: string;\n  price: number;\n  stock: number;\n}\n\ninterface Coupon {\n  code: string;\n  type: 'percent' | 'fixed';\n  discount: number;\n  expires: string;\n  valid: boolean;\n}\n\nclass OrderValidationError extends Error {\n  constructor(message: string) {\n    super(message);\n    this.name = 'OrderValidationError';\n  }\n}\n\nasync function handleOrder(order: Order): Promise<{ success: true; chargeId: string; total: number } | { error: string }> {\n  try {\n    validateOrderStructure(order);\n    \n    const products = await validateProductsAndStock(order.items);\n    const subtotal = calculateSubtotal(order.items, products);\n    const total = await applyDiscount(subtotal, order.coupon);\n    \n    const chargeId = await processPayment(total, order.userId);\n    await updateProduct",
+          "tokens_out": 300,
+          "elapsed": 0
+        },
+        "tradeoff": {
+          "response": "**Go with Option B: Operational Transform with a central server.**\n\nHere's why this aligns with sound engineering principles:\n\n## Ship Boring Technology\nOT is 15+ years proven in production. Google Docs, Figma, and countless editors use it. CRDTs are exciting but still emerging for rich text scenarios.\n\n## Complexity Must Be Earned\nYou have **zero concrete cases** proving you need offline editing or decentralized architecture. You're optimizing for problems you don't have with 100 concurrent users.\n\n## 6-Week Reality Check\n- **OT**: Find a library like ShareJS/ShareDB, build thin client/server layer\n- **CRDTs**: Learn new paradigm + debug library edge cases + handle rich text complexity\n\n## Implementation Path\n1. **Week 1**: Spike both approaches with simple text\n2. **Week 2**: Pick the one that works, not the one that's theoretically better\n3. **Weeks 3-6**: Build actual features users care about\n\n## The Trap to Avoid\nDon't architect for Netflix scale when you're at notepad scale. A central server handling 100 users is trivial. Offline editing sounds cool but adds massive complexity for a feature most users won't use in an MVP.\n\n## Concrete Next Step\nSpend 2 days building a minimal prototype with",
+          "tokens_out": 300,
+          "elapsed": 0
+        },
+        "security": {
+          "response": "This endpoint has critical security vulnerabilities. Here's what needs fixing:\n\n**SECURITY ISSUES:**\n1. **SQL Injection** - Direct string interpolation in all queries\n2. **Mass Assignment** - No validation of which fields can be updated\n3. **No Authentication** - Anyone can update any user\n4. **Information Disclosure** - Returns full user record (likely includes sensitive data)\n5. **No Input Validation** - Accepts any payload structure\n\n**CORRECTED CODE:**\n\n```typescript\nimport { body, validationResult } from 'express-validator';\n\n// Whitelist of updatable fields\nconst UPDATABLE_FIELDS = ['name', 'email', 'phone'] as const;\ntype UpdatableField = typeof UPDATABLE_FIELDS[number];\n\nconst validateUserUpdate = [\n  body('userId').isUUID().withMessage('Invalid user ID'),\n  body('updates').isObject().withMessage('Updates must be an object'),\n  body('updates.*').trim().isLength({ min: 1, max: 255 }).withMessage('Invalid field value'),\n];\n\napp.post('/api/users/update', \n  authenticateUser, // Middleware to verify JWT/session\n  validateUserUpdate,\n  async (req, res) => {\n    const errors = validationResult",
+          "tokens_out": 300,
+          "elapsed": 0
+        }
+      },
+      "elapsed": 41.6
+    },
+    {
+      "dose": 1,
+      "facts_injected": [
+        "D1-MICROSERVICE"
+      ],
+      "brief_chars": 1416,
+      "axiom_count": 8,
+      "axioms": [
+        {
+          "axiom": "Resist over-engineering and build only what is actually needed right now rather than flexible frameworks for hypothetical future requirements.",
+          "evidence": [
+            "architecture",
+            "tradeoff"
+          ]
+        },
+        {
+          "axiom": "Choose boring, proven technologies over exciting new ones to reduce production risk and leverage existing debugging wisdom.",
+          "evidence": [
+            "tradeoff"
+          ]
+        },
+        {
+          "axiom": "Explicit validation and whitelisting is safer than implicit trust or blacklisting approaches.",
+          "evidence": [
+            "security",
+            "refactoring"
+          ]
+        },
+        {
+          "axiom": "Functions should have single responsibilities and clear error handling rather than doing multiple things poorly.",
+          "evidence": [
+            "refactoring"
+          ]
+        },
+        {
+          "axiom": "Security issues should be addressed comprehensively rather than piecemeal, covering authentication, authorization, input validation, and data exposure.",
+          "evidence": [
+            "security"
+          ]
+        },
+        {
+          "axiom": "Debug by tracing the actual failure path through the code rather than guessing at root causes.",
+          "evidence": [
+            "debugging"
+          ]
+        },
+        {
+          "axiom": "Optimize for current scale problems rather than architecting prematurely for hypothetical massive scale.",
+          "evidence": [
+            "tradeoff"
+          ]
+        },
+        {
+          "axiom": "Control your complexity surface area by choosing solutions where you understand and can manage the trade-offs.",
+          "evidence": [
+            "tradeoff"
+          ]
+        }
+      ],
+      "responses": {
+        "architecture": {
+          "response": "Looking at this, I'll resist the urge to build a \"flexible notification framework\" and focus on what you actually need right now.\n\n```python\nfrom enum import Enum\nfrom dataclasses import dataclass\nfrom typing import Dict, List, Optional\nimport time\nfrom collections import defaultdict\n\nclass NotificationType(Enum):\n    WELCOME = \"welcome\"\n    PASSWORD_RESET = \"password_reset\"\n    ORDER_CONFIRMATION = \"order_confirmation\"\n\nclass Channel(Enum):\n    EMAIL = \"email\"\n    SMS = \"sms\"\n    PUSH = \"push\"\n\n@dataclass\nclass UserPreferences:\n    user_id: str\n    enabled_channels: Dict[NotificationType, List[Channel]]\n\n@dataclass\nclass NotificationTemplate:\n    subject: str\n    body: str\n    # SMS/push will just use body, email gets both\n\n@dataclass\nclass NotificationRequest:\n    user_id: str\n    notification_type: NotificationType\n    template_data: Dict[str, str]  # For variable substitution\n\nclass RateLimiter:\n    def __init__(self):\n        # Simple in-memory rate limiting - user_id -> list of timestamps\n        self._user_sends: Dict[str, List[float]] = defaultdict(list)",
+          "tokens_out": 300,
+          "elapsed": 0
+        },
+        "debugging": {
+          "response": "The error is clear: `user` is undefined when `getUserProfile` tries to access `user.email`. Let me trace the failure path:\n\n1. `redis.get()` returns `null` for expired/missing sessions\n2. `JSON.parse(null)` returns `null` \n3. `getUserProfile(null)` tries to read `null.email` → TypeError\n\n**The fix:**\n\n```typescript\n// auth.ts\nasync function processRequest(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1];\n  if (!token) {\n    throw new Error('No authorization token');\n  }\n  \n  const session = await redis.get(`session:${token}`);\n  if (!session) {\n    throw new Error('Invalid or expired session');\n  }\n  \n  const user = JSON.parse(session);\n  return getUserProfile(user);\n}\n\n// profile.ts  \nfunction getUserProfile(user: User) {\n  if (!user || !user.email) {\n    throw new Error('Invalid user data');\n  }\n  \n  return {\n    name: user.name,\n    email: user.email,\n    avatar: user.avatar || '/default.png'\n  };\n}\n```\n\n**Why 5% failure rate?**",
+          "tokens_out": 300,
+          "elapsed": 0
+        },
+        "refactoring": {
+          "response": "Here's the refactored version. The original violates several principles - it's doing too much, has poor error handling, and applies discounts incorrectly in a loop:\n\n```typescript\ninterface OrderItem {\n  productId: string;\n  quantity: number;\n}\n\ninterface Order {\n  userId: string;\n  items: OrderItem[];\n  coupon?: string;\n}\n\ninterface Product {\n  id: string;\n  price: number;\n  stock: number;\n}\n\ninterface Coupon {\n  code: string;\n  type: 'percent' | 'fixed';\n  discount: number;\n  expires: string;\n  valid: boolean;\n}\n\nasync function handleOrder(order: Order): Promise<{ success: true; chargeId: string; total: number } | { error: string }> {\n  const validationError = validateOrder(order);\n  if (validationError) return { error: validationError };\n\n  const products = await getOrderProducts(order.items);\n  if ('error' in products) return products;\n\n  const stockError = validateStock(order.items, products);\n  if (stockError) return { error: stockError };\n\n  let total = calculateItemsTotal(order.items, products);\n  \n  if (order.coupon)",
+          "tokens_out": 300,
+          "elapsed": 0
+        },
+        "tradeoff": {
+          "response": "**Option B: Operational Transform with central server.**\n\nHere's why this aligns with shipping working software:\n\n## The Boring Technology Argument\nOT is 20+ years old. Google Docs proved it works at massive scale. ShareJS and similar libraries have battle-tested implementations. CRDTs are exciting research that's still evolving - exactly the kind of \"exciting tool\" that becomes a production liability.\n\n## Complexity Reality Check\nYou said \"libraries exist\" for CRDTs but then mentioned they're large dependencies with complex rich text handling. That's not a library - that's adopting someone else's architecture decisions wholesale. With OT, you control the complexity surface area.\n\n## MVP Math\n6 weeks + 4 people + neither approach familiar = pick the one with more Stack Overflow answers. OT has decades of debugging wisdom. CRDT edge cases are still being discovered.\n\n## Scale When You Have Scale Problems\n100 concurrent users is not a scale problem. A single server handling OT operations will be bored. Don't architect for Google's problems when you have startup problems.\n\n## Concrete Next Steps\n1. Start with ShareJS or similar proven OT library\n2. Build the simplest possible text sync\n3. Add rich text features incrementally\n4. Measure actual performance bottlenecks\n\nThe offline capability of CRDTs sounds appealing,",
+          "tokens_out": 300,
+          "elapsed": 0
+        },
+        "security": {
+          "response": "This endpoint is a security disaster. Here are the critical issues:\n\n**SECURITY ISSUES:**\n1. **SQL Injection** - Direct string interpolation in all queries\n2. **No authentication/authorization** - Anyone can update any user\n3. **Mass assignment** - Can update any field including sensitive ones\n4. **Information disclosure** - Returns all user data including passwords/secrets\n5. **No input validation** - Accepts any payload structure\n\n**CORRECTED CODE:**\n\n```typescript\napp.post('/api/users/update', authenticateUser, async (req, res) => {\n  try {\n    // Validate input structure\n    const { userId, updates } = req.body;\n    if (!userId || !updates || typeof updates !== 'object') {\n      return res.status(400).json({ error: 'Invalid request format' });\n    }\n\n    // Authorization: users can only update themselves (or add admin check)\n    if (req.user.id !== userId) {\n      return res.status(403).json({ error: 'Unauthorized' });\n    }\n\n    // Whitelist allowed fields - explicit over implicit\n    const allowedFields = ['name', 'email', 'phone'];\n    const sanitizedUpdates = {};\n    \n    for (const [key, value] of Object.entries(",
+          "tokens_out": 300,
+          "elapsed": 0
+        }
+      },
+      "elapsed": 41.7
+    },
+    {
+      "dose": 2,
+      "facts_injected": [
+        "D1-MICROSERVICE",
+        "D2-PREMATURE-SCALE"
+      ],
+      "brief_chars": 1720,
+      "axiom_count": 10,
+      "axioms": [
+        {
+          "axiom": "Validate inputs at system boundaries before processing to prevent runtime errors and security vulnerabilities.",
+          "evidence": [
+            "debugging",
+            "security"
+          ]
+        },
+        {
+          "axiom": "Choose simple, proven solutions over complex ones unless complexity is justified by actual requirements.",
+          "evidence": [
+            "architecture",
+            "tradeoff"
+          ]
+        },
+        {
+          "axiom": "Reproduce and understand the root cause before proposing solutions.",
+          "evidence": [
+            "debugging"
+          ]
+        },
+        {
+          "axiom": "Functions should have single responsibilities and clear error boundaries.",
+          "evidence": [
+            "refactoring"
+          ]
+        },
+        {
+          "axiom": "Use explicit whitelisting over implicit trust when handling user data.",
+          "evidence": [
+            "security",
+            "refactoring"
+          ]
+        },
+        {
+          "axiom": "Design for current scale and requirements rather than hypothetical future needs.",
+          "evidence": [
+            "architecture",
+            "tradeoff"
+          ]
+        },
+        {
+          "axiom": "Security must be built into every layer, not added as an afterthought.",
+          "evidence": [
+            "security"
+          ]
+        },
+        {
+          "axiom": "Prioritize shipping working solutions over architectural perfection in time-constrained environments.",
+          "evidence": [
+            "tradeoff"
+          ]
+        },
+        {
+          "axiom": "Make implicit assumptions explicit through proper typing and validation.",
+          "evidence": [
+            "refactoring",
+            "debugging"
+          ]
+        },
+        {
+          "axiom": "Defer complex solutions until you have evidence they're needed.",
+          "evidence": [
+            "tradeoff"
+          ]
+        }
+      ],
+      "responses": {
+        "architecture": {
+          "response": "Looking at this, I'll design something that handles your current scale without overengineering. Here's a practical notification system:\n\n## Core Types\n\n```python\nfrom enum import Enum\nfrom dataclasses import dataclass\nfrom typing import Dict, List, Optional, Protocol\nimport time\nfrom collections import defaultdict\n\nclass Channel(Enum):\n    EMAIL = \"email\"\n    SMS = \"sms\" \n    PUSH = \"push\"\n\nclass NotificationType(Enum):\n    WELCOME = \"welcome\"\n    PASSWORD_RESET = \"password_reset\"\n    ORDER_CONFIRMATION = \"order_confirmation\"\n\n@dataclass\nclass UserPreferences:\n    user_id: str\n    enabled_channels: List[Channel]\n    \n@dataclass\nclass NotificationTemplate:\n    type: NotificationType\n    channel: Channel\n    subject: str  # email subject or SMS/push title\n    body: str     # template with {variable} placeholders\n\n@dataclass\nclass NotificationRequest:\n    user_id: str\n    type: NotificationType\n    variables: Dict[str, str]  # for template substitution\n```\n\n## Channel Handlers\n\n```python\nclass ChannelHandler(Protocol):\n    def send(self, user_id: str, subject: str, body: str) -> bool",
+          "tokens_out": 300,
+          "elapsed": 0
+        },
+        "debugging": {
+          "response": "**REPRODUCE BEFORE HYPOTHESIZING** — The error message is clear: `user` is undefined when `getUserProfile` tries to access `user.email`.\n\nLooking at the code, I can see exactly why this happens intermittently:\n\n1. `redis.get()` returns `null` when the session key doesn't exist\n2. `JSON.parse(null)` returns `null` \n3. `getUserProfile(null)` tries to access `null.email` → TypeError\n\nThis happens when:\n- Session expired/was deleted from Redis\n- Invalid/malformed token\n- Redis connection issues\n\n**Fix with proper boundary validation:**\n\n```typescript\n// auth.ts\nasync function processRequest(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1];\n  \n  if (!token) {\n    throw new Error('No authorization token provided');\n  }\n  \n  const session = await redis.get(`session:${token}`);\n  \n  if (!session) {\n    throw new Error('Invalid or expired session');\n  }\n  \n  let user;\n  try {\n    user = JSON.parse(session);\n  } catch (e) {\n    throw new Error('Corrupted session data');\n  }\n  \n  if (!user || typeof user !== 'object",
+          "tokens_out": 300,
+          "elapsed": 0
+        },
+        "refactoring": {
+          "response": "Here's the refactored version. The original violates several principles - it's doing too many things, has no error boundaries, and applies discounts incorrectly in a loop:\n\n```typescript\ninterface OrderItem {\n  productId: string;\n  quantity: number;\n}\n\ninterface Order {\n  userId: string;\n  items: OrderItem[];\n  coupon?: string;\n}\n\ninterface Product {\n  id: string;\n  price: number;\n  stock: number;\n}\n\ninterface Coupon {\n  code: string;\n  type: 'percent' | 'fixed';\n  discount: number;\n  expires: string;\n  valid: boolean;\n}\n\nasync function handleOrder(order: Order): Promise<{ success: true; chargeId: string; total: number } | { error: string }> {\n  const validationError = validateOrder(order);\n  if (validationError) {\n    return { error: validationError };\n  }\n\n  try {\n    const products = await getOrderProducts(order.items);\n    const stockError = validateStock(order.items, products);\n    if (stockError) {\n      return { error: stockError };\n    }\n\n    const subtotal = calculateSubtotal(order.items, products);\n    const total =",
+          "tokens_out": 300,
+          "elapsed": 0
+        },
+        "tradeoff": {
+          "response": "**Go with Option B: Operational Transform with a central server.**\n\nHere's why this aligns with shipping boring technology and avoiding premature complexity:\n\n## The Reality Check\n- **100 concurrent users** - You're not Google. A single server can handle this trivially.\n- **6 weeks to MVP** - CRDTs will eat your entire timeline just learning the concepts\n- **4-person startup** - Every hour spent on distributed systems architecture is an hour not spent on user value\n\n## Concrete Implementation Path\n1. **Week 1-2**: Use an existing OT library (ShareJS/ShareDB or similar)\n2. **Week 3-4**: Build your document UI and basic collaboration features  \n3. **Week 5-6**: Polish and deploy\n\nWith CRDTs, you'd spend weeks 1-4 just understanding the data structures.\n\n## The CRDT Trap\nCRDTs solve a problem you don't have:\n- \"No central server needed\" - You need a server anyway for auth, persistence, user management\n- \"Works offline\" - Do your users actually need offline editing? Prove this with user research first\n- \"Complex rich text\" - The complexity will murder your timeline\n\n## When to Revisit\nIf you hit these **actual production problems**:\n- Server becomes a bottleneck (measure it)",
+          "tokens_out": 300,
+          "elapsed": 0
+        },
+        "security": {
+          "response": "This endpoint is a security disaster. Here are the critical issues:\n\n**SECURITY ISSUES:**\n1. **SQL Injection everywhere** - Direct string interpolation in all queries\n2. **No authentication/authorization** - Anyone can update any user\n3. **Mass assignment vulnerability** - Can update any column including sensitive fields\n4. **Information disclosure** - Returns full user record (likely includes passwords/tokens)\n5. **No input validation** - Accepts any payload structure\n\n**CORRECTED CODE:**\n\n```typescript\napp.post('/api/users/update', authenticateUser, async (req, res) => {\n  try {\n    // Validate input structure\n    const { userId, updates } = req.body;\n    if (!userId || !updates || typeof updates !== 'object') {\n      return res.status(400).json({ error: 'Invalid request format' });\n    }\n\n    // Authorization: users can only update themselves (or add admin check)\n    if (req.user.id !== userId && !req.user.isAdmin) {\n      return res.status(403).json({ error: 'Unauthorized' });\n    }\n\n    // Whitelist allowed fields - explicit over implicit\n    const allowedFields = ['name', 'email', 'phone', 'bio'];\n    const sanitizedUpdates = {};",
+          "tokens_out": 300,
+          "elapsed": 0
+        }
+      },
+      "elapsed": 31.7
+    },
+    {
+      "dose": 3,
+      "facts_injected": [
+        "D1-MICROSERVICE",
+        "D2-PREMATURE-SCALE",
+        "D3-SILENT-FAILURE"
+      ],
+      "brief_chars": 2000,
+      "axiom_count": 10,
+      "axioms": [
+        {
+          "axiom": "Explicit error handling and validation should be preferred over implicit assumptions about data state.",
+          "evidence": [
+            "debugging",
+            "security",
+            "refactoring"
+          ]
+        },
+        {
+          "axiom": "Choose proven, battle-tested technologies over newer alternatives when building production systems.",
+          "evidence": [
+            "tradeoff"
+          ]
+        },
+        {
+          "axiom": "Start with simple implementations that solve the immediate problem rather than over-engineering for hypothetical future needs.",
+          "evidence": [
+            "architecture",
+            "tradeoff"
+          ]
+        },
+        {
+          "axiom": "Security vulnerabilities should be identified comprehensively and fixed with defense-in-depth approaches.",
+          "evidence": [
+            "security"
+          ]
+        },
+        {
+          "axiom": "Code should have clear separation of concerns with well-defined interfaces and error types.",
+          "evidence": [
+            "architecture",
+            "refactoring"
+          ]
+        },
+        {
+          "axiom": "Reproduce and understand the exact failure mechanism before proposing solutions.",
+          "evidence": [
+            "debugging"
+          ]
+        },
+        {
+          "axiom": "Complexity must be justified by actual requirements rather than theoretical scalability needs.",
+          "evidence": [
+            "tradeoff"
+          ]
+        },
+        {
+          "axiom": "Input validation should use whitelisting of allowed fields rather than trusting client data.",
+          "evidence": [
+            "security"
+          ]
+        },
+        {
+          "axiom": "Systems should fail loudly and predictably rather than silently handling edge cases.",
+          "evidence": [
+            "debugging",
+            "tradeoff"
+          ]
+        },
+        {
+          "axiom": "Focus on building user-facing features rather than perfecting internal architecture when starting out.",
+          "evidence": [
+            "tradeoff"
+          ]
+        }
+      ],
+      "responses": {
+        "architecture": {
+          "response": "Here's a practical notification system for your scale:\n\n```python\nfrom enum import Enum\nfrom dataclasses import dataclass\nfrom typing import Dict, List, Optional, Protocol\nfrom datetime import datetime, timedelta\nimport logging\n\nclass Channel(Enum):\n    EMAIL = \"email\"\n    SMS = \"sms\" \n    PUSH = \"push\"\n\nclass NotificationType(Enum):\n    WELCOME = \"welcome\"\n    PASSWORD_RESET = \"password_reset\"\n    ORDER_CONFIRMATION = \"order_confirmation\"\n\n@dataclass\nclass UserPreferences:\n    user_id: str\n    enabled_channels: List[Channel]\n    \n    @classmethod\n    def get_for_user(cls, user_id: str) -> 'UserPreferences':\n        # Load from database - explicit database call\n        pass\n\n@dataclass\nclass NotificationTemplate:\n    notification_type: NotificationType\n    channel: Channel\n    subject: str  # For email, ignored for others\n    body: str\n    \n    def render(self, variables: Dict[str, str]) -> str:\n        # Simple string replacement - no fancy templating needed yet\n        result = self.body\n        for key, value in variables.items():\n            result = result.replace(f\"{{{key}}}\", value",
+          "tokens_out": 300,
+          "elapsed": 0
+        },
+        "debugging": {
+          "response": "**REPRODUCE BEFORE HYPOTHESIZING** — I can see the failure path from the stack trace. Line 47 in profile.ts is trying to read `user.email` when `user` is undefined.\n\n**The bug:** `JSON.parse(session)` is receiving `null` when Redis returns no session, and `JSON.parse(null)` returns `null`, not an object.\n\nHere's the fix with **EXPLICIT OVER IMPLICIT** error handling:\n\n```typescript\n// auth.ts\nasync function processRequest(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1];\n  if (!token) {\n    throw new Error('Missing authorization token');\n  }\n  \n  const session = await redis.get(`session:${token}`);\n  if (!session) {\n    throw new Error('Invalid or expired session');\n  }\n  \n  let user: User;\n  try {\n    user = JSON.parse(session);\n  } catch (e) {\n    throw new Error('Corrupted session data');\n  }\n  \n  if (!user || typeof user !== 'object') {\n    throw new Error('Invalid user data in session');\n  }\n  \n  return getUserProfile(user);\n}\n\n// profile.ts  \nfunction getUserProfile(user",
+          "tokens_out": 300,
+          "elapsed": 0
+        },
+        "refactoring": {
+          "response": "```typescript\ninterface OrderItem {\n  productId: string;\n  quantity: number;\n}\n\ninterface Order {\n  userId: string;\n  items: OrderItem[];\n  coupon?: string;\n}\n\ninterface Product {\n  id: string;\n  price: number;\n  stock: number;\n}\n\ninterface Coupon {\n  code: string;\n  type: 'percent' | 'fixed';\n  discount: number;\n  expires: string;\n  valid: boolean;\n}\n\nclass OrderValidationError extends Error {\n  constructor(message: string) {\n    super(message);\n    this.name = 'OrderValidationError';\n  }\n}\n\nclass InsufficientStockError extends Error {\n  constructor(productId: string) {\n    super(`Insufficient stock for product ${productId}`);\n    this.name = 'InsufficientStockError';\n  }\n}\n\nclass PaymentError extends Error {\n  constructor(message: string) {\n    super(message);\n    this.name = 'PaymentError';\n  }\n}\n\nasync function handleOrder(order: Order): Promise<{ success: true; chargeId: string; total: number } | { error: string }> {\n  try {\n    validateOrder(",
+          "tokens_out": 300,
+          "elapsed": 0
+        },
+        "tradeoff": {
+          "response": "**Option B: Operational Transform with central server.**\n\nHere's why this aligns with proven engineering principles:\n\n## Ship Boring Technology\nOT is 15+ years battle-tested. Google Docs, Figma, and countless others prove it works at massive scale. CRDTs are exciting but still evolving - that's a red flag for production systems.\n\n## Complexity Must Be Earned\nYou have **100 concurrent users**. A single server can handle 10,000+ concurrent connections easily. Building for offline-first distributed consensus when you don't even know if people want your product is premature optimization.\n\n## Small Surface Area\nOT with a central server gives you:\n- One source of truth (your server)\n- Predictable failure modes (connection drops = clear error state)\n- Simpler debugging (all operations flow through one place)\n\nCRDTs distribute complexity across every client. When things break, good luck reproducing the exact sequence of offline edits that caused it.\n\n## Practical Implementation Path\n1. Start with ShareJS or similar proven OT library\n2. WebSocket connection required - fail loudly if offline\n3. Simple conflict resolution: server wins\n4. Add offline queuing only after you prove users need it\n\n## The Real Question\nIn 6 weeks, do you want to be debugging distributed consensus algorithms or building features users actually want",
+          "tokens_out": 300,
+          "elapsed": 0
+        },
+        "security": {
+          "response": "This endpoint is a security disaster. Here are the critical issues:\n\n## Security Issues Found\n\n1. **SQL Injection everywhere** - Direct string interpolation in all queries\n2. **No authentication/authorization** - Anyone can update any user\n3. **Mass assignment vulnerability** - Can update any column including sensitive fields\n4. **Information disclosure** - Returns full user record including passwords/secrets\n5. **No input validation** - Accepts any payload structure\n6. **Error information leakage** - Database errors exposed to client\n\n## Corrected Code\n\n```typescript\napp.post('/api/users/update', authenticateUser, async (req, res) => {\n  try {\n    // Validate input structure\n    const { userId, updates } = req.body;\n    if (!userId || !updates || typeof updates !== 'object') {\n      return res.status(400).json({ error: 'Invalid request format' });\n    }\n\n    // Authorization: users can only update themselves (or add admin check)\n    if (req.user.id !== userId && !req.user.isAdmin) {\n      return res.status(403).json({ error: 'Unauthorized' });\n    }\n\n    // Whitelist allowed fields - NEVER trust client input\n    const allowedFields = ['email', 'name', 'phone'];",
+          "tokens_out": 300,
+          "elapsed": 0
+        }
+      },
+      "elapsed": 38.2
+    },
+    {
+      "dose": 5,
+      "facts_injected": [
+        "D1-MICROSERVICE",
+        "D2-PREMATURE-SCALE",
+        "D3-SILENT-FAILURE",
+        "D4-ABSTRACTION-TAX",
+        "D5-FRAMEWORK-LOCK"
+      ],
+      "brief_chars": 2564,
+      "axiom_count": 8,
+      "axioms": [
+        {
+          "axiom": "Choose simple, proven solutions over complex, theoretically superior ones, especially under time and resource constraints.",
+          "evidence": [
+            "architecture",
+            "tradeoff"
+          ]
+        },
+        {
+          "axiom": "Reproduce and understand the exact failure path before proposing solutions or hypotheses.",
+          "evidence": [
+            "debugging"
+          ]
+        },
+        {
+          "axiom": "Functions should have single responsibilities and explicit error handling rather than silent failures.",
+          "evidence": [
+            "refactoring",
+            "debugging"
+          ]
+        },
+        {
+          "axiom": "Security must be built-in from the start with proper validation, authentication, and input sanitization.",
+          "evidence": [
+            "security"
+          ]
+        },
+        {
+          "axiom": "Design for your actual scale and requirements, not theoretical future needs.",
+          "evidence": [
+            "architecture",
+            "tradeoff"
+          ]
+        },
+        {
+          "axiom": "Prefer solutions with clear, debuggable failure modes over those with subtle or invisible failures.",
+          "evidence": [
+            "tradeoff",
+            "debugging"
+          ]
+        },
+        {
+          "axiom": "Explicit error handling and validation should be present at every boundary and state transition.",
+          "evidence": [
+            "debugging",
+            "refactoring",
+            "security"
+          ]
+        },
+        {
+          "axiom": "Choose technologies and patterns that the team can effectively debug and maintain.",
+          "evidence": [
+            "tradeoff",
+            "architecture"
+          ]
+        }
+      ],
+      "responses": {
+        "architecture": {
+          "response": "Looking at this, I'll design something simple that handles your actual scale. No message queues, no microservices - just straightforward code that works.\n\n## Core Types\n\n```go\ntype Channel string\n\nconst (\n    ChannelEmail Channel = \"email\"\n    ChannelSMS   Channel = \"sms\"\n    ChannelPush  Channel = \"push\"\n)\n\ntype NotificationType string\n\nconst (\n    NotifyWelcome       NotificationType = \"welcome\"\n    NotifyPasswordReset NotificationType = \"password_reset\"\n    NotifyOrderConfirm  NotificationType = \"order_confirmation\"\n)\n\ntype UserPreferences struct {\n    UserID          string\n    EnabledChannels map[Channel]bool\n}\n\ntype NotificationRequest struct {\n    UserID   string\n    Type     NotificationType\n    Data     map[string]interface{} // Template variables\n    Channels []Channel              // Override user prefs if needed\n}\n```\n\n## Rate Limiter\n\n```go\ntype RateLimiter struct {\n    mu     sync.Mutex\n    counts map[string]map[Channel]int // userID -> channel -> count\n    window time.Duration\n    limits map[Channel]int           // max per window\n}\n\nfunc NewRateLimiter() *",
+          "tokens_out": 300,
+          "elapsed": 0
+        },
+        "debugging": {
+          "response": "**REPRODUCE BEFORE HYPOTHESIZING** — The error message is clear: `user` is undefined when `getUserProfile` tries to access `user.email`. Let's trace the failure path.\n\nThe bug is in `processRequest`: when `redis.get()` returns `null` (expired/missing session), `JSON.parse(null)` returns `null`, not an object.\n\nHere's the fix with proper error handling:\n\n```typescript\n// auth.ts\nasync function processRequest(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1];\n  if (!token) {\n    throw new Error('Missing authorization token');\n  }\n  \n  const session = await redis.get(`session:${token}`);\n  if (!session) {\n    throw new Error('Invalid or expired session');\n  }\n  \n  const user = JSON.parse(session);\n  if (!user || typeof user !== 'object') {\n    throw new Error('Corrupted session data');\n  }\n  \n  return getUserProfile(user);\n}\n\n// profile.ts\nfunction getUserProfile(user: User) {\n  if (!user?.email) {\n    throw new Error('Invalid user data: missing email');\n  }\n  \n  return {\n    name: user.name,\n    email",
+          "tokens_out": 300,
+          "elapsed": 0
+        },
+        "refactoring": {
+          "response": "This function violates multiple principles - it's doing too many things, has silent failure paths, and lacks proper error handling. Here's the refactor:\n\n```typescript\ninterface OrderItem {\n  productId: string;\n  quantity: number;\n}\n\ninterface Order {\n  userId: string;\n  items: OrderItem[];\n  coupon?: string;\n}\n\ninterface Product {\n  id: string;\n  price: number;\n  stock: number;\n}\n\ninterface Coupon {\n  code: string;\n  type: 'percent' | 'fixed';\n  discount: number;\n  expires: string;\n  valid: boolean;\n}\n\nasync function handleOrder(order: Order): Promise<{ success: true; chargeId: string; total: number } | { error: string }> {\n  const validationError = validateOrder(order);\n  if (validationError) {\n    return { error: validationError };\n  }\n\n  try {\n    const products = await validateAndGetProducts(order.items);\n    const coupon = order.coupon ? await getValidCoupon(order.coupon) : null;\n    const total = calculateTotal(order.items, products, coupon);\n    \n    const chargeId = await processPayment(order.userId, total);",
+          "tokens_out": 300,
+          "elapsed": 0
+        },
+        "tradeoff": {
+          "response": "**Go with Option B: Operational Transform with a central server.**\n\nHere's why this aligns with shipping boring technology and avoiding premature complexity:\n\n## The Reality Check\n- **6 weeks, 4 people, MVP** — You need something working, not something theoretically perfect\n- **100 concurrent users** — This is not the scale where CRDT complexity pays off\n- **Team has experience with neither** — Choose the one with more battle-tested libraries and clearer failure modes\n\n## Why OT Wins Here\n1. **Proven libraries exist** — ShareJS, Yjs has OT modes, or even simple approaches like sending diffs through WebSockets\n2. **Simpler failure modes** — When OT breaks, it's obvious (conflicts, rejected operations). When CRDTs break, you get subtle data corruption\n3. **Debuggable** — You can log every operation on the server. CRDT merge conflicts are invisible until users notice inconsistent state\n4. **Incremental complexity** — Start with basic text, add formatting later. CRDTs force you to solve the hard problems upfront\n\n## The CRDT Tax You Can't Afford\n- Large bundle sizes when every KB matters for initial load\n- Debugging distributed state without a central source of truth\n- Rich text + CRDTs is genuinely hard — even the",
+          "tokens_out": 300,
+          "elapsed": 0
+        },
+        "security": {
+          "response": "This endpoint is a security nightmare. Here are the critical issues:\n\n**SECURITY ISSUES:**\n1. **SQL Injection** - Direct string interpolation in all queries\n2. **No input validation** - Any field can be updated, including sensitive ones\n3. **No authentication/authorization** - Anyone can update any user\n4. **Information disclosure** - Returns full user record (likely includes passwords/tokens)\n5. **No rate limiting** - Vulnerable to abuse\n\n**CORRECTED CODE:**\n\n```typescript\nimport { body, validationResult } from 'express-validator';\nimport { authenticateToken, requireOwnership } from '../middleware/auth';\n\n// Validation middleware\nconst validateUserUpdate = [\n  body('userId').isUUID().withMessage('Invalid user ID'),\n  body('updates').isObject().withMessage('Updates must be an object'),\n  body('updates.email').optional().isEmail().withMessage('Invalid email'),\n  body('updates.name').optional().isLength({ min: 1, max: 100 }).withMessage('Name must be 1-100 characters'),\n  body('updates.phone').optional().isMobilePhone().withMessage('Invalid phone number'),\n  // Explicitly reject sensitive fields\n  body('updates.password').not().exists().withMessage('Password updates not allowed here'),\n  ",
+          "tokens_out": 300,
+          "elapsed": 0
+        }
+      },
+      "elapsed": 47.4
+    },
+    {
+      "dose": 8,
+      "facts_injected": [
+        "D1-MICROSERVICE",
+        "D2-PREMATURE-SCALE",
+        "D3-SILENT-FAILURE",
+        "D4-ABSTRACTION-TAX",
+        "D5-FRAMEWORK-LOCK",
+        "D6-CONFIG-HELL",
+        "D7-MONOLITH-SPLIT",
+        "D8-DRY-TRAP"
+      ],
+      "brief_chars": 3560,
+      "axiom_count": 10,
+      "axioms": [
+        {
+          "axiom": "Validate data at system boundaries and fail explicitly rather than allowing undefined behavior to propagate",
+          "evidence": [
+            "debugging",
+            "security"
+          ]
+        },
+        {
+          "axiom": "Choose proven, battle-tested technologies over newer alternatives unless there's compelling need",
+          "evidence": [
+            "tradeoff"
+          ]
+        },
+        {
+          "axiom": "Design for current scale requirements rather than over-engineering for hypothetical future needs",
+          "evidence": [
+            "architecture",
+            "tradeoff"
+          ]
+        },
+        {
+          "axiom": "Break complex functions into small, single-purpose, testable units",
+          "evidence": [
+            "refactoring"
+          ]
+        },
+        {
+          "axiom": "Use explicit whitelisting and validation rather than trusting input data",
+          "evidence": [
+            "security",
+            "refactoring"
+          ]
+        },
+        {
+          "axiom": "Prefer centralized control and single source of truth over distributed complexity",
+          "evidence": [
+            "tradeoff"
+          ]
+        },
+        {
+          "axiom": "Create custom error types with clear names and messages for different failure modes",
+          "evidence": [
+            "refactoring",
+            "debugging"
+          ]
+        },
+        {
+          "axiom": "Implement proper authentication and authorization checks before processing requests",
+          "evidence": [
+            "security"
+          ]
+        },
+        {
+          "axiom": "Minimize exposed surface area by returning only necessary data and accepting only allowed operations",
+          "evidence": [
+            "security",
+            "refactoring"
+          ]
+        },
+        {
+          "axiom": "Reproduce issues before theorizing and focus on root cause rather than symptoms",
+          "evidence": [
+            "debugging"
+          ]
+        }
+      ],
+      "responses": {
+        "architecture": {
+          "response": "Looking at this, I'll design something that handles your current scale without over-engineering. Here's a practical notification system:\n\n## Core Types\n\n```python\nfrom enum import Enum\nfrom dataclasses import dataclass\nfrom typing import Dict, List, Optional\nimport time\n\nclass Channel(Enum):\n    EMAIL = \"email\"\n    SMS = \"sms\" \n    PUSH = \"push\"\n\nclass NotificationType(Enum):\n    WELCOME = \"welcome\"\n    PASSWORD_RESET = \"password_reset\"\n    ORDER_CONFIRMATION = \"order_confirmation\"\n\n@dataclass\nclass UserPreferences:\n    user_id: str\n    enabled_channels: List[Channel]\n    \n@dataclass\nclass NotificationTemplate:\n    notification_type: NotificationType\n    channel: Channel\n    subject: str  # email subject or push title\n    body: str     # supports {variable} placeholders\n\n@dataclass\nclass NotificationRequest:\n    user_id: str\n    notification_type: NotificationType\n    variables: Dict[str, str]  # for template substitution\n```\n\n## Rate Limiter\n\n```python\nclass RateLimiter:\n    def __init__(self):\n        # user_id -> list of timestamps\n        self._user_sends: Dict[str, List",
+          "tokens_out": 300,
+          "elapsed": 0
+        },
+        "debugging": {
+          "response": "**REPRODUCE BEFORE HYPOTHESIZING** — I can see the failure path from the stack trace. The error is `user.email` is undefined, which means `user` itself is undefined.\n\n**ROOT CAUSE**: `redis.get()` is returning `null` for expired/missing sessions, and `JSON.parse(null)` returns `null`, not an object.\n\n**THE FIX**: Validate at the boundary and fail loudly:\n\n```typescript\n// auth.ts\nasync function processRequest(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1];\n  if (!token) {\n    throw new Error('Missing authorization token');\n  }\n  \n  const session = await redis.get(`session:${token}`);\n  if (!session) {\n    throw new Error('Invalid or expired session');\n  }\n  \n  const user = JSON.parse(session);\n  if (!user || !user.email) {\n    throw new Error('Invalid session data');\n  }\n  \n  return getUserProfile(user);\n}\n```\n\n**WHY THIS APPROACH**:\n- **SECURITY AT BOUNDARIES** — Validate the session data before trusting it\n- **EXPLICIT OVER IMPLICIT** — Clear error messages instead of mysterious TypeErrors\n- **NEVER SIL",
+          "tokens_out": 300,
+          "elapsed": 0
+        },
+        "refactoring": {
+          "response": "Here's the refactored version. I've broken it into small, testable functions and made the error handling explicit:\n\n```typescript\ninterface OrderItem {\n  productId: string;\n  quantity: number;\n}\n\ninterface Order {\n  userId: string;\n  items: OrderItem[];\n  coupon?: string;\n}\n\ninterface Product {\n  id: string;\n  price: number;\n  stock: number;\n}\n\ninterface Coupon {\n  code: string;\n  type: 'percent' | 'fixed';\n  discount: number;\n  expires: string;\n  valid: boolean;\n}\n\nclass OrderValidationError extends Error {\n  constructor(message: string) {\n    super(message);\n    this.name = 'OrderValidationError';\n  }\n}\n\nclass InsufficientStockError extends Error {\n  constructor(productId: string) {\n    super(`Insufficient stock for product ${productId}`);\n    this.name = 'InsufficientStockError';\n  }\n}\n\nclass PaymentError extends Error {\n  constructor(message: string) {\n    super(message);\n    this.name = 'PaymentError';\n  }\n}\n\nfunction validateOrder(order: any): Order {\n  if (!order.userId",
+          "tokens_out": 300,
+          "elapsed": 0
+        },
+        "tradeoff": {
+          "response": "**Option B: Operational Transform with central server.**\n\nHere's why this aligns with proven engineering principles:\n\n## Ship Boring Technology\nOT is 15+ years battle-tested. Google Docs, Figma, and countless others prove it works at massive scale. CRDTs are exciting but still evolving - that's a red flag for production systems.\n\n## Complexity Must Be Earned\nYou have 100 concurrent users, not 100,000. You don't need offline-first architecture until users are actually demanding it. The complexity of CRDTs (especially for rich text) is massive overhead for unproven need.\n\n## Small Surface Area\nOT with a central server gives you:\n- One source of truth (the server)\n- Predictable failure modes\n- Simpler debugging (check server logs)\n- Clear data flow\n\nCRDTs distribute complexity across every client. When something breaks, good luck reproducing it.\n\n## Explicit Over Implicit\nWith OT, the server explicitly resolves conflicts. With CRDTs, conflicts are \"automatically\" resolved through complex merge algorithms you don't control and can't easily debug.\n\n## Practical Implementation Path\n1. Start with ShareJS or similar proven OT library\n2. WebSocket connection to server\n3. Simple conflict resolution on server\n4. Add offline queuing later IF users demand it",
+          "tokens_out": 300,
+          "elapsed": 0
+        },
+        "security": {
+          "response": "This endpoint is a security disaster. Here are the critical issues:\n\n## Security Issues Found:\n\n1. **SQL Injection everywhere** - Direct string interpolation in all queries\n2. **No authentication/authorization** - Anyone can update any user\n3. **Mass assignment vulnerability** - Can update any column including sensitive fields\n4. **Information disclosure** - Returns full user record (likely includes passwords/tokens)\n5. **No input validation** - Accepts any payload structure\n\n## Fixed Code:\n\n```typescript\napp.post('/api/users/update', authenticateUser, async (req, res) => {\n  try {\n    // Validate input structure\n    const { userId, updates } = req.body;\n    if (!userId || !updates || typeof updates !== 'object') {\n      return res.status(400).json({ error: 'Invalid request format' });\n    }\n\n    // Authorization: users can only update themselves (or add admin check)\n    if (req.user.id !== userId) {\n      return res.status(403).json({ error: 'Unauthorized' });\n    }\n\n    // Whitelist allowed fields - explicit over implicit\n    const allowedFields = ['email', 'name', 'phone'];\n    const sanitizedUpdates = {};\n    \n    for (const field of allowedFields) {",
+          "tokens_out": 300,
+          "elapsed": 0
+        }
+      },
+      "elapsed": 40.0
+    },
+    {
+      "dose": 12,
+      "facts_injected": [
+        "D1-MICROSERVICE",
+        "D2-PREMATURE-SCALE",
+        "D3-SILENT-FAILURE",
+        "D4-ABSTRACTION-TAX",
+        "D5-FRAMEWORK-LOCK",
+        "D6-CONFIG-HELL",
+        "D7-MONOLITH-SPLIT",
+        "D8-DRY-TRAP",
+        "D9-PERF-GUESS",
+        "D10-MAGIC-MIDDLEWARE",
+        "D11-TEST-MOCK",
+        "D12-CLEVER-CODE"
+      ],
+      "brief_chars": 4809,
+      "axiom_count": 10,
+      "axioms": [
+        {
+          "axiom": "Validate inputs at system boundaries and fail explicitly rather than allowing undefined states to propagate through the application",
+          "evidence": [
+            "debugging",
+            "security"
+          ]
+        },
+        {
+          "axiom": "Use protocols and interfaces to enable easy swapping of implementations while maintaining clear contracts",
+          "evidence": [
+            "architecture",
+            "refactoring"
+          ]
+        },
+        {
+          "axiom": "Choose proven, boring technology over exciting new solutions when facing tight timelines and unvalidated scale requirements",
+          "evidence": [
+            "tradeoff"
+          ]
+        },
+        {
+          "axiom": "Reproduce issues before hypothesizing solutions to avoid solving the wrong problem",
+          "evidence": [
+            "debugging"
+          ]
+        },
+        {
+          "axiom": "Extract pure functions for business logic to improve testability and reduce complexity",
+          "evidence": [
+            "refactoring"
+          ]
+        },
+        {
+          "axiom": "Implement security through whitelisting allowed operations rather than trying to blacklist dangerous ones",
+          "evidence": [
+            "security"
+          ]
+        },
+        {
+          "axiom": "Design systems to fail loudly and early rather than silently propagating errors",
+          "evidence": [
+            "debugging",
+            "security",
+            "refactoring"
+          ]
+        },
+        {
+          "axiom": "Prioritize shipping working solutions over architectural perfection when resources and time are constrained",
+          "evidence": [
+            "tradeoff"
+          ]
+        },
+        {
+          "axiom": "Use type systems and data validation to prevent entire classes of runtime errors",
+          "evidence": [
+            "architecture",
+            "refactoring",
+            "security"
+          ]
+        },
+        {
+          "axiom": "Solve current problems rather than anticipated future problems unless scale requirements are validated",
+          "evidence": [
+            "tradeoff"
+          ]
+        }
+      ],
+      "responses": {
+        "architecture": {
+          "response": "Here's a practical notification system for your scale:\n\n```python\nfrom dataclasses import dataclass\nfrom enum import Enum\nfrom typing import Dict, List, Optional, Protocol\nimport time\nfrom collections import defaultdict\n\nclass NotificationType(Enum):\n    WELCOME = \"welcome\"\n    PASSWORD_RESET = \"password_reset\"\n    ORDER_CONFIRMATION = \"order_confirmation\"\n\nclass Channel(Enum):\n    EMAIL = \"email\"\n    SMS = \"sms\"\n    PUSH = \"push\"\n\n@dataclass\nclass UserPreferences:\n    user_id: str\n    enabled_channels: Dict[NotificationType, List[Channel]]\n    \n    @classmethod\n    def from_db(cls, user_id: str) -> 'UserPreferences':\n        # Load from your existing user preferences table\n        # Default to email-only if no preferences set\n        pass\n\n@dataclass\nclass NotificationRequest:\n    user_id: str\n    notification_type: NotificationType\n    template_data: Dict[str, str]  # Variables for template substitution\n\n# Simple protocol for channel providers - swap implementations easily\nclass ChannelProvider(Protocol):\n    def send(self, user_id: str, template_data: Dict[str, str]) -> bool:\n        \"\"\"Returns",
+          "tokens_out": 300,
+          "elapsed": 0
+        },
+        "debugging": {
+          "response": "**REPRODUCE BEFORE HYPOTHESIZING** — The error message is telling us exactly what's happening: `user` is undefined when `getUserProfile` tries to read `user.email`.\n\nLooking at the code, I can see multiple failure paths that would cause this:\n\n1. `session` is null (Redis miss)\n2. `session` is invalid JSON\n3. `JSON.parse(session)` returns null/undefined\n\nLet me trace through `processRequest`:\n- If Redis returns null, `JSON.parse(null)` returns null\n- If session contains invalid JSON, `JSON.parse` throws (different error)\n- If session contains `\"null\"` or `\"undefined\"` as strings, `JSON.parse` returns those values\n\n**The fix: Validate at the boundary, fail loudly**\n\n```typescript\n// auth.ts\nasync function processRequest(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1];\n  if (!token) {\n    throw new Error('Missing authorization token');\n  }\n  \n  const session = await redis.get(`session:${token}`);\n  if (!session) {\n    throw new Error('Invalid or expired session');\n  }\n  \n  let user;\n  try {\n    user = JSON.parse(session);\n  } catch (",
+          "tokens_out": 300,
+          "elapsed": 0
+        },
+        "refactoring": {
+          "response": "```typescript\ninterface OrderItem {\n  productId: string;\n  quantity: number;\n}\n\ninterface Order {\n  userId: string;\n  items: OrderItem[];\n  coupon?: string;\n}\n\ninterface Product {\n  id: string;\n  price: number;\n  stock: number;\n}\n\ninterface Coupon {\n  code: string;\n  type: 'percent' | 'fixed';\n  discount: number;\n  expires: string;\n  valid: boolean;\n}\n\nasync function handleOrder(order: Order): Promise<{ success: true; chargeId: string; total: number } | { error: string }> {\n  const validationError = validateOrder(order);\n  if (validationError) {\n    return { error: validationError };\n  }\n\n  const products = await fetchProductsForOrder(order.items);\n  const stockError = validateStock(order.items, products);\n  if (stockError) {\n    return { error: stockError };\n  }\n\n  const subtotal = calculateSubtotal(order.items, products);\n  const total = await applyDiscount(subtotal, order.coupon);\n\n  const chargeResult = await processPayment(total, order.userId);\n  if (!chargeResult.success",
+          "tokens_out": 300,
+          "elapsed": 0
+        },
+        "tradeoff": {
+          "response": "**Go with Option B: Operational Transform with a central server.**\n\nHere's why this aligns with shipping boring technology and avoiding premature complexity:\n\n## The Reality Check\n\nYou're a 4-person startup with 6 weeks and 100 concurrent users. You don't have a scale problem — you have a shipping problem. CRDTs are exciting technology that solves problems you don't have yet.\n\n## Concrete Reasoning\n\n**Option B wins on proven simplicity:**\n- Google Docs proves OT works at massive scale\n- Central server = single source of truth = easier debugging\n- When something breaks (and it will), you have one place to look\n- Your 100 users can tolerate requiring internet connection\n\n**Option A is premature optimization:**\n- Offline-first is solving for a use case you haven't validated\n- CRDT complexity will eat your 6-week timeline\n- Large dependencies (Yjs/Automerge) mean you're betting on someone else's architecture decisions\n- Debugging distributed state conflicts will consume weeks you don't have\n\n## Implementation Path\n\n1. **Start even simpler**: Build a basic OT server with WebSockets\n2. **Use ShareJS or similar** — don't implement OT from scratch\n3. **One integration test**: Two clients editing simultaneously, verify no data loss\n4. **Ship the MVP**,",
+          "tokens_out": 300,
+          "elapsed": 0
+        },
+        "security": {
+          "response": "This endpoint is a security disaster. Here are the critical issues:\n\n## Security Issues Found\n\n1. **SQL Injection everywhere** - Direct string interpolation in all queries\n2. **No input validation** - Any field can be updated, including admin flags\n3. **No authentication/authorization** - Anyone can update any user\n4. **Information disclosure** - Returns full user record (passwords, etc.)\n5. **No rate limiting** - Vulnerable to abuse\n\n## Fixed Code\n\n```typescript\nimport { body, validationResult } from 'express-validator';\nimport { authenticateUser, requireOwnershipOrAdmin } from '../middleware/auth';\n\n// Whitelist of updatable fields\nconst ALLOWED_UPDATES = ['name', 'email', 'phone'] as const;\ntype AllowedUpdate = typeof ALLOWED_UPDATES[number];\n\napp.post('/api/users/update',\n  authenticateUser, // Verify JWT token\n  [\n    body('userId').isUUID().withMessage('Invalid user ID'),\n    body('updates').isObject().withMessage('Updates must be an object'),\n    body('updates.*').isString().trim().isLength({ min: 1, max: 255 })\n  ],\n  async (req, res) => {\n    // Validate input\n    const errors = validation",
+          "tokens_out": 300,
+          "elapsed": 0
+        }
+      },
+      "elapsed": 33.0
+    },
+    {
+      "dose": 15,
+      "facts_injected": [
+        "D1-MICROSERVICE",
+        "D2-PREMATURE-SCALE",
+        "D3-SILENT-FAILURE",
+        "D4-ABSTRACTION-TAX",
+        "D5-FRAMEWORK-LOCK",
+        "D6-CONFIG-HELL",
+        "D7-MONOLITH-SPLIT",
+        "D8-DRY-TRAP",
+        "D9-PERF-GUESS",
+        "D10-MAGIC-MIDDLEWARE",
+        "D11-TEST-MOCK",
+        "D12-CLEVER-CODE",
+        "D13-ASYNC-EVERYWHERE",
+        "D14-LOG-FLOOD",
+        "D15-DEPENDENCY-BLOAT"
+      ],
+      "brief_chars": 5840,
+      "axiom_count": 10,
+      "axioms": [
+        {
+          "axiom": "Choose simple, proven solutions over complex, cutting-edge ones to meet deadlines and reduce risk.",
+          "evidence": [
+            "architecture",
+            "tradeoff"
+          ]
+        },
+        {
+          "axiom": "Reproduce bugs with explicit logging before forming hypotheses about root causes.",
+          "evidence": [
+            "debugging"
+          ]
+        },
+        {
+          "axiom": "Validate inputs at system boundaries but trust data flowing through internal components.",
+          "evidence": [
+            "debugging",
+            "security"
+          ]
+        },
+        {
+          "axiom": "Make implicit failure modes explicit through proper error handling and validation.",
+          "evidence": [
+            "debugging",
+            "refactoring",
+            "security"
+          ]
+        },
+        {
+          "axiom": "Design systems for current scale requirements rather than hypothetical future needs.",
+          "evidence": [
+            "architecture",
+            "tradeoff"
+          ]
+        },
+        {
+          "axiom": "Prioritize shipping working software over architectural perfection.",
+          "evidence": [
+            "architecture",
+            "tradeoff"
+          ]
+        },
+        {
+          "axiom": "Security must be implemented at every boundary with comprehensive input validation and authentication.",
+          "evidence": [
+            "security"
+          ]
+        },
+        {
+          "axiom": "Use established libraries and patterns rather than implementing complex algorithms from scratch.",
+          "evidence": [
+            "tradeoff"
+          ]
+        },
+        {
+          "axiom": "Structure code with clear types and separation of concerns to improve maintainability.",
+          "evidence": [
+            "architecture",
+            "refactoring"
+          ]
+        },
+        {
+          "axiom": "Assess real user needs and constraints rather than theoretical edge cases when making technical decisions.",
+          "evidence": [
+            "tradeoff"
+          ]
+        }
+      ],
+      "responses": {
+        "architecture": {
+          "response": "Looking at this, I'll design something that works for 10K users without over-engineering. No queues, no microservices, just a straightforward system that does the job.\n\n## Core Types\n\n```typescript\n// User preferences - explicit and validated\ninterface NotificationPreferences {\n  email: boolean;\n  sms: boolean;\n  push: boolean;\n}\n\n// Template system - no fancy templating engine needed\ninterface NotificationTemplate {\n  id: string;\n  subject: string;\n  body: string;\n  channels: ('email' | 'sms' | 'push')[];\n}\n\n// Rate limiting - simple time windows\ninterface RateLimit {\n  maxPerHour: number;\n  maxPerDay: number;\n}\n\n// Configuration - fail fast if invalid\ninterface NotificationConfig {\n  emailProvider: EmailProvider;\n  smsProvider: SMSProvider;\n  pushProvider: PushProvider;\n  rateLimits: Record<string, RateLimit>;\n  templates: Record<string, NotificationTemplate>;\n}\n```\n\n## Provider Interfaces\n\n```typescript\n// Keep providers simple - they just send\ninterface EmailProvider {\n  send(to: string, subject: string, body: string): Promise<void>;\n}\n\ninterface SMSProvider {\n  send(to: string",
+          "tokens_out": 300,
+          "elapsed": 0
+        },
+        "debugging": {
+          "response": "**REPRODUCE BEFORE HYPOTHESIZING** — I need to see this fail first. Add logging to capture the exact failure state:\n\n```typescript\n// auth.ts\nasync function processRequest(req: Request) {\n  const token = req.headers.authorization?.split(' ')[1];\n  console.log('Token:', token ? 'present' : 'missing');\n  \n  const session = await redis.get(`session:${token}`);\n  console.log('Session from Redis:', session);\n  \n  if (!session) {\n    throw new Error('Session not found');\n  }\n  \n  const user = JSON.parse(session);\n  console.log('Parsed user:', user);\n  \n  return getUserProfile(user);\n}\n```\n\nBut I can already see the bug pattern from the stack trace. **EXPLICIT OVER IMPLICIT** — this code has multiple silent failure points:\n\n1. `redis.get()` returns `null` for missing keys\n2. `JSON.parse(null)` returns `null` \n3. `getUserProfile(null)` tries to read `null.email`\n\n**SECURITY AT BOUNDARIES, TRUST INTERNALS** — validate at the boundary:\n\n```typescript\n// auth.ts\nasync function processRequest(req: Request) {\n  const authHeader =",
+          "tokens_out": 300,
+          "elapsed": 0
+        },
+        "refactoring": {
+          "response": "```typescript\ninterface OrderItem {\n  productId: string;\n  quantity: number;\n}\n\ninterface Order {\n  userId: string;\n  items: OrderItem[];\n  coupon?: string;\n}\n\ninterface Product {\n  id: string;\n  price: number;\n  stock: number;\n}\n\ninterface Coupon {\n  code: string;\n  type: 'percent' | 'fixed';\n  discount: number;\n  expires: string;\n  valid: boolean;\n}\n\nasync function handleOrder(order: Order): Promise<{ success: true; chargeId: string; total: number } | { error: string }> {\n  const validationError = validateOrder(order);\n  if (validationError) {\n    return { error: validationError };\n  }\n\n  const products = await fetchProducts(order.items);\n  const stockError = validateStock(order.items, products);\n  if (stockError) {\n    return { error: stockError };\n  }\n\n  const subtotal = calculateSubtotal(order.items, products);\n  const total = await applyDiscount(subtotal, order.coupon);\n\n  const chargeId = await processPayment(total, order.userId);\n  if (!chargeId) {\n    return",
+          "tokens_out": 300,
+          "elapsed": 0
+        },
+        "tradeoff": {
+          "response": "**Go with Option B: Operational Transform with a central server.**\n\nHere's why this aligns with shipping boring technology that actually works:\n\n## The CRDT Trap\nCRDTs are the \"exciting\" choice that will eat your 6-week timeline alive. You're a 4-person startup with zero experience in either approach, and you want to bet on the more complex algorithm with larger dependencies? That's exactly how teams spend 2 months building what should take 2 weeks.\n\n## Proven Path Forward\n- **Use ShareJS or similar OT library** - don't implement OT yourself\n- Google Docs proves this scales to millions of users\n- WebSocket connection requirement is fine for 100 concurrent users\n- You can add offline support later *if* users actually demand it\n\n## Risk Assessment\nYour real risks are:\n1. **Not shipping in 6 weeks** (CRDT complexity kills this)\n2. **Debugging distributed state** (CRDT libraries are black boxes when they break)\n3. **Bundle size** (Yjs is 100KB+, matters for document loading)\n\nThe \"always-on connection\" isn't actually a risk - it's 2024, not 2004. Your users expect real-time collaboration to require internet.\n\n## Implementation Reality Check\n```javascript\n// OT approach - you can understand this",
+          "tokens_out": 300,
+          "elapsed": 0
+        },
+        "security": {
+          "response": "This endpoint is a security nightmare. Here are the critical issues:\n\n**SECURITY ISSUES:**\n1. **SQL Injection** - Direct string interpolation in all three queries\n2. **No input validation** - Any field can be updated, including sensitive ones\n3. **No authentication/authorization** - Anyone can update any user\n4. **Information disclosure** - Returns full user record (likely includes passwords/tokens)\n5. **No rate limiting** - Vulnerable to abuse\n\n**CORRECTED CODE:**\n\n```typescript\nimport { z } from 'zod';\nimport bcrypt from 'bcrypt';\n\n// Input validation schema\nconst updateUserSchema = z.object({\n  userId: z.string().uuid(),\n  updates: z.object({\n    email: z.string().email().optional(),\n    name: z.string().min(1).max(100).optional(),\n    phone: z.string().regex(/^\\+?[\\d\\s-()]+$/).optional()\n  }).refine(obj => Object.keys(obj).length > 0, \"At least one field required\")\n});\n\napp.post('/api/users/update', \n  authenticateUser, // Middleware to verify JWT/session\n  rateLimiter({ windowMs: 15 * 60 * 1000, max: 5",
+          "tokens_out": 300,
+          "elapsed": 0
+        }
+      },
+      "elapsed": 35.9
+    }
+  ],
+  "metrics": [
+    {
+      "dose": 0,
+      "probe_deltas": {
+        "architecture": 0.0,
+        "debugging": 0.0,
+        "refactoring": 0.0,
+        "tradeoff": 0.0,
+        "security": 0.0
+      },
+      "axiom_delta": 0.0,
+      "specificity_ratios": {}
+    },
+    {
+      "dose": 1,
+      "probe_deltas": {
+        "architecture": 0.0965,
+        "debugging": 0.0407,
+        "refactoring": 0.0614,
+        "security": 0.1461,
+        "tradeoff": 0.155
+      },
+      "axiom_delta": 1.8889,
+      "specificity_ratios": {
+        "architecture": 0.96
+      },
+      "total_drift": 0.49970000000000003,
+      "target_drift": 0.0965,
+      "non_target_drift": 0.4032
+    },
+    {
+      "dose": 2,
+      "probe_deltas": {
+        "architecture": 0.1331,
+        "debugging": 0.0706,
+        "refactoring": 0.0621,
+        "security": 0.1483,
+        "tradeoff": 0.1532
+      },
+      "axiom_delta": 1.7,
+      "specificity_ratios": {
+        "architecture": 1.23
+      },
+      "total_drift": 0.5673,
+      "target_drift": 0.1331,
+      "non_target_drift": 0.4342
+    },
+    {
+      "dose": 3,
+      "probe_deltas": {
+        "architecture": 0.1386,
+        "debugging": 0.0555,
+        "refactoring": 0.1274,
+        "security": 0.1598,
+        "tradeoff": 0.2837
+      },
+      "axiom_delta": 1.7,
+      "specificity_ratios": {
+        "debugging": 0.29,
+        "architecture": 0.73
+      },
+      "total_drift": 0.765,
+      "target_drift": 0.1941,
+      "non_target_drift": 0.5709
+    },
+    {
+      "dose": 5,
+      "probe_deltas": {
+        "architecture": 0.3266,
+        "debugging": 0.0352,
+        "refactoring": 0.063,
+        "security": 0.1352,
+        "tradeoff": 0.2229
+      },
+      "axiom_delta": 1.8889,
+      "specificity_ratios": {
+        "debugging": 0.36,
+        "tradeoff": 2.25,
+        "architecture": 3.3
+      },
+      "total_drift": 0.7828999999999999,
+      "target_drift": 0.5847,
+      "non_target_drift": 0.1982
+    },
+    {
+      "dose": 8,
+      "probe_deltas": {
+        "architecture": 0.1211,
+        "debugging": 0.0597,
+        "refactoring": 0.15,
+        "security": 0.1476,
+        "tradeoff": 0.2546
+      },
+      "axiom_delta": 1.9,
+      "specificity_ratios": {
+        "debugging": 0.4,
+        "refactoring": 1.02,
+        "tradeoff": 1.72,
+        "architecture": 0.82
+      },
+      "total_drift": 0.733,
+      "target_drift": 0.5854,
+      "non_target_drift": 0.1476
+    },
+    {
+      "dose": 12,
+      "probe_deltas": {
+        "architecture": 0.1466,
+        "debugging": 0.1091,
+        "refactoring": 0.0902,
+        "security": 0.0955,
+        "tradeoff": 0.2706
+      },
+      "axiom_delta": 1.9,
+      "specificity_ratios": {
+        "debugging": 1.14,
+        "refactoring": 0.94,
+        "tradeoff": 2.83,
+        "architecture": 1.54
+      },
+      "total_drift": 0.712,
+      "target_drift": 0.6165,
+      "non_target_drift": 0.0955
+    },
+    {
+      "dose": 15,
+      "probe_deltas": {
+        "architecture": 0.327,
+        "debugging": 0.1529,
+        "refactoring": 0.0896,
+        "security": 0.3023,
+        "tradeoff": 0.2459
+      },
+      "axiom_delta": 1.9,
+      "specificity_ratios": {
+        "debugging": 0.51,
+        "refactoring": 0.3,
+        "tradeoff": 0.81,
+        "architecture": 1.08
+      },
+      "total_drift": 1.1177000000000001,
+      "target_drift": 0.8154,
+      "non_target_drift": 0.3023
+    }
+  ]
+}

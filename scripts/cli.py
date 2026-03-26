@@ -2,7 +2,7 @@
 """
 Base Layer CLI — Personal AI Memory System
 
-Pipeline (4 steps): Import → Extract → Author → Compose
+Pipeline (4 steps): Import -> Extract -> Author -> Compose
 
 Usage:
     baselayer run <file> [-y]               One-command pipeline: import > extract > author > compose
@@ -162,12 +162,16 @@ def cmd_import(args):
             source = "claude_web"
         elif "journal" in name:
             source = "journal"
+        elif p.suffix.lower() == ".json":
+            source = "json"
         else:
             source = "chatgpt"  # Default
         print(f"Auto-detected source: {source}")
 
     if source == "text":
         sys.argv = ["import_conversations.py", "--text", file_path]
+    elif source == "json":
+        sys.argv = ["import_conversations.py", "--json", file_path]
     else:
         sys.argv = ["import_conversations.py", f"--{source.replace('_', '-')}", file_path]
     import_conversations.main()
@@ -275,7 +279,7 @@ def cmd_embed(args):
     """Generate vector embeddings for facts and messages.
 
     NOTE: embed.py is an optional utility from the pre-simplified pipeline.
-    It is no longer part of the default 4-step pipeline (Import → Extract → Author → Compose).
+    It is no longer part of the default 4-step pipeline (Import -> Extract -> Author -> Compose).
     Run directly: python scripts/embed.py
     """
     import embed
@@ -948,7 +952,7 @@ def cmd_journal(args):
 
 
 def cmd_run(args):
-    """One-command pipeline: import → extract → author → compose (4 steps)."""
+    """One-command pipeline: import -> extract -> author -> compose (4 steps)."""
     from config import DATABASE_FILE
 
     file_path = args.file
@@ -1188,6 +1192,13 @@ def cmd_rebuild_fts(args):
 
 
 def main():
+    # Force UTF-8 stdout/stderr on Windows to prevent UnicodeEncodeError (cp1252)
+    import sys as _sys
+    if _sys.stdout.encoding and _sys.stdout.encoding.lower() != 'utf-8':
+        import io
+        _sys.stdout = io.TextIOWrapper(_sys.stdout.buffer, encoding='utf-8', errors='replace')
+        _sys.stderr = io.TextIOWrapper(_sys.stderr.buffer, encoding='utf-8', errors='replace')
+
     parser = argparse.ArgumentParser(
         prog="baselayer",
         description="Base Layer - Personal AI Memory System",

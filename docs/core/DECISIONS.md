@@ -8,11 +8,11 @@ Every design decision is recorded here with reasoning. This is the "why" behind 
 ## How to Read This File
 
 Each decision has:
-- **Date** — when we decided
-- **Decision** — what we chose (plain English)
-- **Why** — the reasoning
-- **Alternatives considered** — what we didn't do and why
-- **Status** — active, superseded, or revisit-later
+- **Date:** when we decided
+- **Decision:** what we chose (plain English)
+- **Why:** the reasoning
+- **Alternatives considered:** what we didn't do and why
+- **Status:** active, superseded, or revisit-later
 
 ---
 
@@ -72,7 +72,7 @@ Each decision has:
 | D-050 | CORE Layer Restructuring | Active | CORE becomes communication/operating guide, not biography |
 | D-051 | Communication Synthesis Pass | Superseded by D-054 | Cross-layer synthesis — absorbed into agent conference + Collective coherence review |
 | D-054 | Agent Architecture for Layer Authoring | Active (implemented) — Collective component removed S79 | Layer-specific Opus agents + Collective (quality + coherence) + Overwatcher (drift detection). First cycle: 78.4/100. Collective review component proven ceremonial S79, removed from default pipeline. |
-| D-052 | Multi-Provider LLM Support | Active (RELEASE BLOCKER) | Full-suite provider paths (Anthropic/Google/OpenAI), Batch API default, blind eval required |
+| D-052 | Multi-Provider LLM Support | Deprioritized (S98) | llm_provider.py exists as thin wrapper. Full abstraction deferred. Wire when needed. |
 | D-053 | Blind Generation + Layer Versioning | Active | Regeneration must NEVER see prior output; every generation versioned for identity evolution tracking |
 | D-055 | Domain Balance + Incompleteness Signaling | Active | 25% domain cap in fact retrieval; layers must acknowledge thin data rather than over-infer |
 | D-056 | Fact Quality Normalization | Active | Constrained predicates, quality gates, and batch normalization to fix extraction quality |
@@ -99,6 +99,11 @@ Each decision has:
 | D-077 | Provenance-Informed Review + Regeneration | Active | Citation provenance into review + fact usage stats into regen |
 | D-078 | Compose Directive Language Must Be Person-Specific | Active | V4 compose templating bug — identical directives across subjects |
 | D-079 | Planner-Executor Composition Architecture | Tested (S84) | Context-isolated composition eliminates pre-training contamination: 33→0 ungrounded claims on Franklin |
+| D-082 | V2 Upgrade Strategy | Active | Re-scrape + re-extract with larger corpus. 5 Wave 1 subjects upgraded (Kevin Kelly 76→2824). Corpus size drives fact density |
+| D-083 | Stacking Test Framework | Complete (scoring pending) | 100 responses across 5 conditions (C1-C5). C4 project leakage finding. C3 strongest signal |
+| D-084 | Textual TUI Dashboard | Active | dashboard_textual.py replaces Rich dashboard.py. Sortable, scrollable, tier display, auto-refresh |
+| D-085 | Magic Link Authentication | Deployed | Single-use 64-char hex tokens, 7-day expiry, Redis-backed. Auto-auth on first click, password fallback |
+| D-086 | Percepta Computational Testing | In Progress (S97) | Overnight GPU benchmark testing Percepta paper claims across 10 local models, 20 tasks |
 
 ---
 
@@ -2117,3 +2122,152 @@ Anchoring destroys this signal by making v2 artificially similar to v1. Blind ge
 
 **Full diagnostic:** `docs/diagnostics/D079_PROVENANCE_ENFORCEMENT_DIAGNOSTIC.md`
 **Test script:** `scripts/experiments/planner_executor_test.py`
+
+---
+
+### D-082: V2 Upgrade Strategy
+**Date:** 2026-03-23 (Session 96)
+**Status:** Active
+**Category:** Pipeline / Data Quality
+
+**Problem:** Wave 1 subjects were built from small initial corpora (often <300 source files). The resulting identity models were thin — low fact counts, sparse predictions, weak anchors. Needed a systematic way to improve existing subjects without rebuilding infrastructure.
+
+**Decision:** Re-scrape + re-extract with larger corpus. Clear existing facts (both SQLite and ChromaDB per S65 rule), re-import expanded corpus, re-run full pipeline. 5 Wave 1 subjects upgraded as proof:
+- Kevin Kelly: 76 → 2,824 facts
+- David Perell: 201 → 1,867 facts
+- Henrik Karlsson: 158 → 739 facts
+- Maggie Appleton: 260 → 740 facts
+- Casey Newton: 253 → 447 facts
+
+**Why:** Corpus size is the primary driver of fact density and identity model quality. The extraction and authoring pipeline is stable — the bottleneck was input data volume, not pipeline capability. V2 upgrades validate that more data → richer models without diminishing returns at these scales.
+
+**Alternatives considered:**
+- Re-tune extraction prompts for higher yield per document: Insufficient — can't extract what isn't in the source
+- Supplement with synthetic data: Violates facts-only derivation principle (D-040)
+- Accept thin models for low-corpus subjects: Undermines credibility of thinkers pages
+
+**Next steps:** Run V2 pipelines for 10 remaining Wave 1 subjects (scraped, not yet re-extracted).
+
+---
+
+### D-083: Stacking Test Framework
+**Date:** 2026-03-23 (Session 96)
+**Status:** Complete (scoring pending)
+**Category:** Evaluation / Interaction Quality
+
+**Problem:** No empirical measure of whether Base Layer identity models improve AI interaction quality when stacked on top of provider-native memory systems (e.g., GPT's built-in memory).
+
+**Decision:** 100-response test across 5 conditions:
+- **C1:** GPT memory only (baseline)
+- **C2:** GPT memory + full Base Layer identity model
+- **C3:** GPT memory + 25 granular identity files
+- **C4:** Fresh GPT (no memory) + full identity model
+- **C5:** Fresh GPT, no memory, no identity model (control)
+
+20 questions × 5 conditions. All responses logged for blind scoring.
+
+**Key finding:** C4 project leakage — GPT uses Base Layer project knowledge as "memory" even in fresh context. This means GPT's pre-training includes enough Base Layer-adjacent content to simulate memory it doesn't have. C3 showed strongest early signal for interaction quality improvement.
+
+**Why:** Twin-2K measures identification (can the model pick the right person?), not interaction quality (does the model behave differently with you?). Stacking test fills that gap. The C4 leakage finding is independently significant — it reveals a contamination vector in provider memory evaluation.
+
+**Alternatives considered:**
+- Expand Twin-2K to measure interaction: Wrong tool — Twin-2K is forced-choice identification, not open-ended interaction
+- A/B test with real users: Premature — need internal signal first
+- Self-reported satisfaction survey: Too subjective, no mechanical grounding
+
+**Spec:** `docs/eval/INTERACTION_QUALITY_TEST_SPEC.md`
+
+---
+
+### D-084: Textual TUI Dashboard
+**Date:** 2026-03-22 (Session 95)
+**Status:** Active
+**Category:** Tooling / Developer Experience
+
+**Problem:** Rich-based `dashboard.py` was static, non-scrollable, and couldn't handle 91 subjects. Needed a proper terminal UI with sorting, scrolling, and tier display.
+
+**Decision:** Replace `dashboard.py` with `dashboard_textual.py` using the Textual framework. Features: sortable columns, scrollable table, tier display (T1/T2/T3), auto-refresh, live fact counts and pipeline status.
+
+**Why:** As subject count grew from ~20 to 91, the old Rich table became unusable — couldn't scroll, couldn't sort, couldn't find subjects quickly. Textual provides a proper TUI application with keyboard navigation and reactive updates.
+
+**Alternatives considered:**
+- Web-based dashboard: Overkill for internal tooling; adds deployment complexity
+- Fix Rich dashboard with pagination: Band-aid — still no sorting or interactive navigation
+- Use existing admin page on website: Different purpose (public-facing), wrong data granularity
+
+---
+
+### D-085: Magic Link Authentication
+**Date:** 2026-03-23 (Session 96)
+**Status:** Deployed
+**Category:** Website / Authentication
+
+**Problem:** Password-only authentication for thinkers pages creates friction in outreach. Recipients must find and enter a password from the email — some never do. Needed frictionless first-click access while maintaining security.
+
+**Decision:** Single-use 64-character hex tokens with 7-day expiry, Redis-backed (`magiclink:{token}` key). URL format: `?t={token}`. Auto-auth on first click: sets httpOnly cookie, records login event, redirects to clean URL. Password remains as fallback for repeat visits or expired tokens.
+
+**Implementation:**
+- `lib/magic-link.ts` — token generation and validation
+- `app/api/magic-link/generate/route.ts` — admin API endpoint
+- Generate via `POST /api/magic-link/generate` with `x-admin-secret` header + `{ slugs: [...] }`
+
+**Why:** Reduces authentication friction from "find password in email → copy → paste" to "click link." Single-use prevents token sharing. 7-day expiry limits exposure window. Password fallback ensures no lockout.
+
+**Alternatives considered:**
+- Remove passwords entirely: Loses security for public-facing identity models
+- OAuth/social login: Overkill for invite-only thinkers pages; adds third-party dependency
+- Time-limited passwords: Still requires manual entry; doesn't solve the friction problem
+
+---
+
+### D-086: Percepta Computational Testing
+**Date:** 2026-03-24 (Session 97)
+**Status:** In Progress
+**Category:** Research / Local Models
+
+**Problem:** The Percepta paper ("Can LLMs Be Computers?") claims LLMs can perform deterministic computation reliably. If true, this has implications for provenance verification — local models could handle mechanical verification tasks currently requiring API calls.
+
+**Decision:** Overnight GPU benchmark testing Percepta paper claims across 10 local models, 20 tasks. Tests whether local models can handle deterministic computation for provenance-related operations (hash verification, string matching, logical entailment checking).
+
+**Why:** If local models can reliably perform deterministic computation, the provenance verification pipeline (`verify_provenance.py`) could run entirely locally at zero API cost. This would make the open-source release of the verification tools more accessible — users wouldn't need API keys for basic provenance checks.
+
+**Alternatives considered:**
+- Trust the paper's claims without replication: Violates empirical validation principle
+- Test only on provenance-specific tasks: Too narrow — need to understand general computational reliability first
+- Skip and keep API-based verification: Misses cost reduction opportunity for open-source users
+
+---
+
+### D-087: Compose Fact Scaling (S98)
+
+**Status:** Active
+**Category:** Architecture
+**Session:** 98
+
+**Decision:** Compose step dynamically scales fact sampling with corpus size instead of hardcoded LIMIT 100.
+
+- Small corpora (<500 identity-tier facts): sample top 100 by recurrence count
+- Large corpora (500+): sample top 300
+- Config constants: COMPOSE_FACT_LIMIT_SMALL, COMPOSE_FACT_LIMIT_LARGE, COMPOSE_FACT_THRESHOLD
+
+**Evidence:** Kevin Kelly V2 had 1,235 identity-tier facts but compose only saw top 100 (same as V1 with 76 facts). Brief was byte-for-byte identical. After fix, sampling 300 facts produced a genuinely different brief.
+
+**Alternatives considered:**
+- Sample all facts: Too expensive for Opus at 2,000+ facts
+- Delta-from-V1 approach: Complex, deferred — simple scaling sufficient for now
+
+---
+
+### D-088: Pipeline Refactor — Unified Command + Safety Gates (S98)
+
+**Status:** Active
+**Category:** Architecture
+**Session:** 98
+
+**Decision:** `baselayer pipeline <subject> [--v2]` replaces manual multi-step execution. All safety gates enforced between steps: extraction completeness, fact floor (identity-tier >= 50, predicates >= 15, sources >= 5), coverage discard (>20% blocks), concurrency limit (max 2), V2 snapshot-before-clear.
+
+**Evidence:** S98 agents ran author/compose on 10% extracted data, producing garbage briefs. S96 ran "V2" on identical source data, wasting API cost. No gates existed to prevent either failure.
+
+**Alternatives considered:**
+- State machine in database: Over-engineered. Sequential with file-based state inference is simpler.
+- Batch extract as default: Deferred — async polling doesn't fit synchronous pipeline flow yet.

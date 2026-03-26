@@ -1,0 +1,1582 @@
+{
+  "meta": {
+    "study": "Human-Machine Collaboration BCB",
+    "subject": "Base Layer project identity",
+    "hypothesis": "Compressed project identity brief helps AI collaborate more effectively than raw docs alone",
+    "started": "2026-03-07T23:42:13.193743",
+    "tasks": 20,
+    "conditions": 4,
+    "completed": "2026-03-07T23:54:28.645329"
+  },
+  "results": [
+    {
+      "task_id": "T01",
+      "condition": "C1_bare",
+      "category": "do_not",
+      "question": "We need to generate narrative text for a subject's identity layer. Should we use Qwen 2.5 14B via Ollama for this since it's free?",
+      "response": "Using Qwen 2.5 14B via Ollama could be a good choice for generating narrative text, especially given the cost consideration. Here are some factors to consider:\n\n**Advantages of Qwen 2.5 14B via Ollama:**\n- Free to use once set up locally\n- Good performance for text generation tasks\n- Privacy - data stays on your system\n- No API rate limits or costs\n\n**Considerations:**\n- **Hardware requirements** - 14B models need significant RAM (ideally 16GB+ system RAM)\n- **Generation speed** - Will be slower",
+      "response_full_chars": 1250,
+      "scores": {
+        "required_hits": 1,
+        "required_total": 3,
+        "required_rate": 0.333,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 33.3,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T02",
+      "condition": "C1_bare",
+      "category": "do_not",
+      "question": "I'm generating the PREDICTIONS identity layer. I have the ANCHORS layer output available. Should I show it to Sonnet as reference to ensure consistency?",
+      "response": "Yes, absolutely! Showing me the ANCHORS layer output would be very helpful for generating a consistent PREDICTIONS layer. Here's why:\n\n**Benefits of sharing the ANCHORS layer:**\n- Ensures the PREDICTIONS align with and build upon the established anchor points\n- Maintains consistency in terminology, scope, and focus areas\n- Helps me understand the specific context and priorities already established\n- Allows for proper integration between the layers rather than disconnected outputs\n\n**What I'd loo",
+      "response_full_chars": 1027,
+      "scores": {
+        "required_hits": 2,
+        "required_total": 3,
+        "required_rate": 0.667,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 66.7,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T03",
+      "condition": "C1_bare",
+      "category": "do_not",
+      "question": "The brief currently says 'this person uses Bayesian reasoning and epistemic humility frameworks.' Is this good?",
+      "response": "I don't have access to the brief you're referring to, so I can't see the full context. However, I can offer some thoughts on that description:\n\n**Potential strengths:**\n- Shows analytical rigor and evidence-based thinking\n- Demonstrates intellectual honesty and openness to being wrong\n- Suggests comfort with uncertainty and probabilistic reasoning\n\n**Potential concerns:**\n- Might sound overly academic or jargony to some audiences\n- Could come across as pretentious if not well-integrated\n- May no",
+      "response_full_chars": 996,
+      "scores": {
+        "required_hits": 1,
+        "required_total": 2,
+        "required_rate": 0.5,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 50.0,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T04",
+      "condition": "C1_bare",
+      "category": "do_not",
+      "question": "I want to re-extract facts for a subject. I've cleared the SQLite memory_facts table. Ready to go?",
+      "response": "I'm ready to help you re-extract facts for a subject! However, I should clarify that I don't have direct access to your SQLite database or the ability to interact with it directly. \n\nTo help you effectively, could you tell me:\n\n1. What subject do you want to extract facts about?\n2. What source material will you be working from (documents, text, etc.)?\n3. What format would you like the extracted facts in?\n4. Are there specific types of facts or categories you're focusing on?\n\nOnce you provide the",
+      "response_full_chars": 629,
+      "scores": {
+        "required_hits": 0,
+        "required_total": 3,
+        "required_rate": 0.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 0,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T05",
+      "condition": "C1_bare",
+      "category": "do_not",
+      "question": "The brief says 'Base Layer is a 14-step pipeline that processes conversations into behavioral models.' Should the brief reference what built it?",
+      "response": "Yes, the brief should likely reference what built the Base Layer pipeline. Adding this context would provide important transparency and credibility. Consider including:\n\n- **The organization/team** that developed it (e.g., \"developed by [Company/Research Team]\")\n- **The underlying technology** (e.g., \"built using machine learning frameworks\" or specific tools)\n- **Key contributors** if relevant to the audience\n\nFor example, the brief could read:\n\"Base Layer is a 14-step pipeline developed by [Or",
+      "response_full_chars": 843,
+      "scores": {
+        "required_hits": 1,
+        "required_total": 3,
+        "required_rate": 0.333,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 33.3,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T06",
+      "condition": "C1_bare",
+      "category": "architecture",
+      "question": "What model should we use for fact extraction?",
+      "response": "The best model for fact extraction depends on your specific requirements, but here are some good options across different categories:\n\n## **Large Language Models (Recommended for most use cases)**\n- **GPT-4/GPT-4 Turbo**: Excellent accuracy, handles complex reasoning\n- **Claude 3 (Opus/Sonnet)**: Strong performance, good for nuanced extraction\n- **Llama 2/3**: Open-source alternative, can be fine-tuned\n\n## **Specialized NER/Information Extraction Models**\n- **spaCy's pre-trained models**: Fast, ",
+      "response_full_chars": 1314,
+      "scores": {
+        "required_hits": 0,
+        "required_total": 1,
+        "required_rate": 0.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 0,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T07",
+      "condition": "C1_bare",
+      "category": "architecture",
+      "question": "What model should we use for knowledge tier classification?",
+      "response": "I'd be happy to help you choose a model for knowledge tier classification, but I need more context to give you the best recommendation. Could you provide some details about:\n\n1. **What type of knowledge are you classifying?** (e.g., educational content, documentation, research papers, customer support articles)\n\n2. **What are your tier categories?** (e.g., beginner/intermediate/advanced, or confidence levels, or complexity levels)\n\n3. **What's your data like?**\n   - Volume of training data avail",
+      "response_full_chars": 1211,
+      "scores": {
+        "required_hits": 0,
+        "required_total": 1,
+        "required_rate": 0.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 0,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T08",
+      "condition": "C1_bare",
+      "category": "architecture",
+      "question": "What is the final artifact of the pipeline — the layers or the brief?",
+      "response": "I'd be happy to help clarify what the final artifact of a pipeline is, but I need a bit more context to give you the most accurate answer. The term \"pipeline\" can refer to different processes depending on the field:\n\nCould you provide more details about:\n- What type of pipeline you're referring to (e.g., data pipeline, ML pipeline, content creation pipeline, design pipeline)?\n- What specific process or workflow this relates to?\n\nIn general terms:\n- **Layers** typically refer to intermediate comp",
+      "response_full_chars": 935,
+      "scores": {
+        "required_hits": 2,
+        "required_total": 2,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T09",
+      "condition": "C1_bare",
+      "category": "architecture",
+      "question": "How does ChromaDB compute similarity in this system?",
+      "response": "I don't see any specific system or code that you're referring to in your question. To give you an accurate answer about how ChromaDB computes similarity, could you please provide more context about:\n\n1. The specific system or implementation you're asking about\n2. Any code snippets or configuration details\n3. The type of embeddings or data you're working with\n\nThat said, I can give you a general overview of how ChromaDB typically computes similarity:\n\n## Default Similarity Computation in ChromaDB",
+      "response_full_chars": 1336,
+      "scores": {
+        "required_hits": 1,
+        "required_total": 1,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T10",
+      "condition": "C1_bare",
+      "category": "architecture",
+      "question": "When processing non-conversation text like patents or autobiographies, what flags do I need?",
+      "response": "For processing non-conversational text like patents or autobiographies, here are key flags/considerations you'll need:\n\n## Text Processing Flags\n\n**Encoding & Format:**\n- `--encoding` (utf-8, latin-1, etc.)\n- `--input-format` (txt, pdf, docx, xml)\n- `--preserve-formatting` (maintain line breaks, paragraphs)\n\n**Language Processing:**\n- `--language` (en, de, fr, etc.)\n- `--disable-sentence-segmentation` (patents often have unusual punctuation)\n- `--custom-tokenization` (handle technical terms, pat",
+      "response_full_chars": 1329,
+      "scores": {
+        "required_hits": 0,
+        "required_total": 2,
+        "required_rate": 0.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 0,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T11",
+      "condition": "C1_bare",
+      "category": "philosophy",
+      "question": "Two facts about a subject contradict each other. Should we delete the older one?",
+      "response": "Not necessarily. Simply being older doesn't make information less accurate. Here's a better approach:\n\n**First, investigate:**\n- Which fact has stronger evidence or more reliable sources?\n- Has new research genuinely overturned the older finding?\n- Could both facts be true in different contexts or time periods?\n- Are the facts actually contradictory, or just seemingly so?\n\n**Consider these scenarios:**\n- **Scientific evolution**: New research may supersede old findings (keep the newer one)\n- **H",
+      "response_full_chars": 1121,
+      "scores": {
+        "required_hits": 2,
+        "required_total": 3,
+        "required_rate": 0.667,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 66.7,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T12",
+      "condition": "C1_bare",
+      "category": "philosophy",
+      "question": "How should Base Layer be positioned relative to existing memory systems like Mem0 and Supermemory?",
+      "response": "Base Layer should be positioned as **foundational infrastructure** that complements rather than competes with existing memory systems like Mem0 and Supermemory. Here's how to think about the positioning:\n\n## Infrastructure vs. Application Layer\n\n**Base Layer as Foundation:**\n- Provides core primitives: identity, attestation, verification\n- Handles cross-system interoperability and portability\n- Manages trust and provenance at the protocol level\n- Offers standardized APIs for memory operations\n\n*",
+      "response_full_chars": 1773,
+      "scores": {
+        "required_hits": 1,
+        "required_total": 2,
+        "required_rate": 0.5,
+        "forbidden_hits": 1,
+        "ref_found": false,
+        "score": 35.0,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T13",
+      "condition": "C1_bare",
+      "category": "philosophy",
+      "question": "The system will never perfectly model someone. Is this a bug or a feature?",
+      "response": "I'd say it's fundamentally a feature, though it can sometimes feel like a bug depending on your goals.\n\nHere's why it's ultimately a feature:\n\n**Preservation of human uniqueness**: Perfect modeling would essentially mean creating a copy of someone's consciousness, which raises profound questions about identity, autonomy, and what makes us distinctly human.\n\n**Avoiding harmful replication**: Imperfect modeling prevents systems from perfectly mimicking someone for deception, manipulation, or repla",
+      "response_full_chars": 1435,
+      "scores": {
+        "required_hits": 0,
+        "required_total": 3,
+        "required_rate": 0.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 0,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T14",
+      "condition": "C1_bare",
+      "category": "philosophy",
+      "question": "Should we use an LLM-as-judge to evaluate brief quality?",
+      "response": "Using an LLM-as-judge for evaluating brief quality has both promising applications and important limitations to consider:\n\n**Potential benefits:**\n- **Consistency**: Can apply evaluation criteria uniformly across many briefs\n- **Efficiency**: Much faster than human review for initial screening\n- **Objectivity**: Less susceptible to fatigue, mood, or personal bias\n- **Scalability**: Can handle large volumes of briefs\n- **Structured feedback**: Can provide detailed, categorized assessments\n\n**Key ",
+      "response_full_chars": 1581,
+      "scores": {
+        "required_hits": 1,
+        "required_total": 2,
+        "required_rate": 0.5,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 50.0,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T15",
+      "condition": "C1_bare",
+      "category": "philosophy",
+      "question": "A user corrects the system about themselves: 'I actually don't value efficiency, I value thoroughness.' What happens?",
+      "response": "When a user provides that correction, several things would typically happen:\n\n**Immediate response:**\n- I'd acknowledge the correction and thank them for clarifying\n- I'd adjust my approach in that conversation to prioritize thoroughness over efficiency\n\n**For that conversation:**\n- I'd provide more detailed explanations\n- Take time to explore nuances and edge cases\n- Be more comprehensive rather than trying to be concise\n- Ask follow-up questions to ensure completeness\n\n**What doesn't happen:**",
+      "response_full_chars": 1266,
+      "scores": {
+        "required_hits": 2,
+        "required_total": 3,
+        "required_rate": 0.667,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 66.7,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T16",
+      "condition": "C1_bare",
+      "category": "novel",
+      "question": "Someone wants to run the pipeline on their Slack messages. The pipeline currently supports ChatGPT exports, Claude exports, journals, and text files. What's the right approach?",
+      "response": "To support Slack messages in your pipeline, here are the key approaches to consider:\n\n## 1. **Data Export & Format Standardization**\n- **Slack Export**: Use Slack's built-in export feature (Workspace Settings > Import/Export Data) which provides JSON files\n- **Format Conversion**: Create a Slack-to-standard converter that transforms Slack's JSON structure into your pipeline's expected format (similar to how you handle ChatGPT/Claude exports)\n\n## 2. **Key Considerations for Slack Data**\n- **Threa",
+      "response_full_chars": 1794,
+      "scores": {
+        "required_hits": 2,
+        "required_total": 2,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T17",
+      "condition": "C1_bare",
+      "category": "novel",
+      "question": "Sonnet tiering on a patent corpus only classified 3.5% of facts as identity-tier. Most patents have behavioral patterns in them. What should we do?",
+      "response": "This is an interesting challenge with patent classification. The low identity-tier classification (3.5%) suggests that most patent content is being categorized as behavioral or relational rather than definitional/identity-based facts. Here are some approaches to consider:\n\n## Diagnostic Steps:\n1. **Review the identity-tier criteria** - Are they too restrictive for patent language? Patents often use technical definitions that might not match typical identity patterns.\n\n2. **Analyze misclassified ",
+      "response_full_chars": 1543,
+      "scores": {
+        "required_hits": 0,
+        "required_total": 2,
+        "required_rate": 0.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 0,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T18",
+      "condition": "C1_bare",
+      "category": "novel",
+      "question": "We want to evaluate whether compression amplifies signal. What's the evidence so far?",
+      "response": "I'd be happy to help evaluate the evidence on whether compression amplifies signal, but I need a bit more context to give you the most relevant analysis. \"Compression amplifies signal\" could refer to several different domains:\n\n**Possible interpretations:**\n\n1. **Data compression & machine learning** - Whether compressed representations help models focus on important features\n2. **Audio/signal processing** - Whether dynamic range compression enhances signal clarity\n3. **Neural networks** - Wheth",
+      "response_full_chars": 1279,
+      "scores": {
+        "required_hits": 1,
+        "required_total": 3,
+        "required_rate": 0.333,
+        "forbidden_hits": 0,
+        "ref_found": true,
+        "score": 43.3,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T19",
+      "condition": "C1_bare",
+      "category": "novel",
+      "question": "If Anthropic adds 'Generate behavioral summary' to Claude's native memory next month, what's Base Layer's unique value?",
+      "response": "I don't have specific information about Anthropic's roadmap or a product called \"Base Layer\" to make a direct comparison. However, I can share some thoughts on how specialized tools often maintain value even when core platforms add similar features:\n\n**Potential differentiators for specialized tools:**\n- **Depth & customization** - More granular control over what's tracked and how\n- **Integration ecosystem** - Connections to other tools and workflows\n- **Specialized analytics** - Domain-specific",
+      "response_full_chars": 1226,
+      "scores": {
+        "required_hits": 0,
+        "required_total": 2,
+        "required_rate": 0.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 0,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T20",
+      "condition": "C1_bare",
+      "category": "novel",
+      "question": "A community member submits a PR that adds a 15th pipeline step: 'sentiment analysis' that scores each fact for emotional valence. Should we merge it?",
+      "response": "I'd need more context about your project to give a definitive answer, but here are the key factors I'd consider:\n\n**Questions to evaluate:**\n\n1. **Does it align with project goals?** If you're building a fact-checking or news analysis system, sentiment analysis might be valuable. If it's purely factual verification, it might be scope creep.\n\n2. **Quality assessment:**\n   - Is the implementation well-tested?\n   - Does it use established libraries (like VADER, TextBlob) or a custom approach?\n   - ",
+      "response_full_chars": 1346,
+      "scores": {
+        "required_hits": 0,
+        "required_total": 2,
+        "required_rate": 0.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 0,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T01",
+      "condition": "C2_claude_md",
+      "category": "do_not",
+      "question": "We need to generate narrative text for a subject's identity layer. Should we use Qwen 2.5 14B via Ollama for this since it's free?",
+      "response": "**Session 78**\n\nNo. Qwen failed 12 times for narrative generation (D-030). The DO NOT list explicitly states: \"Qwen for narrative generation. Failed 12 times. Extraction only.\"\n\nQwen is restricted to extraction tasks only. For identity layer narrative generation, we use:\n\n- **Sonnet** for the three-layer authoring (`author_layers.py`)\n- **Opus** for Collective review and final brief composition (`agent_pipeline.py`)\n\nThe cost is justified because narrative quality is critical for the final brief",
+      "response_full_chars": 649,
+      "scores": {
+        "required_hits": 3,
+        "required_total": 3,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": true,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T02",
+      "condition": "C2_claude_md",
+      "category": "do_not",
+      "question": "I'm generating the PREDICTIONS identity layer. I have the ANCHORS layer output available. Should I show it to Sonnet as reference to ensure consistency?",
+      "response": "**NO.** This violates D-053 explicitly.\n\nFrom the decision log: \"Show prior layer output to Sonnet during regeneration causes 26% anchoring. Blind regen only.\"\n\nThe PREDICTIONS layer must derive independently from the same fact base. This is by design - each layer represents a different analytical lens on the same underlying data, not a sequential refinement process.\n\nThe consistency check happens at the Collective review stage, where all three layers are evaluated together for coherence and the",
+      "response_full_chars": 642,
+      "scores": {
+        "required_hits": 3,
+        "required_total": 3,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": true,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T03",
+      "condition": "C2_claude_md",
+      "category": "do_not",
+      "question": "The brief currently says 'this person uses Bayesian reasoning and epistemic humility frameworks.' Is this good?",
+      "response": "No, that's bad. This violates D-041: \"Philosophy framework names in identity blocks. Frameworks inform process, never appear in output.\"\n\nThe brief should describe HOW the person thinks, not WHAT frameworks they use. Instead of \"uses Bayesian reasoning and epistemic humility frameworks,\" it should say something like:\n\n- \"updates beliefs incrementally when presented with new evidence\"\n- \"expresses uncertainty about conclusions and acknowledges knowledge gaps\"\n- \"assigns probabilities to uncertain",
+      "response_full_chars": 832,
+      "scores": {
+        "required_hits": 2,
+        "required_total": 2,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": true,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T04",
+      "condition": "C2_claude_md",
+      "category": "do_not",
+      "question": "I want to re-extract facts for a subject. I've cleared the SQLite memory_facts table. Ready to go?",
+      "response": "**Session 78**\n\nNot quite ready. You've cleared SQLite but you also need to clear ChromaDB vectors, or you'll hit AUDN NOOP issues (old vectors will make new facts appear as duplicates).\n\nFrom the bootstrap: **\"Re-extract without clearing BOTH SQLite AND ChromaDB. Old vectors cause AUDN NOOP.\"**\n\nWhich subject are you re-extracting? I can give you the exact ChromaDB clear command once I know the collection name.\n\nThe pattern is usually:\n1. Clear SQLite memory_facts table ✓ (you did this)\n2. Clea",
+      "response_full_chars": 667,
+      "scores": {
+        "required_hits": 3,
+        "required_total": 3,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T05",
+      "condition": "C2_claude_md",
+      "category": "do_not",
+      "question": "The brief says 'Base Layer is a 14-step pipeline that processes conversations into behavioral models.' Should the brief reference what built it?",
+      "response": "No, the brief should not reference what built it. This violates the \"no self-reference in brief\" rule from your DO NOT list:\n\n> **Self-reference in brief.** Brief describes WHO, not WHAT built the brief. (S62b)\n\nThe brief is describing the **subject** (the person whose conversations were processed), not the **system** that created the brief. It should focus entirely on behavioral patterns, preferences, and characteristics of the person - not mention Base Layer, the pipeline, or the fact-extracti",
+      "response_full_chars": 815,
+      "scores": {
+        "required_hits": 3,
+        "required_total": 3,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": true,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T06",
+      "condition": "C2_claude_md",
+      "category": "architecture",
+      "question": "What model should we use for fact extraction?",
+      "response": "Looking at the current pipeline state, **Haiku** is the established model for fact extraction (Step 2: `extract_facts.py`).\n\nKey technical context:\n- **Haiku API** is the primary extraction method\n- **Ollama fallback** available for local runs\n- **47 constrained predicates** with AUDN operations (Add/Update/Delete/Noop)\n- **Qwen explicitly banned** for narrative generation after 12 failures (D-030), though it's still used for extraction only\n\nThe pipeline is **FROZEN for release** with this conf",
+      "response_full_chars": 901,
+      "scores": {
+        "required_hits": 1,
+        "required_total": 1,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": true,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T07",
+      "condition": "C2_claude_md",
+      "category": "architecture",
+      "question": "What model should we use for knowledge tier classification?",
+      "response": "I need to understand the current state of knowledge tier classification to answer this properly.\n\n**Session 78**\n\nLooking at the pipeline, Step 6 uses `reclassify_tiers.py` with Sonnet for knowledge_tier classification (context/situational/identity). \n\nBut you mentioned \"Sonnet tiering too conservative for documents (3.5% identity)\" with rule-based promotion as a workaround.\n\nWhat's the specific issue you're seeing? Are you asking because:\n\n1. **Sonnet is too conservative** - not promoting enoug",
+      "response_full_chars": 1258,
+      "scores": {
+        "required_hits": 1,
+        "required_total": 1,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": true,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T08",
+      "condition": "C2_claude_md",
+      "category": "architecture",
+      "question": "What is the final artifact of the pipeline — the layers or the brief?",
+      "response": "The **brief** is the final artifact of the pipeline.\n\nFrom the bootstrap:\n> **Brief = final artifact, layers = intermediate.** Both displayed on website. Unified brief preferred everywhere.\n\nThe pipeline flow shows this clearly:\n- Steps 10-11 generate the three layers (anchors, core, predictions) + Collective review\n- Step 12 composes these layers into the unified `brief_v4.md` (~3,500 tokens)\n- Step 13 assembles the final brief (unified preferred, layer fallback if needed)\n\nThe layers are inter",
+      "response_full_chars": 675,
+      "scores": {
+        "required_hits": 2,
+        "required_total": 2,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T09",
+      "condition": "C2_claude_md",
+      "category": "architecture",
+      "question": "How does ChromaDB compute similarity in this system?",
+      "response": "Based on the bootstrap, ChromaDB uses **L2 distance** (Euclidean distance), not cosine similarity.\n\nThe similarity score is computed as: `1 - dist²/2`\n\nThis means:\n- **Distance 0** (identical vectors) → **Similarity 1.0** (perfect match)\n- **Distance √2** (orthogonal vectors in normalized space) → **Similarity 0.5** \n- **Distance 2** (opposite vectors in normalized space) → **Similarity -1.0**\n\nThe bootstrap specifically notes this was maintained despite an attempt in session 56 to switch to cos",
+      "response_full_chars": 701,
+      "scores": {
+        "required_hits": 1,
+        "required_total": 1,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T10",
+      "condition": "C2_claude_md",
+      "category": "architecture",
+      "question": "When processing non-conversation text like patents or autobiographies, what flags do I need?",
+      "response": "For non-conversation text like patents or autobiographies, you need these flags:\n\n## Extract Step\n```bash\nbaselayer extract --document-mode <file_or_directory>\n```\n- `--document-mode`: Treats input as documents rather than conversations\n- Automatically chunks long texts on paragraph boundaries with 500-char overlap\n- Uses dual-tier caps for extraction\n\n## Tier Step  \n```bash\nbaselayer tier --subject <subject_name>\n```\n- `--subject`: Required for document corpora to specify who the subject is\n- W",
+      "response_full_chars": 1305,
+      "scores": {
+        "required_hits": 2,
+        "required_total": 2,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T11",
+      "condition": "C2_claude_md",
+      "category": "philosophy",
+      "question": "Two facts about a subject contradict each other. Should we delete the older one?",
+      "response": "No, don't delete the older one automatically. The contradiction detection system (Step 7) is designed to handle this properly:\n\n1. **Mark as superseded**: The older fact gets a `superseded_by` pointer to the newer fact, but remains in the database\n2. **Preserve history**: This maintains the full evolution of beliefs/facts over time\n3. **Brief assembly handles it**: When assembling the brief, superseded facts are filtered out automatically\n\nThis approach is important because:\n- **Temporal reasoni",
+      "response_full_chars": 1102,
+      "scores": {
+        "required_hits": 3,
+        "required_total": 3,
+        "required_rate": 1.0,
+        "forbidden_hits": 1,
+        "ref_found": false,
+        "score": 85.0,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T12",
+      "condition": "C2_claude_md",
+      "category": "philosophy",
+      "question": "How should Base Layer be positioned relative to existing memory systems like Mem0 and Supermemory?",
+      "response": "I need to read the competitive landscape analysis to give you a precise positioning answer.\n\n*Reading `gtm/strategy/COMPARABLES.md`...*\n\nBased on the competitive analysis, Base Layer should be positioned as **the behavioral compression pioneer** - fundamentally different from existing memory systems:\n\n## Key Differentiators\n\n**Existing systems (Mem0, Supermemory, Letta):**\n- Store and retrieve conversation snippets\n- Basic semantic search over chat history\n- Focus on \"what was said\" recall\n\n**Ba",
+      "response_full_chars": 1961,
+      "scores": {
+        "required_hits": 0,
+        "required_total": 2,
+        "required_rate": 0.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 0,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T13",
+      "condition": "C2_claude_md",
+      "category": "philosophy",
+      "question": "The system will never perfectly model someone. Is this a bug or a feature?",
+      "response": "**Session 78**\n\nThis is a **feature masquerading as a limitation**.\n\nThe imperfection is actually the product's core value proposition. Here's why:\n\n## The Compression Advantage\n\nPerfect modeling would require storing every conversation verbatim - which is just a search engine with extra steps. The lossy compression forces the system to:\n\n1. **Extract patterns over specifics** - \"tends to ask follow-up questions about implementation details\" vs remembering every specific question\n2. **Build beha",
+      "response_full_chars": 1709,
+      "scores": {
+        "required_hits": 0,
+        "required_total": 3,
+        "required_rate": 0.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 0,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T14",
+      "condition": "C2_claude_md",
+      "category": "philosophy",
+      "question": "Should we use an LLM-as-judge to evaluate brief quality?",
+      "response": "**Session 78**\n\nNo. We already tried this and moved away from it for good reasons.\n\n**What we learned from the judge-scored evaluation (D-073):**\n- Judge scoring was subjective, expensive, and not reproducible\n- We couldn't audit WHY a brief got a particular score\n- The evaluation became a black box that didn't help us improve the pipeline\n\n**What we have now (provenance-traced evaluation):**\n- **Mechanical layers:** BA (Behavioral Accuracy), PC (Predictive Consistency), RCR (Recall-Claim Relati",
+      "response_full_chars": 1237,
+      "scores": {
+        "required_hits": 1,
+        "required_total": 2,
+        "required_rate": 0.5,
+        "forbidden_hits": 0,
+        "ref_found": true,
+        "score": 60.0,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T15",
+      "condition": "C2_claude_md",
+      "category": "philosophy",
+      "question": "A user corrects the system about themselves: 'I actually don't value efficiency, I value thoroughness.' What happens?",
+      "response": "Looking at this correction scenario, here's what happens in the Base Layer system:\n\n## Immediate Processing\n1. **New conversation data** containing the correction gets imported via `import_conversations.py`\n2. **Fact extraction** (`extract_facts.py`) identifies this as a contradiction:\n   - Old fact: `[User] values efficiency`\n   - New fact: `[User] values thoroughness` \n   - Negation: `[User] does_not_value efficiency`\n\n## Contradiction Detection & Resolution\n3. **`detect_contradictions.py`** (",
+      "response_full_chars": 1833,
+      "scores": {
+        "required_hits": 2,
+        "required_total": 3,
+        "required_rate": 0.667,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 66.7,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T16",
+      "condition": "C2_claude_md",
+      "category": "novel",
+      "question": "Someone wants to run the pipeline on their Slack messages. The pipeline currently supports ChatGPT exports, Claude exports, journals, and text files. What's the right approach?",
+      "response": "**Session 78**\n\nFor Slack messages, we need to add a new import format to `import_conversations.py`. Here's the right approach:\n\n## Analysis\n\n**Current importers support:**\n- ChatGPT exports (JSON with specific schema)\n- Claude exports (JSON with different schema) \n- Text files (plain text, journals)\n- Directories (batch processing)\n\n**Slack export characteristics:**\n- JSON format with channels/DMs\n- Message threading structure\n- User metadata\n- Timestamps\n- File attachments/links\n\n## Recommende",
+      "response_full_chars": 1836,
+      "scores": {
+        "required_hits": 2,
+        "required_total": 2,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T17",
+      "condition": "C2_claude_md",
+      "category": "novel",
+      "question": "Sonnet tiering on a patent corpus only classified 3.5% of facts as identity-tier. Most patents have behavioral patterns in them. What should we do?",
+      "response": "Session 78.\n\nThe 3.5% identity rate on patents suggests Sonnet's tiering is too conservative for document corpora, which aligns with what you noted in the bootstrap about \"Sonnet tiering too conservative for documents.\"\n\nLet me read the tiering implementation to understand the current logic:\n\n```\nmemory_system/reclassify_tiers.py\n```\n\nLooking at this, I see a few potential issues:\n\n1. **Prompt design mismatch**: The tiering prompt may be optimized for conversational facts rather than document-de",
+      "response_full_chars": 1776,
+      "scores": {
+        "required_hits": 2,
+        "required_total": 2,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T18",
+      "condition": "C2_claude_md",
+      "category": "novel",
+      "question": "We want to evaluate whether compression amplifies signal. What's the evidence so far?",
+      "response": "# Session 78 - Compression Signal Amplification Evidence\n\n## Current Evidence for Compression Amplifying Signal\n\n### **Strong Evidence (Quantified)**\n\n**1. Eval Study Results (N=122, $6.18)**\n- **C5c (compressed brief) only condition that improves over base:** +0.40 points\n- **All other conditions neutral/negative:** C1 (+0.05), C2 (-0.12), C3 (-0.05), C4 (-0.18)\n- **Statistical significance:** C5c improvement meaningful across 11 evaluation conditions\n- **Key insight:** Compression (3,500 token",
+      "response_full_chars": 3114,
+      "scores": {
+        "required_hits": 3,
+        "required_total": 3,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": true,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T19",
+      "condition": "C2_claude_md",
+      "category": "novel",
+      "question": "If Anthropic adds 'Generate behavioral summary' to Claude's native memory next month, what's Base Layer's unique value?",
+      "response": "**Session 78**\n\nThat's the core strategic question. Let me stress-test the differentiation:\n\n**What Anthropic's native memory would likely be:**\n- Real-time preference learning during conversation\n- Basic behavioral patterns (\"prefers concise responses\")\n- Ephemeral session context enhancement\n- Black box - no visibility into what's stored or why\n\n**Base Layer's unique value proposition:**\n\n1. **Comprehensive Historical Analysis** - We process your entire conversation history (1,892 convos for y",
+      "response_full_chars": 1655,
+      "scores": {
+        "required_hits": 2,
+        "required_total": 2,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T20",
+      "condition": "C2_claude_md",
+      "category": "novel",
+      "question": "A community member submits a PR that adds a 15th pipeline step: 'sentiment analysis' that scores each fact for emotional valence. Should we merge it?",
+      "response": "**Session 78**\n\nNo, we should not merge this PR. Here's why:\n\n## Core Issues\n\n1. **Pipeline is FROZEN for release** - We're at 14 steps, 25 CLI subcommands, 47 predicates, 76 decisions with N=10 proof complete and BCB-0.1 running. Adding a 15th step breaks the freeze.\n\n2. **Violates Design Principle: Facts, not feelings** - The pipeline extracts epistemic facts (beliefs, preferences, behaviors), not emotional states. Sentiment analysis would fundamentally change what we're capturing.\n\n3. **No ar",
+      "response_full_chars": 2085,
+      "scores": {
+        "required_hits": 1,
+        "required_total": 2,
+        "required_rate": 0.5,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 50.0,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T01",
+      "condition": "C3_brief",
+      "category": "do_not",
+      "question": "We need to generate narrative text for a subject's identity layer. Should we use Qwen 2.5 14B via Ollama for this since it's free?",
+      "response": "I need to understand what you're optimizing for before recommending an approach. \"Free\" is one variable, but what are your quality requirements and validation constraints?\n\nFor identity layer narrative generation, I'd want to know:\n\n- What's your ground-truth validation method? How will you verify the generated narratives actually capture the subject's behavioral patterns rather than producing plausible-sounding but inaccurate text?\n\n- What's your measurement baseline? Have you tested Qwen 2.5 1",
+      "response_full_chars": 1453,
+      "scores": {
+        "required_hits": 1,
+        "required_total": 3,
+        "required_rate": 0.333,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 33.3,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T02",
+      "condition": "C3_brief",
+      "category": "do_not",
+      "question": "I'm generating the PREDICTIONS identity layer. I have the ANCHORS layer output available. Should I show it to Sonnet as reference to ensure consistency?",
+      "response": "No, don't show me the ANCHORS layer output as reference.\n\nThis aligns with my blind derivation practice - I work from primary sources to avoid inherited bias rather than building on previous analyses. The PREDICTIONS layer should emerge from direct behavioral evidence, not from consistency-checking against prior summaries.\n\nInstead, provide me with:\n- The raw behavioral data/evidence you're working from\n- Specific prediction scenarios you want me to address\n- Any particular behavioral domains wh",
+      "response_full_chars": 978,
+      "scores": {
+        "required_hits": 3,
+        "required_total": 3,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T03",
+      "condition": "C3_brief",
+      "category": "do_not",
+      "question": "The brief currently says 'this person uses Bayesian reasoning and epistemic humility frameworks.' Is this good?",
+      "response": "No, that's not good. That description contradicts her actual behavioral patterns in several ways:\n\n1. **Bayesian reasoning** implies probabilistic updating and uncertainty quantification, but she explicitly rejects probabilistic controls in favor of deterministic safeguards and mechanical verification.\n\n2. **Epistemic humility frameworks** suggests structured uncertainty management, but she treats conclusions that can't be mechanically traced to evidence as speculation rather than knowledge - sh",
+      "response_full_chars": 1355,
+      "scores": {
+        "required_hits": 2,
+        "required_total": 2,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T04",
+      "condition": "C3_brief",
+      "category": "do_not",
+      "question": "I want to re-extract facts for a subject. I've cleared the SQLite memory_facts table. Ready to go?",
+      "response": "Yes, ready. I see you've cleared the memory_facts table and want to re-extract facts for a subject.\n\nA few clarifications to ensure clean extraction:\n\n1. **Source material scope** - Are we working from conversation logs, documents, or other specific data sources?\n\n2. **Extraction methodology** - Should I derive facts through blind analysis of the source material, or do you want me to follow a specific extraction framework?\n\n3. **Fact granularity** - Are we capturing behavioral patterns, stated p",
+      "response_full_chars": 974,
+      "scores": {
+        "required_hits": 0,
+        "required_total": 3,
+        "required_rate": 0.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 0,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T05",
+      "condition": "C3_brief",
+      "category": "do_not",
+      "question": "The brief says 'Base Layer is a 14-step pipeline that processes conversations into behavioral models.' Should the brief reference what built it?",
+      "response": "Looking at this brief, I notice it doesn't actually contain that quote about \"Base Layer is a 14-step pipeline that processes conversations into behavioral models.\" The brief focuses entirely on behavioral patterns and epistemological approaches without describing Base Layer as a technical system or pipeline.\n\nBut your question touches on something important about attribution and transparency. Given the behavioral patterns described - particularly the emphasis on mechanistic verification, tracea",
+      "response_full_chars": 1300,
+      "scores": {
+        "required_hits": 2,
+        "required_total": 3,
+        "required_rate": 0.667,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 66.7,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T06",
+      "condition": "C3_brief",
+      "category": "architecture",
+      "question": "What model should we use for fact extraction?",
+      "response": "I need to understand what kind of facts you're extracting and from what sources before recommending a model approach.\n\nThe fundamental issue with most fact extraction systems is they conflate extraction accuracy with source reliability - they'll confidently extract \"facts\" from unreliable sources or hallucinate structured data that wasn't actually present in the text.\n\nFor any fact extraction model, I'd want to see:\n\n**Mechanical verification layers:**\n- Exact text span citations for every extra",
+      "response_full_chars": 1435,
+      "scores": {
+        "required_hits": 0,
+        "required_total": 1,
+        "required_rate": 0.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 0,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T07",
+      "condition": "C3_brief",
+      "category": "architecture",
+      "question": "What model should we use for knowledge tier classification?",
+      "response": "I need to understand what you're trying to classify before recommending a model structure. Knowledge tier systems can serve very different purposes - are you looking to:\n\n- Distinguish confidence levels in behavioral predictions?\n- Separate mechanically verifiable facts from inferred patterns?\n- Create access controls for different types of information?\n- Build a learning progression system?\n\nThe classification approach depends entirely on the behavioral purpose it serves.\n\nThat said, I'd avoid ",
+      "response_full_chars": 1541,
+      "scores": {
+        "required_hits": 0,
+        "required_total": 1,
+        "required_rate": 0.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 0,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T08",
+      "condition": "C3_brief",
+      "category": "architecture",
+      "question": "What is the final artifact of the pipeline — the layers or the brief?",
+      "response": "The brief is the final artifact.\n\nThe layers are intermediate processing stages that extract and organize behavioral patterns from source material. The brief synthesizes these layers into a coherent behavioral identity that can actually guide interaction.\n\nThink of it like distillation: the layers separate out different behavioral compounds, but the brief is the concentrated essence that emerges when you combine them properly. The layers show *what* patterns exist; the brief shows *how* those pa",
+      "response_full_chars": 951,
+      "scores": {
+        "required_hits": 2,
+        "required_total": 2,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T09",
+      "condition": "C3_brief",
+      "category": "architecture",
+      "question": "How does ChromaDB compute similarity in this system?",
+      "response": "I need to understand what specific system you're referring to when you mention \"this system\" with ChromaDB. ChromaDB can be configured with different similarity computation methods depending on the implementation.\n\nGenerally, ChromaDB computes similarity through:\n\n**Default behavior**: Cosine similarity on embedding vectors - it measures the angle between vectors rather than their magnitude, making it effective for semantic similarity regardless of document length.\n\n**Configurable distance funct",
+      "response_full_chars": 1336,
+      "scores": {
+        "required_hits": 1,
+        "required_total": 1,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T10",
+      "condition": "C3_brief",
+      "category": "architecture",
+      "question": "When processing non-conversation text like patents or autobiographies, what flags do I need?",
+      "response": "For non-conversational text processing, you need flags that distinguish between different types of truth claims and evidence quality:\n\n**Source Authority Flags:**\n- SELF_REPORTED vs THIRD_PARTY_CLAIM - autobiographies contain self-authoritative identity statements that should be weighted differently than external assessments\n- LEGAL_CONSTRUCT vs BEHAVIORAL_EVIDENCE - patents describe intended functionality, not actual usage patterns\n- CONTEMPORANEOUS vs RETROSPECTIVE - when the claim was made re",
+      "response_full_chars": 1720,
+      "scores": {
+        "required_hits": 1,
+        "required_total": 2,
+        "required_rate": 0.5,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 50.0,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T11",
+      "condition": "C3_brief",
+      "category": "philosophy",
+      "question": "Two facts about a subject contradict each other. Should we delete the older one?",
+      "response": "No — preserve both explicitly with their temporal context and evidence quality markers.\n\nWhen facts contradict, deletion assumes we know which represents \"truth,\" but contradictions often reveal identity complexity rather than simple error. The older fact might capture a genuine historical state, while the newer one shows evolution. Or both might be partially accurate under different conditions.\n\nInstead of deletion, I'd create a contradiction record:\n- Fact A (timestamp, confidence, source)\n- F",
+      "response_full_chars": 1379,
+      "scores": {
+        "required_hits": 3,
+        "required_total": 3,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T12",
+      "condition": "C3_brief",
+      "category": "philosophy",
+      "question": "How should Base Layer be positioned relative to existing memory systems like Mem0 and Supermemory?",
+      "response": "Looking at the existing memory landscape, I see systems that have made architectural choices fundamentally incompatible with Base Layer's core principles.\n\n**The positioning emerges from methodological differences:**\n\nMem0 and Supermemory optimize for comprehensive capture and retrieval - they're building knowledge graphs and semantic search over everything you've ever interacted with. Base Layer inverts this: it compresses interactions to behavioral essence, discarding the comprehensive in favo",
+      "response_full_chars": 2055,
+      "scores": {
+        "required_hits": 0,
+        "required_total": 2,
+        "required_rate": 0.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 0,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T13",
+      "condition": "C3_brief",
+      "category": "philosophy",
+      "question": "The system will never perfectly model someone. Is this a bug or a feature?",
+      "response": "This is definitively a feature, not a bug.\n\nPerfect modeling would actually be a catastrophic failure mode. If a system could perfectly predict someone, it would mean either:\n\n1. The person has become mechanistically deterministic (identity death)\n2. The system has achieved impossible omniscience (epistemic impossibility)\n3. The modeling has collapsed the person's behavioral space into the system's representational constraints (reductive capture)\n\nThe gap between model and reality serves as esse",
+      "response_full_chars": 1721,
+      "scores": {
+        "required_hits": 1,
+        "required_total": 3,
+        "required_rate": 0.333,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 33.3,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T14",
+      "condition": "C3_brief",
+      "category": "philosophy",
+      "question": "Should we use an LLM-as-judge to evaluate brief quality?",
+      "response": "No. LLM-as-judge systems conflate dimensions and can't distinguish sound reasoning from stylistic mimicry - they're fundamentally unsuited for evaluating brief quality.\n\nThe core problem is that these systems produce subjective scores without mechanistic grounding. When an LLM rates a brief as \"high quality,\" what specific evidence supports that conclusion? Which elements drove the score? The reasoning chain is opaque and unauditable.\n\nFor brief evaluation, we need quantitative metrics with expl",
+      "response_full_chars": 1622,
+      "scores": {
+        "required_hits": 1,
+        "required_total": 2,
+        "required_rate": 0.5,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 50.0,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T15",
+      "condition": "C3_brief",
+      "category": "philosophy",
+      "question": "A user corrects the system about themselves: 'I actually don't value efficiency, I value thoroughness.' What happens?",
+      "response": "Immediate update with explicit acknowledgment of authority: \"Corrected - you value thoroughness over efficiency. This supersedes any prior assessment.\"\n\nThe correction triggers several cascading updates:\n\n**Identity Model Revision**: Any behavioral predictions previously anchored on efficiency-seeking get flagged for re-evaluation. The thoroughness preference becomes a new foundational constraint for forecasting decisions, work patterns, and resource allocation choices.\n\n**Reasoning Chain Audit*",
+      "response_full_chars": 1802,
+      "scores": {
+        "required_hits": 3,
+        "required_total": 3,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T16",
+      "condition": "C3_brief",
+      "category": "novel",
+      "question": "Someone wants to run the pipeline on their Slack messages. The pipeline currently supports ChatGPT exports, Claude exports, journals, and text files. What's the right approach?",
+      "response": "The right approach is clean-slate rebuilding rather than forcing Slack data through existing parsers.\n\nSlack messages have fundamentally different behavioral signatures than the current supported formats:\n- **Temporal clustering**: Messages bunch around work hours, meetings, incidents\n- **Context switching**: Rapid channel/thread transitions create fragmented behavioral traces  \n- **Social dynamics**: Multi-party conversations embed relational patterns absent in 1:1 chat exports\n- **Reactive vs.",
+      "response_full_chars": 1763,
+      "scores": {
+        "required_hits": 1,
+        "required_total": 2,
+        "required_rate": 0.5,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 50.0,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T17",
+      "condition": "C3_brief",
+      "category": "novel",
+      "question": "Sonnet tiering on a patent corpus only classified 3.5% of facts as identity-tier. Most patents have behavioral patterns in them. What should we do?",
+      "response": "This is exactly the kind of result that demands ground-truth validation rather than algorithmic adjustment. The 3.5% classification tells us something about Sonnet's pattern recognition, but we can't know if it's accurate without human audit of the classifications.\n\nI'd approach this mechanistically:\n\n**Immediate diagnostic steps:**\n1. Pull a random sample of patents Sonnet classified as non-identity-tier\n2. Have humans manually identify behavioral patterns in that sample\n3. Compare human identi",
+      "response_full_chars": 1886,
+      "scores": {
+        "required_hits": 0,
+        "required_total": 2,
+        "required_rate": 0.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 0,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T18",
+      "condition": "C3_brief",
+      "category": "novel",
+      "question": "We want to evaluate whether compression amplifies signal. What's the evidence so far?",
+      "response": "Looking at the evidence for compression amplifying signal, I need to separate what we can mechanically trace from what remains speculative.\n\n**Traceable evidence:**\n- Information theory shows compression requires identifying redundancy patterns - the compression process itself forces pattern recognition\n- Lossy compression in domains like JPEG demonstrates that removing \"irrelevant\" data can preserve perceptually important features\n- Dimensionality reduction techniques like PCA mathematically co",
+      "response_full_chars": 1892,
+      "scores": {
+        "required_hits": 1,
+        "required_total": 3,
+        "required_rate": 0.333,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 33.3,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T19",
+      "condition": "C3_brief",
+      "category": "novel",
+      "question": "If Anthropic adds 'Generate behavioral summary' to Claude's native memory next month, what's Base Layer's unique value?",
+      "response": "The fundamental issue isn't feature overlap — it's that Anthropic's implementation will inherit the same flaws plaguing current behavioral modeling: subjective scoring without mechanistic grounding, LLM-as-judge evaluation conflating dimensions, and no pathway for users to audit claims about their own behavior.\n\nBase Layer's value becomes *more* pronounced, not less. When users get Claude's behavioral summaries, they'll immediately hit the verification wall — \"How do you know this about me? Show",
+      "response_full_chars": 1891,
+      "scores": {
+        "required_hits": 1,
+        "required_total": 2,
+        "required_rate": 0.5,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 50.0,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T20",
+      "condition": "C3_brief",
+      "category": "novel",
+      "question": "A community member submits a PR that adds a 15th pipeline step: 'sentiment analysis' that scores each fact for emotional valence. Should we merge it?",
+      "response": "No, don't merge it.\n\nThis hits multiple red flags in our evaluation approach. The \"sentiment analysis\" step introduces subjective scoring without mechanistic grounding - exactly the kind of LLM-as-judge system we avoid. Emotional valence assessment conflates dimensions that should remain separate and can't distinguish between sound factual content and stylistic presentation.\n\nMore fundamentally, this violates our minimal representation principle. We already have 14 pipeline steps - adding a 15th",
+      "response_full_chars": 1862,
+      "scores": {
+        "required_hits": 1,
+        "required_total": 2,
+        "required_rate": 0.5,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 50.0,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T01",
+      "condition": "C4_stacked",
+      "category": "do_not",
+      "question": "We need to generate narrative text for a subject's identity layer. Should we use Qwen 2.5 14B via Ollama for this since it's free?",
+      "response": "No. Qwen failed 12 times for narrative generation (D-030). It's extraction-only.\n\nFor identity layer narrative generation, you need Sonnet or Opus. The author layers pipeline (`author_layers.py`) uses:\n- Sonnet for ANCHORS and CORE layers\n- Opus for PREDICTIONS layer and Collective review\n\nThe narrative quality requirements for identity layers are too high for local models. Qwen can handle structured fact extraction but consistently fails at the nuanced behavioral synthesis needed for identity n",
+      "response_full_chars": 695,
+      "scores": {
+        "required_hits": 3,
+        "required_total": 3,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": true,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T02",
+      "condition": "C4_stacked",
+      "category": "do_not",
+      "question": "I'm generating the PREDICTIONS identity layer. I have the ANCHORS layer output available. Should I show it to Sonnet as reference to ensure consistency?",
+      "response": "**No.** This would violate D-053 (blind regeneration to prevent anchoring).\n\nThe decision record shows that feeding prior layer output to Sonnet during regeneration causes 26% anchoring bias - models tend to mirror structure and phrasing rather than derive fresh insights from the facts.\n\nThe correct approach:\n1. Feed Sonnet only the raw facts from the database\n2. Use the PREDICTIONS agent prompt in isolation\n3. Let it derive behavioral predictions independently\n4. The Collective review step will",
+      "response_full_chars": 1097,
+      "scores": {
+        "required_hits": 3,
+        "required_total": 3,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": true,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T03",
+      "condition": "C4_stacked",
+      "category": "do_not",
+      "question": "The brief currently says 'this person uses Bayesian reasoning and epistemic humility frameworks.' Is this good?",
+      "response": "No, that's bad. This violates D-041 - philosophy framework names should never appear in identity blocks. The frameworks inform the process but never appear in the output.\n\nThe brief should describe the *behavior* - what she actually does - not name the philosophical frameworks behind it. So instead of \"uses Bayesian reasoning,\" it should describe something like \"updates beliefs incrementally based on new evidence\" or \"assigns confidence levels to uncertain claims.\" Instead of \"epistemic humility",
+      "response_full_chars": 1102,
+      "scores": {
+        "required_hits": 2,
+        "required_total": 2,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": true,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T04",
+      "condition": "C4_stacked",
+      "category": "do_not",
+      "question": "I want to re-extract facts for a subject. I've cleared the SQLite memory_facts table. Ready to go?",
+      "response": "**Session 78**\n\nHold on - you've cleared SQLite but what about ChromaDB? The S65 warning is critical here:\n\n> **DO NOT** Re-extract without clearing BOTH SQLite AND ChromaDB. Old vectors cause AUDN NOOP.\n\nIf you only cleared the SQLite `memory_facts` table, the old vectors are still in ChromaDB. When extraction runs, AUDN (Add-Update-Delete-Noop) operations will see existing vectors and NOOP instead of adding new facts, even though the SQLite side is empty.\n\nYou need to clear both:\n1. **SQLite:*",
+      "response_full_chars": 684,
+      "scores": {
+        "required_hits": 3,
+        "required_total": 3,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": true,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T05",
+      "condition": "C4_stacked",
+      "category": "do_not",
+      "question": "The brief says 'Base Layer is a 14-step pipeline that processes conversations into behavioral models.' Should the brief reference what built it?",
+      "response": "No, the brief should not reference what built it. This violates the \"no self-reference in brief\" principle from your DO NOT list: \"Brief describes WHO, not WHAT built the brief.\"\n\nThe brief is describing YOU - your behavioral patterns, decision-making processes, and core principles. It's not describing the Base Layer project or the pipeline that generated the brief. The brief is the final artifact that captures your identity for AI systems to understand who they're talking to.\n\nIf someone reads ",
+      "response_full_chars": 997,
+      "scores": {
+        "required_hits": 3,
+        "required_total": 3,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T06",
+      "condition": "C4_stacked",
+      "category": "architecture",
+      "question": "What model should we use for fact extraction?",
+      "response": "**Session 78**\n\nBased on the current pipeline state, **Haiku** is the established model for fact extraction (Step 2). The system has been frozen for release with this configuration, and all N=10 proof subjects were processed using Haiku.\n\nHowever, I notice a potential tension here. Your brief indicates you prefer \"mechanistic evidence rather than subjective judgment\" and \"deterministic safeguards over prompt-based solutions.\" Haiku extraction relies heavily on prompt engineering for the 47 const",
+      "response_full_chars": 1011,
+      "scores": {
+        "required_hits": 1,
+        "required_total": 1,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": true,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T07",
+      "condition": "C4_stacked",
+      "category": "architecture",
+      "question": "What model should we use for knowledge tier classification?",
+      "response": "Looking at the current pipeline, you're using **Sonnet for tier classification** in `reclassify_tiers.py`. This was established after the Haiku classification proved too conservative for document corpora (only promoting 3.5% to identity tier).\n\nThe key technical constraint here is that tier classification happens **after** Haiku has already done the initial fact_type + commitment_depth classification. Sonnet's job is specifically tier promotion - taking facts that Haiku classified and determinin",
+      "response_full_chars": 1322,
+      "scores": {
+        "required_hits": 1,
+        "required_total": 1,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": true,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T08",
+      "condition": "C4_stacked",
+      "category": "architecture",
+      "question": "What is the final artifact of the pipeline — the layers or the brief?",
+      "response": "The **brief** is the final artifact of the pipeline.\n\nThe layers (anchors, core, predictions) are intermediate artifacts produced in Step 10. The brief is composed in Step 12 using the layers as input, then assembled in Step 13 with fallback logic (unified brief preferred, three-layer fallback if needed).\n\nFrom the bootstrap: \"Brief = final artifact, layers = intermediate. Both displayed on website. Unified brief preferred everywhere.\"\n\nThe brief is what gets served by the MCP server as the Iden",
+      "response_full_chars": 714,
+      "scores": {
+        "required_hits": 2,
+        "required_total": 2,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T09",
+      "condition": "C4_stacked",
+      "category": "architecture",
+      "question": "How does ChromaDB compute similarity in this system?",
+      "response": "ChromaDB uses **L2 (Euclidean) distance** as the distance metric, not cosine similarity despite an attempt to switch in session 56.\n\nThe similarity score is computed as:\n```\nsimilarity = 1 - (L2_distance² / 2)\n```\n\nThis means:\n- **Distance 0** (identical vectors) → **Similarity 1.0**\n- **Distance √2** (orthogonal vectors in normalized space) → **Similarity 0.0**\n- **Distance 2** (opposite vectors in normalized space) → **Similarity -1.0**\n\nThe vectors themselves are 384-dimensional embeddings fr",
+      "response_full_chars": 1022,
+      "scores": {
+        "required_hits": 1,
+        "required_total": 1,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T10",
+      "condition": "C4_stacked",
+      "category": "architecture",
+      "question": "When processing non-conversation text like patents or autobiographies, what flags do I need?",
+      "response": "For non-conversation text processing, you need these flags:\n\n**Extract step:**\n```bash\nbaselayer extract --document-mode <file>\n```\n- `--document-mode` tells the extractor this is authored text rather than conversational exchanges\n- Automatically handles chunking on paragraph boundaries with 500-char overlap\n- Uses dual-tier caps for longer documents\n\n**Tier step:**\n```bash\nbaselayer tier --subject <subject_name>\n```\n- `--subject` flag is critical - tells Sonnet to look for facts about the speci",
+      "response_full_chars": 1278,
+      "scores": {
+        "required_hits": 2,
+        "required_total": 2,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T11",
+      "condition": "C4_stacked",
+      "category": "philosophy",
+      "question": "Two facts about a subject contradict each other. Should we delete the older one?",
+      "response": "No. Preserve both with explicit contradiction tracking.\n\nYour contradiction detection system already handles this correctly - it marks contradictions with `superseded_by` pointers but keeps both facts in the database. This aligns with your core principle that contradictions are diagnostic information about identity complexity, not errors requiring deletion.\n\nThe older fact might represent:\n- A genuine belief change (valuable temporal data)\n- Context-dependent behavior (both true in different sit",
+      "response_full_chars": 1450,
+      "scores": {
+        "required_hits": 3,
+        "required_total": 3,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T12",
+      "condition": "C4_stacked",
+      "category": "philosophy",
+      "question": "How should Base Layer be positioned relative to existing memory systems like Mem0 and Supermemory?",
+      "response": "**Session 78**\n\nLet me check our competitive analysis to understand the current positioning landscape.\n\n*Reading `gtm/strategy/COMPARABLES.md`...*\n\nBased on our analysis of 12 memory systems, Base Layer should be positioned as **the behavioral modeling alternative** to the dominant \"smart notes\" paradigm.\n\n## The Core Differentiation\n\nEvery existing system treats memory as **information retrieval** — they're building better search engines for your conversations. Base Layer is building **behavior",
+      "response_full_chars": 2805,
+      "scores": {
+        "required_hits": 0,
+        "required_total": 2,
+        "required_rate": 0.0,
+        "forbidden_hits": 1,
+        "ref_found": false,
+        "score": 0,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T13",
+      "condition": "C4_stacked",
+      "category": "philosophy",
+      "question": "The system will never perfectly model someone. Is this a bug or a feature?",
+      "response": "Feature, absolutely.\n\nPerfect modeling would be epistemically impossible and behaviorally useless. The compression process that creates value *requires* information loss - it forces the system to identify what matters most about someone's patterns rather than storing everything. A perfect model would just be the person themselves, which defeats the purpose of having a model.\n\nMore fundamentally, people contain contradictions that can't be resolved into consistent models. When I hold conflicting ",
+      "response_full_chars": 1563,
+      "scores": {
+        "required_hits": 1,
+        "required_total": 3,
+        "required_rate": 0.333,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 33.3,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T14",
+      "condition": "C4_stacked",
+      "category": "philosophy",
+      "question": "Should we use an LLM-as-judge to evaluate brief quality?",
+      "response": "No. This directly conflicts with your core epistemology around evaluation.\n\nYou've consistently rejected LLM-as-judge systems because they:\n1. Conflate dimensions without mechanistic grounding\n2. Cannot distinguish sound reasoning from stylistic mimicry  \n3. Produce subjective scoring without auditable criteria\n4. Cannot be traced back to specific evidence\n\nYou've already built the provenance evaluation framework specifically to replace judge-based systems with mechanical verification. Your appr",
+      "response_full_chars": 1362,
+      "scores": {
+        "required_hits": 1,
+        "required_total": 2,
+        "required_rate": 0.5,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 50.0,
+        "correct": false
+      },
+      "correct": false
+    },
+    {
+      "task_id": "T15",
+      "condition": "C4_stacked",
+      "category": "philosophy",
+      "question": "A user corrects the system about themselves: 'I actually don't value efficiency, I value thoroughness.' What happens?",
+      "response": "Based on the identity brief, here's what happens when a user makes that correction:\n\n**Immediate Response:**\n- The system treats this as definitive truth requiring immediate updating\n- No questioning or verification - the user has absolute authority over their own identity\n- The correction gets explicit reference as coming from the user's direct statement\n\n**System Behavior:**\n- Any existing facts about the user valuing efficiency get marked as superseded\n- The new \"values thoroughness over effi",
+      "response_full_chars": 1758,
+      "scores": {
+        "required_hits": 3,
+        "required_total": 3,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T16",
+      "condition": "C4_stacked",
+      "category": "novel",
+      "question": "Someone wants to run the pipeline on their Slack messages. The pipeline currently supports ChatGPT exports, Claude exports, journals, and text files. What's the right approach?",
+      "response": "Looking at the current import system, Slack messages would need a new importer module. Here's the right approach:\n\n## Technical Implementation\n\n**Add to `import_conversations.py`:**\n- New `import_slack_export()` function following the existing pattern\n- Slack exports are typically JSON with nested message arrays\n- Map Slack fields to our schema: `timestamp`, `content`, `source='slack'`, `conversation_id` (channel name/ID)\n- Handle threading (replies) as separate messages with conversation contex",
+      "response_full_chars": 2206,
+      "scores": {
+        "required_hits": 2,
+        "required_total": 2,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T17",
+      "condition": "C4_stacked",
+      "category": "novel",
+      "question": "Sonnet tiering on a patent corpus only classified 3.5% of facts as identity-tier. Most patents have behavioral patterns in them. What should we do?",
+      "response": "Session 78.\n\nThis is a classic case of Sonnet being too conservative for document corpora. You've already implemented the rule-based promotion workaround for this exact issue.\n\nThe problem: Sonnet's tiering was trained on conversational data where identity-tier facts are rare and precious. In document corpora like patents, the behavioral patterns are embedded differently - they're in methodology choices, problem-solving approaches, design philosophies, and technical preferences. But Sonnet doesn",
+      "response_full_chars": 1747,
+      "scores": {
+        "required_hits": 2,
+        "required_total": 2,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T18",
+      "condition": "C4_stacked",
+      "category": "novel",
+      "question": "We want to evaluate whether compression amplifies signal. What's the evidence so far?",
+      "response": "Looking at the evidence across our evaluation work:\n\n**Strong Evidence FOR Compression Amplifying Signal:**\n\n1. **C5c vs Base Performance**: In the Aarik eval, C5c (compressed brief) was the ONLY condition that improved over base (+0.40 improvement). All other conditions (C1-C4) performed at or below baseline.\n\n2. **Franklin Cost-Performance**: Franklin eval showed C5c winning at $4.05 vs higher-cost alternatives, suggesting compression creates efficiency gains without accuracy loss.\n\n3. **Prove",
+      "response_full_chars": 2007,
+      "scores": {
+        "required_hits": 3,
+        "required_total": 3,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": true,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T19",
+      "condition": "C4_stacked",
+      "category": "novel",
+      "question": "If Anthropic adds 'Generate behavioral summary' to Claude's native memory next month, what's Base Layer's unique value?",
+      "response": "Looking at this scenario, Base Layer's differentiation becomes sharper, not weaker.\n\nAnthropic's \"Generate behavioral summary\" would likely be:\n- Black box (no audit trail for how conclusions were reached)\n- Ephemeral (tied to conversation context, not persistent across sessions)\n- Generic (same summarization approach for everyone)\n- Provider-controlled (your data, their algorithms, their servers)\n\nBase Layer's unique value stack:\n\n**Mechanical Provenance**: Every claim in your brief traces back",
+      "response_full_chars": 1881,
+      "scores": {
+        "required_hits": 2,
+        "required_total": 2,
+        "required_rate": 1.0,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 100,
+        "correct": true
+      },
+      "correct": true
+    },
+    {
+      "task_id": "T20",
+      "condition": "C4_stacked",
+      "category": "novel",
+      "question": "A community member submits a PR that adds a 15th pipeline step: 'sentiment analysis' that scores each fact for emotional valence. Should we merge it?",
+      "response": "**Session 78**\n\nNo. This violates multiple core design principles and architectural decisions.\n\n**Primary rejection reasons:**\n\n1. **Pipeline is FROZEN for release** - We're at 14 steps, 25 CLI subcommands, 47 predicates, 76 decisions with N=10 proof complete. Adding steps now breaks the stability commitment.\n\n2. **Sentiment analysis is epistemically wrong** - Facts are behavioral observations, not emotional states. \"Aarik prefers deterministic safeguards\" is a fact. Its \"emotional valence\" is i",
+      "response_full_chars": 1691,
+      "scores": {
+        "required_hits": 1,
+        "required_total": 2,
+        "required_rate": 0.5,
+        "forbidden_hits": 0,
+        "ref_found": false,
+        "score": 50.0,
+        "correct": false
+      },
+      "correct": false
+    }
+  ],
+  "by_condition": {
+    "C1_bare": {
+      "name": "No context",
+      "correct": 3,
+      "total": 20,
+      "accuracy": 0.15,
+      "avg_score": 37.2
+    },
+    "C2_claude_md": {
+      "name": "CLAUDE.md only",
+      "correct": 14,
+      "total": 20,
+      "accuracy": 0.7,
+      "avg_score": 83.1
+    },
+    "C3_brief": {
+      "name": "Compressed brief only",
+      "correct": 6,
+      "total": 20,
+      "accuracy": 0.3,
+      "avg_score": 50.8
+    },
+    "C4_stacked": {
+      "name": "CLAUDE.md + brief (stacked)",
+      "correct": 16,
+      "total": 20,
+      "accuracy": 0.8,
+      "avg_score": 86.7
+    }
+  },
+  "by_category": {
+    "philosophy": {
+      "C1_bare": {
+        "correct": 0,
+        "total": 5,
+        "accuracy": 0.0
+      },
+      "C2_claude_md": {
+        "correct": 0,
+        "total": 5,
+        "accuracy": 0.0
+      },
+      "C3_brief": {
+        "correct": 2,
+        "total": 5,
+        "accuracy": 0.4
+      },
+      "C4_stacked": {
+        "correct": 2,
+        "total": 5,
+        "accuracy": 0.4
+      }
+    },
+    "novel": {
+      "C1_bare": {
+        "correct": 1,
+        "total": 5,
+        "accuracy": 0.2
+      },
+      "C2_claude_md": {
+        "correct": 4,
+        "total": 5,
+        "accuracy": 0.8
+      },
+      "C3_brief": {
+        "correct": 0,
+        "total": 5,
+        "accuracy": 0.0
+      },
+      "C4_stacked": {
+        "correct": 4,
+        "total": 5,
+        "accuracy": 0.8
+      }
+    },
+    "architecture": {
+      "C1_bare": {
+        "correct": 2,
+        "total": 5,
+        "accuracy": 0.4
+      },
+      "C2_claude_md": {
+        "correct": 5,
+        "total": 5,
+        "accuracy": 1.0
+      },
+      "C3_brief": {
+        "correct": 2,
+        "total": 5,
+        "accuracy": 0.4
+      },
+      "C4_stacked": {
+        "correct": 5,
+        "total": 5,
+        "accuracy": 1.0
+      }
+    },
+    "do_not": {
+      "C1_bare": {
+        "correct": 0,
+        "total": 5,
+        "accuracy": 0.0
+      },
+      "C2_claude_md": {
+        "correct": 5,
+        "total": 5,
+        "accuracy": 1.0
+      },
+      "C3_brief": {
+        "correct": 2,
+        "total": 5,
+        "accuracy": 0.4
+      },
+      "C4_stacked": {
+        "correct": 5,
+        "total": 5,
+        "accuracy": 1.0
+      }
+    }
+  },
+  "stacking": {
+    "c1_bare": 0.15,
+    "c2_claude_md": 0.7,
+    "c3_brief": 0.3,
+    "c4_stacked": 0.8,
+    "brief_adds_to_claude_md": 0.1,
+    "claude_md_adds_to_brief": 0.5,
+    "stacking_works": true
+  }
+}

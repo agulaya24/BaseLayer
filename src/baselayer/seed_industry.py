@@ -30,13 +30,30 @@ from typing import Optional
 # Subject directory resolution
 # ---------------------------------------------------------------------------
 
-ANTHROPIC_ROOT = Path("C:/Users/Aarik/Anthropic")
+ANTHROPIC_ROOT = Path(os.environ.get("BASELAYER_ROOT", "C:/Users/Aarik/Anthropic"))
 
 
 def resolve_subject_dir(subject: str) -> Path:
-    """Find the subject's memory directory."""
+    """Find the subject's memory directory. Checks subjects table first, then filesystem."""
+    # S98 Phase 3B: Try subjects table first
+    try:
+        main_db = ANTHROPIC_ROOT / "memory_system" / "data" / "database" / "memory.db"
+        if main_db.exists():
+            import sqlite3
+            conn = sqlite3.connect(str(main_db), timeout=1)
+            row = conn.execute("SELECT environment_dir FROM subjects WHERE id = ?", (subject,)).fetchone()
+            conn.close()
+            if row and row[0]:
+                env_path = ANTHROPIC_ROOT / "subjects" / row[0]
+                if env_path.exists():
+                    return env_path
+    except Exception:
+        pass
+
+    # Fallback: filesystem search
     candidates = [
         ANTHROPIC_ROOT / "subjects" / f"{subject}_memory",
+        ANTHROPIC_ROOT / "subjects" / subject,
         ANTHROPIC_ROOT / f"{subject}_memory",
         ANTHROPIC_ROOT / "memory_system_v4",  # user_a
     ]
@@ -49,6 +66,34 @@ def resolve_subject_dir(subject: str) -> Path:
 # ---------------------------------------------------------------------------
 # Markdown parsing (from generate_website_data.py)
 # ---------------------------------------------------------------------------
+
+
+def _extract_body(text: str) -> str:
+    """Extract body content from a layer file, stripping any header format.
+
+    Supports both:
+    - S98 YAML frontmatter: ---\\nyaml\\n---\\n\\n## Injectable Block\\n\\ncontent
+    - Legacy comment header: # comment\\n# comment\\n\\n---\\n\\n## Injectable Block\\n\\ncontent
+    """
+    # Find ## Injectable Block and return everything after it
+    marker = "## Injectable Block"
+    idx = text.find(marker)
+    if idx >= 0:
+        return text[idx + len(marker):].strip()
+    # Fallback: strip YAML frontmatter
+    if text.startswith("---"):
+        end = text.find("---", 3)
+        if end > 0:
+            return text[end + 3:].strip()
+    # Fallback: strip comment header
+    lines = text.split("\n")
+    body_start = 0
+    for i, line in enumerate(lines):
+        if not line.startswith("#") and line.strip():
+            body_start = i
+            break
+    return "\n".join(lines[body_start:]).strip()
+
 
 def _extract_provenance_from_line(line: str) -> list[str]:
     """Extract provenance fact IDs from a 'provenance: [F-xxx, F-yyy]' line."""
@@ -90,7 +135,9 @@ def parse_anchors_md(text: str) -> list[dict]:
 
 def parse_core_md(text: str) -> list[dict]:
     items = []
-    pattern = r'\*\*([MC])(\d+)\.\s+([A-Z][A-Z0-9 _&-]+)\*\*\s*\n(.*?)(?=\n\*\*[MC]\d+\.|\Z)'
+
+    # Match numbered items: **C1. NAME** or **M1. NAME**
+    pattern = r'\*\*([MC])(\d+)\.\s+([A-Z][A-Z0-9 _&/-]+)\*\*\s*\n(.*?)(?=\n\*\*[MC]\d+\.|\n\*\*[A-Z][A-Z ]+\*\*|\Z)'
     matches = re.findall(pattern, text, re.DOTALL)
     for prefix, num, name, body in matches:
         item = {"id": f"{prefix}{num}", "name": name.strip().rstrip("*"), "description": ""}
@@ -105,6 +152,29 @@ def parse_core_md(text: str) -> list[dict]:
                 desc_lines.append(stripped)
         item["description"] = " ".join(desc_lines).strip()
         items.append(item)
+
+    # Match unnumbered items: **COMMUNICATION APPROACH**, **NARRATIVE ORIENTATION**, etc.
+    unnum_pattern = r'\*\*([A-Z][A-Z ]+)\*\*\s*\n(.*?)(?=\n\*\*[MC]\d+\.|\n\*\*[A-Z][A-Z ]+\*\*|\Z)'
+    unnum_matches = re.findall(unnum_pattern, text, re.DOTALL)
+    for i, (name, body) in enumerate(unnum_matches):
+        # Skip if this name was already captured as part of a numbered item's body
+        if any(name.strip() in it["name"] for it in items):
+            continue
+        item_id = f"U{i+1}"  # Unnumbered items get U-prefix
+        item = {"id": item_id, "name": name.strip(), "description": ""}
+        desc_lines = []
+        for line in body.strip().split("\n"):
+            stripped = line.strip()
+            if stripped.lower().startswith("provenance:"):
+                prov_ids = _extract_provenance_from_line(stripped)
+                if prov_ids:
+                    item["provenance"] = prov_ids
+            elif not stripped.startswith("**"):  # Don't capture next item's header
+                desc_lines.append(stripped)
+        item["description"] = " ".join(desc_lines).strip()
+        if item["description"]:  # Only add if there's actual content
+            items.append(item)
+
     return items
 
 
@@ -487,6 +557,50 @@ def compute_radar_profile(name: str, db_path: Path, anchors: list, core: list, p
     }
 
 
+def generate_change_summary(old_text: str, new_text: str) -> str:
+    """Mechanical diff between two identity models. No LLM call."""
+    import re
+
+    def count_items(text, pattern):
+        return len(re.findall(pattern, text))
+
+    old_anchors = count_items(old_text, r'\*\*A\d+')
+    new_anchors = count_items(new_text, r'\*\*A\d+')
+    old_core = count_items(old_text, r'\*\*(?:C|M)\d+')
+    new_core = count_items(new_text, r'\*\*(?:C|M)\d+')
+    old_preds = count_items(old_text, r'\*\*P\d+')
+    new_preds = count_items(new_text, r'\*\*P\d+')
+
+    # Brief word count (everything after "## Identity Brief")
+    def brief_words(text):
+        match = re.search(r'## Identity Brief\s*\n(.*)', text, re.DOTALL)
+        return len(match.group(1).split()) if match else 0
+
+    old_bw = brief_words(old_text)
+    new_bw = brief_words(new_text)
+
+    parts = []
+    layer_changes = []
+    if new_anchors != old_anchors:
+        layer_changes.append(f"anchors {old_anchors}→{new_anchors}")
+    if new_core != old_core:
+        layer_changes.append(f"core items {old_core}→{new_core}")
+    if new_preds != old_preds:
+        layer_changes.append(f"predictions {old_preds}→{new_preds}")
+
+    if layer_changes:
+        parts.append(f"Operational guide changed: {', '.join(layer_changes)}.")
+    elif old_text != new_text:
+        parts.append("Layer content revised (same structure, different substance).")
+
+    if old_bw and new_bw and abs(new_bw - old_bw) > 50:
+        parts.append(f"Brief {'expanded' if new_bw > old_bw else 'condensed'} from {old_bw:,} to {new_bw:,} words.")
+    elif old_bw and new_bw and old_text != new_text:
+        parts.append(f"Brief revised ({new_bw:,} words).")
+
+    return " ".join(parts) if parts else ""
+
+
 def build_payload(subject_dir: Path, name: str, slug: str, password: str, source_desc: str, token: Optional[str] = None) -> dict:
     layers_dir = subject_dir / "data" / "identity_layers"
     db_path = subject_dir / "data" / "database" / "memory.db"
@@ -588,6 +702,59 @@ def build_payload(subject_dir: Path, name: str, slug: str, password: str, source
         except Exception:
             pass
 
+    # Build source documents list from conversations table
+    source_documents = []
+    try:
+        conn = sqlite3.connect(str(db_path))
+        rows = conn.execute(
+            "SELECT title, source FROM conversations ORDER BY title"
+        ).fetchall()
+        conn.close()
+        seen_titles = set()
+        for i, (title, src) in enumerate(rows, 1):
+            if title in seen_titles:
+                continue
+            seen_titles.add(title)
+            # Map source type to domain label
+            domain = {
+                "text_file": "Essays & Articles",
+                "chatgpt": "Conversations",
+                "claude_web": "Conversations",
+                "journal": "Journal",
+            }.get(src or "", src or "Other")
+            # Try to infer domain from source directory structure
+            source_documents.append({
+                "id": str(i),
+                "title": title,
+                "domain": domain,
+            })
+    except Exception:
+        pass
+
+    # Try to enrich domains from source file paths
+    source_dir = subject_dir / "data" / "sources"
+    if source_dir.exists():
+        folder_to_domain = {
+            "op-eds": "Op-Eds",
+            "speeches": "Speeches",
+            "debates": "Debates",
+            "interviews": "Interviews",
+            "books": "Books",
+            "historical": "Historical",
+            "archives": "Archives",
+        }
+        file_title_to_domain = {}
+        for folder, domain_label in folder_to_domain.items():
+            folder_path = source_dir / folder
+            if folder_path.exists():
+                for f in folder_path.glob("*.txt"):
+                    clean_title = f.stem.replace("_", " ").replace("-", " ").title()
+                    file_title_to_domain[clean_title] = domain_label
+        # Match source documents to folder-based domains
+        for doc in source_documents:
+            if doc["title"] in file_title_to_domain:
+                doc["domain"] = file_title_to_domain[doc["title"]]
+
     payload = {
         "name": name,
         "slug": slug,
@@ -603,10 +770,23 @@ def build_payload(subject_dir: Path, name: str, slug: str, password: str, source
         "contradictions": contradictions,
         "stats": pred_dist,
         "radar": radar,
+        "sourceDocuments": source_documents,
     }
 
     if token:
         payload["token"] = token
+
+    # S98: Generate change summary if previous identity model exists
+    v1_staging = subject_dir / "data" / "identity_layers" / "v1_staging"
+    v1_identity = v1_staging / "identity_model.md"
+    current_identity = subject_dir / "data" / "identity_layers" / "identity_model.md"
+    if v1_identity.exists() and current_identity.exists():
+        old_text = v1_identity.read_text(encoding="utf-8")
+        new_text = current_identity.read_text(encoding="utf-8")
+        summary = generate_change_summary(old_text, new_text)
+        if summary:
+            payload["changeSummary"] = summary
+            print(f"  Change summary: {summary}")
 
     return payload
 
@@ -616,21 +796,36 @@ def build_payload(subject_dir: Path, name: str, slug: str, password: str, source
 # ---------------------------------------------------------------------------
 
 SUBJECTS = {
-    "dan_shipper":      {"name": "Dan Shipper",         "slug": "dan-shipper",      "password": "REDACTED",              "source": "60 Chain of Thought essays"},
-    "anne_lecunff":      {"name": "Anne-Laure Le Cunff", "slug": "anne-laure",        "password": "REDACTED",            "source": "30 Ness Labs essays"},
-    "henrik_karlsson":   {"name": "Henrik Karlsson",     "slug": "henrik-karlsson",   "password": "REDACTED",        "source": "22 Escaping Flatland essays"},
-    "david_perell":      {"name": "David Perell",        "slug": "david-perell",      "password": "REDACTED",         "source": "25 essays"},
-    "fred_wilson":       {"name": "Fred Wilson",         "slug": "fred-wilson",       "password": "REDACTED",           "source": "58 AVC posts"},
-    "simon_willison":    {"name": "Simon Willison",      "slug": "simon-willison",    "password": "REDACTED",         "source": "46 blog posts"},
-    "maggie_appleton":   {"name": "Maggie Appleton",     "slug": "maggie-appleton",   "password": "REDACTED",              "source": "32 essays and notes"},
-    "cedric_chin":       {"name": "Cedric Chin",         "slug": "cedric-chin",       "password": "REDACTED",        "source": "68 Commoncog posts"},
-    "casey_newton":      {"name": "Casey Newton",        "slug": "casey-newton",      "password": "REDACTED",             "source": "30 Platformer articles"},
-    "scott_alexander":   {"name": "Scott Alexander",     "slug": "scott-alexander",   "password": "REDACTED",   "source": "40 ACX posts"},
-    "matt_yglesias":     {"name": "Matt Yglesias",       "slug": "matt-yglesias",     "password": "REDACTED",                  "source": "52 Slow Boring posts"},
-    "swyx":              {"name": "swyx",                "slug": "swyx",              "password": "REDACTED",        "source": "49 posts"},
-    "ethan_mollick":     {"name": "Ethan Mollick",       "slug": "ethan-mollick",     "password": "REDACTED",            "source": "44 One Useful Thing posts"},
-    "cory_doctorow":     {"name": "Cory Doctorow",       "slug": "cory-doctorow",     "password": "REDACTED",         "source": "50 Pluralistic posts"},
-    "kevin_kelly":       {"name": "Kevin Kelly",         "slug": "kevin-kelly",       "password": "REDACTED",              "source": "28 Technium essays"},
+    "dan_shipper":      {"name": "Dan Shipper",         "slug": "dan-shipper",      "password": "REDACTED",              "source": "84 Chain of Thought essays, interviews, and talks"},
+    "anne_lecunff":      {"name": "Anne-Laure Le Cunff", "slug": "anne-laure",        "password": "REDACTED",            "source": "131 Ness Labs essays"},
+    "henrik_karlsson":   {"name": "Henrik Karlsson",     "slug": "henrik-karlsson",   "password": "REDACTED",        "source": "90 Escaping Flatland essays"},
+    "david_perell":      {"name": "David Perell",        "slug": "david-perell",      "password": "REDACTED",         "source": "140 essays"},
+    "fred_wilson":       {"name": "Fred Wilson",         "slug": "fred-wilson",       "password": "REDACTED",           "source": "143 AVC posts"},
+    "simon_willison":    {"name": "Simon Willison",      "slug": "simon-willison",    "password": "REDACTED",         "source": "208 blog posts"},
+    "maggie_appleton":   {"name": "Maggie Appleton",     "slug": "maggie-appleton",   "password": "REDACTED",              "source": "121 essays, notes, and talks"},
+    "cedric_chin":       {"name": "Cedric Chin",         "slug": "cedric-chin",       "password": "REDACTED",        "source": "297 Commoncog posts"},
+    "casey_newton":      {"name": "Casey Newton",        "slug": "casey-newton",      "password": "REDACTED",             "source": "103 Platformer articles"},
+    "scott_alexander":   {"name": "Scott Alexander",     "slug": "scott-alexander",   "password": "REDACTED",   "source": "100 ACX posts"},
+    "matt_yglesias":     {"name": "Matt Yglesias",       "slug": "matt-yglesias",     "password": "REDACTED",                  "source": "277 Slow Boring posts"},
+    "swyx":              {"name": "swyx",                "slug": "swyx",              "password": "REDACTED",        "source": "70 posts"},
+    "ethan_mollick":     {"name": "Ethan Mollick",       "slug": "ethan-mollick",     "password": "REDACTED",            "source": "99 One Useful Thing posts"},
+    "cory_doctorow":     {"name": "Cory Doctorow",       "slug": "cory-doctorow",     "password": "REDACTED",         "source": "163 Pluralistic posts"},
+    "kevin_kelly":       {"name": "Kevin Kelly",         "slug": "kevin-kelly",       "password": "REDACTED",              "source": "670 Technium essays, Extrapolations, and archives"},
+    # Wave 2
+    "paul_graham":       {"name": "Paul Graham",         "slug": "paul-graham",       "password": "REDACTED",       "source": "56 essays"},
+    "dan_luu":           {"name": "Dan Luu",             "slug": "dan-luu",           "password": "REDACTED",               "source": "80 blog posts"},
+    "derek_thompson":    {"name": "Derek Thompson",      "slug": "derek-thompson",    "password": "REDACTED",                  "source": "40 essays"},
+    "linus_lee":         {"name": "Linus Lee",           "slug": "linus-lee",         "password": "REDACTED",             "source": "64 essays and project write-ups"},
+    "byrne_hobart":      {"name": "Byrne Hobart",        "slug": "byrne-hobart",      "password": "REDACTED",        "source": "40 Diff essays"},
+    "noah_smith":        {"name": "Noah Smith",          "slug": "noah-smith",        "password": "REDACTED",            "source": "40 Noahpinion essays"},
+    "venkatesh_rao":     {"name": "Venkatesh Rao",       "slug": "venkatesh-rao",     "password": "REDACTED",                 "source": "43 Ribbonfarm essays"},
+    "nathan_lambert":    {"name": "Nathan Lambert",      "slug": "nathan-lambert",    "password": "REDACTED",                 "source": "40 Interconnects posts"},
+    "packy_mccormick":   {"name": "Packy McCormick",     "slug": "packy-mccormick",   "password": "REDACTED",                 "source": "40 Not Boring essays"},
+    "tina_he":           {"name": "Tina He",             "slug": "tina-he",           "password": "REDACTED",              "source": "40 Fakepixels essays"},
+    "bernie_sanders":    {"name": "Bernie Sanders",      "slug": "bernie-sanders",    "password": "REDACTED",         "source": "130 speeches, op-eds, and interviews"},
+    "ivan_bercovich":    {"name": "Ivan Bercovich",      "slug": "ivan-bercovich",    "password": "REDACTED",           "source": "50 essays and interviews"},
+    "jonathan_fulton":   {"name": "Jonathan Fulton",     "slug": "jonathan-fulton",   "password": "REDACTED",            "source": "20 blog posts"},
+    "eli_tyre":          {"name": "Eli Tyre",            "slug": "eli-tyre",          "password": "REDACTED",           "source": "197 posts and essays"},
 }
 
 

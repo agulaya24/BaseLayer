@@ -1,0 +1,327 @@
+[22:07:51] ======================================================================
+[22:07:51] GPU OVERNIGHT RUNNER — SESSION 83
+[22:07:51] Model: qwen2.5:14b via Ollama
+[22:07:51] Started: 2026-03-09T22:07:51.681246
+[22:07:51] ======================================================================
+[22:07:53] Ollama models: ['qwen2.5:14b']
+[22:07:53] 
+######################################################################
+[22:07:53] Starting A_brief_quality
+[22:07:53] ######################################################################
+[22:07:53] 
+======================================================================
+[22:07:53] PHASE A: V4 BRIEF QUALITY SCORING (all subjects)
+[22:07:53] ======================================================================
+[22:07:54]   franklin: composite=21.9  m1=0.213  pred=0.0%  chars=7135  CR=11.70%  facts=135
+[22:07:54]   marks: no brief found at C:\Users\Aarik\Anthropic\marks_memory\data\identity_layers\brief_v4.md
+[22:07:54]   paul_graham: composite=40.9  m1=0.409  pred=40.8%  chars=6204  CR=80.06%  facts=272
+[22:07:54] Checkpoint saved after A_brief_quality
+[22:07:54] 
+######################################################################
+[22:07:54] Starting B_paul_graham
+[22:07:54] ######################################################################
+[22:07:54] 
+======================================================================
+[22:07:54] PHASE B: PAUL GRAHAM EXPERIMENTS (272 untiered facts)
+[22:07:54] ======================================================================
+[22:07:54]   Loaded 272 facts
+[22:07:54] 
+  --- B1: Temporal Quarter Prediction ---
+[22:07:54]   pg_Q1_predicts_rest: 68 train -> 204 test
+[22:09:40]     composite=33.2  m1=0.354  pred=25.5%  chars=6257
+[22:09:40]   pg_Q2_predicts_rest: 68 train -> 204 test
+[22:11:08] ======================================================================
+[22:11:08] GPU OVERNIGHT RUNNER — SESSION 83
+[22:11:08] Model: qwen2.5:14b via Ollama
+[22:11:08] Started: 2026-03-09T22:11:08.774583
+[22:11:08] ======================================================================
+[22:11:10] Ollama models: ['qwen2.5:14b']
+[22:11:10] 
+######################################################################
+[22:11:10] Starting A_brief_quality
+[22:11:10] ######################################################################
+[22:11:10] 
+======================================================================
+[22:11:10] PHASE A: V4 BRIEF QUALITY SCORING (all subjects)
+[22:11:10] ======================================================================
+[22:11:11]   franklin: composite=21.9  m1=0.213  pred=0.0%  chars=7135  CR=11.70%  facts=135
+[22:11:11]   marks: no brief found at C:\Users\Aarik\Anthropic\marks_memory\data\identity_layers\brief_v4.md
+[22:11:11]   paul_graham: composite=40.9  m1=0.409  pred=40.8%  chars=6204  CR=80.06%  facts=272
+[22:11:11] Checkpoint saved after A_brief_quality
+[22:11:11] 
+######################################################################
+[22:11:11] Starting B_paul_graham
+[22:11:11] ######################################################################
+[22:11:11] 
+======================================================================
+[22:11:11] PHASE B: PAUL GRAHAM EXPERIMENTS (272 untiered facts)
+[22:11:11] ======================================================================
+[22:11:11]   Loaded 272 facts
+[22:11:11] 
+  --- B1: Temporal Quarter Prediction ---
+[22:11:11]   pg_Q1_predicts_rest: 68 train -> 204 test
+[22:12:29]     composite=32.4  m1=0.369  pred=14.7%  chars=12141
+[22:12:29]   pg_Q3_predicts_rest: 68 train -> 204 test
+[22:13:48]     composite=36.7  m1=0.381  pred=34.8%  chars=6408
+[22:13:48]   pg_Q2_predicts_rest: 68 train -> 204 test
+[22:16:32]     composite=36.7  m1=0.374  pred=22.1%  chars=11991
+[22:16:32]   pg_Q4_predicts_rest: 68 train -> 204 test
+[22:17:48]     composite=31.3  m1=0.352  pred=22.1%  chars=6148
+[22:17:48]   pg_Q3_predicts_rest: 68 train -> 204 test
+[22:18:44]     composite=35.6  m1=0.370  pred=31.9%  chars=4772
+[22:18:44] 
+  --- B2: Bidirectional Accumulation ---
+[22:18:44]   pg_fwd_Q1->Q4: 68 train -> 68 test
+[22:20:36]     composite=34.7  m1=0.381  pred=29.9%  chars=8930
+[22:20:36]   pg_Q4_predicts_rest: 68 train -> 204 test
+[22:23:19]     composite=34.6  m1=0.381  pred=25.0%  chars=12537
+[22:23:19]   pg_fwd_Q1+Q2->Q4: 136 train -> 68 test
+[22:25:00]     composite=32.3  m1=0.357  pred=28.9%  chars=7821
+[22:25:00] 
+  --- B2: Bidirectional Accumulation ---
+[22:25:00]   pg_fwd_Q1->Q4: 68 train -> 68 test
+[22:27:45]     composite=34.8  m1=0.400  pred=29.4%  chars=11942
+[22:27:45]   pg_fwd_Q1+Q2+Q3->Q4: 204 train -> 68 test
+[22:30:02]   Qwen attempt 1 failed: HTTPConnectionPool(host='localhost', port=11434): Read timed out. (read timeout=300)
+[22:31:50]     composite=38.8  m1=0.406  pred=39.7%  chars=7929
+[22:31:50]   pg_rev_Q4->Q1: 68 train -> 68 test
+[22:34:23]     composite=35.7  m1=0.394  pred=29.4%  chars=11718
+[22:34:23]   pg_fwd_Q1+Q2->Q4: 136 train -> 68 test
+[22:35:20]     composite=31.8  m1=0.342  pred=25.0%  chars=4841
+[22:35:20]   pg_rev_Q4+Q3->Q1: 136 train -> 68 test
+[22:38:05]     composite=37.6  m1=0.406  pred=32.4%  chars=11906
+[22:38:05]   pg_fwd_Q1+Q2+Q3->Q4: 204 train -> 68 test
+[22:40:07]     composite=33.7  m1=0.372  pred=27.9%  chars=9122
+[22:40:07]   pg_rev_Q4+Q3+Q2->Q1: 204 train -> 68 test
+[22:42:52]     composite=36.3  m1=0.387  pred=33.8%  chars=12363
+[22:42:52]   pg_rev_Q4->Q1: 68 train -> 68 test
+[22:44:47]     composite=30.6  m1=0.330  pred=22.1%  chars=8644
+[22:44:47] 
+  --- B3: Compression Saturation ---
+[22:44:47]   pg_split_10pct: 27 train -> 245 test
+[22:45:34]     composite=34.7  m1=0.360  pred=27.9%  chars=4051
+[22:45:34]   pg_rev_Q4+Q3->Q1: 136 train -> 68 test
+[22:46:10]     composite=38.0  m1=0.405  pred=40.0%  chars=3285
+[22:46:10]   pg_split_20pct: 54 train -> 218 test
+[22:48:06]     composite=32.5  m1=0.354  pred=26.5%  chars=8969
+[22:48:06]   pg_rev_Q4+Q3+Q2->Q1: 204 train -> 68 test
+[22:50:48]     composite=39.9  m1=0.431  pred=45.9%  chars=11443
+[22:50:48]   pg_split_30pct: 81 train -> 191 test
+[22:52:33]     composite=32.5  m1=0.356  pred=23.5%  chars=8254
+[22:52:33] 
+  --- B3: Compression Saturation ---
+[22:52:33]   pg_split_10pct: 27 train -> 245 test
+[22:53:46]     composite=36.2  m1=0.402  pred=29.8%  chars=5670
+[22:53:46]   pg_split_50pct: 136 train -> 136 test
+[22:54:43]     composite=42.0  m1=0.435  pred=46.1%  chars=4810
+[22:54:43]   pg_split_20pct: 54 train -> 218 test
+[22:57:29]     composite=34.6  m1=0.390  pred=30.1%  chars=12552
+[22:57:29]   pg_split_75pct: 204 train -> 68 test
+[22:59:45]   Qwen attempt 1 failed: HTTPConnectionPool(host='localhost', port=11434): Read timed out. (read timeout=300)
+[23:02:31]     composite=36.6  m1=0.395  pred=36.8%  chars=12436
+[23:02:31] 
+  --- B4: Brief Length Sweep ---
+[23:04:52]   Qwen attempt 2 failed: HTTPConnectionPool(host='localhost', port=11434): Read timed out. (read timeout=300)
+[23:05:14]     target=500  actual=1678  composite=37.4
+[23:07:56]     composite=35.4  m1=0.390  pred=33.5%  chars=12444
+[23:07:56]   pg_split_30pct: 81 train -> 191 test
+[23:08:40]     target=1000  actual=3203  composite=35.3
+[23:11:10]     composite=41.9  m1=0.442  pred=51.3%  chars=10786
+[23:11:10]   pg_split_50pct: 136 train -> 136 test
+[23:13:42]   Qwen attempt 1 failed: HTTPConnectionPool(host='localhost', port=11434): Read timed out. (read timeout=300)
+[23:16:12]   Qwen attempt 1 failed: HTTPConnectionPool(host='localhost', port=11434): Read timed out. (read timeout=300)
+[23:17:09]     target=1500  actual=4289  composite=37.9
+[23:19:54]     composite=40.2  m1=0.415  pred=36.0%  chars=12382
+[23:19:54]   pg_split_75pct: 204 train -> 68 test
+[23:22:11]   Qwen attempt 1 failed: HTTPConnectionPool(host='localhost', port=11434): Read timed out. (read timeout=300)
+[23:24:56]     composite=39.1  m1=0.415  pred=42.6%  chars=12621
+[23:24:56] 
+  --- B4: Brief Length Sweep ---
+[23:27:18]   Qwen attempt 2 failed: HTTPConnectionPool(host='localhost', port=11434): Read timed out. (read timeout=300)
+[23:27:35]     target=500  actual=1303  composite=36.6
+[23:30:20]     target=2000  actual=12634  composite=36.5
+[23:31:04]     target=1000  actual=3325  composite=37.8
+[23:33:48]     target=2500  actual=11659  composite=36.4
+[23:35:51]     target=1500  actual=9136  composite=33.3
+[23:37:04]     target=3500  actual=5676  composite=39.7
+[23:37:04] Checkpoint saved after B_paul_graham
+[23:37:04] 
+######################################################################
+[23:37:04] Starting D_franklin_marks_original
+[23:37:04] ######################################################################
+[23:37:04] 
+======================================================================
+[23:37:04] PHASE D: ORIGINAL S78 PHASES ON FRANKLIN + MARKS
+[23:37:04] ======================================================================
+[23:37:04]   Franklin identity-tier facts: 135
+[23:37:04] 
+  --- D1: Temporal Quarter Prediction ---
+[23:37:04]   franklin_Q1_predicts_rest: 33 train -> 102 test
+[23:39:48]     target=2000  actual=11851  composite=36.8
+[23:40:33]     composite=22.4  m1=0.214  pred=1.0%  chars=3740
+[23:40:33]   franklin_Q2_predicts_rest: 33 train -> 102 test
+[23:43:18]     target=2500  actual=12689  composite=38.5
+[23:44:03]     composite=18.9  m1=0.185  pred=1.0%  chars=3665
+[23:44:03]   franklin_Q3_predicts_rest: 33 train -> 102 test
+[23:46:48]     target=3500  actual=12152  composite=32.1
+[23:46:48] Checkpoint saved after B_paul_graham
+[23:46:48] 
+######################################################################
+[23:46:48] Starting D_franklin_marks_original
+[23:46:48] ######################################################################
+[23:46:48] 
+======================================================================
+[23:46:48] PHASE D: ORIGINAL S78 PHASES ON FRANKLIN + MARKS
+[23:46:48] ======================================================================
+[23:46:48]   Franklin identity-tier facts: 135
+[23:46:48] 
+  --- D1: Temporal Quarter Prediction ---
+[23:46:48]   franklin_Q1_predicts_rest: 33 train -> 102 test
+[23:47:57]     composite=20.0  m1=0.209  pred=0.0%  chars=5376
+[23:47:57]   franklin_Q4_predicts_rest: 36 train -> 99 test
+[23:48:57]     composite=24.2  m1=0.219  pred=0.0%  chars=4919
+[23:48:57]   franklin_Q2_predicts_rest: 33 train -> 102 test
+[23:49:53]     composite=18.7  m1=0.200  pred=0.0%  chars=4439
+[23:49:53] 
+  --- D2: Bidirectional Accumulation ---
+[23:49:53]   franklin_fwd_Q1->Q4: 33 train -> 36 test
+[23:50:33]     composite=20.6  m1=0.163  pred=0.0%  chars=2969
+[23:50:33]   franklin_Q3_predicts_rest: 33 train -> 102 test
+[23:51:38]     composite=24.5  m1=0.220  pred=0.0%  chars=5281
+[23:51:38]   franklin_fwd_Q1+Q2->Q4: 66 train -> 36 test
+[23:52:58]     composite=19.5  m1=0.206  pred=0.0%  chars=6180
+[23:52:58]   franklin_Q4_predicts_rest: 36 train -> 99 test
+[23:53:43]     composite=16.9  m1=0.153  pred=0.0%  chars=3753
+[23:53:43]   franklin_fwd_Q1+Q2+Q3->Q4: 99 train -> 36 test
+[23:55:00]     composite=27.6  m1=0.216  pred=0.0%  chars=6032
+[23:55:00] 
+  --- D2: Bidirectional Accumulation ---
+[23:55:00]   franklin_fwd_Q1->Q4: 33 train -> 36 test
+[23:56:04]     composite=16.2  m1=0.154  pred=0.0%  chars=4734
+[23:56:04]   franklin_rev_Q4->Q1: 36 train -> 33 test
+[23:56:51]     composite=20.8  m1=0.191  pred=0.0%  chars=3847
+[23:56:51]   franklin_fwd_Q1+Q2->Q4: 66 train -> 36 test
+[23:57:45]     composite=25.4  m1=0.207  pred=0.0%  chars=4221
+[23:57:45]   franklin_rev_Q4+Q3->Q1: 69 train -> 33 test
+[23:58:58]     composite=21.9  m1=0.164  pred=0.0%  chars=5649
+[23:58:58]   franklin_fwd_Q1+Q2+Q3->Q4: 99 train -> 36 test
+[00:00:25]     composite=20.3  m1=0.205  pred=0.0%  chars=7092
+[00:00:25]   franklin_rev_Q4+Q3+Q2->Q1: 102 train -> 33 test
+[00:01:19]     composite=21.3  m1=0.182  pred=0.0%  chars=4495
+[00:01:19]   franklin_rev_Q4->Q1: 36 train -> 33 test
+[00:02:21]     composite=19.4  m1=0.204  pred=0.0%  chars=4865
+[00:02:21] 
+  --- D3: Subtype Cross-Prediction ---
+[00:02:21]   franklin_biographical_predicts_others: 65 train -> 70 test
+[00:03:17]     composite=19.0  m1=0.217  pred=0.0%  chars=4576
+[00:03:17]   franklin_rev_Q4+Q3->Q1: 69 train -> 33 test
+[00:04:07]     composite=23.1  m1=0.211  pred=0.0%  chars=3862
+[00:04:07]   franklin_positional_predicts_others: 39 train -> 96 test
+[00:05:35]     composite=19.6  m1=0.141  pred=0.0%  chars=6768
+[00:05:35]   franklin_rev_Q4+Q3+Q2->Q1: 102 train -> 33 test
+[00:06:33]     composite=16.5  m1=0.123  pred=0.0%  chars=4782
+[00:06:33]   franklin_behavioral_predicts_others: 20 train -> 115 test
+[00:09:09]     composite=28.5  m1=0.212  pred=0.0%  chars=11676
+[00:09:09] 
+  --- D3: Subtype Cross-Prediction ---
+[00:09:09]   franklin_biographical_predicts_others: 65 train -> 70 test
+[00:10:03]     composite=20.7  m1=0.164  pred=0.9%  chars=4240
+[00:10:03]   franklin_preference_predicts_others: 11 train -> 124 test
+[00:11:03]     composite=17.4  m1=0.159  pred=0.0%  chars=4288
+[00:11:03]   franklin_positional_predicts_others: 39 train -> 96 test
+[00:11:34]     composite=19.5  m1=0.209  pred=0.0%  chars=2660
+[00:11:34] 
+  --- D4: Predicate Quality Extended ---
+[00:11:34]   franklin_epistemic_r1: 40 train -> 47 test
+[00:12:55]     composite=15.7  m1=0.132  pred=0.0%  chars=6406
+[00:12:55]   franklin_behavioral_predicts_others: 20 train -> 115 test
+[00:14:10]     composite=18.4  m1=0.166  pred=0.0%  chars=5804
+[00:14:10]   franklin_epistemic_r2: 40 train -> 47 test
+[00:15:03]     composite=19.3  m1=0.179  pred=0.0%  chars=4101
+[00:15:03]   franklin_preference_predicts_others: 11 train -> 124 test
+[00:16:13]     composite=18.2  m1=0.176  pred=0.0%  chars=5251
+[00:16:13]   franklin_epistemic_r3: 40 train -> 47 test
+[00:16:44]     composite=22.2  m1=0.199  pred=0.0%  chars=2477
+[00:16:44] 
+  --- D4: Predicate Quality Extended ---
+[00:16:44]   franklin_epistemic_r1: 40 train -> 47 test
+[00:17:54]     composite=19.0  m1=0.191  pred=0.0%  chars=5376
+[00:17:54]     epistemic: avg=18.6 +/- 0.4 (40 facts)
+[00:17:54]   franklin_capability_r1: 26 train -> 54 test
+[00:19:49]     composite=16.7  m1=0.120  pred=0.0%  chars=8788
+[00:19:49]   franklin_epistemic_r2: 40 train -> 47 test
+[00:20:33]     composite=13.9  m1=0.086  pred=0.0%  chars=3592
+[00:20:33]   franklin_capability_r2: 26 train -> 54 test
+[00:22:49]     composite=17.6  m1=0.156  pred=0.0%  chars=10095
+[00:22:49]   franklin_epistemic_r3: 40 train -> 47 test
+[00:23:32]     composite=14.7  m1=0.106  pred=0.0%  chars=3441
+[00:23:32]   franklin_capability_r3: 26 train -> 54 test
+[00:25:16]     composite=16.4  m1=0.132  pred=0.0%  chars=7956
+[00:25:16]     epistemic: avg=16.9 +/- 0.5 (40 facts)
+[00:25:16]   franklin_capability_r1: 26 train -> 54 test
+[00:26:07]     composite=27.8  m1=0.209  pred=0.0%  chars=4137
+[00:26:07]     capability: avg=18.8 +/- 6.4 (26 facts)
+[00:26:07]   franklin_experiential_r1: 14 train -> 60 test
+[00:26:54]     composite=14.6  m1=0.105  pred=0.0%  chars=3849
+[00:26:54]   franklin_capability_r2: 26 train -> 54 test
+[00:27:28]     composite=22.9  m1=0.199  pred=0.0%  chars=2739
+[00:27:28]   franklin_experiential_r2: 14 train -> 60 test
+[00:28:20]     composite=24.9  m1=0.196  pred=0.0%  chars=4253
+[00:28:20]   franklin_capability_r3: 26 train -> 54 test
+[00:29:05]     composite=23.7  m1=0.172  pred=0.0%  chars=3529
+[00:29:05]   franklin_experiential_r3: 14 train -> 60 test
+[00:29:56]     composite=24.6  m1=0.185  pred=0.0%  chars=4178
+[00:29:56]     capability: avg=21.4 +/- 4.8 (26 facts)
+[00:29:56]   franklin_experiential_r1: 14 train -> 60 test
+[00:30:37]     composite=19.3  m1=0.188  pred=0.0%  chars=3326
+[00:30:37]     experiential: avg=22.0 +/- 1.9 (14 facts)
+[00:30:37]   franklin_preference_r1: 11 train -> 62 test
+[00:31:16]     composite=20.3  m1=0.165  pred=0.0%  chars=2838
+[00:31:16]   franklin_experiential_r2: 14 train -> 60 test
+[00:31:51]     composite=21.0  m1=0.197  pred=0.0%  chars=2908
+[00:31:51]   franklin_preference_r2: 11 train -> 62 test
+[00:32:33]     composite=24.3  m1=0.202  pred=1.7%  chars=3357
+[00:32:33]   franklin_experiential_r3: 14 train -> 60 test
+[00:33:08]     composite=22.8  m1=0.194  pred=0.0%  chars=3018
+[00:33:08]   franklin_preference_r3: 11 train -> 62 test
+[00:33:58]     composite=27.8  m1=0.197  pred=0.0%  chars=3924
+[00:33:58] PHASE D_franklin_marks_original FAILED: [Errno 22] Invalid argument
+[00:33:58] Traceback (most recent call last):
+  File "C:\Users\Aarik\Anthropic\memory_system\scripts\archive\eval_scripts\gpu_overnight_s83.py", line 572, in main
+    results["phases"][pname] = pfn()
+                               ^^^^^
+  File "C:\Users\Aarik\Anthropic\memory_system\scripts\archive\eval_scripts\gpu_overnight_s83.py", line 447, in phase_d_franklin_original
+    log(f"    {gname}: avg={avg:.1f} +/- {std:.1f} ({len(gfacts)} facts)")
+  File "C:\Users\Aarik\Anthropic\memory_system\scripts\archive\eval_scripts\gpu_overnight_s83.py", line 57, in log
+    print(line)
+OSError: [Errno 22] Invalid argument
+
+[00:33:58] Checkpoint saved after D_franklin_marks_original
+[00:33:58] 
+======================================================================
+[00:33:58] ALL PHASES COMPLETE
+[00:33:58] Results: C:\Users\Aarik\Anthropic\memory_system\docs\eval\gpu_overnight_s83\results.json
+[00:33:58] ======================================================================
+[00:34:30]     composite=20.5  m1=0.192  pred=0.0%  chars=2699
+[00:34:30]     preference: avg=21.4 +/- 1.0 (11 facts)
+[00:34:30] 
+  --- D5: Brief Length Sweep ---
+[00:34:46]     target=500  actual=1048  composite=18.9
+[00:35:33]     target=1000  actual=3498  composite=20.9
+[00:36:16]     target=2000  actual=3322  composite=19.8
+[00:37:19]     target=3500  actual=4882  composite=20.2
+[00:37:19] 
+  --- D6: Voice Replication ---
+[00:38:01]     core_dominant: composite=17.0  chars=3167
+[00:39:07]     pure_directive: composite=22.7  chars=4825
+[00:39:49]     annotated_guide: composite=22.5  chars=3159
+[00:40:24]     compressed_telegram: composite=17.3  chars=2174
+[00:40:24] 
+  --- D7: Marks Cross-Subject ---
+[00:40:24]   No Marks data found
+[00:40:24] Checkpoint saved after D_franklin_marks_original
+[00:40:24] 
+======================================================================
+[00:40:24] ALL PHASES COMPLETE
+[00:40:24] Results: C:\Users\Aarik\Anthropic\memory_system\docs\eval\gpu_overnight_s83\results.json
+[00:40:24] ======================================================================

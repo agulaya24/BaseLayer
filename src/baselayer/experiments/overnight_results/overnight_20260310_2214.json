@@ -1,0 +1,201 @@
+{
+  "timestamp": "2026-03-10 22:14:55",
+  "installed_models": [
+    "qwen2.5:7b",
+    "sam860/LFM2:2.6b",
+    "sam860/LFM2:350m",
+    "phi4-mini:3.8b",
+    "deepseek-r1:14b",
+    "phi4:14b",
+    "qwen2.5:14b"
+  ],
+  "phase_A": {
+    "models": {
+      "qwen2.5:7b": {},
+      "sam860/LFM2:2.6b": {},
+      "sam860/LFM2:350m": {}
+    }
+  },
+  "phase_B": {
+    "models": {
+      "qwen2.5:7b": {
+        "convos_tested": 5,
+        "avg_facts_per_convo": 0.0,
+        "json_success_rate": 0.0,
+        "avg_similarity_to_api": 0
+      },
+      "sam860/LFM2:2.6b": {
+        "convos_tested": 5,
+        "avg_facts_per_convo": 0.0,
+        "json_success_rate": 0.0,
+        "avg_similarity_to_api": 0
+      },
+      "sam860/LFM2:350m": {
+        "convos_tested": 5,
+        "avg_facts_per_convo": 0.0,
+        "json_success_rate": 0.0,
+        "avg_similarity_to_api": 0
+      }
+    }
+  },
+  "phase_C": [
+    {
+      "subject": "franklin",
+      "chars": 3881,
+      "has_injectable": false,
+      "has_cannot_predict": true,
+      "bold_sections": 9,
+      "false_positive_refs": 7,
+      "temporal_refs": 1
+    },
+    {
+      "subject": "buffett",
+      "chars": 3493,
+      "has_injectable": false,
+      "has_cannot_predict": true,
+      "bold_sections": 8,
+      "false_positive_refs": 2,
+      "temporal_refs": 0
+    },
+    {
+      "subject": "aarik",
+      "chars": 3313,
+      "has_injectable": false,
+      "has_cannot_predict": true,
+      "bold_sections": 5,
+      "false_positive_refs": 0,
+      "temporal_refs": 4
+    },
+    {
+      "subject": "douglass",
+      "chars": 3317,
+      "has_injectable": false,
+      "has_cannot_predict": true,
+      "bold_sections": 8,
+      "false_positive_refs": 1,
+      "temporal_refs": 1
+    },
+    {
+      "subject": "marks",
+      "chars": 3217,
+      "has_injectable": false,
+      "has_cannot_predict": true,
+      "bold_sections": 7,
+      "false_positive_refs": 1,
+      "temporal_refs": 1
+    },
+    {
+      "subject": "bavani",
+      "chars": 4144,
+      "has_injectable": false,
+      "has_cannot_predict": true,
+      "bold_sections": 9,
+      "false_positive_refs": 1,
+      "temporal_refs": 2
+    },
+    {
+      "subject": "patent",
+      "chars": 4793,
+      "has_injectable": false,
+      "has_cannot_predict": true,
+      "bold_sections": 6,
+      "false_positive_refs": 0,
+      "temporal_refs": 1
+    },
+    {
+      "subject": "lesswrong",
+      "chars": 3432,
+      "has_injectable": false,
+      "has_cannot_predict": true,
+      "bold_sections": 7,
+      "false_positive_refs": 0,
+      "temporal_refs": 4
+    },
+    {
+      "subject": "baselayer_meta",
+      "chars": 4115,
+      "has_injectable": false,
+      "has_cannot_predict": true,
+      "bold_sections": 15,
+      "false_positive_refs": 1,
+      "temporal_refs": 1
+    },
+    {
+      "subject": "paul_graham",
+      "chars": 4117,
+      "has_injectable": false,
+      "has_cannot_predict": true,
+      "bold_sections": 8,
+      "false_positive_refs": 0,
+      "temporal_refs": 2
+    },
+    {
+      "subject": "roosevelt",
+      "chars": 3917,
+      "has_injectable": false,
+      "has_cannot_predict": true,
+      "bold_sections": 9,
+      "false_positive_refs": 0,
+      "temporal_refs": 0
+    },
+    {
+      "subject": "wollstonecraft",
+      "chars": 3787,
+      "has_injectable": false,
+      "has_cannot_predict": true,
+      "bold_sections": 8,
+      "false_positive_refs": 1,
+      "temporal_refs": 4
+    }
+  ],
+  "phase_D": {
+    "model": "qwen2.5:7b",
+    "questions": {
+      "How should I approach a difficult negotiation where I have less leverage?": {
+        "responses": {
+          "franklin": "DRY RUN",
+          "douglass": "DRY RUN",
+          "buffett": "DRY RUN",
+          "wollstonecraft": "DRY RUN",
+          "roosevelt": "DRY RUN"
+        }
+      },
+      "What's your instinct when you see a crowded trade everyone agrees on?": {
+        "responses": {
+          "franklin": "DRY RUN",
+          "douglass": "DRY RUN",
+          "buffett": "DRY RUN",
+          "wollstonecraft": "DRY RUN",
+          "roosevelt": "DRY RUN"
+        }
+      },
+      "Someone challenges one of your core beliefs publicly. What do you do?": {
+        "responses": {
+          "franklin": "DRY RUN",
+          "douglass": "DRY RUN",
+          "buffett": "DRY RUN",
+          "wollstonecraft": "DRY RUN",
+          "roosevelt": "DRY RUN"
+        }
+      },
+      "You have limited time and three important tasks. How do you decide?": {
+        "responses": {
+          "franklin": "DRY RUN",
+          "douglass": "DRY RUN",
+          "buffett": "DRY RUN",
+          "wollstonecraft": "DRY RUN",
+          "roosevelt": "DRY RUN"
+        }
+      },
+      "What do you think makes someone worth listening to?": {
+        "responses": {
+          "franklin": "DRY RUN",
+          "douglass": "DRY RUN",
+          "buffett": "DRY RUN",
+          "wollstonecraft": "DRY RUN",
+          "roosevelt": "DRY RUN"
+        }
+      }
+    }
+  }
+}

@@ -35,12 +35,20 @@ Usage:
   claude mcp add --transport stdio base-layer -- baselayer-mcp
 """
 
+import re
 import sys
 import os
 import contextlib
 import logging
 import threading
 from pathlib import Path
+
+# ==========================================================================
+# INPUT VALIDATION CONSTANTS
+# ==========================================================================
+MAX_QUERY_LENGTH = 500
+MAX_CLAIM_ID_LENGTH = 50
+CLAIM_ID_PATTERN = re.compile(r"^[A-Za-z]\d+$")  # e.g. A1, P3, C2
 
 # Logging to stderr only — stdout is reserved for JSON-RPC (stdio transport)
 logging.basicConfig(
@@ -179,6 +187,10 @@ def recall_memories(query: str) -> str:
     Args:
         query: Natural language description of what to recall (e.g. "career history", "relationship with partner", "trading approach")
     """
+    if not query or not query.strip():
+        return "Error: query must not be empty."
+    if len(query) > MAX_QUERY_LENGTH:
+        return f"Error: query too long ({len(query)} chars). Maximum is {MAX_QUERY_LENGTH}."
     if not DATABASE_FILE.exists():
         return "No memory database found. Run: baselayer init && baselayer import"
 
@@ -222,6 +234,10 @@ def search_facts(query: str, limit: int = 15) -> str:
         query: Keywords to search for in fact text
         limit: Maximum results to return (default 15)
     """
+    if not query or not query.strip():
+        return "Error: query must not be empty."
+    if len(query) > MAX_QUERY_LENGTH:
+        return f"Error: query too long ({len(query)} chars). Maximum is {MAX_QUERY_LENGTH}."
     if not DATABASE_FILE.exists():
         return "No memory database found. Run: baselayer init"
 
@@ -293,6 +309,13 @@ def trace_claim(claim_id: str) -> str:
     Args:
         claim_id: The lexicon ID of the claim to trace (e.g. "A1", "P3", "C2")
     """
+    if not claim_id or not claim_id.strip():
+        return "Error: claim_id must not be empty."
+    claim_id = claim_id.strip()
+    if len(claim_id) > MAX_CLAIM_ID_LENGTH:
+        return f"Error: claim_id too long ({len(claim_id)} chars). Maximum is {MAX_CLAIM_ID_LENGTH}."
+    if not CLAIM_ID_PATTERN.match(claim_id):
+        return f"Error: invalid claim_id format '{claim_id}'. Expected format: letter + number (e.g. A1, P3, C2)."
     if not DATABASE_FILE.exists():
         return "No memory database found. Run: baselayer init"
 
@@ -405,6 +428,13 @@ def verify_claims(claim_id: str = "", layer: str = "all") -> str:
         claim_id: Optional specific claim to verify (e.g. "A1", "P3"). If empty, verifies all.
         layer: Which layer to verify: "anchors", "core", "predictions", or "all" (default).
     """
+    if claim_id and claim_id.strip():
+        claim_id = claim_id.strip()
+        if len(claim_id) > MAX_CLAIM_ID_LENGTH:
+            return f"Error: claim_id too long ({len(claim_id)} chars). Maximum is {MAX_CLAIM_ID_LENGTH}."
+        if not CLAIM_ID_PATTERN.match(claim_id):
+            return f"Error: invalid claim_id format '{claim_id}'. Expected format: letter + number (e.g. A1, P3, C2)."
+
     if not DATABASE_FILE.exists():
         return "No memory database found. Run: baselayer init"
 

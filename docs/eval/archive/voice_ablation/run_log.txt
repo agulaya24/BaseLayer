@@ -1,0 +1,37 @@
+[23:55:06] ======================================================================
+[23:55:06] VOICE & FRAMING ABLATION STUDY
+[23:55:06] ======================================================================
+[23:55:06] Facts: 135 identity-tier
+[23:55:06] Baseline brief: 9144 chars
+[23:55:06] 
+A_baseline: Production brief (no generation)
+[23:55:06]   composite=21.3  m1=0.198  m2=1.5%  m3=2.0
+[23:55:06] 
+B_core_dominant: CORE-dominant (operational guidance)
+[23:55:20]   composite=21.3  m1=0.223  m2=0.0%  m3=1.6  chars=2466
+[23:55:20] 
+C_pure_directive: Pure directive (instructions to AI)
+[23:55:33]   composite=22.7  m1=0.183  m2=0.7%  m3=3.5  chars=2587
+[23:55:33] 
+D_pure_narrative: Pure narrative (third-person description)
+[23:55:44]   composite=21.9  m1=0.204  m2=1.5%  m3=2.2  chars=2252
+[23:55:44] 
+E_annotated_guide: Annotated guide (CORE voice + headers + when/do)
+[23:56:00]   composite=25.9  m1=0.213  m2=2.2%  m3=4.6  chars=2851
+[23:56:00] 
+======================================================================
+[23:56:00] RANKINGS
+[23:56:00] ======================================================================
+[23:56:00]   1. E_annotated_guide         composite=25.9     m1=0.213  m2=0.022  m3=4.6  chars=2851
+[23:56:00]   2. C_pure_directive          composite=22.7     m1=0.183  m2=0.007  m3=3.5  chars=2587
+[23:56:00]   3. D_pure_narrative          composite=21.9     m1=0.204  m2=0.015  m3=2.2  chars=2252
+[23:56:00]   4. B_core_dominant           composite=21.3     m1=0.223  m2=0.000  m3=1.6  chars=2466
+[23:56:00]   5. A_baseline                composite=21.3     m1=0.198  m2=0.015  m3=2.0  chars=9144
+[23:56:00] 
+DELTAS FROM BASELINE:
+[23:56:00]   B_core_dominant: +0.1
+[23:56:00]   C_pure_directive: +1.5
+[23:56:00]   D_pure_narrative: +0.6
+[23:56:00]   E_annotated_guide: +4.6
+[23:56:00] 
+Saved: C:\Users\Aarik\Anthropic\memory_system\docs\eval\voice_ablation\voice_ablation_results.json

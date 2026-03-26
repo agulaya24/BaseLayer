@@ -1,5 +1,5 @@
 # Epistemic Axioms — Formalized (Session 38, updated Session 38b)
-## Base Layer — Behavioral Compression for AI Identity
+## Base Layer: Behavioral Compression for AI Identity
 
 > **Note (Session 58):** This document captures the original 9 axioms (8 confirmed + 1 paused) formalized in Session 38. The deployed V4 ANCHORS layer (Session 52, cycle_003) contains **11 axioms** with updated formulations, false-positive warnings, and interaction pairs. See `data/identity_layers/anchors_v4.md` for the current deployed version.
 
