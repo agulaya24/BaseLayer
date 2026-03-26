@@ -37,63 +37,47 @@ class TestGoldenDatasetIntegrity:
 
     def test_brief_reference_exists(self):
         assert BRIEF_REFERENCE.exists(), "Golden brief reference missing"
-        content = BRIEF_REFERENCE.read_text(encoding="utf-8")
-        assert len(content) > 500, f"Brief reference too short: {len(content)} chars"
 
     def test_identity_model_reference_exists(self):
         assert IDENTITY_MODEL_REFERENCE.exists(), "Golden identity model reference missing"
-        content = IDENTITY_MODEL_REFERENCE.read_text(encoding="utf-8")
-        assert len(content) > 2000, f"Identity model reference too short: {len(content)} chars"
 
-    def test_reference_has_required_sections(self):
+    def test_reference_has_required_marker(self):
         content = IDENTITY_MODEL_REFERENCE.read_text(encoding="utf-8")
-        assert "## Injectable Block" in content or "## Operational Guide" in content, \
-            "Identity model missing required section headers"
+        assert "Identity Model" in content or "identity_model" in content
 
 
 class TestGoldenDatasetRegression:
-    """Compare current identity model against frozen reference.
+    """Verify identity model structural properties.
 
-    These tests catch unintended changes from pipeline modifications.
-    If a test fails, it means the pipeline produced significantly different output —
-    investigate whether the change is intentional before updating the reference.
+    These tests check that the pipeline produces well-formed output
+    without committing personal data to the repo.
     """
 
     @pytest.mark.skipif(
         not AARIK_LAYERS_DIR.exists(),
         reason="Aarik's identity layers not available"
     )
-    def test_brief_stability(self):
-        """Brief should not change >15% from reference without intentional cause."""
-        reference = BRIEF_REFERENCE.read_text(encoding="utf-8")
+    def test_brief_has_minimum_length(self):
+        """Brief should be at least 5000 chars (meaningful content)."""
         current_path = AARIK_LAYERS_DIR / "brief_v5_clean.md"
         if not current_path.exists():
             pytest.skip("Current brief not available")
-
-        current = current_path.read_text(encoding="utf-8")
-        diff_pct = _word_diff_pct(reference, current)
-        assert diff_pct < 0.15, (
-            f"Brief changed {diff_pct:.1%} from reference (threshold: 15%). "
-            f"If intentional, update tests/golden/brief_reference.md"
-        )
+        content = current_path.read_text(encoding="utf-8")
+        assert len(content) > 5000, f"Brief too short: {len(content)} chars"
 
     @pytest.mark.skipif(
         not AARIK_LAYERS_DIR.exists(),
         reason="Aarik's identity layers not available"
     )
-    def test_identity_model_stability(self):
-        """Identity model should not change >15% from reference without intentional cause."""
-        reference = IDENTITY_MODEL_REFERENCE.read_text(encoding="utf-8")
+    def test_identity_model_has_required_sections(self):
+        """Identity model should have all required sections."""
         current_path = AARIK_LAYERS_DIR / "identity_model.md"
         if not current_path.exists():
             pytest.skip("Current identity model not available")
-
-        current = current_path.read_text(encoding="utf-8")
-        diff_pct = _word_diff_pct(reference, current)
-        assert diff_pct < 0.15, (
-            f"Identity model changed {diff_pct:.1%} from reference (threshold: 15%). "
-            f"If intentional, update tests/golden/identity_model_reference.md"
-        )
+        content = current_path.read_text(encoding="utf-8")
+        assert "## Operational Guide" in content or "## Injectable Block" in content
+        assert "Identity Brief" in content or "Brief" in content
+        assert len(content) > 10000, f"Identity model too short: {len(content)} chars"
 
     @pytest.mark.skipif(
         not AARIK_LAYERS_DIR.exists(),
