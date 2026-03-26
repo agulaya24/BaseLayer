@@ -59,7 +59,12 @@ from baselayer.extract_facts import (
 # Constants
 # ---------------------------------------------------------------------------
 
-BATCH_STATE_FILE = PROJECT_ROOT / "data" / "database" / "batch_state.json"
+def _get_batch_state_file():
+    """Get batch state file path — resolves at call time to respect MEMORY_SYSTEM_ROOT changes."""
+    from baselayer.config import PROJECT_ROOT as _ROOT
+    return _ROOT / "data" / "database" / "batch_state.json"
+
+BATCH_STATE_FILE = _get_batch_state_file()  # Default for direct CLI usage
 BATCH_MAX_TOKENS = 2000
 BATCH_TEMPERATURE = 0.1
 
@@ -69,16 +74,18 @@ BATCH_TEMPERATURE = 0.1
 # ---------------------------------------------------------------------------
 
 def _load_batch_state():
-    """Load persisted batch state."""
-    if BATCH_STATE_FILE.exists():
-        return json.loads(BATCH_STATE_FILE.read_text(encoding="utf-8"))
+    """Load persisted batch state. Resolves path dynamically for multi-subject support."""
+    path = _get_batch_state_file()
+    if path.exists():
+        return json.loads(path.read_text(encoding="utf-8"))
     return None
 
 
 def _save_batch_state(state):
-    """Persist batch state to disk."""
-    BATCH_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
-    BATCH_STATE_FILE.write_text(json.dumps(state, indent=2), encoding="utf-8")
+    """Persist batch state to disk. Resolves path dynamically for multi-subject support."""
+    path = _get_batch_state_file()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(state, indent=2), encoding="utf-8")
 
 
 def _get_anthropic_client():
@@ -196,10 +203,11 @@ def run_submit(document_mode=False, skip_extracted=False):
                 conv_text = _build_conv_text(messages)
                 prompt = build_extraction_prompt(conv_title, conv_text)
 
-            # Build batch request (custom_id max 64 chars, must be unique)
-            # Use hash to avoid truncation collisions on long IDs
+            # Build batch request (custom_id: alphanumeric + _ - only, max 64 chars)
             import hashlib
-            short_id = conv_id if len(conv_id) <= 64 else hashlib.md5(conv_id.encode()).hexdigest()
+            import re as _re
+            # Always hash to guarantee valid characters + uniqueness
+            short_id = hashlib.md5(conv_id.encode()).hexdigest()  # 32 hex chars, always valid
             id_mapping[short_id] = conv_id
             requests.append({
                 "custom_id": short_id,
