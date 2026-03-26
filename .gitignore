@@ -198,3 +198,6 @@ docs/eval/*_aarik*
 docs/eval/*_bavani*
 scripts/experiments/temporal_stability_aarik.py
 src/baselayer/experiments/temporal_stability_aarik.py
+
+# Seed data with passwords
+data/seeds/

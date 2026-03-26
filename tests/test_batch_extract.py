@@ -23,21 +23,21 @@ class TestBatchStatePersistence:
     def test_load_nonexistent_returns_none(self, tmp_path):
         from baselayer.batch_extract import _load_batch_state
         fake_path = tmp_path / "nonexistent.json"
-        with patch("baselayer.batch_extract.BATCH_STATE_FILE", fake_path):
+        with patch("baselayer.batch_extract._get_batch_state_file", return_value=fake_path):
             result = _load_batch_state()
         assert result is None
 
     def test_save_creates_file(self, tmp_path):
         from baselayer.batch_extract import _save_batch_state
         state_file = tmp_path / "data" / "database" / "batch_state.json"
-        with patch("baselayer.batch_extract.BATCH_STATE_FILE", state_file):
+        with patch("baselayer.batch_extract._get_batch_state_file", return_value=state_file):
             _save_batch_state({"batch_id": "test-123", "status": "submitted"})
         assert state_file.exists()
 
     def test_save_creates_parent_dirs(self, tmp_path):
         from baselayer.batch_extract import _save_batch_state
         state_file = tmp_path / "deep" / "nested" / "dir" / "state.json"
-        with patch("baselayer.batch_extract.BATCH_STATE_FILE", state_file):
+        with patch("baselayer.batch_extract._get_batch_state_file", return_value=state_file):
             _save_batch_state({"batch_id": "test-456"})
         assert state_file.exists()
 
@@ -50,7 +50,7 @@ class TestBatchStatePersistence:
             "total_requests": 100,
             "conversation_ids": ["c1", "c2", "c3"],
         }
-        with patch("baselayer.batch_extract.BATCH_STATE_FILE", state_file):
+        with patch("baselayer.batch_extract._get_batch_state_file", return_value=state_file):
             _save_batch_state(original)
             loaded = _load_batch_state()
         assert loaded == original
@@ -58,7 +58,7 @@ class TestBatchStatePersistence:
     def test_save_overwrites_existing(self, tmp_path):
         from baselayer.batch_extract import _load_batch_state, _save_batch_state
         state_file = tmp_path / "state.json"
-        with patch("baselayer.batch_extract.BATCH_STATE_FILE", state_file):
+        with patch("baselayer.batch_extract._get_batch_state_file", return_value=state_file):
             _save_batch_state({"batch_id": "old", "status": "submitted"})
             _save_batch_state({"batch_id": "new", "status": "completed"})
             loaded = _load_batch_state()
@@ -68,7 +68,7 @@ class TestBatchStatePersistence:
     def test_save_pretty_prints(self, tmp_path):
         from baselayer.batch_extract import _save_batch_state
         state_file = tmp_path / "state.json"
-        with patch("baselayer.batch_extract.BATCH_STATE_FILE", state_file):
+        with patch("baselayer.batch_extract._get_batch_state_file", return_value=state_file):
             _save_batch_state({"batch_id": "test"})
         content = state_file.read_text(encoding="utf-8")
         # Pretty-printed JSON should have newlines
