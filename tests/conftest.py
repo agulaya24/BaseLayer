@@ -203,7 +203,7 @@ generated: 2024-01-01
 ## Injectable Block
 
 A builder and systems thinker who works in AI. Values depth over breadth.
-Values work-life balance. Founded a startup.
+Values work-life balance. Has entrepreneurial background.
 """
     predictions = """---
 layer: predictions
