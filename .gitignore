@@ -201,3 +201,10 @@ src/baselayer/experiments/temporal_stability_aarik.py
 
 # Seed data with passwords
 data/seeds/
+
+# Personal data / analysis
+docs/archive/analysis/
+docs/archive/versions/
+gpu_experiment_results/
+logs/
+**/temporal_stability_aarik*
