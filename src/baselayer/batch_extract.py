@@ -169,6 +169,7 @@ def run_submit(document_mode=False, skip_extracted=False):
 
         # Build batch requests
         requests = []
+        id_mapping = {}  # short_id → original conv_id (for results processing)
         skipped = 0
 
         for i, row in enumerate(rows):
@@ -195,9 +196,13 @@ def run_submit(document_mode=False, skip_extracted=False):
                 conv_text = _build_conv_text(messages)
                 prompt = build_extraction_prompt(conv_title, conv_text)
 
-            # Build batch request (custom_id max 64 chars per API spec)
+            # Build batch request (custom_id max 64 chars, must be unique)
+            # Use hash to avoid truncation collisions on long IDs
+            import hashlib
+            short_id = conv_id if len(conv_id) <= 64 else hashlib.md5(conv_id.encode()).hexdigest()
+            id_mapping[short_id] = conv_id
             requests.append({
-                "custom_id": conv_id[:64],
+                "custom_id": short_id,
                 "params": {
                     "model": EXTRACTION_API_MODEL,
                     "max_tokens": BATCH_MAX_TOKENS,
@@ -240,6 +245,7 @@ def run_submit(document_mode=False, skip_extracted=False):
         "created_at": datetime.now().isoformat(),
         "total_requests": len(requests),
         "conversation_ids": [r["custom_id"] for r in requests],
+        "id_mapping": id_mapping,  # short_id → original conv_id
         "model": EXTRACTION_API_MODEL,
         "status": "submitted",
     }
