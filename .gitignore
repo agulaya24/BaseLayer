@@ -208,3 +208,11 @@ docs/archive/versions/
 gpu_experiment_results/
 logs/
 **/temporal_stability_aarik*
+
+# Subject source data and scraping artifacts
+data/*_source/
+data/*_index*
+data/*_archive*
+
+# All subject environments
+subjects/
