@@ -278,7 +278,7 @@
 **Task 6: Private subjects seeded to Redis**
 | Subject | Token (first 8 chars) | Facts | URL |
 |---|---|---|---|
-| Dan Shipper | a287b1d5... | 218 (untiered — document mode) | base-layer.ai/industry/REDACTED |
+| Dan Shipper | REDACTED... | 218 (untiered — document mode) | base-layer.ai/industry/REDACTED |
 | Bavani | REDACTED... | 76 (61 identity-tier) | base-layer.ai/industry/REDACTED75767fcae23369524e1afcf8f2b31a4e9a9adae9a3e14950829da64a |
 | Aarik | REDACTED... | 1386 identity-tier | base-layer.ai/industry/REDACTEDfc2e6112ca65f96a24569f1e839d297f3bfe6ce9989ebfb53ce5d023 |
 
