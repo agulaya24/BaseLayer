@@ -1538,10 +1538,10 @@ def _check_pipeline_lock():
             alive = []
             for pid in pids:
                 try:
-                    os.kill(pid, 0)  # Signal 0 = check if alive
+                    os.kill(pid, 0)  # Signal 0 = check if alive (Unix)
                     alive.append(pid)
-                except (OSError, ProcessLookupError):
-                    pass  # Process dead
+                except (OSError, ProcessLookupError, SystemError, PermissionError):
+                    pass  # Process dead or Windows incompatibility
 
             if len(alive) >= 2:
                 print(f"Error: {len(alive)} pipelines already running (max 2). PIDs: {alive}")
