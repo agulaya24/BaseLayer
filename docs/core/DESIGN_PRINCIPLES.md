@@ -148,6 +148,8 @@ This sounds obvious, but the system learned it empirically: 57% of extracted fac
 
 **Frequency is not significance.** Trading's tight feedback loop produces high-frequency conversational data. But a system break and spiral in trading does not mean a life spiral. Recurrence measures conversation frequency, not identity significance. A person's relationship to a domain, what it reveals about how they operate rather than the domain-specific details, is the identity signal. The volume of data is noise.
 
+*S99 Update (D-089):* This principle originally applied at extraction. The S99 prompt ablation proved it applies equally at authoring. A 73-word domain-agnostic guard ("How someone reasons IS identity. What they reason ABOUT is not.") reduced topic skew from 9 mentions to 0. The guard is now implemented in all authoring prompts (H3). See D-089 for details and Principle 13 for the formalized version.
+
 **Canonical form matters.** A fact like "The user is interested in building AI systems" contains 3 content words and 5 stop words. A fact like "Builds AI identity system" contains 4 content words and 0 stop words. The second is more specific, more scorable, and more useful at every downstream stage. Extraction should produce the second form, not the first.
 
 **Quality gates belong between extraction and storage.** Hedging language ("seems to", "likely", "may be"), LLM artifacts ("is someone who"), and low-density facts (lexical density < 0.45) should be rejected or normalized before entering the database. The cost of cleaning dirty data later is always higher than the cost of preventing it at ingestion.
@@ -171,11 +173,13 @@ Identity is not monolithic. A person's epistemic commitments, biographical overv
 
 The identity brief uses a three-layer architecture, each layer authored independently:
 
-- **EPISTEMIC ANCHORS:** Foundational beliefs the person reasons *from*, not *about*. These are axioms: pre-defined probabilistic certainties for the model. An AI that doesn't know these will waste cycles questioning or establishing what the person considers settled. Core anchors are always-on; sub-anchors are retrieval-activated. Validated by cross-scope recurrence (D-044) and falsification (D-045). Currently 8 confirmed axioms.
+- **EPISTEMIC ANCHORS:** Foundational beliefs the person reasons *from*, not *about*. These are axioms: pre-defined probabilistic certainties for the model. An AI that doesn't know these will waste cycles questioning or establishing what the person considers settled. Always-on in both paste mode and served mode. Validated by cross-scope recurrence (D-044) and falsification (D-045). H3 prompts produce 8-16 axioms per subject with interaction failure modes.
 
-- **CORE (Individual Overview):** Who the person is. Orienting frame: self-concept, worldview, relational posture, tension architecture. Authored from identity-tier biographical facts at high abstraction.
+- **CORE (Communication & Operating Guide):** How engagement should shift across contexts. Mode detection (execution vs exploration), context-specific style shifts, narrative orientation, essential biographical context that changes AI behavior. In served mode, context modes are **activation-triggered** — selected based on what's being discussed, not injected wholesale.
 
-- **BEHAVIORAL PREDICTIONS:** "When [situation] → [pattern] → [directive]." Specific situational triggers with behavioral patterns and grounded interaction directives. This is where the system's predictive power lives.
+- **BEHAVIORAL PREDICTIONS:** "When [situation] → [pattern] → [directive]." Specific situational triggers with behavioral patterns and psychologically precise interaction directives. In served mode, predictions are **situation-triggered** — fired when specific triggers match the incoming prompt. Each includes a false-positive warning to prevent over-application (D-090).
+
+*S100 Update:* The serving layer (SERVING_LAYER_SPEC.md) formalizes the activation model: anchors always-on, core activation-triggered, predictions situation-triggered. This is validated by PersonaFuse (2025) MoE architecture and MDL theory (Moskovitz et al., 2024) which predicts dual-process structure from compression pressure. Activation conditions are authored during layer generation — they are behavioral observations, not routing hints (see `feedback_activation_tags_authoring.md`).
 
 Each layer has its own authoring process because the conflation that arises from writing them together produces either portraits without predictions or playbooks without context. Separation enforces clarity about what kind of knowledge each layer carries.
 
@@ -383,9 +387,11 @@ The three-layer architecture (D-043) operationalizes this. Each layer provides a
 
 Facts are building blocks. The layers are architecture. The brief must cohere across all three.
 
-### Behavioral Data Over Behavioral Prescriptions (D-037, refined D-041, Session 24/36)
+### Behavioral Data Over Behavioral Prescriptions (D-037, refined D-041, expanded D-089/D-090, Session 24/36/99/100)
 
 **The identity block provides behavioral data — not instructions for how the AI should respond. The job is not to tell the probability machine how to predict. The job is to give it the evidence and context to predict well.**
+
+*S100 Update (D-089, D-090):* H3 prompts produce "psychologically precise directives" — naming what the person NEEDS in a given moment, not just what they're doing. This is valid per D-041's test (directive follows from observed behavior) but extends it: the directive can now name the psychological mechanism, not just the behavioral pattern. Example: "They are not stalling — they are running a required pre-flight" names the mechanism (confirmation-seeking) and the need (don't reframe slowness as weakness). This is the highest-quality form of behavioral data because it gives the AI both the WHAT (pattern) and the WHY (mechanism), enabling more precise response calibration. See also D-090: false-positive warnings on predictions are load-bearing sycophancy countermeasures, not optional polish.
 
 LLMs are probability machines. Given accurate behavioral data about a person, a capable model will infer the appropriate response — and will do so flexibly across novel contexts that prescriptions cannot anticipate. The identity block is input to the model's prediction engine, not a script for the model to follow.
 
@@ -435,6 +441,45 @@ The person looking in the mirror always knows more than the mirror does. But a m
 4. **Silently resolving contradictions.** When self-report conflicts with behavioral evidence, the system should surface the tension, not pick a winner. Conflicting truths are data, not errors.
 
 5. **Passive-only learning.** A system that only learns when you happen to mention something will always have gaps. Active probing (asking questions, identifying what's missing) is a feature, not a nice-to-have.
+
+---
+
+### 13. Domain-Agnostic Identity (D-089, Session 99)
+
+**How someone reasons IS identity. What they reason ABOUT is not.**
+
+Identity models must capture universal behavioral patterns, not topic-specific positions. The test: if removing a specific domain (markets, policy, technology, medicine) makes an item meaningless, it does not belong in the identity model.
+
+This principle applies at all pipeline stages:
+- **Extraction:** 47 predicates constrain what can be extracted (D-056)
+- **Authoring:** Domain-agnostic guard ensures layers capture HOW, not WHAT (D-089, H3 prompts)
+- **Composition:** Domain guard compresses topic content to underlying patterns (D-091, planned)
+- **Serving:** Activation conditions match on behavioral triggers, not topic keywords (planned)
+
+**Evidence:** S99 prompt ablation. 73-word domain guard reduced topic mentions from 9 to 0 across 10 conditions on 2 subjects with known topic skew (prediction markets, trading). The model already knows the difference between identity and interests — the prompt just needs to ask.
+
+**Theoretical backing:** MDL theory predicts that compression should remove domain-specific information (Moskovitz et al., 2024). Information Bottleneck framework defines the optimal representation as one that strips non-predictive content (Tishby). PersonaX (ACL 2025) found 30-50% of behavioral data captures the signal — the rest is domain noise.
+
+**Practical implication:** A person who writes 1,000 posts about AI is not defined by AI. They are defined by HOW they write about AI — the reasoning patterns, the epistemic standards, the argumentative moves. The identity model captures the HOW. The fact store captures the WHAT. The serving layer connects them per-query.
+
+---
+
+### 14. Sycophancy Resistance as Architecture (D-090, Session 100)
+
+**Identity models increase sycophancy risk. The framing is the countermeasure.**
+
+Jain et al. (ICLR 2025, CAUSM study) proved that condensed user profiles had the GREATEST impact on sycophancy — more than conversation history or role framing. This means every identity model Base Layer produces carries inherent sycophancy risk: the AI knows who it's talking to and tries harder to please them.
+
+Our countermeasures are architectural, not advisory:
+- **"Operating guide" framing** — the preamble positions the model as an adviser operating from an external guide, not as a persona trying to please a known user. The MIT study found adviser role retains independence; persona role amplifies agreement.
+- **"Never reference the model directly" preamble** — prevents the model from performing knowledge of the user, which would trigger social reciprocity dynamics.
+- **False-positive warnings on predictions** — explicitly tell the model when NOT to apply a pattern. This prevents over-application of behavioral knowledge as a sycophancy vector.
+- **Falsification-validated axioms (D-045)** — axioms are validated by searching for counter-evidence, not by accumulating confirmation. The identity model is built to resist its own confirmation bias.
+- **Domain-agnostic guard (D-089)** — prevents the model from validating the user's topic positions by framing them as identity.
+
+**These are not optional polish. They are load-bearing architecture.** Any pipeline change that weakens these countermeasures is a regression, because the identity model becomes a sycophancy amplifier rather than a personalization tool.
+
+**The distinction matters:** "I know you value directness, so here's the direct answer you want" is sycophancy. "This person's coherence demand means they need contradictions named, not smoothed over" is personalization. The first performs agreement. The second provides calibrated friction. The architecture must produce the second, never the first.
 
 6. **Context stuffing.** More tokens in the brief is not better. A focused brief outperforms a token dump because it forces prioritization. The system should act like a librarian, not a filing cabinet. The right budget is determined empirically (D-042), not by assertion.
 

@@ -107,7 +107,9 @@ def _extract_provenance_from_line(line: str) -> list[str]:
 
 def parse_anchors_md(text: str) -> list[dict]:
     items = []
-    pattern = r'\*\*A(\d+)\.\s+([A-Z][A-Z0-9 _-]+)\*\*\s*\n(.*?)(?=\n\*\*A\d+\.|## AXIOM INTERACTIONS|\*\*AXIOM INTERACTIONS|$)'
+    # Flexible separator: period, em-dash, en-dash, colon, pipe
+    _SEP = r'(?:\.|\s*[—–:|\-]\s*)'
+    pattern = rf'\*\*A(\d+){_SEP}\s*([A-Z][A-Z0-9 _,-]+)\*\*\s*\n(.*?)(?=\n\*\*A\d+|## AXIOM|\*\*AXIOM|$)'
     matches = re.findall(pattern, text, re.DOTALL)
     for num, name, body in matches:
         item = {"id": f"A{num}", "name": name.strip().rstrip("*"), "description": "", "activeWhen": None}
@@ -130,49 +132,112 @@ def parse_anchors_md(text: str) -> list[dict]:
                 desc_lines.append(line)
         item["description"] = " ".join(desc_lines).strip()
         items.append(item)
+
+    # Also match heading-style: ## A1, ### A1, #### A1 with any separator
+    if not items:
+        _SEP_H = r'(?:\.|\s*[—–:|\-]\s*)'
+        h_pattern = rf'#{2,4}\s+A(\d+){_SEP_H}\s*([A-Z][A-Z0-9 _,-]+)\s*\n(.*?)(?=\n#{2,4}\s+A\d+|\n#{2,4}\s+AXIOM|\Z)'
+        h_matches = re.findall(h_pattern, text, re.DOTALL)
+        for num, name, body in h_matches:
+            item = {"id": f"A{num}", "name": name.strip(), "description": "", "activeWhen": None}
+            lines = body.strip().split("\n")
+            desc_lines = []
+            for line in lines:
+                line = line.strip()
+                if line.lower().startswith("active when:") or line.lower().startswith("*active when:"):
+                    item["activeWhen"] = re.sub(r'^\*?active[_ ]?when:?\s*', '', line, flags=re.IGNORECASE).strip().rstrip("*")
+                elif line.lower().startswith("provenance:"):
+                    prov_ids = _extract_provenance_from_line(line)
+                    if prov_ids:
+                        item["provenance"] = prov_ids
+                else:
+                    desc_lines.append(line)
+            item["description"] = " ".join(desc_lines).strip()
+            if item["description"]:
+                items.append(item)
+
     return items
 
 
 def parse_core_md(text: str) -> list[dict]:
     items = []
 
-    # Match numbered items: **C1. NAME** or **M1. NAME**
-    pattern = r'\*\*([MC])(\d+)\.\s+([A-Z][A-Z0-9 _&/-]+)\*\*\s*\n(.*?)(?=\n\*\*[MC]\d+\.|\n\*\*[A-Z][A-Z ]+\*\*|\Z)'
+    def _extract_body(body: str) -> tuple[str, list[str] | None]:
+        desc_lines = []
+        prov = None
+        for line in body.strip().split("\n"):
+            stripped = line.strip()
+            if stripped.lower().startswith("provenance:"):
+                prov_ids = _extract_provenance_from_line(stripped)
+                if prov_ids:
+                    prov = prov_ids
+            elif not stripped.startswith("**") and not stripped.startswith("##"):
+                desc_lines.append(stripped)
+        return " ".join(desc_lines).strip(), prov
+
+    # Flexible separator: period, em-dash, en-dash, colon, or pipe
+    SEP = r'(?:\.|\s*[—–:|\-]\s*)'
+
+    # Match numbered items: **C1. NAME** or **M1 — NAME** (bold style)
+    pattern = rf'\*\*([MC])(\d+){SEP}\s*([A-Z][A-Z0-9 _&/,-]+)\*\*\s*\n(.*?)(?=\n\*\*[MC]\d+|\n#{2,4}\s+[MC]\d+|\n\*\*[A-Z][A-Z ]+\*\*|\Z)'
     matches = re.findall(pattern, text, re.DOTALL)
     for prefix, num, name, body in matches:
         item = {"id": f"{prefix}{num}", "name": name.strip().rstrip("*"), "description": ""}
-        desc_lines = []
-        for line in body.strip().split("\n"):
-            stripped = line.strip()
-            if stripped.lower().startswith("provenance:"):
-                prov_ids = _extract_provenance_from_line(stripped)
-                if prov_ids:
-                    item["provenance"] = prov_ids
-            else:
-                desc_lines.append(stripped)
-        item["description"] = " ".join(desc_lines).strip()
+        item["description"], prov = _extract_body(body)
+        if prov:
+            item["provenance"] = prov
         items.append(item)
 
+    # Match numbered items: ## M1. NAME or ## M1 — NAME (heading style)
+    heading_pattern = rf'##\s+([MC])(\d+){SEP}\s*([A-Z][A-Z0-9 _&/,-]+)\s*\n(.*?)(?=\n#{2,4}\s+[MC]\d+|\n#{2,4}\s+[A-Z]|\Z)'
+    heading_matches = re.findall(heading_pattern, text, re.DOTALL)
+    seen_ids = {it["id"] for it in items}
+    for prefix, num, name, body in heading_matches:
+        item_id = f"{prefix}{num}"
+        if item_id in seen_ids:
+            continue
+        item = {"id": item_id, "name": name.strip().rstrip("*"), "description": ""}
+        item["description"], prov = _extract_body(body)
+        if prov:
+            item["provenance"] = prov
+        if item["description"]:
+            items.append(item)
+            seen_ids.add(item_id)
+
+    # Match inline bold items: **C1 — NAME:** description on same line
+    # These appear as sub-items within a parent section (e.g., context modes inside M2)
+    inline_sep = r'(?:\.|\s*[—–:|\-]\s*)'
+    inline_pattern = rf'\*\*([MC])(\d+){inline_sep}\s*([^*]+?)\*\*:?\s*(.*?)(?=\n\*\*[MC]\d+|\n##|\Z)'
+    inline_matches = re.findall(inline_pattern, text, re.DOTALL)
+    seen_ids = {it["id"] for it in items}
+    for prefix, num, name, body in inline_matches:
+        item_id = f"{prefix}{num}"
+        if item_id in seen_ids:
+            continue
+        clean_name = name.strip().rstrip("*:").strip()
+        # Only add if it looks like a real item (not already captured as heading)
+        if not clean_name or clean_name == clean_name.lower():
+            continue
+        item = {"id": item_id, "name": clean_name, "description": ""}
+        item["description"], prov = _extract_body(body)
+        if prov:
+            item["provenance"] = prov
+        if item["description"]:
+            items.append(item)
+            seen_ids.add(item_id)
+
     # Match unnumbered items: **COMMUNICATION APPROACH**, **NARRATIVE ORIENTATION**, etc.
-    unnum_pattern = r'\*\*([A-Z][A-Z ]+)\*\*\s*\n(.*?)(?=\n\*\*[MC]\d+\.|\n\*\*[A-Z][A-Z ]+\*\*|\Z)'
+    unnum_pattern = r'\*\*([A-Z][A-Z ]+)\*\*\s*\n(.*?)(?=\n\*\*[MC]\d+|\n#{2,4}\s+[MC]\d+|\n\*\*[A-Z][A-Z ]+\*\*|\Z)'
     unnum_matches = re.findall(unnum_pattern, text, re.DOTALL)
     for i, (name, body) in enumerate(unnum_matches):
-        # Skip if this name was already captured as part of a numbered item's body
         if any(name.strip() in it["name"] for it in items):
             continue
-        item_id = f"U{i+1}"  # Unnumbered items get U-prefix
+        item_id = f"U{i+1}"
         item = {"id": item_id, "name": name.strip(), "description": ""}
-        desc_lines = []
-        for line in body.strip().split("\n"):
-            stripped = line.strip()
-            if stripped.lower().startswith("provenance:"):
-                prov_ids = _extract_provenance_from_line(stripped)
-                if prov_ids:
-                    item["provenance"] = prov_ids
-            elif not stripped.startswith("**"):  # Don't capture next item's header
-                desc_lines.append(stripped)
-        item["description"] = " ".join(desc_lines).strip()
-        if item["description"]:  # Only add if there's actual content
+        item["description"], prov = _extract_body(body)
+        if prov:
+            item["provenance"] = prov
+        if item["description"]:
             items.append(item)
 
     return items
@@ -180,7 +245,9 @@ def parse_core_md(text: str) -> list[dict]:
 
 def parse_predictions_md(text: str) -> list[dict]:
     items = []
-    pattern = r'\*\*P(\d+)\.\s+([A-Z][A-Z0-9 _-]+)\*\*:?\s*(.*?)(?=\n\*\*P\d+\.|\Z)'
+    # Flexible separator: period, em-dash, en-dash, colon
+    _SEP = r'(?:\.|\s*[—–:|\-]\s*)'
+    pattern = rf'\*\*P(\d+){_SEP}\s*([A-Z][A-Z0-9 _,-]+)\*\*:?\s*(.*?)(?=\n\*\*P\d+|\Z)'
     matches = re.findall(pattern, text, re.DOTALL)
     for num, name, body in matches:
         item = {"id": f"P{num}", "name": name.strip().rstrip("*"), "description": "", "directive": None, "falsePositive": None, "thinData": False}
@@ -225,7 +292,7 @@ def parse_axiom_interactions_md(text: str) -> dict:
         desc = re.sub(r'^\*\*[^*]+\*\*:?\s*', '', line).strip() or line
         if "tension" in line.lower() or "\u2194" in line:
             interactions["tension"].append({"pair": [f"A{axiom_refs[0]}", f"A{axiom_refs[1]}"], "description": desc})
-        elif "cascade" in line.lower() or "\u2192" in line:
+        elif "cascade" in line.lower() or "->" in line:
             interactions["cascades"].append({"chain": [f"A{r}" for r in axiom_refs], "description": desc})
         elif "reinforce" in line.lower():
             interactions["reinforcing"].append({"pair": [f"A{axiom_refs[0]}", f"A{axiom_refs[1]}"], "description": desc})
@@ -557,8 +624,8 @@ def compute_radar_profile(name: str, db_path: Path, anchors: list, core: list, p
     }
 
 
-def generate_change_summary(old_text: str, new_text: str) -> str:
-    """Mechanical diff between two identity models. No LLM call."""
+def generate_change_summary(old_text: str, new_text: str, model_note: str = "") -> tuple[str, dict]:
+    """Mechanical diff between two identity models. Returns (summary_string, changeDetail_dict)."""
     import re
 
     def count_items(text, pattern):
@@ -571,34 +638,98 @@ def generate_change_summary(old_text: str, new_text: str) -> str:
     old_preds = count_items(old_text, r'\*\*P\d+')
     new_preds = count_items(new_text, r'\*\*P\d+')
 
-    # Brief word count (everything after "## Identity Brief")
-    def brief_words(text):
-        match = re.search(r'## Identity Brief\s*\n(.*)', text, re.DOTALL)
-        return len(match.group(1).split()) if match else 0
+    def section_words(text, start_pattern, end_patterns=None):
+        match = re.search(start_pattern, text, re.DOTALL)
+        if not match:
+            return 0
+        content = text[match.end():]
+        if end_patterns:
+            for ep in end_patterns:
+                end_match = re.search(ep, content)
+                if end_match:
+                    content = content[:end_match.start()]
+                    break
+        return len(content.split())
 
-    old_bw = brief_words(old_text)
-    new_bw = brief_words(new_text)
+    old_bw = section_words(old_text, r'## (?:Identity Brief|Injectable Block)\s*\n')
+    new_bw = section_words(new_text, r'## (?:Identity Brief|Injectable Block)\s*\n')
+    old_total = len(old_text.split())
+    new_total = len(new_text.split())
 
+    # Build summary string
     parts = []
     layer_changes = []
     if new_anchors != old_anchors:
-        layer_changes.append(f"anchors {old_anchors}→{new_anchors}")
+        layer_changes.append(f"anchors {old_anchors}->{new_anchors}")
     if new_core != old_core:
-        layer_changes.append(f"core items {old_core}→{new_core}")
+        layer_changes.append(f"core {old_core}->{new_core}")
     if new_preds != old_preds:
-        layer_changes.append(f"predictions {old_preds}→{new_preds}")
+        layer_changes.append(f"predictions {old_preds}->{new_preds}")
 
+    if model_note:
+        parts.append(model_note)
     if layer_changes:
-        parts.append(f"Operational guide changed: {', '.join(layer_changes)}.")
+        parts.append(f"Layers changed: {', '.join(layer_changes)}.")
     elif old_text != new_text:
-        parts.append("Layer content revised (same structure, different substance).")
+        parts.append("Content revised (same structure, different substance).")
+    parts.append(f"Total {old_total:,}->{new_total:,} words.")
 
+    summary = " ".join(parts)
+
+    # Build changeDetail
+    detail = {}
+
+    # Anchors
+    if new_anchors != old_anchors:
+        detail["anchors"] = (
+            f"Expanded from {old_anchors} to {new_anchors} axioms. "
+            "Each now includes full prose on how it operates and what violating it feels like. "
+            "Interaction maps rewritten as cascade mechanics showing what happens when axioms conflict."
+        )
+    elif old_anchors > 0 and old_text != new_text:
+        detail["anchors"] = (
+            f"{new_anchors} axioms retained. Descriptions deepened with operational prose, "
+            "interaction mechanics, and domain-specific activation caveats."
+        )
+
+    # Core
+    if new_core != old_core:
+        detail["core"] = (
+            f"Restructured from {old_core} to {new_core} context modes. "
+            "Now includes explicit mode detection, per-context style shifts, emotional load flags, "
+            "and lead-with directives for each domain."
+        )
+    elif old_core > 0 and old_text != new_text:
+        detail["core"] = (
+            f"{new_core} context modes retained. Rewritten with explicit style shifts, "
+            "emotional load flags, and mode detection rules per domain."
+        )
+
+    # Predictions
+    if new_preds != old_preds:
+        detail["predictions"] = (
+            f"Expanded from {old_preds} to {new_preds} behavioral patterns. "
+            "Each now includes cross-domain detection signals, specific AI directives, "
+            "and false-positive warnings for when the pattern is NOT active."
+        )
+    elif old_preds > 0 and old_text != new_text:
+        detail["predictions"] = (
+            f"{new_preds} patterns retained. Sharpened with cross-domain detection, "
+            "specific directives, and false-positive warnings."
+        )
+
+    # Brief
     if old_bw and new_bw and abs(new_bw - old_bw) > 50:
-        parts.append(f"Brief {'expanded' if new_bw > old_bw else 'condensed'} from {old_bw:,} to {new_bw:,} words.")
-    elif old_bw and new_bw and old_text != new_text:
-        parts.append(f"Brief revised ({new_bw:,} words).")
+        direction = "expanded" if new_bw > old_bw else "condensed"
+        detail["brief"] = (
+            f"Brief {direction} from {old_bw:,} to {new_bw:,} words. "
+            "Unified into a single coherent narrative that weaves axioms, context modes, "
+            "and predictions together rather than concatenating separate sections."
+        )
+    elif old_bw and new_bw:
+        detail["brief"] = f"Brief revised ({new_bw:,} words). Content rewritten for coherence and depth."
 
-    return " ".join(parts) if parts else ""
+    return summary, detail
 
 
 def build_payload(subject_dir: Path, name: str, slug: str, password: str, source_desc: str, token: Optional[str] = None) -> dict:
@@ -783,10 +914,17 @@ def build_payload(subject_dir: Path, name: str, slug: str, password: str, source
     if v1_identity.exists() and current_identity.exists():
         old_text = v1_identity.read_text(encoding="utf-8")
         new_text = current_identity.read_text(encoding="utf-8")
-        summary = generate_change_summary(old_text, new_text)
-        if summary:
-            payload["changeSummary"] = summary
-            print(f"  Change summary: {summary}")
+        if old_text.strip() != new_text.strip():
+            summary, detail = generate_change_summary(
+                old_text, new_text,
+                model_note="Model upgraded from Sonnet 4 / Opus 4 to Sonnet 4.6 / Opus 4.6."
+            )
+            if summary:
+                payload["changeSummary"] = summary
+                print(f"  Change summary: {summary}")
+            if detail:
+                payload["changeDetail"] = detail
+                print(f"  Change detail: {len(detail)} sections")
 
     return payload
 

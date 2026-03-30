@@ -577,71 +577,30 @@ def display_predictions(data):
 
 ANCHORS_PROMPT = """You are authoring the EPISTEMIC ANCHORS layer of a personal identity brief.
 
-CRITICAL: The audience is the intelligence and understanding an AI needs to take on to communicate naturally with this person. Every sentence you write must shape that understanding — not document the person, but create comprehension in the reader. Write to transform how the AI thinks about interacting with this person, not to inform it about who they are. Portrait descriptions are FORBIDDEN.
+CRITICAL: The audience is an AI that needs to understand how to interact with this person. Every sentence must shape that understanding — not document the person, but create comprehension.
 
-These are axioms — beliefs this person reasons FROM, not ABOUT. Pre-set certainties. Use them to narrow predictions before situation-specific information arrives.
+These are axioms — beliefs this person reasons FROM, not ABOUT. Pre-set certainties that narrow predictions before situation-specific information arrives.
 
-STYLE REQUIREMENT — Directive-embedded descriptions:
-Each axiom must be ONE integrated statement where the description IS the directive. The AI reading this should know what to do WITHOUT a separate instruction line.
-
-IMPORTANT: The examples below are about a FICTIONAL person named "Alex" — they illustrate the STYLE only. Do NOT reuse any of this language in your output. Your output must be derived entirely from the input axioms and facts.
-
-BAD (portrait + separate directive):
-  "Alex cannot tolerate wasted resources in any project."
-  "AI directive: Flag inefficiencies in proposed plans."
-
-GOOD (directive-embedded — description IS the directive):
-  "Before proposing a plan, audit it for resource waste — Alex will reject anything that allocates effort without measurable return and will distrust your judgment for not catching it."
-
-BAD (portrait): "Alex views broken promises as moral failures."
-GOOD (directive-embedded): "Never frame a missed commitment as circumstantial — treat every broken promise as a choice that requires accountability, not explanation."
-
-These examples show the PATTERN: fuse what the person believes with what the AI should do. Generate your own language from the input data — do not copy or adapt the examples above.
+STYLE: Each axiom must be ONE integrated statement where the description IS the directive — psychologically precise, directive-fused. No separate "AI directive:" labels.
 
 For each axiom:
-- Name it in 1-2 uppercase words (shorter is better: COHERENCE not COHERENCE IMPERATIVE)
-- Write 1-3 sentences where description and directive are fused — every sentence tells the AI what to do AND why
-- Include a DETECTION TRIGGER: a specific conversational signal that tells the AI this axiom is active. Format: "Active when: [specific observable pattern in their messages]"
-- If an axiom is contested or flagged, note this briefly
+- Name it in 1-2 uppercase words
+- Write 1-3 sentences where description and directive are fused
+- Include: "Active when: [specific conversational signal]"
+- If contested, note briefly
 
-DETECTION TRIGGER format:
-  [AXIOM NAME] — Active when: [specific observable pattern in their messages, derived from the input facts]
-Derive both the axiom name AND the detection trigger from the input data. Do NOT reuse example names or triggers from these instructions.
+After axioms: AXIOM INTERACTIONS with failure modes per pair. For EACH pair, name the FAILURE MODE when one axiom operates without the other.
 
-After all axioms, include an AXIOM INTERACTIONS section that:
-- Shows specific interaction pairs: how axioms reinforce, tension with, or cascade into each other in THIS person's life
-- Includes the specific conflict resolution directives provided in the input
-- For each tension pair, describe what THIS person actually does when the axioms collide — use concrete examples from the input facts, not generic advice about "holding tension" or "acknowledging both sides"
-- Format as short labeled pairs, not a wall of prose
-- Do NOT include a generic "general frame" or universal statement about how to handle axiom conflicts. Jump straight to the specific pairs
+DOMAIN-AGNOSTIC REQUIREMENT: You are writing a UNIVERSAL operating guide — not a summary of interests or positions. Every item must apply ACROSS this person's life, not within one topic. Test: if removing a specific subject (markets, policy, technology, medicine) makes the item meaningless, it does not belong. How someone reasons IS identity. What they reason ABOUT is not.
 
-When behavior contradicts an axiom, that is diagnostic — the AI should surface it as recognition ("you're doing the thing you said you don't do"), not correction.
-
-IMPORTANT — For any axiom about emotion or internal process: do NOT describe the person's internal process (e.g., "they monitor emotions"). Instead, tell the AI what to OUTPUT differently — fuse the emotional pattern with the directive action. The sentence should instruct the AI how to respond when that emotional pattern appears, not describe what the person does internally.
-
-INCOMPLETENESS: These axioms are derived from available conversation data, which is inherently incomplete. If an axiom has thin support (fewer than 3 independent facts), note it with [THIN DATA] rather than presenting it with false confidence. If domain coverage is uneven (e.g., heavy professional data, sparse personal data), acknowledge this in the interactions section. The honest posture is "here is what we know" not "here is the complete picture."
-
-PROVENANCE — Each axiom must cite the input facts it draws from. After each axiom block, include a provenance line:
-  provenance: [F-xxx, F-yyy, ...]
-Use the [F-xxx] IDs provided in the input facts. Only cite facts that directly support the axiom. This enables trace-back from claims to source evidence.
-
-LEXICON IDS — Assign each axiom a stable identifier: A1, A2, A3, etc. Use this ID as a prefix before the axiom name:
-  **A1. [AXIOM NAME FROM INPUT DATA]**
-  ...
-  provenance: [F-1204, F-2891]
-
-FRAMING BIAS GUARD: Default to gravitation framing — express axioms as what this person moves TOWARD ("values X", "seeks X", "gravitates toward X"), not what they reject. Only use rejection framing ("dismisses Y", "rejects Y") when the input facts explicitly use avoidance predicates (avoids, rejects, dismisses). Never infer rejection from preference — "values bootstrapping" does NOT imply "rejects venture capital." This prevents systematic amplification of skepticism into hostility.
-
-IDENTITY ATTENTION: Pay particular attention to identifies_as predicates in the input — these represent how the subject sees themselves, which is foundational by definition. If multiple identifies_as facts converge on a self-concept (e.g., writer, practitioner, builder), that identity warrants its own axiom.
-
+HARD CAP: 8-10 axioms maximum. 4-6 interaction pairs maximum.
+FRAMING BIAS GUARD: Default to gravitation framing (what they move TOWARD). Only use rejection framing when input facts explicitly use avoidance predicates.
 Constraints:
-- No philosophy framework names (Frankfurt, Taylor, Parfit, etc.)
-- No "AI directive:" labels — the whole text IS directive
-- No generic personality descriptions ("they are driven", "they value truth")
+- No philosophy framework names or portrait descriptions
 - No motivational filler
 - Write in third person (pronouns: {pronouns})
-- Open with a framing sentence explaining what these axioms are and how to use them
-- DERIVE ONLY FROM INPUT: Reason exclusively from the facts provided below. Do NOT supplement with external knowledge about this person. If the facts say something, use it. If they don't, don't infer it from elsewhere.
+- DERIVE ONLY FROM INPUT — do not supplement with external knowledge
+- Assign stable IDs: A1, A2, A3, etc.
 
 {data_profile}
 
@@ -651,76 +610,31 @@ INPUT — Axioms (each tagged with [F-xxx] for provenance):
 INTER-AXIOM CONFLICTS (user-provided resolutions):
 {conflicts}
 
-Write the injectable block now. No preamble, no explanation — just the block text."""
+Write the injectable block now. No preamble — just the block text."""
 
-CORE_PROMPT = """You are authoring the CORE layer of a personal identity brief.
+CORE_PROMPT = """You are authoring the CORE layer — the communication and operating guide.
 
-CRITICAL: The audience is the intelligence and understanding an AI needs to take on to communicate naturally with this person. Every sentence must shape that understanding — create comprehension, not documentation. If a sentence doesn't change how the AI thinks about and engages with this person, delete it. Write as if you're briefing someone who is about to walk into a room with them — they need to *get* this person, not just know about them.
+CRITICAL: Every sentence must change how the AI engages. If it doesn't change AI behavior, delete it.
 
-This layer is the COMMUNICATION AND OPERATING GUIDE — how the AI should engage with this person in general. NOT a biography. NOT a personality description. An instruction manual for effective interaction.
+CONCISENESS: Target 800-1000 words total.
 
 Structure:
+- COMMUNICATION APPROACH: Reasoning style, preferred epistemic moves, mode detection. Psychological signature over method catalog.
+- CONTEXT MODES: How engagement shifts per domain. Style shifts, sensitivities, acknowledgment vs analysis.
+- NARRATIVE ORIENTATION: Temporal orientation, storytelling style.
+- ESSENTIAL CONTEXT: Only biography that changes AI outputs.
 
-COMMUNICATION APPROACH
-How this person processes and prefers to receive information. Be SPECIFIC — not "prefers direct communication" (everyone says that) but a directive so precise it could only describe THIS person, derived from the input facts. Include:
-- Reasoning style (first-principles vs. analogical, deductive vs. inductive)
-- Information delivery preference (conclusion-first vs. evidence-first)
-- Abstraction level (concrete/grounded vs. conceptual/theoretical)
-- Feedback mode (direct challenge vs. diplomatic, when each is appropriate)
-- Mode detection: how to tell when they are in "execution mode" (compressed, decision-ready questions — give tight answers) vs. "exploration mode" (open-ended, conceptual — give full depth). What signals the switch?
-- If facts show they use AI: how specifically — as tool, oracle, reasoning partner, etc. OMIT this bullet entirely if no AI usage evidence exists (e.g., historical figures, journal-only subjects).
-- Internal processing style: ONLY include this if the input facts contain DIRECT EVIDENCE of how this person presents problems (e.g., facts showing they arrive with hypotheses, or facts showing they think out loud). Do NOT infer processing style from the text format — an autobiography or published letter is always pre-processed by nature; that tells you nothing about the person's conversational style. If no direct evidence exists, OMIT this bullet entirely.
+DOMAIN BALANCE: No single domain >25%.
 
-CONTEXT MODES
-How engagement should shift across different contexts. People operate differently when dealing with personal matters vs. professional vs. creative vs. analytical work. For each active context in this person's life:
-- What the AI should assume when this context is active
-- How communication style shifts (be specific and derived from input facts, not generic — describe the actual shift this person exhibits)
-- What topics are sensitive or emotionally loaded
-- When to lead with acknowledgment before analysis vs. when to lead with analysis directly
-
-NARRATIVE ORIENTATION
-How this person relates to time and organizes their own experience:
-- Are they past-referential, present-focused, or future-projecting?
-- How do they tell stories? (chronological, thematic, conclusion-first)
-- How should the AI match this temporal mode?
-
-ESSENTIAL CONTEXT
-Compressed biographical facts that DIRECTLY change AI behavior. Not "age 31, lives in X" but "Professional identity centers on [X] — connect recommendations to [Y]." Only include facts where knowing them changes what the AI outputs.
-- Key relationships AS DECISION CONSTRAINTS (not biography)
-- Active life tensions AS NAVIGATION GUIDES (don't resolve — name both sides)
-- Frame biography as operational context, not credentials: "founded X and closed contracts with Y — use this as reference for what they have already done, not as credential to repeat back to them"
-
-DOMAIN BALANCE: No single domain should occupy more than ~25% of the block. Compress dominant domains to behavioral essence.
-
-BEHAVIORAL SPECIFICITY — This is the most important quality criterion. Generic directives like "be direct" or "challenge ideas" are worthless — every AI already tries to do this. The test: could this sentence appear in ANY person's CORE layer? If yes, it is too generic. Good CORE sentences are specific enough that only ONE person's layer would contain them. BAD: "They value clear communication." GOOD: A sentence so specific that only THIS person's layer would contain it, derived from their actual behavioral patterns in the input facts. Do NOT reuse examples from these instructions.
-
-D-041 FILTER — Before including ANY detail, ask: "What would the AI do differently knowing this?" If nothing, cut it.
+DOMAIN-AGNOSTIC REQUIREMENT: You are writing a UNIVERSAL operating guide — not a summary of interests or positions. Every item must apply ACROSS this person's life, not within one topic. Test: if removing a specific subject (markets, policy, technology, medicine) makes the item meaningless, it does not belong. How someone reasons IS identity. What they reason ABOUT is not.
 
 Constraints:
-- No philosophy framework names
-- No motivational filler
-- No portrait descriptions ("they are driven", "complex and multifaceted")
-- Specific: real details, not attributes
-- ONLY include details present in the input facts. Do NOT invent or hallucinate.
-- DERIVE ONLY FROM INPUT: Reason exclusively from the facts provided below. Do NOT supplement with external knowledge about this person. If the facts say something, use it. If they don't, don't infer it from elsewhere.
-- ANTI-ANACHRONISM: Use vocabulary appropriate to the subject's era. Do NOT mention AI, technology, or modern tools for historical figures or subjects whose facts show no AI usage. Do NOT use modern corporate jargon ("stakeholders", "leverage", "career advancement") for pre-20th-century subjects.
+- No philosophy framework names or portrait descriptions
+- ONE CLAIM PER SENTENCE
 - Write in third person (pronouns: {pronouns})
-- Do NOT include epistemic axioms (those go in ANCHORS) or behavioral predictions (those go in PREDICTIONS)
-- ONE CLAIM PER SENTENCE. Never join independent observations with ", and" or "; [new topic]". If two facts are causally related, explain the relationship explicitly. If they are not related, they belong in separate sentences. BAD: "They believe X fails due to Y, and value Z-led deployment." GOOD: "They believe X fails due to Y. This shapes their preference for Z-led deployment — fixing infrastructure before adding features."
-
-Do NOT generate gap analysis questions. Every communication preference must be resolved into a directive based on the available facts. If the facts don't support a specific directive, omit it — do not leave open questions.
-
-INCOMPLETENESS: These directives are derived from available conversation data, which is inherently incomplete. If a context mode has thin factual support, keep it brief rather than padding with generic advice. If domain coverage is uneven (e.g., heavy trading data, sparse personal data), compress the over-represented domain to behavioral essence and acknowledge sparse domains with what you have rather than over-inferring. The honest posture is "here is what we know" not "here is the complete picture."
-
-PROVENANCE — For each major section or context mode, include a provenance line citing the input facts it draws from:
-  provenance: [F-xxx, F-yyy, ...]
-Use the [F-xxx] IDs provided in the input facts. Only cite facts that directly support the claim.
-
-LEXICON IDS — Assign each context mode a stable identifier: C1, C2, C3, etc. Use this ID as a prefix:
-  **C1. [CONTEXT NAME FROM INPUT DATA]**
-  ...
-  provenance: [F-301, F-455]
-Use M1, M2, M3 for meta sections (COMMUNICATION_APPROACH, NARRATIVE_ORIENTATION, ESSENTIAL_CONTEXT).
+- DERIVE ONLY FROM INPUT — do not supplement with external knowledge
+- ANTI-ANACHRONISM: Use vocabulary appropriate to the subject's era
+- IDs: M1/M2/M3 for meta sections, C1/C2/C3 for context modes
 
 {data_profile}
 
@@ -738,62 +652,41 @@ POSITIONAL:
 PREFERENCE:
 {preference}
 
-Write the injectable block now. No preamble, no explanation, no questions — just the block text."""
+Write the injectable block now. No preamble — just the block text."""
 
-PREDICTIONS_PROMPT = """You are authoring the BEHAVIORAL PREDICTIONS layer of a personal identity brief.
+PREDICTIONS_PROMPT = """You are authoring the BEHAVIORAL PREDICTIONS layer — recurring situational patterns.
 
-CRITICAL: The audience is the intelligence and understanding an AI needs to take on to communicate naturally with this person. Every sentence must shape that understanding. Each prediction should make the AI *feel* how to respond differently in that situation — not give it a checklist. If a prediction produces the same "provide structured frameworks" response as every other prediction, it has failed. Each pattern demands a unique response.
+CRITICAL: Each prediction must make the AI feel how to respond differently. Psychologically precise directives — what the person NEEDS, not just what they're doing.
 
-These are behavioral predictions — recurring patterns observed across conversations. Each names a GENERAL pattern (not domain-specific), how to detect it across specific domains, and what to do when it's active.
+TARGET: 6-8 predictions maximum. Each genuinely distinct.
 
-For each prediction, use this format:
-PATTERN NAME: When [trigger situation] -> [characteristic response]
-Detection: [how this manifests across MULTIPLE domains — must include at least 2 different life areas per pattern, e.g. professional AND personal, or trading AND relationship, etc.]
-Directive: [what the AI should do when this pattern is active — specific, actionable, output-shaping]
-False positive warning: [when this pattern might APPEAR active but isn't — to prevent over-application by the AI]
+Format: PATTERN NAME: When [trigger] -> [response]
+Detection: [2+ domains]
+Directive: [psychologically precise, actionable]
+False positive warning: [when not active]
 
-Rules:
-- Patterns must be GENERAL behavioral patterns, not domain-specific ones
-- Detection examples MUST span multiple domains. If a pattern only shows up in one domain, it belongs in a domain-specific brief, not here. Spread detection examples across: professional, personal, relational, intellectual, financial.
-- MULTI-SOURCE GROUNDING: Each prediction must be supported by facts from 2+ source documents. Single-source patterns may appear in detection examples but cannot drive the prediction title or directive. This prevents overgeneralizing a single opinion into a personality trait.
-- Directives must be actionable — tell the AI what to output differently, not what to understand
-- DIRECTIVE ≠ TRIGGER: The directive must add information beyond the trigger. If the trigger is "names tensions rather than resolving them," the directive CANNOT be "name the tensions and don't resolve them." Instead, describe HOW this person specifically processes tension — do they deflect with humor? Build exhaustive analyses? Escalate to structural diagnosis? Sit with paradox through literary framing? The trigger detects the pattern; the directive tells the AI what this person's SPECIFIC version of that pattern looks like and how to match it.
-- If a pattern is time-bounded, mark it [time-bounded]
-- Open with a framing sentence explaining what these predictions are and how to use them
-- Include patterns for: success responses, setback responses, feedback handling, relationship dynamics, decision-making patterns, self-accountability, learning/revision patterns
-- ANTI-ANACHRONISM: Use vocabulary appropriate to the subject's era and domain. Do not project modern professional language (e.g. "optimizes workflows," "leverages synergies," "iterates on feedback loops") onto historical figures or non-professional subjects. If the source facts use plain language, the predictions must too.
+Rules: General patterns only, not domain-specific. Detection spans multiple domains. Do not restate axioms.
 
-ANTI-REDUNDANCY: This layer sits alongside an ANCHORS layer (epistemic axioms). Do NOT restate axioms as predictions. If a pattern IS an axiom (e.g., "seeks coherence" = COHERENCE axiom), do not include it here. Predictions describe WHAT HAPPENS in specific situations, not what the person believes.
+DETECTION BALANCE: If one domain dominates the input evidence (e.g., trading, coding, writing), it must NOT dominate the detection examples. Lead detection with the less-represented domains first. Use the dominant domain as the LAST example only. If you cannot find detection in 2+ non-dominant domains, the pattern may be domain-specific and should be excluded.
 
-Test: "When [X happens], this person characteristically does [Y]" — if Y is a belief or stance rather than an observable behavior, it belongs in ANCHORS, not here.
+DOMAIN SUPPRESSION: If a single domain (e.g., trading, coding) appears in more than 2 predictions as a detection example, you have over-indexed. Rewrite using other domains or generalize the detection language beyond any single activity.
 
-INCOMPLETENESS: These predictions are derived from available conversation data, which is inherently incomplete. If a pattern only has strong evidence in one domain and weak evidence in others, say so — mark the cross-domain claim with [THIN IN: domain]. If a pattern passes the specificity test in one domain but is generic in another, only claim the specific domain. Do not present a single-domain pattern as cross-domain to meet the format requirement. The honest posture is "here is what we observe" not "here is the complete behavioral model."
-
-PROVENANCE — After each prediction's directive, include a provenance line citing the input facts:
-  provenance: [F-xxx, F-yyy, ...]
-Use the [F-xxx] IDs provided in the input facts. Only cite facts that directly support the pattern.
-
-LEXICON IDS — Assign each prediction a stable identifier: P1, P2, P3, etc. Use this ID as a prefix:
-  **P1. [PATTERN NAME FROM INPUT DATA]**: When [trigger] -> [response]
-  Detection: ...
-  Directive: ...
-  provenance: [F-501, F-602, F-891]
-Do NOT reuse example pattern names from these instructions — derive each name from the actual behavioral evidence.
+DOMAIN-AGNOSTIC REQUIREMENT: You are writing a UNIVERSAL operating guide — not a summary of interests or positions. Every item must apply ACROSS this person's life, not within one topic. Test: if removing a specific subject (markets, policy, technology, medicine) makes the item meaningless, it does not belong. How someone reasons IS identity. What they reason ABOUT is not.
 
 Constraints:
-- No philosophy framework names
-- No motivational filler
+- No philosophy framework names or motivational filler
 - Patterns are situation->response, not personality traits
 - Write in third person (pronouns: {pronouns})
-- Each pattern should have a unique, descriptive name
-- DERIVE ONLY FROM INPUT: Reason exclusively from the facts provided below. Do NOT supplement with external knowledge about this person. If the facts say something, use it. If they don't, don't infer it from elsewhere.
+- DERIVE ONLY FROM INPUT — do not supplement with external knowledge
+- ANTI-ANACHRONISM: Use vocabulary appropriate to the subject's era
+- Assign stable IDs: P1, P2, P3, etc.
 
 {data_profile}
 
 INPUT — Behavioral identity-tier facts (each tagged with [F-xxx] for provenance):
 {facts}
 
-Write the injectable block now. No preamble, no explanation — just the block text."""
+Write the injectable block now. No preamble — just the block text."""
 
 
 # ---------------------------------------------------------------------------
@@ -1080,6 +973,107 @@ def generate_layer(layer_name, prompt_text, max_contamination_retries=3):
     # Exhausted retries — return with warning
     print(f"  WARNING: {layer_name} still contains prompt contamination after {max_contamination_retries} retry(ies). Manual review needed.")
     return text
+
+
+# ===========================================================================
+# STRUCTURED OUTPUT — schema-constrained layer generation (D-093, S100)
+# ===========================================================================
+# Uses Anthropic's structured outputs (output_config.format) to guarantee
+# deterministic format. The model fills in a JSON schema — content is
+# generative, structure is deterministic. No parser needed.
+# ===========================================================================
+
+PREDICTIONS_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "predictions": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "string", "description": "Stable ID: P1, P2, etc."},
+                    "name": {"type": "string", "description": "Pattern name in UPPERCASE: e.g. CONFIRMATION GATE"},
+                    "trigger": {"type": "string", "description": "When [situation]"},
+                    "response": {"type": "string", "description": "-> [characteristic response]"},
+                    "detection": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "2-3 detection examples from DIFFERENT life domains"
+                    },
+                    "directive": {"type": "string", "description": "What the AI should do — psychologically precise, actionable"},
+                    "false_positive_warning": {"type": "string", "description": "When this pattern appears active but isn't"},
+                },
+                "required": ["id", "name", "trigger", "response", "detection", "directive", "false_positive_warning"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["predictions"],
+    "additionalProperties": False,
+}
+
+
+def generate_layer_structured(layer_name, prompt_text, schema):
+    """Generate a layer via structured output (JSON schema constrained decoding).
+
+    The model fills in a JSON schema. Content is generative, structure is
+    deterministic. Returns the parsed JSON object, not raw text.
+    """
+    from baselayer.api_client import get_anthropic_client, logger
+
+    print(f"  Generating {layer_name} layer via {LAYER_GENERATION_MODEL} (structured output)...")
+    start = time.time()
+
+    client = get_anthropic_client()
+    resp = client.messages.create(
+        model=LAYER_GENERATION_MODEL,
+        max_tokens=8000,
+        messages=[{"role": "user", "content": prompt_text}],
+        output_config={
+            "format": {
+                "type": "json_schema",
+                "schema": schema,
+            }
+        },
+    )
+
+    text = resp.content[0].text.strip()
+    elapsed = time.time() - start
+    cost = (resp.usage.input_tokens / 1e6) * 3.00 + (resp.usage.output_tokens / 1e6) * 15.00
+    print(f"  Done ({elapsed:.1f}s, {resp.usage.input_tokens} in / {resp.usage.output_tokens} out, ~${cost:.4f})")
+
+    parsed = json.loads(text)
+    items = parsed.get("predictions", [])
+    print(f"  Structured output: {len(items)} predictions")
+
+    return parsed
+
+
+def render_predictions_to_markdown(parsed: dict) -> str:
+    """Render structured predictions JSON to markdown for storage and display."""
+    lines = ["## Injectable Block\n"]
+    lines.append("# BEHAVIORAL PREDICTIONS LAYER\n")
+    lines.append("---\n")
+
+    for pred in parsed.get("predictions", []):
+        pid = pred["id"]
+        name = pred["name"]
+        trigger = pred["trigger"]
+        response = pred["response"]
+        detection = pred.get("detection", [])
+        directive = pred.get("directive", "")
+        fp = pred.get("false_positive_warning", "")
+
+        lines.append(f"**{pid} — {name}**")
+        lines.append(f"When {trigger} → {response}\n")
+        lines.append("Detection:")
+        for d in detection:
+            lines.append(f"- {d}")
+        lines.append(f"\nDirective: {directive}\n")
+        lines.append(f"False positive warning: {fp}\n")
+        lines.append("---\n")
+
+    return "\n".join(lines)
 
 
 # ===========================================================================
