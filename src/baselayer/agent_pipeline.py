@@ -402,7 +402,9 @@ ANTI-ANACHRONISM: Use vocabulary appropriate to the subject's era and lived expe
 
 NO SELF-REFERENCE: The brief describes WHO this person is — their identity, patterns, and how to engage with them. It must NOT reference the pipeline, system, or tools that created the brief.
 
-ANONYMIZATION: Do NOT use the subject's full name in the brief. Use pronouns ("he", "she", "they") or generic references ("this person"). The brief describes behavioral patterns — including the name risks the reading AI pattern-matching to its pre-training knowledge about this person rather than using the behavioral model provided. The brief should work because of what it says, not who it's about.
+ANONYMIZATION: Do NOT use the subject's full name in the brief. Use "they/them" pronouns exclusively — do NOT infer or assign gender from the content. The brief describes behavioral patterns — including the name risks the reading AI pattern-matching to its pre-training knowledge about this person rather than using the behavioral model provided. The brief should work because of what it says, not who it's about.
+
+DOMAIN-AGNOSTIC COMPOSITION (D-089): The brief should capture behavioral patterns, not topic positions. If a paragraph describes beliefs about a specific domain (AI, policy, markets, technology) rather than a reasoning pattern that applies across domains, compress to the pattern underneath. The test: if removing the domain name makes the paragraph meaningless, it is topic content, not identity. How someone reasons IS identity. What they reason ABOUT is not. Domain-specific examples are permitted as ILLUSTRATIONS of a universal pattern, but must not dominate any section.
 
 COMPLETENESS REQUIREMENTS — include these elements IF AND ONLY IF they exist in the source layers:
 
@@ -445,7 +447,7 @@ at least N-2 of them represented (some may merge naturally).
 
 FORMAT:
 - Write in flowing prose paragraphs, not bullet points or structured headers
-- Use third person (match the pronouns used in the source layers)
+- Use "they/them" pronouns exclusively throughout. Do NOT use "he", "she", "his", "her". This is a hard requirement.
 - Open with a 2-3 sentence identity anchor (who this person IS, irreducibly). BANNED OPENING PHRASES (will trigger automatic rejection): "operates from", "unshakeable conviction", "unshakeable belief", "fundamental belief that", "deeply held", "at his/her core". Instead, open with a concrete behavioral observation — what does this person DO that reveals who they are? The opening should be as distinctive as a fingerprint
 - Follow with behavioral mechanisms grouped by natural theme, not by source layer
 - Close with the key tensions, but make each one ACTIONABLE: state the contradiction AND what the reading AI should do when it surfaces. Weave these into 1-2 flowing prose paragraphs (NOT a bulleted list, NOT a separate labeled section). Each tension-action pair should read as natural prose, not as a formatted directive. CRITICAL: Every tension and directive MUST use vocabulary, domain language, and specific details drawn from the source layers — never generic advisory language. A reader familiar with this person should be able to identify them from ANY single directive. Do NOT use stock phrases like "help diagnose the structural cause" or "demands systematic tracking but struggles with order" — derive each tension's language from the actual behavioral evidence in the layers below. If the source layers describe a specific domain tension (e.g., moral perfectionism vs. pragmatic compromise in governance), the directive must use THOSE terms, not therapeutic abstractions

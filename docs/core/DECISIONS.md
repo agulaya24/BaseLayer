@@ -2271,3 +2271,30 @@ Anchoring destroys this signal by making v2 artificially similar to v1. Blind ge
 **Alternatives considered:**
 - State machine in database: Over-engineered. Sequential with file-based state inference is simpler.
 - Batch extract as default: Deferred — async polling doesn't fit synchronous pipeline flow yet.
+
+### D-089: Domain-Agnostic Identity Guard (S99)
+**Decision:** All authoring prompts must include a domain-agnostic guard that prevents topic-specific positions from being elevated to identity axioms. The guard: "How someone reasons IS identity. What they reason ABOUT is not."
+**Evidence:** S99 prompt ablation — 73-word guard reduced topic mentions from 9 to 0 across 10 conditions on 2 subjects. 78% of prior prompt was ceremonial.
+**Status:** Active. Implemented in H3 prompts (ANCHORS_PROMPT, CORE_PROMPT, PREDICTIONS_PROMPT in author_layers.py). Compose prompt still needs equivalent guard (D-091).
+**Updates:** Principle 4b (Fact Quality) — extends the "frequency is not significance" principle from extraction to authoring. Principle 7 (Silence ≠ Irrelevance) — domain cap and detection balance are authoring-level implementations.
+
+### D-090: Sycophancy Resistance as Architecture (S100)
+**Decision:** Identity models inherently increase sycophancy risk (Jain et al., ICLR 2025 — CAUSM study). The countermeasures are architectural, not advisory: "operating guide" framing (adviser role), "never reference directly" preamble, false-positive warnings on predictions, falsification-validated axioms. Any pipeline change that weakens these is a regression.
+**Evidence:** MIT/Penn State study found condensed user profiles had the GREATEST impact on sycophancy — more than conversation history or role framing. Adviser role retains independence; persona role amplifies agreement.
+**Status:** Active. Existing architecture already implements correct countermeasures. Codified as explicit principle to prevent regression.
+
+### D-091: Compose Domain Guard (S100, planned)
+**Decision:** The compose prompt (agent_pipeline.py) needs its own domain-agnostic guard equivalent to D-089. Current compose step reassembles topic-specific content from layers even when layers are domain-agnostic. Guard: "If a paragraph describes beliefs about a specific domain rather than a reasoning pattern that applies across domains, compress to the pattern underneath."
+**Evidence:** Kevin Kelly brief has 25 AI mentions, Dan Shipper has 24. Layers are clean (H3 guard works), but compose reassembles topic content.
+**Status:** Planned. Test on Kevin Kelly and Dan Shipper before batch adoption.
+
+### D-092: Universal They/Them Pronouns (S100)
+**Decision:** All pipeline output uses "they/them" exclusively. The compose prompt must not infer or assign gender. Remove "he", "she" as options from the compose prompt.
+**Evidence:** Maggie Appleton's brief used "he" 134 times, "she" zero. Compose step inferred wrong gender from content. Other female subjects correctly used they/them because the layer prompts enforce it, but compose does not.
+**Status:** Planned. Fix compose prompt, rerun Maggie as validation.
+
+### D-093: Structured Output for Predictions (S100, planned)
+**Decision:** Move predictions layer generation from free-form markdown to JSON schema constrained decoding (Anthropic Structured Outputs API). Schema defines: id, name, trigger, response, detection (list), directive, false_positive_warning. Content within fields remains fully generative.
+**Evidence:** Prediction format inconsistency across subjects — some use labeled Detection/Directive/FP, others use prose paragraphs. Structured output guarantees format while preserving generative content quality.
+**Status:** Planned. Test on Scott Alexander vs free-form comparison before adoption. If quality degrades, fallback to improved prompt scaffolding.
+**Risk:** Constrained decoding may produce more formulaic prose in string fields. Phase 1 test required before batch adoption.
