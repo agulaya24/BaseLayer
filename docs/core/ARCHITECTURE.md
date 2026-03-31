@@ -1,6 +1,6 @@
 # System Architecture
 ## Base Layer: Behavioral Compression for AI Identity
-**Updated 2026-03-10 (Session 87)**
+**Updated 2026-03-30 (Session 100)**
 
 ---
 
@@ -75,14 +75,19 @@ Pipeline ablation (Session 79) tested 14 conditions on Benjamin Franklin (autobi
  |   STEP 3: AUTHOR              v                                |
  |   +----------------------------------------------------------+ |
  |   | Sonnet — Three-layer identity generation (D-043)          | |
+ |   | H3 prompts: domain-agnostic guard (S99 ablation)          | |
+ |   | 78% prompt reduction (983w → 333w anchors)                | |
  |   | ANCHORS | Epistemic axioms                                | |
  |   | CORE    | Communication & operating guide                 | |
  |   | PREDICT | Situation → pattern → directive                 | |
+ |   |         | Structured output format validated (D-093)       | |
  |   +---------------------------+------------------------------+ |
  |                               |                                |
  |   STEP 4: COMPOSE             v                                |
  |   +----------------------------------------------------------+ |
  |   | Opus — Compress 3 layers → unified brief (~2,500 tokens)  | |
+ |   | They/them pronouns enforced (D-092)                       | |
+ |   | Domain-agnostic guard (D-091)                             | |
  |   | Served via MCP (Model Context Protocol) as always-on      | |
  |   | identity Resource                                          | |
  |   +----------------------------------------------------------+ |
@@ -483,6 +488,10 @@ Replaces the single identity block from earlier sessions. Each layer is authored
 - **D-043 (Three Layers):** Each layer authored independently, from different fact subsets, with different generation prompts.
 - **D-044 (Scoped):** Only personal-scope facts feed identity blocks.
 - **D-046 (Cheap constraint, expensive discrimination):** Sonnet generates layers (constraint). Collective review in Claude Code sessions (discrimination). Prompt quality is the leverage point, and each Collective addition signals a missing prompt question.
+- **D-089 (Domain-Agnostic Guard, S99):** 73-word guard in all authoring prompts eliminates topic skew. "How someone reasons IS identity. What they reason ABOUT is not." H3 prompts adopted as production prompt set after 4-round, 10-condition ablation (78% prompt size reduction: 983w to 333w for anchors).
+- **D-091 (Compose Domain Guard):** Equivalent guard applied to composition step. Prevents topic-specific content from reassembling even when layers are domain-agnostic.
+- **D-092 (Universal They/Them):** Compose prompt enforces gender-neutral pronouns across all subjects.
+- **D-093 (Structured Output for Predictions):** Validated structured output format for PREDICTIONS layer. Improves parsing reliability and enables downstream tooling (serving layer activation matching). Planned for all layers.
 
 **V4 quality outcomes (S52 cycle_003, Collective review: 78.5/100):**
 - ANCHORS: 11 axioms with false-positive warnings. 4 axiom interaction pairs. Directive-embedded style with detection signatures.
@@ -622,6 +631,14 @@ Claude serves as the conversational reasoning model. At runtime, Claude is state
 The original pipeline also used Qwen 2.5 14B (local extraction), MiniLM (similarity/dedup), and Haiku classification (fact_type + commitment_depth). These remain available but are not part of the simplified pipeline.
 
 **Why Claude stays stateless for conversation:** Updatability. If memory were baked into model weights (fine-tuning), every new conversation would require re-training. With injection, updating memory is instant: just update the database.
+
+### Serving Layer (SPECCED — Session 99, not yet built)
+
+The serving layer adds activation matching between the brief and the current conversation context. Instead of injecting the entire brief every turn, the serving layer identifies which portions of the identity model are relevant to the active topic and surfaces them with priority.
+
+**Spec:** `docs/core/SERVING_LAYER_SPEC.md`
+**Phase 1:** Activation matching MVP — score brief sections against conversation context, rank by relevance, inject top-K.
+**Status:** Specced, not yet implemented. Flagged as next pipeline priority after Wave 4/5 outreach.
 
 ---
 
@@ -815,21 +832,25 @@ COMPLETE (Core Pipeline)                    COMPLETE (Infrastructure)
 [x] Three-layer identity (D-043)           [x] Multi-source importer (ChatGPT/Claude/text)
 [x] Unified brief composition              [x] Document mode (books, essays, patents)
 [x] Provenance traces (S56-57)             [x] Data isolation (MEMORY_SYSTEM_ROOT)
-[x] N=10 validation (73-82/100)            [x] 414 tests, 76 design decisions
+[x] N=10 validation (73-82/100)            [x] 414 tests, 93 design decisions
 [x] Pipeline ablation (14→4 steps, S79)    [x] Anti-parrot preamble (S63)
-[x] Twin-2K benchmark (71.83%, p=0.008)    [x] Person-agnostic prompts
-[x] BCB-0.1 Franklin                       [x] Anonymization layer
-[x] Website LIVE (base-layer.ai)            [x] Database initializer (init_database.py)
-[x] GitHub repo LIVE (agulaya24/BaseLayer)  [x] Code review S81 (13 bugs fixed, 0 blockers)
-[x] Privacy scrub (S81)                     [x] Pipeline validation (all subjects)
+[x] H3 prompt ablation (S99)               [x] Person-agnostic prompts
+[x] Twin-2K benchmark (71.83%, p=0.008)    [x] Anonymization layer
+[x] BCB-0.1 Franklin                       [x] Database initializer (init_database.py)
+[x] Website LIVE (base-layer.ai)            [x] Code review S81 (13 bugs fixed, 0 blockers)
+[x] GitHub repo LIVE (agulaya24/BaseLayer)  [x] Pipeline validation (all subjects)
+[x] Privacy scrub (S81)                     [x] Serving layer spec (S99)
+[x] 44 subjects H3-authored (S100)          [x] Structured output validated (D-093)
+[x] Compose fixes (they/them + guard)       [x] 14 design principles
+[x] Pipeline refactor (S98-S99)             [x] Magic link auth (Route Handler)
 
 NEXT                                        POST-LAUNCH
 ----                                        -----------
-[ ] Paul Graham case study                  [ ] ADRB benchmark (~$30)
-[ ] Self-referential case study             [ ] Dissenting opinion benchmark (D-076)
-                                            [ ] Brief structure update (D-075)
-                                            [ ] Cross-provider blind eval
-                                            [ ] Local deployability improvements
+[ ] Serving layer Phase 1 (activation       [ ] ADRB benchmark (~$30)
+    matching MVP)                            [ ] Dissenting opinion benchmark (D-076)
+[ ] Wave 4/5 outreach (17 seeded)           [ ] Brief structure update (D-075)
+[ ] Reddit launch (19 subreddits)           [ ] Cross-provider blind eval
+[ ] Stacking test scoring                   [ ] Local deployability improvements
 ```
 
 ---

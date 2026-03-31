@@ -246,17 +246,22 @@ def get_embedding_model():
 
         try:
             from sentence_transformers import SentenceTransformer
-            from config import EMBEDDING_MODEL
-            logger.info("Loading embedding model: %s", EMBEDDING_MODEL)
-            _embedding_model = SentenceTransformer(EMBEDDING_MODEL)
-            logger.info("Embedding model loaded (dim=%d)", _embedding_model.get_sentence_embedding_dimension())
-            return _embedding_model
         except ImportError:
             logger.warning(
                 "sentence_transformers not installed. Embedding features unavailable. "
                 "Run: pip install sentence-transformers"
             )
             return None
+
+        try:
+            from baselayer.config import EMBEDDING_MODEL
+        except ImportError:
+            from config import EMBEDDING_MODEL
+
+        logger.info("Loading embedding model: %s", EMBEDDING_MODEL)
+        _embedding_model = SentenceTransformer(EMBEDDING_MODEL)
+        logger.info("Embedding model loaded (dim=%d)", _embedding_model.get_sentence_embedding_dimension())
+        return _embedding_model
 
 
 def embed_texts(texts, batch_size=64):

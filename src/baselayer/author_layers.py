@@ -1358,7 +1358,7 @@ def _parse_citation_provenance(response, index_maps, layer_name):
             # Use a short excerpt of the text as claim_text
             claim_text = block.text.strip()[:120]
             results.append({
-                "claim_id": f"{prefix}{claim_counter}_cite",
+                "claim_id": f"{prefix}{claim_counter}",
                 "claim_text": claim_text,
                 "fact_ids": list(dict.fromkeys(fact_ids)),  # dedupe preserving order
             })
@@ -1884,10 +1884,21 @@ def generate_predictions(conn, use_citations=True):
         ).replace("{domain_description}", domain_desc).replace("{pronouns}", pronouns).replace("{data_profile}", profile)
     else:
         prompt = PREDICTIONS_PROMPT.replace("{facts}", facts_text).replace("{pronouns}", pronouns).replace("{data_profile}", profile)
-    text = generate_layer("PREDICTIONS", prompt)
-    if use_citations:
-        return text, None
-    return text
+
+    # Try structured output first (D-093) — deterministic format, no parser needed
+    try:
+        parsed = generate_layer_structured("PREDICTIONS", prompt, PREDICTIONS_SCHEMA)
+        text = render_predictions_to_markdown(parsed)
+        print(f"  Structured output: {len(parsed.get('predictions', []))} predictions (parser-free)")
+        if use_citations:
+            return text, None
+        return text
+    except Exception as e:
+        print(f"  Structured output failed ({e}), falling back to free-form...")
+        text = generate_layer("PREDICTIONS", prompt)
+        if use_citations:
+            return text, None
+        return text
 
 
 # ===========================================================================

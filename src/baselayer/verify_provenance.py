@@ -454,8 +454,9 @@ def parse_claims_from_layer(layer_name, layer_text):
     current_id = None
     current_lines = []
 
-    # Pattern: **A1. NAME**, **P2. NAME-NAME**, **C3. NAME**, **M1. NAME**
-    id_pattern = re.compile(r'\*\*([APCM]\d+)\.?\s+(.+?)\*\*')
+    # Pattern: **A1. NAME**, **P2 — NAME**, ### A1 | NAME, ## M1 · NAME, etc.
+    # Matches both bold and heading formats with any separator
+    id_pattern = re.compile(r'(?:\*\*|#{2,4}\s+)([APCM]\d+)[^A-Za-z0-9\n]+(.+?)(?:\*\*|$)')
 
     for line in lines:
         id_match = id_pattern.search(line)

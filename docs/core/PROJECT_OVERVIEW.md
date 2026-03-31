@@ -1,5 +1,5 @@
 # Base Layer: Project Overview
-**Updated 2026-03-24 (Session 97)**
+**Updated 2026-03-27 (Session 100)**
 
 ---
 
@@ -27,12 +27,12 @@ Base Layer is a structured reasoning process that produces understanding. The id
 
 2. **Fact Extraction:** Structured fact extraction with 47 constrained predicates. Produces `{subject, predicate, object, qualifier}` triples from any text source.
 
-3. **Identity Authoring:** Facts compressed into a three-layer identity brief:
+3. **Identity Authoring:** Facts compressed into a three-layer identity brief using H3 prompts (Session 99 ablation — domain-agnostic guard eliminates topic skew):
    - **Epistemic Anchors:** Core axioms that define reasoning foundations. Cross-scope, always-on.
    - **Communication & Operating Guide (CORE):** Directive-format communication approach, context modes, narrative orientation, essential context. Always-on.
-   - **Behavioral Predictions:** Situation-triggered response patterns with detection signatures and interaction directives. Always-on.
+   - **Behavioral Predictions:** Situation-triggered response patterns with detection signatures and interaction directives. Structured output format validated (D-093). Always-on.
 
-4. **Brief Composition:** Three layers compressed into a unified narrative brief (~2,500 tokens, V4). Served via MCP (Model Context Protocol) as an always-on identity Resource.
+4. **Brief Composition:** Three layers compressed into a unified narrative brief (~2,500 tokens). Compose prompt enforces they/them pronouns (D-092) and domain guard (D-091). Served via MCP (Model Context Protocol) as an always-on identity Resource.
 
 5. **Reasoning Model:** Any LLM receives the brief and responds with understanding. Stateless, interchangeable.
 
@@ -83,8 +83,8 @@ Pipeline ablation (Session 79) tested 14 conditions on Benjamin Franklin (autobi
 ```
 STEP 1:  IMPORT        — Multi-source importer (ChatGPT, Claude, journals, text files)
 STEP 2:  EXTRACT       — Text → structured triples {subject, predicate, object, qualifier} (Haiku API)
-STEP 3:  AUTHOR        — Facts → three-layer identity generation (Sonnet)
-STEP 4:  COMPOSE       — 3 layers → unified narrative brief (~2,500 tokens) (Opus)
+STEP 3:  AUTHOR        — Facts → three-layer identity generation (Sonnet, H3 prompts with domain guard)
+STEP 4:  COMPOSE       — 3 layers → unified narrative brief (~2,500 tokens) (Opus, they/them + domain guard)
 ```
 
 **One command:** `baselayer run <file>` runs steps 1-4 automatically with cost estimate gate.
@@ -173,29 +173,32 @@ Local deployability is being actively explored. The architecture is designed for
 
 | Metric | Value |
 |---|---|
-| Total subjects on dashboard | 91 |
-| Thinkers pages live (base-layer.ai) | 29 |
-| V2 upgrades complete | 5 (Kevin Kelly 76→2824, David Perell 201→1867, Henrik 158→739, Maggie 260→740, Casey 253→447) |
-| Wave 4 subjects scraped | 12 (5,322 new files) |
+| Total subjects on dashboard | 92+ |
+| Subjects H3-authored | 44 |
+| Thinkers pages live (base-layer.ai) | 29 (17 Wave 4/5 ready to seed) |
+| Pipeline refactor | COMPLETE (S98-S99). H3 prompts adopted. |
+| Wave 4/5 subjects seeded | 17 (ready for outreach) |
 | Anthropic targets scraped | 3 (Jack Clark 457, Amanda Askell 34, Dario 4) |
 | Active facts (User A — primary test user, 1,892 ChatGPT conversations) | 4,610 |
 | Identity-tier facts (User A) | 2,684 |
 | Conversations imported | 1,892 (primary test user, multi-source) |
 | Messages | 40,997 |
 | Epistemic axioms (User A) | 11 |
-| Design decisions logged | 81+ |
+| Design decisions logged | 93 |
+| Design principles | 14 |
 | Classification accuracy | 91.2% type, 93.8% depth |
 | Brief assembly time | ~100ms |
-| Brief token budget | ~2,500 tokens (unified narrative brief, V4) |
+| Brief token budget | ~2,500 tokens (unified narrative brief) |
 | Pipeline steps | 4 (simplified from 14 in S79) |
-| CLI subcommands | 22 |
+| Authoring prompts | H3 (domain-agnostic guard, S99 ablation) |
+| CLI subcommands | 25 |
 | MCP tools | 5 tools + 1 resource |
 | Constrained predicates | 47 + 30 aliases |
-| Build sessions | 97+ |
+| Build sessions | 100 |
 | Tests passing | 414 |
 | GPU extraction | mistral:7b best (59 facts, 232s); authoring still requires API |
 | Stacking test | 100 responses, 5 conditions (C4 project leakage finding) |
-| Auth | Magic link (7-day tokens, Redis-backed) + password fallback |
+| Auth | Magic link (7-day tokens, Redis-backed, Route Handler pattern) + password fallback |
 | Dashboard | Textual TUI (sortable, scrollable, tier display, auto-refresh) |
 
 ---
@@ -204,41 +207,39 @@ Local deployability is being actively explored. The architecture is designed for
 
 ### Key Completed Milestones
 - **Pipeline ablation** — DONE (Session 79): 14 conditions on Franklin, ~$16. Proved 10 of 14 steps ceremonial. Simplified to 4-step pipeline.
+- **H3 prompt ablation** — DONE (Session 99): 4 rounds, 10 conditions. 73-word domain guard eliminated topic skew entirely. H3 adopted as production prompt set.
+- **Pipeline refactor** — DONE (Session 98-99): Codebase refactor complete. Extraction gate, H3 prompts, compose fixes (they/them, domain guard).
 - **N=10 validation** — DONE: User A, User B, User C, Franklin, Douglass, Wollstonecraft, Roosevelt, Patents, Warren Buffett (48 shareholder letters), Howard Marks (74 investment memos). All scored 73-82/100.
 - **Twin-2K-500 benchmark** — DONE (N=100): 71.83% accuracy at 18:1 compression, p=0.008.
 - **BCB-0.1 Franklin** — DONE: 2 pass, 2 fail, 1 invalid. DRS (Dialectical Robustness Score) penalizes fidelity.
 - **Provenance eval framework** — DONE (Session 77): Mechanical BA+PC layers, $0 cost, human-auditable.
-- **Website** — LIVE at [base-layer.ai](https://base-layer.ai). 29 thinkers pages, feedback mechanism, version history UI, branded error pages, magic link auth.
+- **Website** — LIVE at [base-layer.ai](https://base-layer.ai). 29 thinkers pages, thoughts page, research page with authoring ablation published. Magic link auth (Route Handler pattern), feedback mechanism, version history UI.
 - **Privacy scrub + git push** — DONE (Session 81): 0 security blockers.
-- **Pipeline validation** — DONE (Session 81): All subjects recomposed with V4.
-- **Code review** — DONE (Session 81): 13 bugs fixed, 0 security blockers.
-- **Website Try It redesign** — DONE (Session 82): Two-step flow, agent-agnostic.
-- **GitHub repo** — LIVE at [agulaya24/BaseLayer](https://github.com/agulaya24/BaseLayer) (public).
-- **Outreach Waves 1-3** — DONE: 29 thinkers pages live, emails sent. 3 bounced (Dan Luu, Derek Thompson, Nathan Lambert).
-- **V2 upgrades** — DONE (Session 96): 5 subjects upgraded with larger corpora. 10 more scraped, pipelines pending.
-- **Stacking test** — DONE (Session 96): 100 responses across 5 conditions. C4 project leakage finding (GPT uses Base Layer project knowledge as "memory").
-- **GPU extraction benchmarking** — DONE: mistral:7b best extractor (59 facts, 232s). Authoring/compose still require API.
-- **Textual TUI dashboard** — DONE: Sortable, scrollable, tier display, auto-refresh. Replaces Rich dashboard.
-- **414 tests, 81+ design decisions, 22 CLI subcommands, 91 subjects.**
-
-### Critical Priority
-- **Temporality research** — Time-aware identity modeling. How identity evolves, how the system should represent and reason about change over time.
-- **Claude Code conversation import** — Import Claude Code sessions into the pipeline.
-- **Base Layer self-identity** — Rerun Aarik's brief (currently 738 words vs 1,200+ average). The system's creator should have the strongest brief.
+- **44 subjects H3-authored** — All subjects recomposed with H3 prompts and compose fixes (0 he/him, 0 topic skew).
+- **17 Wave 4/5 subjects seeded** — Ready for outreach.
+- **Serving layer spec** — DONE (Session 99): `docs/core/SERVING_LAYER_SPEC.md`. Activation matching for brief-to-context relevance.
+- **Cross-discipline research** — DONE (Session 99): 10 findings across 7 academic domains mapped to Base Layer architecture.
+- **93 design decisions, 14 principles, 25 CLI subcommands, 100 build sessions.**
 
 ### Active
-- **V2 upgrades (remaining 10)** — 10 Wave 1 subjects scraped for V2 expansion, pipelines pending.
-- **Wave 4 pipelines** — 12 subjects scraped (5,322 files). Priority: Sivers, Visakan, patio11.
+- **Seed Wave 4/5 thinkers pages** — 17 subjects H3-composed, ready to deploy to base-layer.ai. Priority for Tuesday outreach.
+- **Re-seed all 35 existing subjects** — Update live pages with Opus 4.6 briefs (H3 prompts).
+- **Wave 1 follow-up emails** — 12 drafts ready, fact counts need updating.
+- **Serving layer Phase 1** — Activation matching MVP implementation. Flagged as next pipeline priority.
 - **Stacking test scoring** — 100 responses logged, scoring pending. C3 strongest early signal.
-- **VC outreach** — Mem0/Letta investors (Timothy Chen, Steve Jang, Dharmesh Shah first).
-- **Always-on integration** — MCP/API path for external users.
-- **Jack Clark + Amanda Askell pipelines** — Corpora scraped (457 + 34 files), pipelines not started.
+- **Score stacking test before Reddit push** — Required for r/ClaudeAI post.
+
+### Next
+- **Reddit launch** — 19 subreddits, core post finalized. Start with r/LocalLLaMA.
+- **Twin-2K researcher email** — Columbia team (Toubia, Gui, Peng, Merlau).
+- **Temporality research** — Time-aware identity modeling. Temporal prediction test spec drafted.
+- **VC outreach** — Timothy Chen, Steve Jang, Dharmesh Shah.
 
 ### Post-Launch
 - **ADRB benchmark** — 40 tasks, 7 conditions. ~$30 minimum.
-- **Dissenting opinion benchmark (D-076)** — Novel contribution.
-- **Brief structure update (D-075)** — Add HOW + WHERE IT BREAKS to composition step.
 - **Twin-2K V5** — Rerun with V5 briefs. Does C31 improve on 71.83%?
+- **Agentic wedge** — Domain proof (coaching/investment/legal).
+- **Open-source evaluator** — Package verify_provenance + detect_contradictions.
 
 ---
 
