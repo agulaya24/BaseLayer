@@ -2,6 +2,101 @@
 
 > Sessions S1-S85 archived in [PROGRESS_ARCHIVE.md](PROGRESS_ARCHIVE.md)
 
+## Session 100 (2026-03-30) — Compose Fixes, Wave 4/5 Seeded, Research Published
+
+### Compose Prompt Fixes
+- **Universal they/them pronouns (D-092):** Compose prompt updated to enforce gender-neutral language across all subjects. Previous runs had inconsistent he/him leakage. ALL 38 subjects recomposed with fixed prompt — 0 he/him across entire batch.
+- **Domain guard added to compose (D-091):** Equivalent of H3 authoring guard applied to composition step. Prevents topic-specific content from reassembling in the brief even when layers are domain-agnostic.
+
+### Structured Output for Predictions Validated (D-093)
+- Structured output format for PREDICTIONS layer validated. Improves parsing reliability and enables downstream tooling (serving layer activation matching).
+
+### New Subjects + Re-extractions
+- **Katie Parrott:** 43 posts scraped, 206 facts extracted, H3 composed. New Wave 5 subject.
+- **Dan Shipper re-extracted:** 549 facts (up from previous). H3 composed, ready to seed.
+- **44 subjects H3-authored total**, 17 Wave 4/5 subjects seeded to thinkers pages.
+
+### Outreach
+- **Scott Alexander emailed with magic link** — H3 V2 model + magic link auth for direct page access.
+- **Sycophancy study email sent** to Stanford researchers.
+- **Wave 4/5 email drafts generated** — 16 subjects, drafts at `drafts/wave45_email_drafts.md`.
+- **Wave 4 Gmail drafts pushed** — 13/16 automated, 3 need manual emails (Jack Clark, Ava Huang, Julia Galef).
+
+### Research Page
+- Authoring ablation study published on research page.
+- Stacking test section added to research page.
+
+### 5-Subject Validation + Full Recompose
+- **5-subject validation batch:** Maggie, Kevin Kelly, Dan Shipper, Tomasz — all passed (0 he/him across all outputs).
+- **Full recompose batch:** 38 subjects recomposed with fixed compose prompt. 0 failures, 0 he/him.
+
+### Overnight GPU Test
+- **Extended battery:** 1,200 extraction runs + predicate ablation. Running overnight.
+
+### Self-Referential Pipeline
+- Base Layer docs re-imported as source material for identity model generation. Pipeline running.
+
+### Aarik Identity Model
+- Regenerated with H3 prompts. A=8 anchors, C=7 core sections, P=8 predictions.
+- Identity model seeded to website.
+
+### Strategic Reviews
+- Project review, GTM review, and implementation plans drafted.
+
+### Visionist Facts Corrected
+- Aarik's identity model: Visionist trading facts corrected (misattribution from corpus).
+
+### Parser Fixes
+- Flexible heading separators for H3 output (period, em-dash, colon) — parser no longer breaks on non-standard formatting.
+
+---
+
+## Session 99 (2026-03-27) — H3 Prompt Ablation, Serving Layer Spec, Thoughts Page
+
+### H3 Prompt Ablation (Major Finding)
+- **4 rounds, 10 conditions tested.** Ablation on authoring prompts to eliminate topic skew in identity models.
+- **Key finding:** A 73-word domain-agnostic guard ("How someone reasons IS identity. What they reason ABOUT is not.") eliminated topic skew entirely — prediction market mentions reduced from 9 to 0.
+- **78% prompt size reduction:** ANCHORS prompt from 983 words to 333 words. 700 words of existing prompt proved ceremonial.
+- **H3 adopted** as production prompt set. Implemented in ANCHORS_PROMPT, CORE_PROMPT, PREDICTIONS_PROMPT in `author_layers.py`.
+- Detection/suppression balance validated: guard catches domain bleed without suppressing genuine epistemic patterns.
+- **All 44 subjects H3-authored** (author + compose) after adoption.
+- See D-089 for full decision record.
+- Prompt ablation published on research page + LinkedIn.
+
+### Serving Layer Spec Drafted
+- `docs/core/SERVING_LAYER_SPEC.md` — specification for activation matching (which parts of the brief are relevant to the current conversation context).
+- Phase 1: activation matching MVP. Flagged as next priority on pipeline workstream.
+
+### Temporal Prediction Test Spec Drafted
+- Specification for testing whether identity models can predict behavioral changes over time.
+
+### Cross-Discipline Research
+- 10 findings across 7 academic domains mapped to Base Layer's architecture. Validates compression-first approach from multiple independent research traditions.
+
+### Thoughts Page Created
+- New section on base-layer.ai for long-form thinking and research notes.
+
+### Magic Link Auth Fixed
+- Route Handler pattern adopted — fixes auth flow reliability issues.
+- Magic links now correctly set cookies, record logins, redirect to clean URLs.
+
+### ALL V2s Reverted to V1
+- Prompt ablation discovered topic skew in existing V2 briefs. All 28 Wave 1/2/3 subjects reverted to clean V1 state. Re-runs needed with H3 prompts before any V2 claims are valid.
+- Version history cleared across all thinkers pages.
+
+### Key Decisions (S99)
+- D-089: Domain-Agnostic Identity Guard — 73-word guard in authoring prompts.
+- D-090: Sycophancy Resistance as Architecture — structural anti-sycophancy, not prompt-level.
+- D-091: Compose Domain Guard — equivalent to D-089 for composition step.
+- D-092: Universal They/Them Pronouns — enforced in compose prompt.
+- D-093: Structured Output for Predictions — parsing reliability.
+
+### Design Principles Added
+- Principle 13: Domain-Agnostic Identity — formalized from D-089.
+- Principle 14: Sycophancy Resistance as Architecture — formalized from D-090.
+
+---
+
 ## Session 98 (2026-03-25) — Full System Audit, V2 Paused, Refactor Plan
 
 ### V2 Status Corrected

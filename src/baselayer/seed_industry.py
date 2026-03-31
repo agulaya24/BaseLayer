@@ -107,8 +107,8 @@ def _extract_provenance_from_line(line: str) -> list[str]:
 
 def parse_anchors_md(text: str) -> list[dict]:
     items = []
-    # Flexible separator: period, em-dash, en-dash, colon, pipe
-    _SEP = r'(?:\.|\s*[—–:|\-]\s*)'
+    # Universal separator: match ANY non-alphanumeric characters between ID and name
+    _SEP = r'[^A-Za-z0-9\n]+'
     pattern = rf'\*\*A(\d+){_SEP}\s*([A-Z][A-Z0-9 _,-]+)\*\*\s*\n(.*?)(?=\n\*\*A\d+|## AXIOM|\*\*AXIOM|$)'
     matches = re.findall(pattern, text, re.DOTALL)
     for num, name, body in matches:
@@ -135,8 +135,8 @@ def parse_anchors_md(text: str) -> list[dict]:
 
     # Also match heading-style: ## A1, ### A1, #### A1 with any separator
     if not items:
-        _SEP_H = r'(?:\.|\s*[—–:|\-]\s*)'
-        h_pattern = rf'#{2,4}\s+A(\d+){_SEP_H}\s*([A-Z][A-Z0-9 _,-]+)\s*\n(.*?)(?=\n#{2,4}\s+A\d+|\n#{2,4}\s+AXIOM|\Z)'
+        _SEP_H = r'[^A-Za-z0-9\n]+'
+        h_pattern = r'(?:#{2,4})\s+A(\d+)' + _SEP_H + r'\s*([A-Z][A-Z0-9 _,-]+)\s*\n(.*?)(?=\n(?:#{2,4})\s+A\d+|\n(?:#{2,4})\s+AXIOM|\Z)'
         h_matches = re.findall(h_pattern, text, re.DOTALL)
         for num, name, body in h_matches:
             item = {"id": f"A{num}", "name": name.strip(), "description": "", "activeWhen": None}
@@ -175,11 +175,11 @@ def parse_core_md(text: str) -> list[dict]:
                 desc_lines.append(stripped)
         return " ".join(desc_lines).strip(), prov
 
-    # Flexible separator: period, em-dash, en-dash, colon, or pipe
-    SEP = r'(?:\.|\s*[—–:|\-]\s*)'
+    # Universal separator: match ANY non-alphanumeric characters between ID and name
+    SEP = r'[^A-Za-z0-9\n]+'
 
     # Match numbered items: **C1. NAME** or **M1 — NAME** (bold style)
-    pattern = rf'\*\*([MC])(\d+){SEP}\s*([A-Z][A-Z0-9 _&/,-]+)\*\*\s*\n(.*?)(?=\n\*\*[MC]\d+|\n#{2,4}\s+[MC]\d+|\n\*\*[A-Z][A-Z ]+\*\*|\Z)'
+    pattern = r'\*\*([MC])(\d+)' + SEP + r'\s*([A-Z][A-Z0-9 _&/,-]+)\*\*\s*\n(.*?)(?=\n\*\*[MC]\d+|\n(?:#{2,4})\s+[MC]\d+|\n\*\*[A-Z][A-Z ]+\*\*|\Z)'
     matches = re.findall(pattern, text, re.DOTALL)
     for prefix, num, name, body in matches:
         item = {"id": f"{prefix}{num}", "name": name.strip().rstrip("*"), "description": ""}
@@ -188,8 +188,8 @@ def parse_core_md(text: str) -> list[dict]:
             item["provenance"] = prov
         items.append(item)
 
-    # Match numbered items: ## M1. NAME or ## M1 — NAME (heading style)
-    heading_pattern = rf'##\s+([MC])(\d+){SEP}\s*([A-Z][A-Z0-9 _&/,-]+)\s*\n(.*?)(?=\n#{2,4}\s+[MC]\d+|\n#{2,4}\s+[A-Z]|\Z)'
+    # Match numbered items: ## M1. NAME or ### M1 — NAME (heading style, h2/h3/h4)
+    heading_pattern = r'(?:#{2,4})\s+([MC])(\d+)' + SEP + r'\s*([A-Z][A-Z0-9 _&/,-]+)\s*\n(.*?)(?=\n(?:#{2,4})\s+[MC]\d+|\n(?:#{2,4})\s+[A-Z]|\Z)'
     heading_matches = re.findall(heading_pattern, text, re.DOTALL)
     seen_ids = {it["id"] for it in items}
     for prefix, num, name, body in heading_matches:
@@ -245,8 +245,8 @@ def parse_core_md(text: str) -> list[dict]:
 
 def parse_predictions_md(text: str) -> list[dict]:
     items = []
-    # Flexible separator: period, em-dash, en-dash, colon
-    _SEP = r'(?:\.|\s*[—–:|\-]\s*)'
+    # Universal separator
+    _SEP = r'[^A-Za-z0-9\n]+'
     pattern = rf'\*\*P(\d+){_SEP}\s*([A-Z][A-Z0-9 _,-]+)\*\*:?\s*(.*?)(?=\n\*\*P\d+|\Z)'
     matches = re.findall(pattern, text, re.DOTALL)
     for num, name, body in matches:
@@ -457,11 +457,12 @@ def build_traces_for_item(item_id: str, db_path: Path, conv_titles: dict) -> tup
     conn.row_factory = sqlite3.Row
 
     # Authoring + citation_api provenance (both are API-traced)
+    # Query both plain and "_cite" suffix formats for backwards compatibility
     auth_rows = conn.execute("""
         SELECT fact_id, link_method FROM layer_claim_provenance
-        WHERE claim_id = ? AND link_method IN ('authoring', 'citation_api')
+        WHERE claim_id IN (?, ?) AND link_method IN ('authoring', 'citation_api')
         ORDER BY rank_in_claim
-    """, (item_id,)).fetchall()
+    """, (item_id, f"{item_id}_cite")).fetchall()
     prov_ids = [r["fact_id"][:8] if r["fact_id"] and len(r["fact_id"]) > 8 else r["fact_id"] for r in auth_rows]
 
     # Vector traces (embedding similarity)
@@ -471,10 +472,10 @@ def build_traces_for_item(item_id: str, db_path: Path, conv_titles: dict) -> tup
                mf.knowledge_tier, mf.category, mf.source_conversation_id
         FROM layer_claim_provenance lcp
         JOIN memory_facts mf ON mf.id = lcp.fact_id
-        WHERE lcp.claim_id = ? AND lcp.link_method = 'vector'
+        WHERE lcp.claim_id IN (?, ?) AND lcp.link_method = 'vector'
         ORDER BY lcp.similarity_score DESC
         LIMIT 10
-    """, (item_id,)).fetchall()
+    """, (item_id, f"{item_id}_cite")).fetchall()
 
     # Also include API-traced facts as traces (with confidence as similarity proxy)
     api_trace_rows = conn.execute("""
@@ -483,9 +484,9 @@ def build_traces_for_item(item_id: str, db_path: Path, conv_titles: dict) -> tup
                mf.knowledge_tier, mf.category, mf.source_conversation_id
         FROM layer_claim_provenance lcp
         JOIN memory_facts mf ON mf.id = lcp.fact_id
-        WHERE lcp.claim_id = ? AND lcp.link_method IN ('authoring', 'citation_api')
+        WHERE lcp.claim_id IN (?, ?) AND lcp.link_method IN ('authoring', 'citation_api')
         ORDER BY lcp.rank_in_claim
-    """, (item_id,)).fetchall()
+    """, (item_id, f"{item_id}_cite")).fetchall()
     conn.close()
 
     traces = []
@@ -890,7 +891,7 @@ def build_payload(subject_dir: Path, name: str, slug: str, password: str, source
         "name": name,
         "slug": slug,
         "password": password,
-        "sourceDescription": source_desc,
+        "sourceDescription": f"{len(source_documents)} source documents" if source_documents else source_desc,
         "brief": brief,  # structured, not plain text
         "citedBrief": cited_brief,
         "anchors": anchors,
