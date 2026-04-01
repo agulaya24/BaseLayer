@@ -497,7 +497,7 @@ class TestParseCitationProvenance:
 
         assert len(results) == 1
         assert results[0]["fact_ids"] == ["101"]
-        assert results[0]["claim_id"] == "A1_cite"
+        assert results[0]["claim_id"] == "A1"
         assert "direct feedback" in results[0]["claim_text"]
 
     def test_multi_citation_single_block(self):
@@ -530,7 +530,7 @@ class TestParseCitationProvenance:
         assert len(results) == 1
         assert "101" in results[0]["fact_ids"]
         assert "103" in results[0]["fact_ids"]
-        assert results[0]["claim_id"] == "P1_cite"
+        assert results[0]["claim_id"] == "P1"
 
     def test_no_citations_returns_empty(self):
         from baselayer.author_layers import _parse_citation_provenance

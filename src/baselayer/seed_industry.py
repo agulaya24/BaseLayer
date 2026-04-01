@@ -629,6 +629,10 @@ def generate_change_summary(old_text: str, new_text: str, model_note: str = "") 
     """Mechanical diff between two identity models. Returns (summary_string, changeDetail_dict)."""
     import re
 
+    # Early exit: identical text means no changes
+    if old_text.strip() == new_text.strip():
+        return "", {}
+
     def count_items(text, pattern):
         return len(re.findall(pattern, text))
 

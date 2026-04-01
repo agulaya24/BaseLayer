@@ -145,7 +145,7 @@ class TestSeedPayloadSchema:
         old = "## Operational Guide\n\n**A1. TEST**\nDescription.\n\n## Identity Brief\n\n" + "word " * 100
         new = "## Operational Guide\n\n**A1. TEST**\nDifferent.\n\n**A2. NEW**\nAdded.\n\n## Identity Brief\n\n" + "word " * 200
 
-        summary = generate_change_summary(old, new)
+        summary, detail = generate_change_summary(old, new)
         assert len(summary) > 0, "Change summary should be non-empty for different models"
 
     def test_change_summary_empty_for_identical(self):
@@ -155,5 +155,5 @@ class TestSeedPayloadSchema:
         from baselayer.seed_industry import generate_change_summary
 
         text = "## Identity Brief\n\nSame content."
-        summary = generate_change_summary(text, text)
+        summary, detail = generate_change_summary(text, text)
         assert summary == "", "Change summary should be empty for identical models"
