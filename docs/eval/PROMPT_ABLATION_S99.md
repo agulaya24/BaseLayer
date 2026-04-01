@@ -2,7 +2,7 @@
 
 ## Problem Statement
 
-Identity models were skewing toward dominant topics in the source data. Scott Alexander's V2 opened with prediction markets as his "epistemic spine" (74/1,478 facts = 5%, but the authoring model treated them as core identity). Aarik's model was dominated by trading patterns. The V1 models were better because they captured WHO a person is — how they reason, how they operate — not WHAT they write or think about.
+Identity models were skewing toward dominant topics in the source data. Subject S's V2 opened with prediction markets as his "epistemic spine" (74/1,478 facts = 5%, but the authoring model treated them as core identity). Aarik's model was dominated by trading patterns. The V1 models were better because they captured WHO a person is — how they reason, how they operate — not WHAT they write or think about.
 
 Root cause: the authoring prompts (~1,000 words each) had no guard against topic-specific positions being elevated to identity axioms, and contained ~700 words of accumulated ceremonial instructions from 98 sessions.
 
@@ -27,7 +27,7 @@ The standard we're building: **a human-readable, model-agnostic behavioral speci
 ## Test Design
 
 ### Round 1: Full Ablation (5 conditions × 3 layers = 15 runs)
-Subject: Scott Alexander (1,478 facts, 40 source documents)
+Subject: Subject S (1,478 facts, 40 source documents)
 
 | Condition | Description | Prompt (anchors) |
 |-----------|-------------|-----------------|
@@ -38,7 +38,7 @@ Subject: Scott Alexander (1,478 facts, 40 source documents)
 | E: Ultra + Guard | Role + one paragraph + guard | 128w |
 
 ### Round 2: Hybrid Variants (5 conditions × 3 layers = 15 runs)
-Subject: Scott Alexander
+Subject: Subject S
 
 | Condition | Description |
 |-----------|-------------|

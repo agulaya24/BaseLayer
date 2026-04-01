@@ -2,7 +2,7 @@
 
 **Date:** 2026-03-31
 **Hardware:** NVIDIA GeForce RTX 3080 10GB VRAM
-**Test Subject:** Dan Shipper (549 facts, 220 conversations)
+**Test Subject:** Subject D (549 facts, 220 conversations)
 **Runtime:** ~8 hours
 
 ## Test Design
