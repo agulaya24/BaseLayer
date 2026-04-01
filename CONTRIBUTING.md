@@ -48,7 +48,7 @@ The pipeline has 4 steps: **Import → Extract → Author → Compose.**
 - `config.py` is the single source of truth for all constants, paths, and the 47 constrained predicates.
 - Every other module imports from `config.py`. The dependency graph is acyclic.
 - See `docs/core/ARCHITECTURE.md` for the full pipeline diagram.
-- See `docs/core/DECISIONS.md` for 80+ design decisions with reasoning.
+- See `docs/core/DECISIONS.md` for 93 design decisions with reasoning.
 
 ## Session and Decision Notation
 

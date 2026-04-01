@@ -11,7 +11,7 @@ All data stored on the user's machine. Processing uses cloud APIs by default, wi
 
 ## Core Idea
 
-Modern LLMs are powerful but stateless. Every conversation starts from zero. Base Layer adds a durable understanding layer: extract facts from conversations, author a compressed identity brief (a ~2,500-token document that teaches an AI how someone thinks and communicates), and inject it as context. The result is persistent understanding without replaying history or running up token costs.
+Modern LLMs are powerful but stateless. Every conversation starts from zero. Base Layer adds a durable understanding layer: extract facts from conversations, author a compressed identity brief (a ~3,000-5,000 token document that teaches an AI how someone thinks and communicates), and inject it as context. The result is persistent understanding without replaying history or running up token costs.
 
 Base Layer is a structured reasoning process that produces understanding. The identity brief isn't a profile; it's a chain of thought that teaches an AI how to understand and communicate naturally with a specific person.
 
@@ -32,7 +32,7 @@ Base Layer is a structured reasoning process that produces understanding. The id
    - **Communication & Operating Guide (CORE):** Directive-format communication approach, context modes, narrative orientation, essential context. Always-on.
    - **Behavioral Predictions:** Situation-triggered response patterns with detection signatures and interaction directives. Structured output format validated (D-093). Always-on.
 
-4. **Brief Composition:** Three layers compressed into a unified narrative brief (~2,500 tokens). Compose prompt enforces they/them pronouns (D-092) and domain guard (D-091). Served via MCP (Model Context Protocol) as an always-on identity Resource.
+4. **Brief Composition:** Three layers compressed into a unified narrative brief (~3,000-5,000 tokens). Compose prompt enforces they/them pronouns (D-092) and domain guard (D-091). Served via MCP (Model Context Protocol) as an always-on identity Resource.
 
 5. **Reasoning Model:** Any LLM receives the brief and responds with understanding. Stateless, interchangeable.
 
@@ -84,7 +84,7 @@ Pipeline ablation (Session 79) tested 14 conditions on Benjamin Franklin (autobi
 STEP 1:  IMPORT        — Multi-source importer (ChatGPT, Claude, journals, text files)
 STEP 2:  EXTRACT       — Text → structured triples {subject, predicate, object, qualifier} (Haiku API)
 STEP 3:  AUTHOR        — Facts → three-layer identity generation (Sonnet, H3 prompts with domain guard)
-STEP 4:  COMPOSE       — 3 layers → unified narrative brief (~2,500 tokens) (Opus, they/them + domain guard)
+STEP 4:  COMPOSE       — 3 layers → unified narrative brief (~3,000-5,000 tokens) (Opus, they/them + domain guard)
 ```
 
 **One command:** `baselayer run <file>` runs steps 1-4 automatically with cost estimate gate.
@@ -188,7 +188,7 @@ Local deployability is being actively explored. The architecture is designed for
 | Design principles | 14 |
 | Classification accuracy | 91.2% type, 93.8% depth |
 | Brief assembly time | ~100ms |
-| Brief token budget | ~2,500 tokens (unified narrative brief) |
+| Brief token budget | ~3,000-5,000 tokens (unified narrative brief) |
 | Pipeline steps | 4 (simplified from 14 in S79) |
 | Authoring prompts | H3 (domain-agnostic guard, S99 ablation) |
 | CLI subcommands | 25 |
