@@ -49,9 +49,9 @@ Import → Extract → Embed → Author → Compose
 
 - **Import**: Multi-source (ChatGPT, Claude, journals, text files, directories)
 - **Extract**: 47 constrained predicates via Haiku API. AUDN lifecycle (Add/Update/Delete/Noop)
-- **Embed**: MiniLM-L6-v2 embeddings for provenance tracing
-- **Author**: Three-layer generation via Sonnet with H3 domain-agnostic prompts
-- **Compose**: Unified narrative brief via Opus
+- **Embed**: MiniLM-L6-v2 local vector embeddings for provenance tracing (ChromaDB)
+- **Author**: Three-layer generation via Sonnet with H3 domain-agnostic prompts (73-word guard)
+- **Compose**: Unified narrative brief via Opus (they/them, domain guard, FP warnings)
 
 ## Key Files
 
@@ -78,7 +78,7 @@ Import → Extract → Embed → Author → Compose
 pytest tests/
 ```
 
-402+ tests. GitHub Actions CI on Python 3.10, 3.11, 3.12.
+400+ tests. GitHub Actions CI on Python 3.10, 3.11, 3.12.
 
 ## Environment Variables
 

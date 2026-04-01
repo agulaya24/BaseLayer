@@ -6,7 +6,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License" /></a>
   <a href="https://github.com/agulaya24/BaseLayer/actions/workflows/test.yml"><img src="https://github.com/agulaya24/BaseLayer/actions/workflows/test.yml/badge.svg" alt="Tests" /></a>
   <img src="https://img.shields.io/badge/python-3.10+-blue.svg" alt="Python" />
-  <img src="https://img.shields.io/badge/subjects-29+-green.svg" alt="Subjects" />
+  <img src="https://img.shields.io/badge/subjects-44+-green.svg" alt="Subjects" />
 </p>
 
 <p align="center">
@@ -18,7 +18,7 @@
 
 Base Layer compresses thousands of conversations, journal entries, or any personal text into a 3–6K token identity model that captures *how someone thinks* — not just what they've said. Inject that identity model into any AI conversation, and the model responds as if it knows you. Tested on corpora ranging from 8 journal entries to 600K+ words of published text.
 
-**4-step pipeline.** Import → Extract (47 predicates, Haiku) → Author (3-layer identity, Sonnet) → Compose (unified brief, Opus). Validated on 29+ subjects across 6 source types. [Ablation study](docs/eval/ablation/) proved 4 steps beat 14.
+**5-step pipeline.** Import → Extract (47 predicates, Haiku) → Embed (MiniLM-L6-v2, provenance) → Author (3-layer identity, Sonnet) → Compose (unified brief, Opus). Validated on 44+ subjects across 6 source types. [Ablation study](docs/eval/ablation/) proved the simplified pipeline beats the original 14-step design.
 
 ```
 ANCHORS — The axioms you reason from.
