@@ -51,9 +51,9 @@ This is the identity layer of the agentic stack. Base Layer builds it.
 
 ## System Overview
 
-### Simplified Pipeline (4 Steps)
+### Pipeline (5 Steps)
 
-Pipeline ablation (Session 79) tested 14 conditions on Benjamin Franklin (autobiography, [live example](https://base-layer.ai/examples/franklin)) (~$16) and proved that 10 of the original 14 steps were ceremonial. The simplified 4-step pipeline scores higher (87/100 vs 83/100 for the full pipeline). The 3-layer architecture is load-bearing; the intermediate processing steps are not.
+Pipeline ablation (Session 79) tested 14 conditions on Benjamin Franklin (autobiography, [live example](https://base-layer.ai/examples/franklin)) (~$16) and proved that 10 of the original 14 steps were ceremonial. The simplified pipeline scores higher (87/100 vs 83/100 for the full pipeline). The 3-layer architecture is load-bearing; the intermediate processing steps are not. Embed step re-added for provenance tracing (Session 100).
 
 ```
                     THE MEMORY SYSTEM (BASE LAYER)
@@ -72,7 +72,14 @@ Pipeline ablation (Session 79) tested 14 conditions on Benjamin Franklin (autobi
  |   | AUDN (Add, Update, Delete, Noop) fact lifecycle            | |
  |   +---------------------------+------------------------------+ |
  |                               |                                |
- |   STEP 3: AUTHOR              v                                |
+ |   STEP 3: EMBED               v                                |
+ |   +----------------------------------------------------------+ |
+ |   | MiniLM-L6-v2 — local vector embeddings                   | |
+ |   | ChromaDB storage for provenance tracing                   | |
+ |   | Required for fact→claim linking (Citations API)           | |
+ |   +---------------------------+------------------------------+ |
+ |                               |                                |
+ |   STEP 4: AUTHOR              v                                |
  |   +----------------------------------------------------------+ |
  |   | Sonnet — Three-layer identity generation (D-043)          | |
  |   | H3 prompts: domain-agnostic guard (S99 ablation)          | |
@@ -83,7 +90,7 @@ Pipeline ablation (Session 79) tested 14 conditions on Benjamin Franklin (autobi
  |   |         | Structured output format validated (D-093)       | |
  |   +---------------------------+------------------------------+ |
  |                               |                                |
- |   STEP 4: COMPOSE             v                                |
+ |   STEP 5: COMPOSE             v                                |
  |   +----------------------------------------------------------+ |
  |   | Opus — Compress 3 layers → unified brief (~2,500 tokens)  | |
  |   | They/them pronouns enforced (D-092)                       | |

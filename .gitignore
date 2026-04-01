@@ -218,3 +218,15 @@ data/*_archive*
 subjects/
 tensions_all.json
 docs/eval/**/temporal_stability_aarik/
+
+# Scraping scripts (contain subject details — never commit)
+scrape_*.py
+data/scrape_*.py
+data/scrapers_archive/
+
+# Runner scripts (contain subject names, paths, emails — never commit)
+runners/
+
+# Stale/archive scripts (contain API keys, subject details)
+archive/stale_scripts/
+archive/scripts_backup_*/
