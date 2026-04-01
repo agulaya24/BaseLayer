@@ -18,7 +18,7 @@
 
 Base Layer compresses thousands of conversations, journal entries, or any personal text into a 3–6K token identity model that captures *how someone thinks* — not just what they've said. Inject that identity model into any AI conversation, and the model responds as if it knows you. Tested on corpora ranging from 8 journal entries to 600K+ words of published text.
 
-**5-step pipeline.** Import → Extract (47 predicates, Haiku) → Embed (MiniLM-L6-v2, provenance) → Author (3-layer identity, Sonnet) → Compose (unified brief, Opus). Validated on 44+ subjects across 6 source types. [Ablation study](docs/eval/ablation/) proved the simplified pipeline beats the original 14-step design.
+**5-step pipeline.** Import → Extract (47 predicates, Haiku) → Embed (MiniLM-L6-v2, provenance) → Author (3-layer identity, Sonnet) → Compose (unified brief, Opus). Validated on 44+ subjects across 6 source types. [Ablation study](docs/eval/archive/ablation/) proved the simplified pipeline beats the original 14-step design.
 
 ```
 ANCHORS — The axioms you reason from.
@@ -118,7 +118,7 @@ Run `baselayer estimate` to preview your exact cost before spending anything. Us
 
 ## Key Findings
 
-From 98 sessions of experimentation ([full research](https://base-layer.ai/research)):
+From 101 sessions of experimentation ([full research](https://base-layer.ai/research)):
 
 1. **20% of facts is enough.** Compression saturates early. Adding more content makes things worse.
 2. **What you avoid predicts better than what you believe.** Avoidance and struggle patterns are the strongest behavioral predictors.
@@ -140,19 +140,19 @@ Base Layer sends your text to the Anthropic API during extraction and authoring.
 - **Text-only.** Body language, tone, physical habits — all invisible.
 - **N=29+.** Generalizes across source types, expanding rapidly.
 - **Cloud API dependency.** Local Ollama backend exists for extraction; authoring/composition still need API.
-- **Pre-1.0.** 402 tests passing, 88+ design decisions documented. Expect rough edges.
+- **Pre-1.0.** 414 tests passing, 93 design decisions documented. Expect rough edges.
 
 ## Documentation
 
 | Doc | Contents |
 |-----|----------|
 | [`ARCHITECTURE.md`](docs/core/ARCHITECTURE.md) | Pipeline design |
-| [`DECISIONS.md`](docs/core/DECISIONS.md) | 88 design decisions with rationale |
+| [`DECISIONS.md`](docs/core/DECISIONS.md) | 93 design decisions with rationale |
 | [`DESIGN_PRINCIPLES.md`](docs/core/DESIGN_PRINCIPLES.md) | Foundational principles |
 | [`BCB_FRAMEWORK.md`](docs/eval/BCB_FRAMEWORK.md) | Behavioral Compression Benchmark |
 | [`ABLATION_PROTOCOL.md`](docs/eval/ABLATION_PROTOCOL.md) | Pipeline ablation study |
 
-88 design decisions, 10 design principles, 98 session logs. The prompts are in the code. Nothing is hidden.
+93 design decisions, 14 design principles, 101 session logs. The prompts are in the code. Nothing is hidden.
 
 ## Roadmap
 
