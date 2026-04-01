@@ -140,7 +140,7 @@ Base Layer sends your text to the Anthropic API during extraction and authoring.
 - **Text-only.** Body language, tone, physical habits — all invisible.
 - **N=29+.** Generalizes across source types, expanding rapidly.
 - **Cloud API dependency.** Local Ollama backend exists for extraction; authoring/composition still need API.
-- **Pre-1.0.** 414 tests passing, 93 design decisions documented. Expect rough edges.
+- **Pre-1.0.** 402 tests passing, 93 design decisions documented. Expect rough edges.
 
 ## Documentation
 
