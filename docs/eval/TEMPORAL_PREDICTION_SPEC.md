@@ -133,4 +133,4 @@ The temporal prediction test directly informs serving layer design:
 1. **How to handle topic-specific facts?** 2024 has heavy trading data. 2025/2026 has heavy Base Layer data. Should topic-specific facts be excluded from the prediction test, or included to see if the model correctly generalizes the pattern underneath?
 2. **What counts as a "prediction"?** If the 2024 model says "seeks confirmation before committing" and in 2025 they seek confirmation before committing to a different thing — is that a hit?
 3. **How to score partial matches?** The axiom might be right but the specific manifestation different.
-4. **Should we test on other subjects too?** Any subject with multi-year corpus could be split. Scott Alexander's 100 ACX posts span years.
+4. **Should we test on other subjects too?** Any subject with multi-year corpus could be split temporally.

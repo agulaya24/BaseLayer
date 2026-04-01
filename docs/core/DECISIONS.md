@@ -99,7 +99,7 @@ Each decision has:
 | D-077 | Provenance-Informed Review + Regeneration | Active | Citation provenance into review + fact usage stats into regen |
 | D-078 | Compose Directive Language Must Be Person-Specific | Active | V4 compose templating bug — identical directives across subjects |
 | D-079 | Planner-Executor Composition Architecture | Tested (S84) | Context-isolated composition eliminates pre-training contamination: 33→0 ungrounded claims on Franklin |
-| D-082 | V2 Upgrade Strategy | Active | Re-scrape + re-extract with larger corpus. 5 Wave 1 subjects upgraded (Kevin Kelly 76→2824). Corpus size drives fact density |
+| D-082 | V2 Upgrade Strategy | Active | Re-scrape + re-extract with larger corpus. 5 Wave 1 subjects upgraded (Subject K 76→2824). Corpus size drives fact density |
 | D-083 | Stacking Test Framework | Complete (scoring pending) | 100 responses across 5 conditions (C1-C5). C4 project leakage finding. C3 strongest signal |
 | D-084 | Textual TUI Dashboard | Active | dashboard_textual.py replaces Rich dashboard.py. Sortable, scrollable, tier display, auto-refresh |
 | D-085 | Magic Link Authentication | Deployed | Single-use 64-char hex tokens, 7-day expiry, Redis-backed. Auto-auth on first click, password fallback |
@@ -2099,7 +2099,7 @@ Anchoring destroys this signal by making v2 artificially similar to v1. Blind ge
 **Status:** Tested — pending integration
 **Category:** Architecture / Provenance
 
-**Problem:** Opus compose step injects pre-training knowledge for famous subjects despite "DERIVE ONLY FROM INPUT" constraint and anonymization. Full contamination scan across 11 subjects found: Franklin 18 ungrounded claims, Buffett 9, Marks 9, Roosevelt 8, Aarik 7 (+ 1 inverted), Bavani 7, Patent 5, Douglass 4, Wollstonecraft 1, Base Layer 0, Paul Graham 0. ~25% contamination rate for famous subjects. One inverted claim (Aarik: brief said opposite of source).
+**Problem:** Opus compose step injects pre-training knowledge for famous subjects despite "DERIVE ONLY FROM INPUT" constraint and anonymization. Full contamination scan across 11 subjects found: Franklin 18 ungrounded claims, Buffett 9, Marks 9, Roosevelt 8, Aarik 7 (+ 1 inverted), Subject B 7, Patent 5, Douglass 4, Wollstonecraft 1, Base Layer 0, Paul Graham 0. ~25% contamination rate for famous subjects. One inverted claim (Aarik: brief said opposite of source).
 
 **Root cause:** Opus infers subject identity from contextual signatures (printing + Philadelphia → Franklin) despite anonymization. Once recognized, pre-training biographical knowledge floods the output indistinguishably from input-derived content. Prompt constraints are probabilistic, not reliable — Paul Graham was clean (high overlap between extracted data and pre-training), Franklin was not (large delta).
 
@@ -2133,11 +2133,11 @@ Anchoring destroys this signal by making v2 artificially similar to v1. Blind ge
 **Problem:** Wave 1 subjects were built from small initial corpora (often <300 source files). The resulting identity models were thin — low fact counts, sparse predictions, weak anchors. Needed a systematic way to improve existing subjects without rebuilding infrastructure.
 
 **Decision:** Re-scrape + re-extract with larger corpus. Clear existing facts (both SQLite and ChromaDB per S65 rule), re-import expanded corpus, re-run full pipeline. 5 Wave 1 subjects upgraded as proof:
-- Kevin Kelly: 76 → 2,824 facts
-- David Perell: 201 → 1,867 facts
-- Henrik Karlsson: 158 → 739 facts
-- Maggie Appleton: 260 → 740 facts
-- Casey Newton: 253 → 447 facts
+- Subject K: 76 → 2,824 facts
+- Subject D: 201 → 1,867 facts
+- Subject H: 158 → 739 facts
+- Subject M: 260 → 740 facts
+- Subject C: 253 → 447 facts
 
 **Why:** Corpus size is the primary driver of fact density and identity model quality. The extraction and authoring pipeline is stable — the bottleneck was input data volume, not pipeline capability. V2 upgrades validate that more data → richer models without diminishing returns at these scales.
 
@@ -2250,7 +2250,7 @@ Anchoring destroys this signal by making v2 artificially similar to v1. Blind ge
 - Large corpora (500+): sample top 300
 - Config constants: COMPOSE_FACT_LIMIT_SMALL, COMPOSE_FACT_LIMIT_LARGE, COMPOSE_FACT_THRESHOLD
 
-**Evidence:** Kevin Kelly V2 had 1,235 identity-tier facts but compose only saw top 100 (same as V1 with 76 facts). Brief was byte-for-byte identical. After fix, sampling 300 facts produced a genuinely different brief.
+**Evidence:** Subject K V2 had 1,235 identity-tier facts but compose only saw top 100 (same as V1 with 76 facts). Brief was byte-for-byte identical. After fix, sampling 300 facts produced a genuinely different brief.
 
 **Alternatives considered:**
 - Sample all facts: Too expensive for Opus at 2,000+ facts
@@ -2285,16 +2285,16 @@ Anchoring destroys this signal by making v2 artificially similar to v1. Blind ge
 
 ### D-091: Compose Domain Guard (S100, planned)
 **Decision:** The compose prompt (agent_pipeline.py) needs its own domain-agnostic guard equivalent to D-089. Current compose step reassembles topic-specific content from layers even when layers are domain-agnostic. Guard: "If a paragraph describes beliefs about a specific domain rather than a reasoning pattern that applies across domains, compress to the pattern underneath."
-**Evidence:** Kevin Kelly brief has 25 AI mentions, Dan Shipper has 24. Layers are clean (H3 guard works), but compose reassembles topic content.
-**Status:** Planned. Test on Kevin Kelly and Dan Shipper before batch adoption.
+**Evidence:** Subject K brief has 25 AI mentions, Subject D has 24. Layers are clean (H3 guard works), but compose reassembles topic content.
+**Status:** Planned. Test on 2 subjects before batch adoption.
 
 ### D-092: Universal They/Them Pronouns (S100)
 **Decision:** All pipeline output uses "they/them" exclusively. The compose prompt must not infer or assign gender. Remove "he", "she" as options from the compose prompt.
-**Evidence:** Maggie Appleton's brief used "he" 134 times, "she" zero. Compose step inferred wrong gender from content. Other female subjects correctly used they/them because the layer prompts enforce it, but compose does not.
-**Status:** Planned. Fix compose prompt, rerun Maggie as validation.
+**Evidence:** Subject M's brief used "he" 134 times, "she" zero. Compose step inferred wrong gender from content. Other subjects correctly used they/them because the layer prompts enforce it, but compose does not.
+**Status:** Planned. Fix compose prompt, rerun as validation.
 
 ### D-093: Structured Output for Predictions (S100, planned)
 **Decision:** Move predictions layer generation from free-form markdown to JSON schema constrained decoding (Anthropic Structured Outputs API). Schema defines: id, name, trigger, response, detection (list), directive, false_positive_warning. Content within fields remains fully generative.
 **Evidence:** Prediction format inconsistency across subjects — some use labeled Detection/Directive/FP, others use prose paragraphs. Structured output guarantees format while preserving generative content quality.
-**Status:** Planned. Test on Scott Alexander vs free-form comparison before adoption. If quality degrades, fallback to improved prompt scaffolding.
+**Status:** Planned. Test on Subject S vs free-form comparison before adoption. If quality degrades, fallback to improved prompt scaffolding.
 **Risk:** Constrained decoding may produce more formulaic prose in string fields. Phase 1 test required before batch adoption.

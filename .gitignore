@@ -230,3 +230,22 @@ runners/
 # Stale/archive scripts (contain API keys, subject details)
 archive/stale_scripts/
 archive/scripts_backup_*/
+
+# Internal docs (contain subject names, strategy, plans — never commit)
+docs/archive/
+docs/core/PROGRESS.md
+docs/core/GTM_REVIEW_*.md
+docs/core/PLAN_S*.md
+docs/core/PROJECT_REVIEW_*.md
+docs/core/REFACTOR_PLAN_*.md
+docs/diagnostics/
+docs/reviews/
+SONNET_REPO_CLEANUP.md
+
+# Experiment scripts and results (contain subject-specific paths and data)
+scripts/archive/
+scripts/experiments/
+scripts/overnight_*.py
+src/baselayer/experiments/overnight_results/
+src/baselayer/experiments/results/
+src/baselayer/experiments/archive/

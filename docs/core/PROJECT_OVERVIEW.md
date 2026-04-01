@@ -178,7 +178,7 @@ Local deployability is being actively explored. The architecture is designed for
 | Thinkers pages live (base-layer.ai) | 29 (17 Wave 4/5 ready to seed) |
 | Pipeline refactor | COMPLETE (S98-S99). H3 prompts adopted. |
 | Wave 4/5 subjects seeded | 17 (ready for outreach) |
-| Anthropic targets scraped | 3 (Jack Clark 457, Amanda Askell 34, Dario 4) |
+| Anthropic targets scraped | 3 subjects |
 | Active facts (User A — primary test user, 1,892 ChatGPT conversations) | 4,610 |
 | Identity-tier facts (User A) | 2,684 |
 | Conversations imported | 1,892 (primary test user, multi-source) |

@@ -88,7 +88,7 @@ Or use `config.py`'s `chromadb_dist_to_similarity()` helper which handles both.
 3. Wire batch into cmd_pipeline — 20 min
 4. Add prompt caching — 15 min
 5. Fix ChromaDB distance — 5 min
-6. Test on one subject (Seth Godin, smallest at 200 files) — verify end-to-end
+6. Test on one subject (smallest at 200 files) — verify end-to-end
 7. Submit all 12 as batch
 
 ## Cost Estimate (revised with current pricing)
