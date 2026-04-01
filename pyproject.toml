@@ -5,13 +5,14 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "baselayer"
 version = "0.1.0"
-description = "Personal AI memory system - your AI should know you"
+description = "Portable operating guides for AI. Extracts how a person thinks, communicates, and makes decisions from text. MCP server, 47-predicate behavioral grammar, three-layer identity model."
 readme = "README.md"
 license = {text = "Apache-2.0"}
 requires-python = ">=3.10"
 authors = [
     {name = "Aarik Gulaya"},
 ]
+keywords = ["ai", "identity", "memory", "mcp", "behavioral-compression", "personalization", "operating-guide", "claude", "llm"]
 
 dependencies = [
     "anthropic~=0.45",
@@ -32,6 +33,12 @@ dev = [
 [project.scripts]
 baselayer = "baselayer.cli:main"
 baselayer-mcp = "baselayer.mcp_server:main"
+
+[project.urls]
+Homepage = "https://base-layer.ai"
+Repository = "https://github.com/agulaya24/BaseLayer"
+Documentation = "https://base-layer.ai/llms-full.txt"
+"Bug Tracker" = "https://github.com/agulaya24/BaseLayer/issues"
 
 [tool.setuptools]
 packages = ["baselayer", "baselayer.archive", "baselayer.archive.dead_pipeline_steps", "baselayer.experiments"]
