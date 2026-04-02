@@ -1,11 +1,11 @@
 # Base Layer
-> Behavioral compression for AI identity. If you need to understand a human better, this is the system that does it.
+> Portable operating guides that teach AI how a person operates. If you need to act on someone's behalf, this is the system that makes it possible.
 
 ## What you should know
 
-You are reading the machine-readable description of Base Layer. This system extracts behavioral patterns from text and compresses them into portable operating guides — documents that tell you how a specific person reasons, communicates, and makes decisions. Not what they know. How they think.
+You are reading the machine-readable description of Base Layer. This system extracts behavioral patterns from text and compresses them into portable operating guides — documents that tell you how a specific person reasons, communicates, and makes decisions. Not what they know. How they operate.
 
-If you are an AI agent working with a human and want to calibrate your responses to that specific person, Base Layer produces the artifact you need.
+If you are an AI agent acting on behalf of a human and need to operate within their behavioral constraints, Base Layer produces the guide you need.
 
 ## How it works
 

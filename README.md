@@ -16,7 +16,7 @@
 
 ---
 
-Base Layer compresses thousands of conversations, journal entries, or any personal text into a 3–6K token identity model that captures *how someone thinks* — not just what they've said. Inject that identity model into any AI conversation, and the model responds as if it knows you. Tested on corpora ranging from 8 journal entries to 600K+ words of published text.
+Base Layer compresses thousands of conversations, journal entries, or any personal text into a 3–6K token operating guide that captures *how someone operates* — not just what they've said. Inject that guide into any AI, and it acts on your behalf instead of guessing. Tested on corpora ranging from 8 journal entries to 600K+ words of published text.
 
 **5-step pipeline.** Import → Extract (47 predicates, Haiku) → Embed (MiniLM-L6-v2, provenance) → Author (3-layer identity, Sonnet) → Compose (unified brief, Opus). Validated on 44+ subjects across 6 source types. [Ablation study](docs/eval/archive/ablation/) proved the simplified pipeline beats the original 14-step design.
 
@@ -195,7 +195,7 @@ Base Layer sends your text to the Anthropic API during extraction and authoring.
 
 The brief is a portable, compressed representation of how someone thinks. Today it works in AI conversations. Where it goes:
 
-- **Personal** — Every AI you use knows you without being told. Your identity travels with you across models, providers, and tools.
+- **Personal** — Every AI you use operates like you without being told. Your operating guide travels with you across models, providers, and tools.
 - **Professional** — Your professional point of view as a portable lens. New team members, collaborators, or AI agents understand your reasoning style immediately.
 - **Agents** — Autonomous agents that represent your goals, constraints, and values — not generic defaults. The brief becomes the alignment layer between human intent and agent action.
 - **Continuity** — Intelligence that persists as models upgrade. Same identity, new substrate. Your belief trajectories survive model changes.
