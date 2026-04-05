@@ -6,11 +6,11 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License" /></a>
   <a href="https://github.com/agulaya24/BaseLayer/actions/workflows/test.yml"><img src="https://github.com/agulaya24/BaseLayer/actions/workflows/test.yml/badge.svg" alt="Tests" /></a>
   <img src="https://img.shields.io/badge/python-3.10+-blue.svg" alt="Python" />
-  <img src="https://img.shields.io/badge/subjects-44+-green.svg" alt="Subjects" />
+  <img src="https://img.shields.io/badge/subjects-57+-green.svg" alt="Subjects" />
 </p>
 
 <p align="center">
-  <strong>Other tools store facts. Base Layer models behavior.</strong><br/>
+  <strong>Other tools optimize for the task. Base Layer optimizes for you.</strong><br/>
   <a href="https://base-layer.ai">base-layer.ai</a> · <a href="https://base-layer.ai/examples/franklin">Live examples</a> · <a href="https://base-layer.ai/research">Research</a>
 </p>
 
@@ -18,7 +18,7 @@
 
 Base Layer compresses thousands of conversations, journal entries, or any personal text into a 3–6K token operating guide that captures *how someone operates* — not just what they've said. Inject that guide into any AI, and it acts on your behalf instead of guessing. Tested on corpora ranging from 8 journal entries to 600K+ words of published text.
 
-**5-step pipeline.** Import → Extract (47 predicates, Haiku) → Embed (MiniLM-L6-v2, provenance) → Author (3-layer identity, Sonnet) → Compose (unified brief, Opus). Validated on 44+ subjects across 6 source types. [Ablation study](docs/eval/archive/ablation/) proved the simplified pipeline beats the original 14-step design.
+**5-step pipeline.** Import → Extract (47 predicates, Haiku) → Embed (MiniLM-L6-v2, provenance) → Author (3-layer identity, Sonnet) → Compose (unified brief, Opus). Validated on 57+ subjects across 6 source types. [Ablation study](docs/eval/archive/ablation/) proved the simplified pipeline beats the original 14-step design.
 
 ```
 ANCHORS — The axioms you reason from.
@@ -89,7 +89,7 @@ claude mcp add --transport stdio base-layer -- baselayer-mcp
 
 ## Validation
 
-29+ subjects, 6 source types. Original 10 scored 73–82/100.
+57+ subjects, 6 source types. Original 10 scored 73–82/100.
 
 | Corpus | Source | Facts | Brief | Score |
 |--------|--------|-------|-------|-------|
@@ -136,9 +136,9 @@ Base Layer sends your text to the Anthropic API during extraction and authoring.
 
 ## Limitations
 
-- **Snapshot, not longitudinal.** No model of how identity evolves over time.
+- **Snapshot, not longitudinal.** Temporal trajectory analysis is in research (phase transitions detected, 6 behavioral dimensions tracked), but not yet in production pipeline.
 - **Text-only.** Body language, tone, physical habits — all invisible.
-- **N=29+.** Generalizes across source types, expanding rapidly.
+- **N=57+.** Generalizes across source types. Writers, founders, investors, researchers, historical figures.
 - **Cloud API dependency.** Local Ollama backend exists for extraction; authoring/composition still need API.
 - **Pre-1.0.** 402 tests passing, 93 design decisions documented. Expect rough edges.
 
@@ -162,7 +162,7 @@ Base Layer sends your text to the Anthropic API during extraction and authoring.
 - V2 upgrades: `baselayer pipeline <subject> --v2` with snapshot-before-clear
 - Import from ChatGPT exports, Claude exports, journals, text files, directories
 - Document mode for non-conversation text (books, patents, letters, essays)
-- Subject registry with 94 subjects tracked (status, version, fingerprint)
+- Subject registry with 100+ subjects tracked (status, version, fingerprint)
 - MCP server with identity Resource + recall/search/trace tools
 - Cost estimation before processing (`baselayer estimate`)
 - Provenance traces: every identity claim → source facts → original text
@@ -172,10 +172,13 @@ Base Layer sends your text to the Anthropic API during extraction and authoring.
 
 ### Active research
 
-- [x] **GPT Memory Stacking Test** — 100 responses across 5 conditions. Base Layer + GPT memory outperforms either alone. C4 finding: GPT uses project knowledge as "memory."
-- [ ] **Local model extraction quality** — Comparing 8 local models (3B-32B) against Haiku API on identical corpora. Testing Qwen 3, Gemma 3, DeepSeek-R1, Mistral with multiple prompt variants.
-- [ ] **Longitudinal drift tracking** — Does the brief stay accurate as you change? Detect when patterns shift via contradiction, not elapsed time. Schema ready (`fact_class` column), implementation pending.
+- [x] **GPT Memory Stacking Test** — 100 responses across 5 conditions. Identity model adds structural specificity that memory alone doesn't produce. Unified brief outperforms granular files due to retrieval bottleneck. C4 finding: GPT project leakage within same-day sessions.
 - [x] **Twin-2K benchmark (N=100)** — 71.83% accuracy at 18:1 compression, p=0.008.
+- [x] **Temporal trajectory analysis** — 7,020 facts across 14 quarters, 6 behavioral dimensions tracked over time. Phase transitions detected. Identity patterns dated to when they first appeared.
+- [x] **66-model collective review** — 66 compressed identity models independently evaluated Base Layer across 3 rounds of deliberation. Consensus: serving layer is the critical gap, reframe from personalization to agentic alignment.
+- [x] **Known failure modes published** — 8 documented failure modes with evidence, fixes, and status. Published on research page.
+- [ ] **Local model extraction quality** — Comparing 8 local models (3B-32B) against Haiku API on identical corpora.
+- [ ] **Temporal prediction experiment** — Does knowing HOW someone is changing predict decisions better than a static snapshot? Specced, not run.
 
 ### Near-term
 
@@ -193,12 +196,12 @@ Base Layer sends your text to the Anthropic API during extraction and authoring.
 
 ### Vision
 
-The brief is a portable, compressed representation of how someone thinks. Today it works in AI conversations. Where it goes:
+Every AI agent today operates without understanding how the person it serves actually thinks, decides, and communicates. Not preferences, not history — the behavioral patterns that determine whether the AI's actions align with what the person would actually do. Base Layer fixes that.
 
-- **Personal** — Every AI you use operates like you without being told. Your operating guide travels with you across models, providers, and tools.
-- **Professional** — Your professional point of view as a portable lens. New team members, collaborators, or AI agents understand your reasoning style immediately.
-- **Agents** — Autonomous agents that represent your goals, constraints, and values — not generic defaults. The brief becomes the alignment layer between human intent and agent action.
-- **Continuity** — Intelligence that persists as models upgrade. Same identity, new substrate. Your belief trajectories survive model changes.
+- **For individuals** — Your operating guide travels with you across models, providers, and tools. Any AI operates like you instead of guessing.
+- **For agent builders** — Your agents need to understand the humans they serve. The operating guide is the constraint layer that makes delegation trustworthy.
+- **For teams** — New collaborators or AI agents understand your reasoning style immediately. Not a profile — an operational specification.
+- **For continuity** — Intelligence that persists as models upgrade. Same identity, new substrate.
 
 ## For AI Agents
 
