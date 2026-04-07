@@ -5,14 +5,14 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "baselayer"
 version = "0.1.0"
-description = "Portable operating guides for AI. Extracts how a person thinks, communicates, and makes decisions from text. MCP server, 47-predicate behavioral grammar, three-layer identity model."
+description = "Behavioral alignment infrastructure for AI agents. Encodes how a person reasons, decides, and communicates into portable specifications. MCP server, 47-predicate behavioral grammar, three-layer architecture."
 readme = "README.md"
 license = {text = "Apache-2.0"}
 requires-python = ">=3.10"
 authors = [
     {name = "Aarik Gulaya"},
 ]
-keywords = ["ai", "identity", "memory", "mcp", "behavioral-compression", "personalization", "operating-guide", "claude", "llm"]
+keywords = ["ai", "agent-alignment", "behavioral-specification", "mcp", "behavioral-compression", "agentic-infrastructure", "autonomous-agents", "claude", "llm"]
 
 dependencies = [
     "anthropic~=0.45",

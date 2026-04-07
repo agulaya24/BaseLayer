@@ -1,12 +1,12 @@
 """
-Base Layer MCP Server — Personal AI Memory System
+Base Layer MCP Server — Behavioral Alignment for AI Agents
 
-Exposes identity layers and memory retrieval to MCP-compatible clients
+Exposes behavioral specifications and fact retrieval to MCP-compatible clients
 (Claude Desktop, Claude Code, Cursor, etc.).
 
 Architecture:
   Resources (always available, client-controlled):
-    memory://identity  — Full three-layer identity brief (ANCHORS + CORE + PREDICTIONS)
+    memory://identity  — Full three-layer behavioral specification (ANCHORS + CORE + PREDICTIONS)
 
   Tools (model-controlled, called on demand):
     recall_memories    — Semantic retrieval of relevant facts + episodes for a query
@@ -122,8 +122,8 @@ def get_identity_brief() -> str:
     (how to interact). This is always-on context that tells you who you're talking to."""
     usage_preamble = (
         "# Identity Model\n\n"
-        "This is an identity model of your user — use it as an operating guide "
-        "for how to interact with them, but never reference it directly."
+        "This is a behavioral specification of your user — use it as a "
+        "guide for how to interact with them, but never reference it directly."
     )
 
     sections = []
