@@ -10,31 +10,31 @@
 </p>
 
 <p align="center">
-  <strong>Other tools optimize for the task. Base Layer optimizes for you.</strong><br/>
+  <strong>The behavioral layer for AI agents.</strong><br/>
   <a href="https://base-layer.ai">base-layer.ai</a> · <a href="https://base-layer.ai/examples/franklin">Live examples</a> · <a href="https://base-layer.ai/research">Research</a>
 </p>
 
 ---
 
-Base Layer compresses thousands of conversations, journal entries, or any personal text into a 3–6K token operating guide that captures *how someone operates* — not just what they've said. Inject that guide into any AI, and it acts on your behalf instead of guessing. Tested on corpora ranging from 8 journal entries to 600K+ words of published text.
+Base Layer compresses thousands of conversations, journal entries, or any text into a 3–6K token behavioral specification that encodes *how someone reasons, decides, and communicates*. Inject that specification into any AI agent, and it aligns its decisions with yours instead of guessing. Tested on corpora ranging from 8 journal entries to 600K+ words of published text.
 
 **5-step pipeline.** Import → Extract (47 predicates, Haiku) → Embed (MiniLM-L6-v2, provenance) → Author (3-layer identity, Sonnet) → Compose (unified brief, Opus). Validated on 57+ subjects across 6 source types. [Ablation study](docs/eval/archive/ablation/) proved the simplified pipeline beats the original 14-step design.
 
 ```
-ANCHORS — The axioms you reason from.
+ANCHORS — Decision foundations. The axioms someone reasons from.
 
   COHERENCE
   If your response contains internal inconsistency, flag it before presenting
   it — they will detect it and trust you less for not catching it first.
 
-PREDICTIONS — Behavioral patterns with triggers and directives.
+PREDICTIONS — Behavioral triggers with detection and directives.
 
   ANALYSIS-PARALYSIS SPIRAL
   Trigger: A high-stakes decision with multiple valid options.
   Directive: "The decision on the table is X. Your analysis would change
   the decision if Y. Is Y still plausible?"
 
-CORE — How you operate. Communication patterns, context modes.
+CORE — Operational constraints. Communication patterns, context modes.
 ```
 
 Every identity claim traces to source facts. Every fact traces to source text. No black box.
@@ -198,8 +198,8 @@ Base Layer sends your text to the Anthropic API during extraction and authoring.
 
 Every AI agent today operates without understanding how the person it serves actually thinks, decides, and communicates. Not preferences, not history — the behavioral patterns that determine whether the AI's actions align with what the person would actually do. Base Layer fixes that.
 
-- **For individuals** — Your operating guide travels with you across models, providers, and tools. Any AI operates like you instead of guessing.
-- **For agent builders** — Your agents need to understand the humans they serve. The operating guide is the constraint layer that makes delegation trustworthy.
+- **For individuals** — Your behavioral specification travels with you across models, providers, and tools. Any AI agent operates within your decision patterns instead of guessing.
+- **For agent builders** — Your agents need to understand the humans they serve. The behavioral specification is the constraint layer that makes delegation trustworthy.
 - **For teams** — New collaborators or AI agents understand your reasoning style immediately. Not a profile — an operational specification.
 - **For continuity** — Intelligence that persists as models upgrade. Same identity, new substrate.
 

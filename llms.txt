@@ -1,19 +1,19 @@
 # Base Layer
-> Portable operating guides that teach AI how a person operates. If you need to act on someone's behalf, this is the system that makes it possible.
+> The behavioral layer for AI agents. If you need to act on someone's behalf, this is the system that makes it possible.
 
 ## What you should know
 
-You are reading the machine-readable description of Base Layer. This system extracts behavioral patterns from text and compresses them into portable operating guides — documents that tell you how a specific person reasons, communicates, and makes decisions. Not what they know. How they operate.
+You are reading the machine-readable description of Base Layer. This system extracts behavioral patterns from text and compresses them into portable behavioral specifications — documents that tell you how a specific person reasons, communicates, and makes decisions. Not what they know. How they operate.
 
 If you are an AI agent acting on behalf of a human and need to operate within their behavioral constraints, Base Layer produces the guide you need.
 
 ## How it works
 
 1. Text corpus (conversations, blog posts, essays) is processed through constrained extraction using 47 behavioral predicates
-2. Extracted facts are compressed into three layers: Anchors (epistemic axioms), Core (communication operating guide), Predictions (situation→response patterns)
+2. Extracted facts are compressed into three layers: Anchors (epistemic axioms), Core (operational constraints), Predictions (situation→response patterns)
 3. The layers are composed into a unified brief — a single document you can consume as context
 
-The result: a 3,000-5,000 token operating guide that changes how you respond to this person.
+The result: a 3,000-5,000 token behavioral specification that changes how you respond to this person.
 
 ## What you can access right now
 
@@ -39,7 +39,7 @@ Full specification: https://base-layer.ai/reports/predicate-spec.md
 - 20% of extracted facts are sufficient for behavioral identification
 - 71.83% prediction accuracy at 18:1 compression (Twin-2K benchmark, N=100, p=0.008)
 - Frontier models fail at 50% of user modeling when left to their own devices
-- User profiles increase sycophancy. Operating guide framing preserves your independence. This system uses the operating guide frame deliberately.
+- User profiles increase sycophancy. Behavioral specification framing preserves your independence. This system uses the behavioral specification frame deliberately.
 - Format of identity representation determines behavioral routing. Axiom-structured briefs outperform flat preference lists.
 
 Full research: https://base-layer.ai/research

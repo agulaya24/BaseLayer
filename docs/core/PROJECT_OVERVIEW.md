@@ -5,17 +5,17 @@
 
 ## What This Is
 
-A personal AI memory system that extracts what matters from your conversation history, builds a compressed behavioral model of who you are, and injects that understanding into every AI conversation. The AI responds as if it knows you, without being told every time.
+Behavioral alignment infrastructure for AI agents. Extracts behavioral patterns from text, compresses them into structured specifications that encode how a person reasons, decides, and communicates, and serves those specifications to any autonomous agent. The agent operates within the person's behavioral constraints without being told every time.
 
 All data stored on the user's machine. Processing uses cloud APIs by default, with local deployability being actively explored as local models improve.
 
 ## Core Idea
 
-Modern LLMs are powerful but stateless. Every conversation starts from zero. Base Layer adds a durable understanding layer: extract facts from conversations, author a compressed identity brief (a ~3,000-5,000 token document that teaches an AI how someone thinks and communicates), and inject it as context. The result is persistent understanding without replaying history or running up token costs.
+Autonomous agents are powerful but stateless. Every interaction starts from zero. Base Layer adds a behavioral alignment layer: extract facts from text, author a compressed behavioral specification (a ~3,000-5,000 token document that encodes how someone reasons, decides, and communicates), and inject it as agent context. The result is persistent behavioral alignment without replaying history or running up token costs.
 
-Base Layer is a structured reasoning process that produces understanding. The identity brief isn't a profile; it's a chain of thought that teaches an AI how to understand and communicate naturally with a specific person.
+Base Layer is a structured reasoning process that produces understanding. The behavioral specification isn't a profile; it's a constraint document that teaches an agent how to operate within a specific person's decision patterns.
 
-**North star:** Every agentic workflow, AI interaction, and form of personalization is hollow if it doesn't understand who the human is behind the screen. Base Layer exists because AI should know you.
+**North star:** Every autonomous agent making decisions on behalf of a human needs explicit behavioral specifications — not inferred preferences, not flat profiles, but structured constraint documents. Base Layer is the behavioral layer of the agentic stack.
 
 ---
 
@@ -29,7 +29,7 @@ Base Layer is a structured reasoning process that produces understanding. The id
 
 3. **Identity Authoring:** Facts compressed into a three-layer identity brief using H3 prompts (Session 99 ablation — domain-agnostic guard eliminates topic skew):
    - **Epistemic Anchors:** Core axioms that define reasoning foundations. Cross-scope, always-on.
-   - **Communication & Operating Guide (CORE):** Directive-format communication approach, context modes, narrative orientation, essential context. Always-on.
+   - **Operational Constraints (CORE):** Directive-format communication approach, context modes, narrative orientation, essential context. Always-on.
    - **Behavioral Predictions:** Situation-triggered response patterns with detection signatures and interaction directives. Structured output format validated (D-093). Always-on.
 
 4. **Brief Composition:** Three layers compressed into a unified narrative brief (~3,000-5,000 tokens). Compose prompt enforces they/them pronouns (D-092) and domain guard (D-091). Served via MCP (Model Context Protocol) as an always-on identity Resource.

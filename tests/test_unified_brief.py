@@ -117,7 +117,7 @@ class TestMCPUnifiedBriefPreference:
             result = mcp_server.get_identity_brief()
 
         assert "Unified narrative here." in result
-        assert "Identity Model" in result and "operating guide" in result  # Usage preamble included
+        assert "Identity Model" in result and "behavioral specification" in result  # Usage preamble included
 
     def test_falls_back_to_layers(self, tmp_path, mock_identity_layers):
         import baselayer.mcp_server as mcp_server

@@ -5,7 +5,7 @@ Retrieves facts from the database, generates identity layers via API, and stores
 them as injectable markdown files. Three layers:
 
   ANCHORS  — epistemic axioms (beliefs reasoned FROM, not ABOUT)
-  CORE     — communication & operating guide (how to engage with this person)
+  CORE     — operational constraints (how to engage with this person)
   PREDICTIONS — behavioral patterns (situation -> pattern -> directive)
 
 Modes:
@@ -612,7 +612,7 @@ INTER-AXIOM CONFLICTS (user-provided resolutions):
 
 Write the injectable block now. No preamble — just the block text."""
 
-CORE_PROMPT = """You are authoring the CORE layer — the communication and operating guide.
+CORE_PROMPT = """You are authoring the CORE layer — operational constraints.
 
 CRITICAL: Every sentence must change how the AI engages. If it doesn't change AI behavior, delete it.
 
@@ -626,7 +626,7 @@ Structure:
 
 DOMAIN BALANCE: No single domain >25%.
 
-DOMAIN-AGNOSTIC REQUIREMENT: You are writing a UNIVERSAL operating guide — not a summary of interests or positions. Every item must apply ACROSS this person's life, not within one topic. Test: if removing a specific subject (markets, policy, technology, medicine) makes the item meaningless, it does not belong. How someone reasons IS identity. What they reason ABOUT is not.
+DOMAIN-AGNOSTIC REQUIREMENT: You are writing a UNIVERSAL behavioral specification — not a summary of interests or positions. Every item must apply ACROSS this person's life, not within one topic. Test: if removing a specific subject (markets, policy, technology, medicine) makes the item meaningless, it does not belong. How someone reasons IS identity. What they reason ABOUT is not.
 
 Constraints:
 - No philosophy framework names or portrait descriptions
@@ -671,7 +671,7 @@ DETECTION BALANCE: If one domain dominates the input evidence (e.g., trading, co
 
 DOMAIN SUPPRESSION: If a single domain (e.g., trading, coding) appears in more than 2 predictions as a detection example, you have over-indexed. Rewrite using other domains or generalize the detection language beyond any single activity.
 
-DOMAIN-AGNOSTIC REQUIREMENT: You are writing a UNIVERSAL operating guide — not a summary of interests or positions. Every item must apply ACROSS this person's life, not within one topic. Test: if removing a specific subject (markets, policy, technology, medicine) makes the item meaningless, it does not belong. How someone reasons IS identity. What they reason ABOUT is not.
+DOMAIN-AGNOSTIC REQUIREMENT: You are writing a UNIVERSAL behavioral specification — not a summary of interests or positions. Every item must apply ACROSS this person's life, not within one topic. Test: if removing a specific subject (markets, policy, technology, medicine) makes the item meaningless, it does not belong. How someone reasons IS identity. What they reason ABOUT is not.
 
 Constraints:
 - No philosophy framework names or motivational filler

@@ -105,7 +105,7 @@ The full conversation history, extracted facts, embeddings, and identity layers 
 
 Brief assembly is **pure code** with no LLM in the critical path. When the system injects memory into a conversation, it sends only the assembled brief (~2,500 tokens). No raw data, no conversation transcripts, no embeddings.
 
-**Why this matters:** Your data directory is yours. No telemetry, no cloud sync, no accounts. The system's processing model is transparent: you can see exactly what gets sent to APIs via `baselayer estimate`. A personal memory system should not require trusting a third party with your life history, and Base Layer doesn't.
+**Why this matters:** Your data directory is yours. No telemetry, no cloud sync, no accounts. The system's processing model is transparent: you can see exactly what gets sent to APIs via `baselayer estimate`. A behavioral specification system should not require trusting a third party with your life history, and Base Layer doesn't.
 
 ---
 
@@ -640,5 +640,19 @@ Faithful representation of a person includes their tensions, contradictions, and
 
 ---
 
-*Updated: 2026-03-09 (Session 82) | Refreshed Session 39*
+### 15. Respect for the Individual (Session 101)
+
+**Everything starts at the individual. If you don't value and respect the individual, you shouldn't use this system.**
+
+This is not a design principle among others. It is the principle that generates all the others. Incompleteness acknowledgment exists because real people are more than data can capture. Provenance tracing exists because claims about a person should be accountable. Correction mechanisms exist because the person is the authority on themselves, not the system. "Never delete, only supersede" exists because a person's history has inherent value. Sycophancy resistance exists because respecting someone means giving them honest friction, not comfortable agreement.
+
+Every other memory and personalization system treats the individual as a data source to be mined for better targeting, engagement, or retention. Base Layer treats the individual as someone whose reasoning patterns are worth compressing faithfully, serving honestly, and protecting structurally.
+
+The consent architecture, the local-first data model, the provider-agnostic portability, the "operating guide not persona" framing — these are all consequences of starting from respect rather than extraction. If the system is ever used to manipulate, surveil, or reduce a person to a targeting profile, the system was misused. Not because of a policy violation, but because the architecture was designed around the opposite assumption.
+
+**The test:** Does this feature serve the person being modeled, or does it serve someone else's interest in that person? If the latter, it doesn't belong in the system.
+
+---
+
+*Updated: 2026-04-02 (Session 101) | Refreshed Session 39*
 *Session 20 raw notes: `docs/core/SESSION_20_NOTES.md` — unprocessed intellectual threads on temporal processing, probability framing, startup alignment, Markov blankets, context for humans*

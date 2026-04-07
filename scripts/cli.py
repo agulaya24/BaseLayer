@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Base Layer CLI — Personal AI Memory System
+Base Layer CLI — Behavioral Alignment for AI Agents
 
 Pipeline (4 steps): Import -> Extract -> Author -> Compose
 
@@ -1201,7 +1201,7 @@ def main():
 
     parser = argparse.ArgumentParser(
         prog="baselayer",
-        description="Base Layer - Personal AI Memory System",
+        description="Base Layer - Behavioral Alignment for AI Agents",
         epilog="Learn more: https://github.com/baselayer-ai/baselayer",
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s 0.1.0")

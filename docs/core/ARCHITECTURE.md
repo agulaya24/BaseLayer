@@ -12,7 +12,7 @@ Larger context windows do not solve this. Raw conversation history is retrieval,
 
 ## The Solution
 
-Base Layer compresses text (conversations, journals, essays, any personal writing) into a portable operating guide: a 3-6K token structured document that captures how someone reasons, communicates, and decides. Inject that guide into any AI, and it operates within the person's behavioral constraints instead of guessing.
+Base Layer compresses text (conversations, journals, essays, any personal writing) into a portable behavioral specification: a 3-6K token structured document that captures how someone reasons, communicates, and decides. Inject that guide into any AI, and it operates within the person's behavioral constraints instead of guessing.
 
 The output is locally owned, provenance-traced to source text, and provider-agnostic. 57+ subjects modeled across 6 source types. Validated via Twin-2K benchmark (N=100, 71.83% accuracy at 18:1 compression, p=0.008).
 
@@ -53,7 +53,7 @@ Pipeline ablation (Session 79, 14 conditions, ~$16) proved that 10 of the origin
  |   | Sonnet -- Three-layer identity generation (D-043)         | |
  |   | H3 prompts: domain-agnostic guard (D-089, S99 ablation)  | |
  |   | ANCHORS | Epistemic axioms                                | |
- |   | CORE    | Communication & operating guide                 | |
+ |   | CORE    | Operational constraints                         | |
  |   | PREDICT | Situation -> pattern -> directive               | |
  |   +---------------------------+------------------------------+ |
  |                               |                                |
@@ -182,7 +182,7 @@ These are the load-bearing design decisions that prevent the most common failure
 
 **Output:** Three markdown files in `data/identity_layers/`:
 - `anchors_v4.md` — epistemic axioms
-- `core_v4.md` — communication and operating guide
+- `core_v4.md` — operational constraints
 - `predictions_v4.md` — behavioral predictions
 
 Each file has a metadata header above `---` and injectable text below.
