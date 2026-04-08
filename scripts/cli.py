@@ -2,10 +2,11 @@
 """
 Base Layer CLI — Behavioral Alignment for AI Agents
 
-Pipeline (4 steps): Import -> Extract -> Author -> Compose
+Pipeline (4 steps): Import -> Extract -> Author -> Compose -> (optional) Export
 
 Usage:
     baselayer run <file> [-y]               One-command pipeline: import > extract > author > compose
+    baselayer export [--open]               View your spec as a self-contained HTML file
     baselayer ui                            Local drag-and-drop web interface
     baselayer init                          Initialize a fresh database
     baselayer import <file> [--source X]    Import conversations (chatgpt/claude/journal)
@@ -951,6 +952,182 @@ def cmd_journal(args):
         print(f"  Run 'baselayer journal' again anytime to add more.\n")
 
 
+def cmd_export(args):
+    """Export behavioral specification as a self-contained HTML file.
+
+    Designed for AI agents (Claude Code, Cursor) to display the spec to users
+    after a pipeline run. Opens in any browser. No server needed.
+
+    Usage:
+        baselayer export                    # creates spec.html in current directory
+        baselayer export --output my.html   # custom output path
+        baselayer export --open             # create and open in browser
+    """
+    from config import IDENTITY_LAYERS_DIR, UNIFIED_BRIEF_FILE, UNIFIED_BRIEF_CITED_FILE
+
+    output_path = Path(args.output) if args.output else Path("spec.html")
+
+    # Load layers
+    layers = {}
+    for name, filename in [("ANCHORS", "anchors_v4.md"), ("CORE", "core_v4.md"), ("PREDICTIONS", "predictions_v4.md")]:
+        fp = IDENTITY_LAYERS_DIR / filename
+        if fp.exists():
+            content = fp.read_text(encoding="utf-8")
+            marker = "## Injectable Block"
+            idx = content.find(marker)
+            layers[name] = content[idx + len(marker):].strip() if idx >= 0 else content.strip()
+
+    # Load brief
+    brief_file = UNIFIED_BRIEF_FILE if UNIFIED_BRIEF_FILE.exists() else UNIFIED_BRIEF_CITED_FILE
+    brief = ""
+    if brief_file.exists():
+        content = brief_file.read_text(encoding="utf-8")
+        marker = "## Injectable Block"
+        idx = content.find(marker)
+        brief = content[idx + len(marker):].strip() if idx >= 0 else content.strip()
+
+    if not layers and not brief:
+        print("No spec found. Run: baselayer author && baselayer compose")
+        sys.exit(1)
+
+    # Convert markdown sections to simple HTML
+    import re
+
+    def md_to_html(text):
+        # Bold
+        text = re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', text)
+        # Headers
+        text = re.sub(r'^### (.+)$', r'<h4>\1</h4>', text, flags=re.MULTILINE)
+        text = re.sub(r'^## (.+)$', r'<h3>\1</h3>', text, flags=re.MULTILINE)
+        # Paragraphs
+        paragraphs = text.split('\n\n')
+        result = []
+        for p in paragraphs:
+            p = p.strip()
+            if not p:
+                continue
+            if p.startswith('<h'):
+                result.append(p)
+            elif p.startswith('- ') or p.startswith('* '):
+                items = [line.lstrip('- *').strip() for line in p.split('\n') if line.strip()]
+                result.append('<ul>' + ''.join(f'<li>{item}</li>' for item in items) + '</ul>')
+            else:
+                result.append(f'<p>{p}</p>')
+        return '\n'.join(result)
+
+    anchors_html = md_to_html(layers.get("ANCHORS", "")) if "ANCHORS" in layers else ""
+    core_html = md_to_html(layers.get("CORE", "")) if "CORE" in layers else ""
+    predictions_html = md_to_html(layers.get("PREDICTIONS", "")) if "PREDICTIONS" in layers else ""
+    brief_html = md_to_html(brief) if brief else ""
+
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Behavioral Specification — Base Layer</title>
+<style>
+  :root {{ --bg: #020617; --surface: #0f172a; --border: #1e293b; --text: #e2e8f0;
+           --muted: #94a3b8; --accent: #38bdf8; --dim: #64748b; }}
+  * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+  body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+          background: var(--bg); color: var(--text); line-height: 1.7; }}
+  .container {{ max-width: 800px; margin: 0 auto; padding: 2rem; }}
+  header {{ padding: 2rem 0; border-bottom: 1px solid var(--border); margin-bottom: 2rem; }}
+  header h1 {{ font-size: 1.5rem; color: var(--accent); font-weight: 600; }}
+  header p {{ color: var(--muted); font-size: 0.875rem; margin-top: 0.5rem; }}
+  .tabs {{ display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; }}
+  .tab {{ padding: 0.75rem 1.25rem; cursor: pointer; color: var(--muted); font-size: 0.875rem;
+          font-weight: 500; border-bottom: 2px solid transparent; transition: all 0.2s; }}
+  .tab:hover {{ color: var(--text); }}
+  .tab.active {{ color: var(--accent); border-bottom-color: var(--accent); }}
+  .panel {{ display: none; }}
+  .panel.active {{ display: block; }}
+  h3 {{ color: var(--accent); font-size: 1.1rem; margin: 1.5rem 0 0.75rem; }}
+  h4 {{ color: var(--text); font-size: 0.95rem; margin: 1.25rem 0 0.5rem; }}
+  strong {{ color: var(--text); }}
+  p {{ color: var(--muted); margin-bottom: 0.75rem; font-size: 0.9rem; }}
+  ul {{ color: var(--muted); margin: 0.5rem 0 1rem 1.5rem; font-size: 0.9rem; }}
+  li {{ margin-bottom: 0.25rem; }}
+  .section {{ background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+              padding: 1.5rem; margin-bottom: 1rem; }}
+  .footer {{ margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--border);
+             color: var(--dim); font-size: 0.75rem; }}
+  .footer a {{ color: var(--accent); text-decoration: none; }}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Behavioral Specification</h1>
+    <p>Generated by Base Layer. Portable to any AI agent. <a href="https://base-layer.ai" style="color: var(--accent);">base-layer.ai</a></p>
+  </header>
+
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('brief')">Brief</div>
+    <div class="tab" onclick="showTab('anchors')">Anchors</div>
+    <div class="tab" onclick="showTab('core')">Core</div>
+    <div class="tab" onclick="showTab('predictions')">Predictions</div>
+  </div>
+
+  <div id="brief" class="panel active">
+    <div class="section">
+      <h3>Unified Brief</h3>
+      {brief_html or '<p>No brief generated. Run: baselayer compose</p>'}
+    </div>
+  </div>
+
+  <div id="anchors" class="panel">
+    <div class="section">
+      <h3>Anchors — Decision Foundations</h3>
+      <p style="color: var(--dim); font-size: 0.8rem;">The axioms this person reasons FROM. Always-on constraints.</p>
+      {anchors_html or '<p>No anchors generated.</p>'}
+    </div>
+  </div>
+
+  <div id="core" class="panel">
+    <div class="section">
+      <h3>Core — Operational Constraints</h3>
+      <p style="color: var(--dim); font-size: 0.8rem;">How to engage with this person. Context-dependent modes.</p>
+      {core_html or '<p>No core generated.</p>'}
+    </div>
+  </div>
+
+  <div id="predictions" class="panel">
+    <div class="section">
+      <h3>Predictions — Behavioral Triggers</h3>
+      <p style="color: var(--dim); font-size: 0.8rem;">Situation-response patterns with detection and directives.</p>
+      {predictions_html or '<p>No predictions generated.</p>'}
+    </div>
+  </div>
+
+  <div class="footer">
+    Generated by <a href="https://base-layer.ai">Base Layer</a> — behavioral alignment infrastructure for AI agents.
+    Open source under Apache 2.0. This file is self-contained — no server required.
+  </div>
+</div>
+
+<script>
+function showTab(name) {{
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(name).classList.add('active');
+  event.target.classList.add('active');
+}}
+</script>
+</body>
+</html>"""
+
+    output_path.write_text(html, encoding="utf-8")
+    print(f"\n  Exported: {output_path.resolve()}")
+    print(f"  Open in any browser to view your behavioral specification.")
+    print(f"  Paste the spec into any AI agent's context for behavioral alignment.\n")
+
+    if args.open:
+        import webbrowser
+        webbrowser.open(str(output_path.resolve()))
+
+
 def cmd_run(args):
     """One-command pipeline: import -> extract -> author -> compose (4 steps)."""
     from config import DATABASE_FILE
@@ -1272,6 +1449,13 @@ def main():
     # stats
     p_stats = subparsers.add_parser("stats", help="Show database statistics")
     p_stats.set_defaults(func=cmd_stats)
+
+    # export
+    p_export = subparsers.add_parser("export",
+        help="Export behavioral specification as self-contained HTML (for AI agents to display to users)")
+    p_export.add_argument("--output", "-o", help="Output file path (default: spec.html)")
+    p_export.add_argument("--open", action="store_true", help="Open in browser after export")
+    p_export.set_defaults(func=cmd_export)
 
     # search
     p_search = subparsers.add_parser("search", help="Search facts")
