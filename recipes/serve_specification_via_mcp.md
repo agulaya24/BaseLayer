@@ -87,6 +87,15 @@ Run the binary verification checks against a specific claim. Returns existence, 
 
 After registration, every new Claude Code or Claude Desktop conversation will have the CORE layer plus a manifest loaded as background context. The model uses CORE to calibrate communication style and pulls additional layers (`get_anchors()`, `get_predictions()`, `get_brief()`) when the conversation warrants. Recent MCP usage is queryable in-session via `get_call_log()`.
 
+## Verifying the server is actually running
+
+The Claude Code `/mcp` dialog and other UI status indicators have been observed to read "off" or "needs reconnect" while the server was actively responding to tool calls. **Do not trust the UI indicator as the source of truth.** Verify by either:
+
+- Running `claude mcp list` from a terminal. Healthy local stdio servers show `✓ Connected`.
+- Asking the model to call any Base Layer tool (e.g., "what does my specification say about my communication style") and seeing it return content.
+
+The `/mcp` dialog itself is for managing Anthropic-hosted cloud connectors (Google Drive, Calendar, Gmail). Local stdio servers like `base-layer` are managed only via the CLI (`claude mcp list/add/remove`).
+
 ## Failure modes
 
 - **`baselayer-mcp: command not found`.** The package is not installed in the active Python environment. `pip install git+https://github.com/agulaya24/BaseLayer.git` and confirm `which baselayer-mcp` resolves.

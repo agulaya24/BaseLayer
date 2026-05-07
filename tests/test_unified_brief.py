@@ -94,12 +94,12 @@ class TestStoreUnifiedBrief:
 # ============================================================
 
 class TestMCPPartialServing:
-    """Verify the partial-serving design: resource serves CORE only, brief is behind get_brief()."""
+    """Verify the partial-serving design: resource serves CORE only, brief is behind get_brief("test reason")."""
 
     def test_resource_does_not_serve_unified_brief(self, tmp_path, mock_identity_layers):
         """The resource serves CORE plus a manifest. The unified brief is NOT included.
 
-        The unified brief is fetched on demand via the get_brief() tool, not via the
+        The unified brief is fetched on demand via the get_brief("test reason") tool, not via the
         always-on resource. This keeps context costs proportional to conversation needs.
         """
         import baselayer.mcp_server as mcp_server
@@ -126,7 +126,7 @@ class TestMCPPartialServing:
         assert "behavioral specification" in result.lower()
 
     def test_get_brief_tool_returns_unified_brief(self, tmp_path):
-        """The get_brief() tool returns the full unified brief."""
+        """The get_brief("test reason") tool returns the full unified brief."""
         import baselayer.mcp_server as mcp_server
 
         brief_file = tmp_path / "brief_v5_clean.md"
@@ -137,7 +137,7 @@ class TestMCPPartialServing:
 
         with patch.object(mcp_server, "UNIFIED_BRIEF_FILE", brief_file), \
              patch.object(mcp_server, "UNIFIED_BRIEF_CITED_FILE", tmp_path / "nonexistent_cited.md"):
-            result = mcp_server.get_brief()
+            result = mcp_server.get_brief("test reason")
 
         assert "Unified narrative here." in result
 
@@ -156,7 +156,7 @@ class TestMCPPartialServing:
 
         # CORE content present
         assert "builder and systems thinker" in result
-        # ANCHORS content NOT present (now behind get_anchors())
+        # ANCHORS content NOT present (now behind get_anchors("test reason"))
         assert "Quality matters more than speed" not in result
 
     def test_resource_serves_core_when_brief_empty(self, tmp_path, mock_identity_layers):

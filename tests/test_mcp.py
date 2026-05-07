@@ -84,26 +84,26 @@ class TestSpecificationTools:
 
     def test_get_anchors_returns_anchors_block(self, mock_identity_layers):
         with patch.object(mcp_server, "ANCHORS_LAYER_FILE", mock_identity_layers / "anchors_v3.md"):
-            result = mcp_server.get_anchors()
+            result = mcp_server.get_anchors("test reason")
             assert "Quality matters more than speed" in result
             # Should not contain frontmatter
             assert "layer: anchors" not in result
 
     def test_get_anchors_missing_file(self, tmp_path):
         with patch.object(mcp_server, "ANCHORS_LAYER_FILE", tmp_path / "nonexistent.md"):
-            result = mcp_server.get_anchors()
+            result = mcp_server.get_anchors("test reason")
             assert "ANCHORS layer is not present" in result
             assert "baselayer author --layer anchors" in result
 
     def test_get_predictions_returns_predictions_block(self, mock_identity_layers):
         with patch.object(mcp_server, "PREDICTIONS_LAYER_FILE", mock_identity_layers / "predictions_v3.md"):
-            result = mcp_server.get_predictions()
+            result = mcp_server.get_predictions("test reason")
             assert "shortcut" in result.lower() or "systematic analysis" in result
             assert "layer: predictions" not in result
 
     def test_get_predictions_missing_file(self, tmp_path):
         with patch.object(mcp_server, "PREDICTIONS_LAYER_FILE", tmp_path / "nonexistent.md"):
-            result = mcp_server.get_predictions()
+            result = mcp_server.get_predictions("test reason")
             assert "PREDICTIONS layer is not present" in result
             assert "baselayer author --layer predictions" in result
 
@@ -121,14 +121,14 @@ systems thinker who values rigor and reproducibility above all.
         brief_file.write_text(brief_content, encoding="utf-8")
         with patch.object(mcp_server, "UNIFIED_BRIEF_FILE", brief_file), \
              patch.object(mcp_server, "UNIFIED_BRIEF_CITED_FILE", tmp_path / "nonexistent_cited.md"):
-            result = mcp_server.get_brief()
+            result = mcp_server.get_brief("test reason")
             assert "unified narrative specification" in result
             assert "layer: brief" not in result
 
     def test_get_brief_missing_file(self, tmp_path):
         with patch.object(mcp_server, "UNIFIED_BRIEF_FILE", tmp_path / "nonexistent_brief.md"), \
              patch.object(mcp_server, "UNIFIED_BRIEF_CITED_FILE", tmp_path / "nonexistent_cited.md"):
-            result = mcp_server.get_brief()
+            result = mcp_server.get_brief("test reason")
             assert "Unified brief is not present" in result
             assert "baselayer compose" in result
 
@@ -169,7 +169,7 @@ class TestServingToggle:
         state.write_text("0", encoding="utf-8")
         with patch.object(mcp_server, "SERVING_STATE_FILE", state), \
              patch.object(mcp_server, "ANCHORS_LAYER_FILE", mock_identity_layers / "anchors_v3.md"):
-            result = mcp_server.get_anchors()
+            result = mcp_server.get_anchors("test reason")
             assert "disabled" in result.lower()
             assert "Quality matters more than speed" not in result
 
@@ -178,7 +178,7 @@ class TestServingToggle:
         state.write_text("0", encoding="utf-8")
         with patch.object(mcp_server, "SERVING_STATE_FILE", state), \
              patch.object(mcp_server, "PREDICTIONS_LAYER_FILE", mock_identity_layers / "predictions_v3.md"):
-            result = mcp_server.get_predictions()
+            result = mcp_server.get_predictions("test reason")
             assert "disabled" in result.lower()
 
     def test_get_brief_returns_disabled_message(self, tmp_path):
@@ -188,7 +188,7 @@ class TestServingToggle:
         brief_file.write_text("## Injectable Block\n\nReal brief content here.", encoding="utf-8")
         with patch.object(mcp_server, "SERVING_STATE_FILE", state), \
              patch.object(mcp_server, "UNIFIED_BRIEF_FILE", brief_file):
-            result = mcp_server.get_brief()
+            result = mcp_server.get_brief("test reason")
             assert "disabled" in result.lower()
             assert "Real brief content here" not in result
 
