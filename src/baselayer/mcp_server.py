@@ -47,6 +47,7 @@ Usage:
 
 import sys
 import os
+import atexit
 import contextlib
 import logging
 import threading
@@ -105,9 +106,77 @@ def _extract_layer_block(path):
 _CALL_LOG: "deque[dict]" = deque(maxlen=500)
 _CALL_LOG_LOCK = threading.Lock()
 
+# On-disk session counter for external monitoring (e.g. an IDE statusline that
+# wants to display "MCP: N calls" without speaking the MCP protocol). Reset
+# to 0 when the server starts; bumped on every _log_call. Lives at
+# ~/.baselayer/mcp_session_count and is just an integer in plain text.
+SESSION_COUNTER_FILE = Path.home() / ".baselayer" / "mcp_session_count"
+
+# On-disk toggle file for in-session spec-serving control. The CLI
+# subcommands `baselayer serve enable|disable` write to this file. The MCP
+# handlers check it on every call. When disabled, the resource and the
+# layer tools return a polite "disabled" message instead of content; other
+# tools (recall_memories, search_facts, etc.) keep working since they are
+# fact-database queries, not spec serving. Default (file missing) = enabled.
+SERVING_STATE_FILE = Path.home() / ".baselayer" / "serving_enabled"
+
+
+def _is_serving_enabled() -> bool:
+    """Return True if spec serving is currently enabled. Default True."""
+    try:
+        if SERVING_STATE_FILE.exists():
+            return SERVING_STATE_FILE.read_text(encoding="utf-8").strip() != "0"
+    except OSError:
+        pass
+    return True
+
+
+_DISABLED_MESSAGE = (
+    "Spec serving is currently disabled by the user. The Base Layer MCP "
+    "server is running but the user has turned off spec injection for now. "
+    "Tell the user: \"Spec serving is paused. Run `baselayer serve enable` "
+    "to turn it back on.\" Continue helping without spec context."
+)
+
+
+def _reset_session_counter():
+    """Reset the on-disk session counter. Called once at server startup."""
+    try:
+        SESSION_COUNTER_FILE.parent.mkdir(parents=True, exist_ok=True)
+        SESSION_COUNTER_FILE.write_text("0", encoding="utf-8")
+    except OSError:
+        pass
+
+
+def _cleanup_session_counter():
+    """Remove the on-disk counter file. Called on clean server shutdown so
+    external monitors (statusline) can distinguish a running server from a
+    stopped one. A crashed server leaves the file behind; the statusline
+    treats files older than its staleness threshold as inactive."""
+    try:
+        SESSION_COUNTER_FILE.unlink(missing_ok=True)
+    except OSError:
+        pass
+
+
+def _bump_session_counter():
+    """Increment the on-disk session counter. Best-effort, never raises."""
+    try:
+        with _CALL_LOG_LOCK:
+            current = 0
+            if SESSION_COUNTER_FILE.exists():
+                try:
+                    current = int(SESSION_COUNTER_FILE.read_text(encoding="utf-8").strip() or "0")
+                except (ValueError, OSError):
+                    current = 0
+            SESSION_COUNTER_FILE.write_text(str(current + 1), encoding="utf-8")
+    except OSError:
+        pass
+
 
 def _log_call(name, **kwargs):
-    """Record an MCP call. Emits a stderr line and appends to the in-memory log.
+    """Record an MCP call. Emits a stderr line, appends to the in-memory log,
+    and bumps the on-disk session counter.
 
     Stderr format: ``[base-layer] INFO: mcp_call name=<name> [k=v ...]``
 
@@ -115,6 +184,10 @@ def _log_call(name, **kwargs):
     is the canonical way for an AI client (Claude, etc.) to inspect how often
     and for what purposes it is calling this server. Each resource read and
     tool invocation produces one entry.
+
+    The on-disk counter at ~/.baselayer/mcp_session_count is the canonical
+    way for an external monitor (e.g. a Claude Code statusline) to read live
+    call volume without speaking the MCP protocol.
     """
     if kwargs:
         details = " " + " ".join(f"{k}={v!r}" for k, v in kwargs.items())
@@ -129,6 +202,8 @@ def _log_call(name, **kwargs):
     }
     with _CALL_LOG_LOCK:
         _CALL_LOG.append(entry)
+
+    _bump_session_counter()
 
 
 # ==========================================================================
@@ -191,6 +266,8 @@ def get_specification() -> str:
     accessible content.
     """
     _log_call("get_specification")
+    if not _is_serving_enabled():
+        return _DISABLED_MESSAGE
     usage_preamble = (
         "# Behavioral Specification\n\n"
         "This is a behavioral specification of your user. Use it as a "
@@ -556,6 +633,8 @@ def get_anchors() -> str:
     trust the conversation.
     """
     _log_call("get_anchors")
+    if not _is_serving_enabled():
+        return _DISABLED_MESSAGE
     block = _extract_layer_block(ANCHORS_LAYER_FILE)
     if not block:
         return (
@@ -585,6 +664,8 @@ def get_predictions() -> str:
     as a default to interpret against, not as a forecast to insist on.
     """
     _log_call("get_predictions")
+    if not _is_serving_enabled():
+        return _DISABLED_MESSAGE
     block = _extract_layer_block(PREDICTIONS_LAYER_FILE)
     if not block:
         return (
@@ -615,6 +696,8 @@ def get_brief() -> str:
     overrides any specific claim in the brief.
     """
     _log_call("get_brief")
+    if not _is_serving_enabled():
+        return _DISABLED_MESSAGE
     brief_file = UNIFIED_BRIEF_FILE if UNIFIED_BRIEF_FILE.exists() else UNIFIED_BRIEF_CITED_FILE
     if not brief_file.exists():
         return (
@@ -692,6 +775,8 @@ def get_call_log(limit: int = 50, name_filter: str = "") -> str:
 
 def main():
     """Run the MCP server (stdio transport)."""
+    _reset_session_counter()
+    atexit.register(_cleanup_session_counter)
     logger.info(f"Starting Base Layer MCP server...")
     logger.info(f"Database: {DATABASE_FILE}")
     logger.info(f"Vectors: {VECTORS_DIR}")

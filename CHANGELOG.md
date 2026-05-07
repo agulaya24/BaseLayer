@@ -4,6 +4,16 @@ All notable changes to Base Layer are documented here.
 
 ---
 
+## Unreleased (post-0.3.0)
+
+### Added (in-session spec-serving toggle)
+- `baselayer serve enable | disable | status` CLI subcommand. Toggles whether the MCP server actually serves spec content without restarting Claude Code or the server.
+- When disabled, the always-on `memory://specification` resource and the layer tools (`get_anchors()`, `get_predictions()`, `get_brief()`) return a polite disabled message instead of content. The model is told to continue helping without spec context. Other tools (recall_memories, search_facts, trace_claim, verify_claims, get_stats) keep working since they are fact-database queries, not spec serving.
+- The toggle uses an on-disk state file at `~/.baselayer/serving_enabled`. The MCP server reads it on every call. Mid-session flips take effect on the next call; no restart required.
+- Per-call session counter at `~/.baselayer/mcp_session_count`. Reset to 0 on server startup, incremented on every resource read or tool call, deleted on clean shutdown. Designed for IDE statuslines and other external monitors that want live MCP-call counts without speaking the protocol.
+
+---
+
 ## 0.3.0 - 2026-05-06
 
 ### Changed (MCP partial-serving refactor)
