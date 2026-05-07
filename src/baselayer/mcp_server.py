@@ -47,6 +47,7 @@ Usage:
 
 import sys
 import os
+import json
 import atexit
 import contextlib
 import logging
@@ -106,18 +107,30 @@ def _extract_layer_block(path):
 _CALL_LOG: "deque[dict]" = deque(maxlen=500)
 _CALL_LOG_LOCK = threading.Lock()
 
-# On-disk session counter for external monitoring (e.g. an IDE statusline that
-# wants to display "MCP: N calls" without speaking the MCP protocol). Reset
-# to 0 when the server starts; bumped on every _log_call. Lives at
-# ~/.baselayer/mcp_session_count and is just an integer in plain text.
-SESSION_COUNTER_FILE = Path.home() / ".baselayer" / "mcp_session_count"
+# Per-session on-disk state. Each running MCP server gets its own directory
+# under ~/.baselayer/sessions/<pid>/ so that simultaneous Claude Code windows
+# do not share counters or logs.
+#
+# Layout per session:
+#   meta.json   {pid, parent_pid, start_time, cwd}    -- written at startup
+#   count       integer                                -- live call count
+#   log.jsonl   append-only call log, one JSON per line
+#
+# Lifecycle:
+#   - On server startup: create the directory, write meta.json, init count=0.
+#   - On each _log_call: increment count, append a JSON line to log.jsonl.
+#   - On clean shutdown (atexit): delete `count` so external monitors know
+#     this session has ended. Preserve meta.json + log.jsonl so the call
+#     trace remains analyzable across sessions.
+SESSIONS_ROOT = Path.home() / ".baselayer" / "sessions"
+_SESSION_DIR: "Path | None" = None  # set in _init_session() at server startup
 
-# On-disk toggle file for in-session spec-serving control. The CLI
-# subcommands `baselayer serve enable|disable` write to this file. The MCP
-# handlers check it on every call. When disabled, the resource and the
-# layer tools return a polite "disabled" message instead of content; other
-# tools (recall_memories, search_facts, etc.) keep working since they are
-# fact-database queries, not spec serving. Default (file missing) = enabled.
+# Toggle file for in-session spec-serving control. Global (shared across
+# all running MCP servers on this machine). The CLI subcommands
+# `baselayer serve enable|disable` write to it. The MCP handlers check it on
+# every call. When disabled, the resource and the layer tools return a
+# polite "disabled" message instead of content; other tools keep working
+# since they are fact-database queries, not spec serving.
 SERVING_STATE_FILE = Path.home() / ".baselayer" / "serving_enabled"
 
 
@@ -139,55 +152,82 @@ _DISABLED_MESSAGE = (
 )
 
 
-def _reset_session_counter():
-    """Reset the on-disk session counter. Called once at server startup."""
+def _init_session():
+    """Create this server's session directory and write its meta.json.
+
+    Called once at server startup. Sets the module-level _SESSION_DIR so the
+    rest of the module can reach it. Best-effort; never raises.
+    """
+    global _SESSION_DIR
     try:
-        SESSION_COUNTER_FILE.parent.mkdir(parents=True, exist_ok=True)
-        SESSION_COUNTER_FILE.write_text("0", encoding="utf-8")
+        sess = SESSIONS_ROOT / str(os.getpid())
+        sess.mkdir(parents=True, exist_ok=True)
+        meta = {
+            "pid": os.getpid(),
+            "parent_pid": os.getppid(),
+            "start_time": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "cwd": str(Path.cwd()),
+        }
+        (sess / "meta.json").write_text(json.dumps(meta), encoding="utf-8")
+        (sess / "count").write_text("0", encoding="utf-8")
+        _SESSION_DIR = sess
+    except OSError:
+        _SESSION_DIR = None
+
+
+def _cleanup_session():
+    """Mark this session ended. Delete `count` (statusline reads it as off)
+    but preserve meta.json + log.jsonl so the call trace remains analyzable.
+    """
+    if _SESSION_DIR is None:
+        return
+    try:
+        (_SESSION_DIR / "count").unlink(missing_ok=True)
     except OSError:
         pass
 
 
-def _cleanup_session_counter():
-    """Remove the on-disk counter file. Called on clean server shutdown so
-    external monitors (statusline) can distinguish a running server from a
-    stopped one. A crashed server leaves the file behind; the statusline
-    treats files older than its staleness threshold as inactive."""
-    try:
-        SESSION_COUNTER_FILE.unlink(missing_ok=True)
-    except OSError:
-        pass
+def _bump_and_persist(entry: dict):
+    """Increment this session's counter and append a JSON line to its log.
 
-
-def _bump_session_counter():
-    """Increment the on-disk session counter. Best-effort, never raises."""
+    Best-effort; failures here must never break an MCP call.
+    """
+    if _SESSION_DIR is None:
+        return
     try:
         with _CALL_LOG_LOCK:
+            count_file = _SESSION_DIR / "count"
             current = 0
-            if SESSION_COUNTER_FILE.exists():
+            if count_file.exists():
                 try:
-                    current = int(SESSION_COUNTER_FILE.read_text(encoding="utf-8").strip() or "0")
+                    current = int(count_file.read_text(encoding="utf-8").strip() or "0")
                 except (ValueError, OSError):
                     current = 0
-            SESSION_COUNTER_FILE.write_text(str(current + 1), encoding="utf-8")
+            count_file.write_text(str(current + 1), encoding="utf-8")
+
+            log_file = _SESSION_DIR / "log.jsonl"
+            with log_file.open("a", encoding="utf-8") as f:
+                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
     except OSError:
         pass
 
 
 def _log_call(name, **kwargs):
-    """Record an MCP call. Emits a stderr line, appends to the in-memory log,
-    and bumps the on-disk session counter.
+    """Record an MCP call. Emits a stderr line, appends to the in-memory ring
+    buffer, increments the per-session on-disk counter, and appends a JSON
+    line to the per-session log.
 
     Stderr format: ``[base-layer] INFO: mcp_call name=<name> [k=v ...]``
 
-    The in-memory log is queryable via the ``get_call_log()`` MCP tool, which
-    is the canonical way for an AI client (Claude, etc.) to inspect how often
-    and for what purposes it is calling this server. Each resource read and
-    tool invocation produces one entry.
+    The in-memory log (500 entries) is queryable via the ``get_call_log()``
+    MCP tool. The per-session on-disk log at
+    ``~/.baselayer/sessions/<pid>/log.jsonl`` is the persistent canonical
+    record and survives across server restarts. Each line is a JSON object
+    with ``timestamp``, ``name``, and ``args`` (which includes ``reason``
+    when the model provides one).
 
-    The on-disk counter at ~/.baselayer/mcp_session_count is the canonical
-    way for an external monitor (e.g. a Claude Code statusline) to read live
-    call volume without speaking the MCP protocol.
+    The per-session counter at ``~/.baselayer/sessions/<pid>/count`` is read
+    by the statusline so each Claude Code window shows its own call volume.
     """
     if kwargs:
         details = " " + " ".join(f"{k}={v!r}" for k, v in kwargs.items())
@@ -203,7 +243,7 @@ def _log_call(name, **kwargs):
     with _CALL_LOG_LOCK:
         _CALL_LOG.append(entry)
 
-    _bump_session_counter()
+    _bump_and_persist(entry)
 
 
 # ==========================================================================
@@ -301,6 +341,11 @@ def get_specification() -> str:
         "trust what the user says or does. The current conversation is primary "
         "evidence; the specification is prior evidence. Use the specification "
         "to interpret, not to override.\n\n"
+        "When you call any of the three layer tools, include a `reason` "
+        "parameter: one short sentence explaining why you decided to fetch "
+        "this layer at this point in the conversation. The user uses these "
+        "reasons to understand how their specification is being applied; "
+        "they are logged for review.\n\n"
         "Fetch the right layer for the question:\n\n"
         "- `get_anchors()` (~2,500 tokens): foundational beliefs and reasoning "
         "patterns. Fetch for value-laden questions, decisions with trade-offs, "
@@ -614,7 +659,7 @@ def verify_claims(claim_id: str = "", layer: str = "all") -> str:
 
 
 @mcp.tool()
-def get_anchors() -> str:
+def get_anchors(reason: str = "") -> str:
     """Return the user's foundational beliefs and reasoning patterns (ANCHORS layer).
 
     Call this for interpretation-heavy questions where "what does this person
@@ -631,8 +676,19 @@ def get_anchors() -> str:
     Note: ANCHORS describes how the user typically reasons, not what they must
     do in a given moment. If the current conversation contradicts ANCHORS,
     trust the conversation.
+
+    Args:
+        reason: A brief sentence explaining why you are fetching ANCHORS at
+            this point in the conversation. The user uses this to understand
+            how their specification is being applied (when does the model
+            decide it needs values vs. when does it work on context alone).
+            Required for usage tracing. Examples:
+              - "user is weighing a job offer that involves a values trade-off"
+              - "user asked how to think about an ethical dilemma"
+              - "user is processing a recent setback and seems to be questioning a personal axiom"
+            Keep to one sentence; this is logged.
     """
-    _log_call("get_anchors")
+    _log_call("get_anchors", reason=reason)
     if not _is_serving_enabled():
         return _DISABLED_MESSAGE
     block = _extract_layer_block(ANCHORS_LAYER_FILE)
@@ -646,7 +702,7 @@ def get_anchors() -> str:
 
 
 @mcp.tool()
-def get_predictions() -> str:
+def get_predictions(reason: str = "") -> str:
     """Return the user's situation-to-response patterns (PREDICTIONS layer).
 
     Call this when modeling a specific scenario the user is in or about to
@@ -662,8 +718,16 @@ def get_predictions() -> str:
     Note: predictions are calibrated probabilities, not certainties. People
     deviate from their patterns; the user may surprise you. Use predictions
     as a default to interpret against, not as a forecast to insist on.
+
+    Args:
+        reason: A brief sentence explaining why you are fetching PREDICTIONS
+            at this point. Required for usage tracing. Examples:
+              - "user is anticipating a conflict and asked how they should respond"
+              - "user described a difficult conversation and I'm modeling the post-mortem"
+              - "user is choosing between options and I want to predict their satisfaction"
+            Keep to one sentence; this is logged.
     """
-    _log_call("get_predictions")
+    _log_call("get_predictions", reason=reason)
     if not _is_serving_enabled():
         return _DISABLED_MESSAGE
     block = _extract_layer_block(PREDICTIONS_LAYER_FILE)
@@ -678,7 +742,7 @@ def get_predictions() -> str:
 
 
 @mcp.tool()
-def get_brief() -> str:
+def get_brief(reason: str = "") -> str:
     """Return the unified narrative specification that contextualizes the layers.
 
     Call this when the current query is broad, abstract, or self-reflective
@@ -694,8 +758,17 @@ def get_brief() -> str:
     Note: the brief is a snapshot from when it was authored. Treat it as
     high-quality context, not as ground truth. The current conversation
     overrides any specific claim in the brief.
+
+    Args:
+        reason: A brief sentence explaining why you are fetching the
+            unified brief at this point. Required for usage tracing.
+            Examples:
+              - "user opened a broad self-reflective question and CORE alone is too thin"
+              - "multi-domain conversation; need the connected portrait"
+              - "user asked for life advice without a specific situational hook"
+            Keep to one sentence; this is logged.
     """
-    _log_call("get_brief")
+    _log_call("get_brief", reason=reason)
     if not _is_serving_enabled():
         return _DISABLED_MESSAGE
     brief_file = UNIFIED_BRIEF_FILE if UNIFIED_BRIEF_FILE.exists() else UNIFIED_BRIEF_CITED_FILE
@@ -775,8 +848,8 @@ def get_call_log(limit: int = 50, name_filter: str = "") -> str:
 
 def main():
     """Run the MCP server (stdio transport)."""
-    _reset_session_counter()
-    atexit.register(_cleanup_session_counter)
+    _init_session()
+    atexit.register(_cleanup_session)
     logger.info(f"Starting Base Layer MCP server...")
     logger.info(f"Database: {DATABASE_FILE}")
     logger.info(f"Vectors: {VECTORS_DIR}")
