@@ -370,6 +370,129 @@ def cmd_checkpoint(args):
 
 
 
+def cmd_log(args):
+    """Inspect MCP call logs for per-session call traces.
+
+    Each running MCP server keeps its own session directory under
+    ~/.baselayer/sessions/<pid>/ with meta.json + count + log.jsonl.
+    Sessions persist on disk after the server exits (count is removed
+    on clean shutdown but log stays for analysis).
+    """
+    import json as _json
+    from datetime import datetime
+    from pathlib import Path
+
+    sessions_root = Path.home() / ".baselayer" / "sessions"
+    if not sessions_root.exists():
+        print("No MCP sessions found. Has the server ever run?")
+        return
+
+    def _load_session(sess_dir):
+        meta_file = sess_dir / "meta.json"
+        if not meta_file.exists():
+            return None
+        try:
+            meta = _json.loads(meta_file.read_text(encoding="utf-8"))
+        except (OSError, _json.JSONDecodeError):
+            return None
+        meta["dir"] = sess_dir
+        meta["active"] = (sess_dir / "count").exists()
+        meta["count"] = 0
+        if meta["active"]:
+            try:
+                meta["count"] = int((sess_dir / "count").read_text(encoding="utf-8").strip() or "0")
+            except (ValueError, OSError):
+                meta["count"] = 0
+        log_file = sess_dir / "log.jsonl"
+        meta["log_lines"] = sum(1 for _ in log_file.open(encoding="utf-8")) if log_file.exists() else 0
+        return meta
+
+    sessions = []
+    for d in sorted(sessions_root.iterdir()):
+        if not d.is_dir():
+            continue
+        s = _load_session(d)
+        if s is not None:
+            sessions.append(s)
+
+    if not sessions:
+        print("No MCP sessions found.")
+        return
+
+    if args.action == "list":
+        print(f"{'PID':>8} {'PARENT':>8} {'STATE':<8} {'COUNT':>6} {'LOGGED':>6}  STARTED                    CWD")
+        for s in sessions:
+            state = "active" if s["active"] else "ended"
+            print(f"{s['pid']:>8} {s.get('parent_pid', '-'):>8} {state:<8} "
+                  f"{s['count']:>6} {s['log_lines']:>6}  {s.get('start_time', '?'):<26} {s.get('cwd', '?')}")
+        return
+
+    if args.action == "stats":
+        active = sum(1 for s in sessions if s["active"])
+        total_calls = sum(s["log_lines"] for s in sessions)
+        by_tool = {}
+        for s in sessions:
+            log_file = s["dir"] / "log.jsonl"
+            if not log_file.exists():
+                continue
+            for line in log_file.open(encoding="utf-8"):
+                try:
+                    e = _json.loads(line)
+                except _json.JSONDecodeError:
+                    continue
+                by_tool[e["name"]] = by_tool.get(e["name"], 0) + 1
+        print(f"Sessions: {len(sessions)} ({active} active)")
+        print(f"Total calls logged: {total_calls}")
+        print("Calls by tool:")
+        for n, c in sorted(by_tool.items(), key=lambda x: -x[1]):
+            print(f"  {n:30s} {c:>6}")
+        return
+
+    # show / tail need a session
+    pid = args.pid
+    if pid is None:
+        # default to most recent active, else most recent
+        active_sessions = [s for s in sessions if s["active"]]
+        target = active_sessions[-1] if active_sessions else sessions[-1]
+        pid = target["pid"]
+        print(f"(no --pid given; using {pid})\n")
+
+    target = next((s for s in sessions if s["pid"] == pid), None)
+    if target is None:
+        print(f"No session with PID {pid}. Run `baselayer log list` to see available sessions.")
+        return
+
+    log_file = target["dir"] / "log.jsonl"
+    if not log_file.exists():
+        print(f"No log file for session {pid}.")
+        return
+
+    entries = []
+    with log_file.open(encoding="utf-8") as f:
+        for line in f:
+            try:
+                entries.append(_json.loads(line))
+            except _json.JSONDecodeError:
+                continue
+
+    if args.action == "tail":
+        entries = entries[-args.limit:]
+
+    for e in entries:
+        ts = e.get("timestamp", "?")
+        name = e.get("name", "?")
+        args_d = e.get("args") or {}
+        reason = args_d.get("reason") or ""
+        rest = {k: v for k, v in args_d.items() if k != "reason"}
+        rest_str = ""
+        if rest:
+            rest_str = " " + " ".join(f"{k}={v!r}" for k, v in rest.items())
+        if reason:
+            print(f"[{ts}] {name}{rest_str}\n    reason: {reason}")
+        else:
+            print(f"[{ts}] {name}{rest_str}")
+
+
 def cmd_serve(args):
     """Toggle MCP spec serving without restarting Claude Code.
 
@@ -1967,6 +2090,22 @@ def main():
         help="enable/disable spec serving, or print current status",
     )
     p_serve.set_defaults(func=cmd_serve)
+
+    # log (post-0.3.0: inspect MCP call traces per Claude Code session)
+    p_log = subparsers.add_parser(
+        "log",
+        help="Inspect MCP call logs (per-session call traces with reasons)",
+    )
+    p_log.add_argument(
+        "action",
+        choices=["list", "show", "tail", "stats"],
+        help="list: all sessions; show: full log for a session; tail: last N calls; stats: aggregate",
+    )
+    p_log.add_argument("--pid", type=int, default=None,
+                       help="Session PID for show/tail (default: most recent active)")
+    p_log.add_argument("--limit", type=int, default=20,
+                       help="Number of recent calls for tail (default: 20)")
+    p_log.set_defaults(func=cmd_log)
 
     # subject (S98 Phase 3B)
     p_subject = subparsers.add_parser("subject", help="Subject registry (list/show)")

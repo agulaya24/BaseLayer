@@ -10,7 +10,13 @@ All notable changes to Base Layer are documented here.
 - `baselayer serve enable | disable | status` CLI subcommand. Toggles whether the MCP server actually serves spec content without restarting Claude Code or the server.
 - When disabled, the always-on `memory://specification` resource and the layer tools (`get_anchors()`, `get_predictions()`, `get_brief()`) return a polite disabled message instead of content. The model is told to continue helping without spec context. Other tools (recall_memories, search_facts, trace_claim, verify_claims, get_stats) keep working since they are fact-database queries, not spec serving.
 - The toggle uses an on-disk state file at `~/.baselayer/serving_enabled`. The MCP server reads it on every call. Mid-session flips take effect on the next call; no restart required.
-- Per-call session counter at `~/.baselayer/mcp_session_count`. Reset to 0 on server startup, incremented on every resource read or tool call, deleted on clean shutdown. Designed for IDE statuslines and other external monitors that want live MCP-call counts without speaking the protocol.
+
+### Added (per-session call traces with reasons)
+- Each running MCP server now writes to its own session directory at `~/.baselayer/sessions/<pid>/`, with `meta.json` (pid, parent_pid, start_time, cwd), `count` (live integer call count), and `log.jsonl` (append-only call log). Sessions persist on disk after the server exits; `count` is removed on clean shutdown but the log stays for analysis.
+- Two simultaneously-open Claude Code windows now show independent counts in the statusline because each window's MCP server has its own session dir. The statusline locates its session by matching its own parent PID (Claude Code) against the recorded `parent_pid` in each session's meta.
+- The three layer tools (`get_anchors`, `get_predictions`, `get_brief`) now accept an optional `reason: str` parameter. The docstring asks the model to provide a one-sentence rationale for each fetch ("user weighing a job offer that involves a values trade-off"). Reasons are persisted in the per-session log, giving a record of *when in the conversation* the model decided it needed each layer and *why*.
+- `baselayer log list | show | tail | stats` CLI subcommand for analyzing call traces. `list` enumerates all sessions; `show <pid>` prints the full call log for a session; `tail --pid X --limit N` shows the last N calls; `stats` aggregates calls-by-tool across all sessions.
+- The previous single-file counter at `~/.baselayer/mcp_session_count` is replaced by the per-session counter at `~/.baselayer/sessions/<pid>/count`. The old file is no longer used and can be deleted manually if it exists.
 
 ---
 
