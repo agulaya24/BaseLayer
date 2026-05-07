@@ -14,9 +14,12 @@ All notable changes to Base Layer are documented here.
 ### Added (per-session call traces with reasons)
 - Each running MCP server now writes to its own session directory at `~/.baselayer/sessions/<pid>/`, with `meta.json` (pid, parent_pid, start_time, cwd), `count` (live integer call count), and `log.jsonl` (append-only call log). Sessions persist on disk after the server exits; `count` is removed on clean shutdown but the log stays for analysis.
 - Two simultaneously-open Claude Code windows now show independent counts in the statusline because each window's MCP server has its own session dir. The statusline locates its session by matching its own parent PID (Claude Code) against the recorded `parent_pid` in each session's meta.
-- The three layer tools (`get_anchors`, `get_predictions`, `get_brief`) now accept an optional `reason: str` parameter. The docstring asks the model to provide a one-sentence rationale for each fetch ("user weighing a job offer that involves a values trade-off"). Reasons are persisted in the per-session log, giving a record of *when in the conversation* the model decided it needed each layer and *why*.
+- The three layer tools (`get_anchors`, `get_predictions`, `get_brief`) now require a `reason: str` parameter. The model must provide a one-sentence rationale for each fetch ("user weighing a job offer that involves a values trade-off"). Reasons are persisted in the per-session log, giving a record of *when in the conversation* the model decided it needed each layer and *why*. The parameter was previously optional with default ""; per integration feedback (`docs/reviews/mcp_integration_feedback_20260507.md`), making it required forces the calling agent to articulate intent before it can fetch.
 - `baselayer log list | show | tail | stats` CLI subcommand for analyzing call traces. `list` enumerates all sessions; `show <pid>` prints the full call log for a session; `tail --pid X --limit N` shows the last N calls; `stats` aggregates calls-by-tool across all sessions.
 - The previous single-file counter at `~/.baselayer/mcp_session_count` is replaced by the per-session counter at `~/.baselayer/sessions/<pid>/count`. The old file is no longer used and can be deleted manually if it exists.
+
+### Documentation
+- `recipes/serve_specification_via_mcp.md` now includes a "Verifying the server is actually running" section. The Claude Code `/mcp` dialog has been observed reading "off" or "needs reconnect" while the server was responsively answering tool calls; readers are directed to `claude mcp list` or to ask the model to call a Base Layer tool as authoritative health checks. The `/mcp` dialog is for Anthropic-managed cloud connectors only; local stdio servers are managed via the CLI.
 
 ---
 

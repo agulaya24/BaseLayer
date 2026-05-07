@@ -659,7 +659,7 @@ def verify_claims(claim_id: str = "", layer: str = "all") -> str:
 
 
 @mcp.tool()
-def get_anchors(reason: str = "") -> str:
+def get_anchors(reason: str) -> str:
     """Return the user's foundational beliefs and reasoning patterns (ANCHORS layer).
 
     Call this for interpretation-heavy questions where "what does this person
@@ -702,7 +702,7 @@ def get_anchors(reason: str = "") -> str:
 
 
 @mcp.tool()
-def get_predictions(reason: str = "") -> str:
+def get_predictions(reason: str) -> str:
     """Return the user's situation-to-response patterns (PREDICTIONS layer).
 
     Call this when modeling a specific scenario the user is in or about to
@@ -742,7 +742,7 @@ def get_predictions(reason: str = "") -> str:
 
 
 @mcp.tool()
-def get_brief(reason: str = "") -> str:
+def get_brief(reason: str) -> str:
     """Return the unified narrative specification that contextualizes the layers.
 
     Call this when the current query is broad, abstract, or self-reflective
