@@ -42,7 +42,7 @@
 ```json
 {
   "name": "base-layer",
-  "description": "Personal AI memory — behavioral compression for identity. Serves structured identity models via MCP: epistemic axioms, communication modes, behavioral predictions, and provenance-traced fact retrieval.",
+  "description": "The interpretive layer above memory. Serves a portable behavioral specification via MCP: epistemic axioms, communication modes, behavioral predictions, and provenance-traced fact retrieval.",
   "vendor": "Base Layer",
   "sourceUrl": "https://github.com/agulaya24/BaseLayer",
   "homepage": "https://base-layer.ai",
@@ -50,8 +50,9 @@
   "runtime": "python",
   "transport": ["stdio"],
   "install": {
-    "pip": "pip install baselayer",
-    "command": "baselayer-mcp"
+    "pip": "pip install git+https://github.com/agulaya24/BaseLayer.git",
+    "command": "baselayer-mcp",
+    "note": "Base Layer is not on PyPI; the baselayer name is held by an unrelated project. Install from the GitHub URL above."
   },
   "resources": ["memory://identity"],
   "tools": ["recall_memories", "search_facts", "trace_claim", "get_stats"],
@@ -70,7 +71,7 @@
 
 **Entry (add under "Memory / Knowledge" or similar section):**
 ```markdown
-- [Base Layer](https://github.com/agulaya24/BaseLayer) - Behavioral compression for AI identity. Extracts patterns from text, compresses into 3-layer identity model (anchors, core, predictions), serves via MCP. 47-predicate grammar, provenance-traced, 44+ subjects validated.
+- [Base Layer](https://github.com/agulaya24/BaseLayer) - The interpretive layer above memory. Extracts behavioral patterns from text, compresses into a 3-layer specification (anchors, core, predictions), serves via MCP. 47-predicate grammar, provenance-traced, 44+ subjects validated.
 ```
 
 **Notes:** Fork branches already exist from S100. Check if PRs were submitted.

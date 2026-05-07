@@ -1,13 +1,13 @@
 # Base Layer — User Flow Guide
-## Behavioral Compression for AI Identity
+## The Interpretive Layer Above Memory
 
 ## From Install to Brief Generation
 
 ### Step 1: Install
 ```
-pip install baselayer
+pip install git+https://github.com/agulaya24/BaseLayer.git
 ```
-Downloads the package + dependencies (ChromaDB, sentence-transformers, Anthropic SDK).
+Downloads the package + dependencies (ChromaDB, sentence-transformers, Anthropic SDK). Base Layer is not on PyPI today (the `baselayer` name there is held by an unrelated project), so install from the GitHub source URL or clone the repo and `pip install -e .`.
 
 ### Step 2: Initialize
 ```
@@ -58,17 +58,17 @@ Reads every conversation, pulls out facts about you using AUDN (Add, Update, Del
 
 ### Step 7: Author Layers + Compose Brief
 ```
-baselayer author --compose          # generate layers + compose unified brief (recommended)
+baselayer author --compose          # generate layers + compose specification (recommended)
 baselayer author                    # generate layers only
 baselayer author --layer core       # regenerate a single layer
-baselayer compose                   # compose unified brief from existing layers
+baselayer compose                   # compose specification from existing layers
 ```
 Generates three identity layers from your facts:
 - **ANCHORS** - Your deepest beliefs and epistemic axioms
 - **CORE** - Biographical foundation: who you are, who matters, what you've built
 - **PREDICTIONS** - Behavioral patterns: how you'll react, decide, communicate
 
-Then composes a unified narrative brief from all three layers. Collective review (a multi-agent adversarial review process) was proven ceremonial in the Session 79 pipeline ablation study and removed from the default pipeline. The author step generates layers directly; the compose step creates the unified brief.
+Then composes a behavioral specification from all three layers. Collective review (a multi-agent adversarial review process) was proven ceremonial in the Session 79 pipeline ablation study and removed from the default pipeline. The author step generates layers directly; the compose step creates the specification.
 
 Pre-authored once, reused across every conversation.
 
@@ -82,7 +82,7 @@ Runs the full pipeline (Import, Extract, Author, Compose) automatically with a c
 ```
 baselayer brief "Help me write a cover letter"
 ```
-Assembles a behavioral brief (the compressed identity document that teaches an AI how you think and communicate) tailored to the current message. **Prefers the unified narrative brief** (`brief_v4.md`, ~2,500 tokens) if available -- a single compressed document that eval proved dramatically outperforms structured layer injection (+0.40 vs baseline). Falls back to three-layer format if no unified brief exists:
+Assembles a behavioral specification (the compressed document that teaches an AI how you think and communicate) tailored to the current message. **Prefers the unified specification** (`brief_v4.md`, ~2,500 tokens) if available, a single compressed document that eval proved dramatically outperforms structured layer injection (+0.40 vs baseline). Falls back to three-layer format if no specification exists:
 - **Layer 1: Identity** (~3,500 tokens) - Three pre-authored layers (always present)
 - **Layer 2: Themes** (~800 tokens) - Relevant facts retrieved by semantic similarity
 - **Layer 3: Episodes** (~600 tokens) - Specific conversation memories
@@ -112,7 +112,7 @@ claude mcp add --transport stdio base-layer -- baselayer-mcp
 ```
 
 **What the AI gets:**
-- **Identity layers** (Resource, always available) -- unified brief preferred, three-layer fallback (ANCHORS + CORE + PREDICTIONS)
+- **Identity layers** (Resource, always available) -- specification preferred, three-layer fallback (ANCHORS + CORE + PREDICTIONS)
 - **recall_memories** (Tool, on-demand) -- AI calls this when it needs specific facts or episodes
 - **search_facts** (Tool) -- keyword search across your fact database
 - **trace_claim** (Tool) -- provenance trace from any identity layer claim back to source facts
@@ -132,7 +132,7 @@ Your Data ------> Import ------> Extract ------> Author Layers
                                                       |
                                                  MCP Server
                                                 /          \
-                                Identity Resource       recall_memories Tool
+                                Specification Resource  recall_memories Tool
                                 (always available)       (AI calls on demand)
                                       \                  /
                                        AI System Prompt

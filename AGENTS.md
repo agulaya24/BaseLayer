@@ -19,17 +19,19 @@ Memory systems give the agent the facts of a person. Base Layer gives the framew
 ## Setup
 
 ```bash
-pip install baselayer
+pip install git+https://github.com/agulaya24/BaseLayer.git
 export ANTHROPIC_API_KEY=sk-ant-...
 ```
 
-Or from source:
+Or from a local clone:
 
 ```bash
 git clone https://github.com/agulaya24/BaseLayer.git
 cd BaseLayer
 pip install -e .
 ```
+
+> Base Layer is not currently on PyPI; the `baselayer` name there is held by an unrelated project. Install via the git URL or local clone.
 
 ## Running the pipeline
 
