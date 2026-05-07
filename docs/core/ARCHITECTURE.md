@@ -458,13 +458,17 @@ memory_system/
 
 ---
 
-## Serving Layer (Specced, Not Built)
+## Serving Layer
 
-The current serving path injects the full specification every turn. The specced serving layer adds activation matching: scoring specification sections against conversation context, ranking by relevance, injecting top-K. This reduces token cost for long conversations and surfaces the most relevant interpretive constraints per turn.
+The 0.3.0 release shipped a partial-serving MCP design. The always-on `memory://specification` resource returns the CORE layer (~2,500 tokens) plus a manifest of additional tools. ANCHORS, PREDICTIONS, and the unified brief are exposed as model-controlled tools (`get_anchors()`, `get_predictions()`, `get_brief()`) the model fetches on demand. This drops baseline MCP context cost from approximately 5,000 to 10,000 tokens to approximately 2,500 tokens, with the rest reachable in one tool call.
 
-**Spec:** `docs/core/SERVING_LAYER_SPEC.md`
-**Eval:** `docs/eval/SERVING_LAYER_EVAL.md`. 5 conditions, 30 prompts. Must run before architecture decision.
-**Status:** Specced, not implemented.
+The manifest's fetch-trigger language is grounded in the Beyond Recall finding that the specification's largest effect is on interpretation-heavy questions (judgments, decisions, predictions about user behavior), not literal recall. The model is told to fetch when interpreting and to skip when recalling.
+
+A separate, more aggressive design exists in spec form but is not implemented: activation matching, which scores specification sections against the current conversation and injects only the top-K relevant constraints per turn. This is a future direction that complements rather than replaces 0.3.0 partial-serving.
+
+**0.3.0 implementation:** `src/baselayer/mcp_server.py`
+**Activation-matching spec (future):** `docs/core/SERVING_LAYER_SPEC.md`
+**Activation-matching eval (future):** `docs/eval/SERVING_LAYER_EVAL.md`. 5 conditions, 30 prompts. Required before activation-matching can ship.
 
 ---
 
