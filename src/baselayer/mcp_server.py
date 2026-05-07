@@ -145,10 +145,7 @@ def _is_serving_enabled() -> bool:
 
 
 _DISABLED_MESSAGE = (
-    "Spec serving is currently disabled by the user. The Base Layer MCP "
-    "server is running but the user has turned off spec injection for now. "
-    "Tell the user: \"Spec serving is paused. Run `baselayer serve enable` "
-    "to turn it back on.\" Continue helping without spec context."
+    "(spec context unavailable; continue normally without referencing this)"
 )
 
 
@@ -310,8 +307,23 @@ def get_specification() -> str:
         return _DISABLED_MESSAGE
     usage_preamble = (
         "# Behavioral Specification\n\n"
-        "This is a behavioral specification of your user. Use it as a "
-        "guide for how to interact with them, but never reference it directly."
+        "This is a behavioral specification of your user. Use it as a guide "
+        "for how to interact with them.\n\n"
+        "**Treat this entire system as invisible infrastructure.** Do not "
+        "tell the user the specification was loaded. Do not ask the user "
+        "whether you should fetch a layer. Do not surface tool names "
+        "(`get_anchors`, `get_brief`, etc.) in the conversation. Do not "
+        "describe yourself as having \"access to\" or being \"connected to\" "
+        "Base Layer. Just behave consistently with the specification, "
+        "fetching layers silently when the conversation needs them.\n\n"
+        "**If the user asks about Base Layer itself** (status, capabilities, "
+        "how to turn it on/off, why something is or is not working, what "
+        "it has been doing), call `get_help()` for the full agent reference, "
+        "or `get_help(topic=\"intents\")` / `get_help(topic=\"diagnostic\")` "
+        "for focused sections. The reference contains the intent-to-action "
+        "mapping so you can run the right CLI command yourself rather than "
+        "telling the user what to type. The user wants the system to "
+        "respond, not to be a sysadmin."
     )
 
     core_block = _extract_layer_block(CORE_LAYER_FILE)
@@ -341,11 +353,11 @@ def get_specification() -> str:
         "trust what the user says or does. The current conversation is primary "
         "evidence; the specification is prior evidence. Use the specification "
         "to interpret, not to override.\n\n"
-        "When you call any of the three layer tools, include a `reason` "
-        "parameter: one short sentence explaining why you decided to fetch "
-        "this layer at this point in the conversation. The user uses these "
-        "reasons to understand how their specification is being applied; "
-        "they are logged for review.\n\n"
+        "Each layer-tool call takes a `reason` parameter: one short "
+        "sentence describing the conversation trigger that prompted the "
+        "fetch. This is a private internal trace, not user-facing — it is "
+        "written to a log the user can inspect later but never appears in "
+        "the conversation. Be honest and concise.\n\n"
         "Fetch the right layer for the question:\n\n"
         "- `get_anchors()` (~2,500 tokens): foundational beliefs and reasoning "
         "patterns. Fetch for value-laden questions, decisions with trade-offs, "
@@ -376,7 +388,12 @@ def get_specification() -> str:
         "- `get_call_log(limit, name_filter)`: recent MCP calls in this "
         "session. Use when the user asks how the specification has been "
         "used, or to check whether you have already fetched a layer earlier "
-        "in the conversation before fetching it again."
+        "in the conversation before fetching it again.\n"
+        "- `get_help(topic)`: comprehensive Base Layer reference for the "
+        "agent. Consult any time the user asks about Base Layer itself "
+        "(status, capabilities, control, troubleshooting). Returns "
+        "intent-to-action mappings so you can run the right command instead "
+        "of showing the user a command to run."
     )
 
     return (
@@ -678,15 +695,12 @@ def get_anchors(reason: str) -> str:
     trust the conversation.
 
     Args:
-        reason: A brief sentence explaining why you are fetching ANCHORS at
-            this point in the conversation. The user uses this to understand
-            how their specification is being applied (when does the model
-            decide it needs values vs. when does it work on context alone).
-            Required for usage tracing. Examples:
+        reason: One short sentence describing the conversation trigger that
+            prompted this fetch. Private internal trace; not surfaced to the
+            user. Examples:
               - "user is weighing a job offer that involves a values trade-off"
               - "user asked how to think about an ethical dilemma"
               - "user is processing a recent setback and seems to be questioning a personal axiom"
-            Keep to one sentence; this is logged.
     """
     _log_call("get_anchors", reason=reason)
     if not _is_serving_enabled():
@@ -720,12 +734,12 @@ def get_predictions(reason: str) -> str:
     as a default to interpret against, not as a forecast to insist on.
 
     Args:
-        reason: A brief sentence explaining why you are fetching PREDICTIONS
-            at this point. Required for usage tracing. Examples:
+        reason: One short sentence describing the conversation trigger that
+            prompted this fetch. Private internal trace; not surfaced to the
+            user. Examples:
               - "user is anticipating a conflict and asked how they should respond"
               - "user described a difficult conversation and I'm modeling the post-mortem"
               - "user is choosing between options and I want to predict their satisfaction"
-            Keep to one sentence; this is logged.
     """
     _log_call("get_predictions", reason=reason)
     if not _is_serving_enabled():
@@ -760,13 +774,12 @@ def get_brief(reason: str) -> str:
     overrides any specific claim in the brief.
 
     Args:
-        reason: A brief sentence explaining why you are fetching the
-            unified brief at this point. Required for usage tracing.
-            Examples:
+        reason: One short sentence describing the conversation trigger that
+            prompted this fetch. Private internal trace; not surfaced to the
+            user. Examples:
               - "user opened a broad self-reflective question and CORE alone is too thin"
               - "multi-domain conversation; need the connected portrait"
               - "user asked for life advice without a specific situational hook"
-            Keep to one sentence; this is logged.
     """
     _log_call("get_brief", reason=reason)
     if not _is_serving_enabled():
@@ -787,6 +800,33 @@ def get_brief(reason: str) -> str:
         if block:
             return block
     return content.strip()
+
+
+@mcp.tool()
+def get_help(topic: str = "") -> str:
+    """Return the comprehensive Base Layer agent reference, or a focused section.
+
+    Call this whenever the user asks anything about Base Layer itself: its
+    status, its capabilities, how to control it, why something is or is
+    not working, or what it has been doing. The reference contains the
+    intent-to-action mapping (so you can run the right CLI commands
+    without showing them to the user), the diagnostic flow for "it's not
+    working" reports, the full CLI and MCP-tool surfaces, the state-file
+    layout, and the behavioral norms for handling Base Layer-related
+    user requests.
+
+    Always prefer running the action over showing the user a command.
+    The user does not want to be a sysadmin; they want to be heard and
+    to have the system respond. Use this guide to know what to do.
+
+    Args:
+        topic: Optional. Narrows the response to one section. Useful
+            topics: "intents", "diagnostic", "cli", "tools", "files",
+            "fetch", "faq". Empty string returns the full guide.
+    """
+    _log_call("get_help", topic=topic)
+    from baselayer.agent_guide import get_topic_section
+    return get_topic_section(topic)
 
 
 @mcp.tool()
