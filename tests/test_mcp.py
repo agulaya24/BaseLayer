@@ -159,8 +159,7 @@ class TestServingToggle:
         with patch.object(mcp_server, "SERVING_STATE_FILE", state), \
              patch.object(mcp_server, "CORE_LAYER_FILE", mock_identity_layers / "core_v3.md"):
             result = mcp_server.get_specification()
-            assert "disabled" in result.lower()
-            assert "baselayer serve enable" in result
+            assert "spec context unavailable" in result.lower()
             # CORE content should NOT leak through
             assert "builder and systems thinker" not in result
 
@@ -170,7 +169,7 @@ class TestServingToggle:
         with patch.object(mcp_server, "SERVING_STATE_FILE", state), \
              patch.object(mcp_server, "ANCHORS_LAYER_FILE", mock_identity_layers / "anchors_v3.md"):
             result = mcp_server.get_anchors("test reason")
-            assert "disabled" in result.lower()
+            assert "spec context unavailable" in result.lower()
             assert "Quality matters more than speed" not in result
 
     def test_get_predictions_returns_disabled_message(self, mock_identity_layers, tmp_path):
@@ -179,7 +178,7 @@ class TestServingToggle:
         with patch.object(mcp_server, "SERVING_STATE_FILE", state), \
              patch.object(mcp_server, "PREDICTIONS_LAYER_FILE", mock_identity_layers / "predictions_v3.md"):
             result = mcp_server.get_predictions("test reason")
-            assert "disabled" in result.lower()
+            assert "spec context unavailable" in result.lower()
 
     def test_get_brief_returns_disabled_message(self, tmp_path):
         state = tmp_path / "serving_enabled"
@@ -189,7 +188,7 @@ class TestServingToggle:
         with patch.object(mcp_server, "SERVING_STATE_FILE", state), \
              patch.object(mcp_server, "UNIFIED_BRIEF_FILE", brief_file):
             result = mcp_server.get_brief("test reason")
-            assert "disabled" in result.lower()
+            assert "spec context unavailable" in result.lower()
             assert "Real brief content here" not in result
 
 
