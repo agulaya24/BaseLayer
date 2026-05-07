@@ -93,36 +93,58 @@ class TestStoreUnifiedBrief:
 # MCP — UNIFIED BRIEF PREFERENCE
 # ============================================================
 
-class TestMCPUnifiedBriefPreference:
-    """Verify MCP serves unified brief when available, falls back to layers."""
+class TestMCPPartialServing:
+    """Verify the partial-serving design: resource serves CORE only, brief is behind get_brief()."""
 
-    def test_prefers_unified_brief(self, tmp_path):
+    def test_resource_does_not_serve_unified_brief(self, tmp_path, mock_identity_layers):
+        """The resource serves CORE plus a manifest. The unified brief is NOT included.
+
+        The unified brief is fetched on demand via the get_brief() tool, not via the
+        always-on resource. This keeps context costs proportional to conversation needs.
+        """
         import baselayer.mcp_server as mcp_server
 
-        # Create unified brief
+        # Create a unified brief file. Resource should NOT serve its content.
         brief_file = tmp_path / "brief_v5_clean.md"
         brief_file.write_text(
             "---\nlayer: unified_brief\n---\n\n## Injectable Block\n\nUnified narrative here.",
             encoding="utf-8",
         )
-        # Create layer files too
-        anchors = tmp_path / "anchors_v4.md"
-        anchors.write_text("---\n---\n\n## Injectable Block\n\nAnchors layer.", encoding="utf-8")
 
         with patch.object(mcp_server, "UNIFIED_BRIEF_FILE", brief_file), \
              patch.object(mcp_server, "UNIFIED_BRIEF_CITED_FILE", tmp_path / "nonexistent_cited.md"), \
-             patch.object(mcp_server, "ANCHORS_LAYER_FILE", anchors), \
-             patch.object(mcp_server, "CORE_LAYER_FILE", tmp_path / "core_v4.md"), \
-             patch.object(mcp_server, "PREDICTIONS_LAYER_FILE", tmp_path / "predictions_v4.md"):
+             patch.object(mcp_server, "ANCHORS_LAYER_FILE", mock_identity_layers / "anchors_v3.md"), \
+             patch.object(mcp_server, "CORE_LAYER_FILE", mock_identity_layers / "core_v3.md"), \
+             patch.object(mcp_server, "PREDICTIONS_LAYER_FILE", mock_identity_layers / "predictions_v3.md"):
             result = mcp_server.get_identity_brief()
 
-        assert "Unified narrative here." in result
-        assert "Identity Model" in result and "behavioral specification" in result  # Usage preamble included
+        # Brief content NOT in resource
+        assert "Unified narrative here." not in result
+        # CORE content IS in resource
+        assert "builder and systems thinker" in result
+        # Usage preamble present
+        assert "behavioral specification" in result.lower()
 
-    def test_falls_back_to_layers(self, tmp_path, mock_identity_layers):
+    def test_get_brief_tool_returns_unified_brief(self, tmp_path):
+        """The get_brief() tool returns the full unified brief."""
         import baselayer.mcp_server as mcp_server
 
-        # No unified brief file
+        brief_file = tmp_path / "brief_v5_clean.md"
+        brief_file.write_text(
+            "---\nlayer: unified_brief\n---\n\n## Injectable Block\n\nUnified narrative here.",
+            encoding="utf-8",
+        )
+
+        with patch.object(mcp_server, "UNIFIED_BRIEF_FILE", brief_file), \
+             patch.object(mcp_server, "UNIFIED_BRIEF_CITED_FILE", tmp_path / "nonexistent_cited.md"):
+            result = mcp_server.get_brief()
+
+        assert "Unified narrative here." in result
+
+    def test_resource_serves_core_when_no_brief(self, tmp_path, mock_identity_layers):
+        """When no unified brief exists, the resource still serves CORE plus manifest."""
+        import baselayer.mcp_server as mcp_server
+
         no_brief = tmp_path / "nonexistent_brief.md"
 
         with patch.object(mcp_server, "UNIFIED_BRIEF_FILE", no_brief), \
@@ -132,12 +154,15 @@ class TestMCPUnifiedBriefPreference:
              patch.object(mcp_server, "PREDICTIONS_LAYER_FILE", mock_identity_layers / "predictions_v3.md"):
             result = mcp_server.get_identity_brief()
 
-        assert "Quality matters more than speed" in result
+        # CORE content present
+        assert "builder and systems thinker" in result
+        # ANCHORS content NOT present (now behind get_anchors())
+        assert "Quality matters more than speed" not in result
 
-    def test_falls_back_when_brief_empty(self, tmp_path, mock_identity_layers):
+    def test_resource_serves_core_when_brief_empty(self, tmp_path, mock_identity_layers):
+        """An empty unified brief does not change resource behavior; CORE is still served."""
         import baselayer.mcp_server as mcp_server
 
-        # Create brief with empty injectable block
         brief_file = tmp_path / "brief_v5_clean.md"
         brief_file.write_text("---\nlayer: unified_brief\n---\n\n## Injectable Block\n\n", encoding="utf-8")
 
@@ -148,8 +173,10 @@ class TestMCPUnifiedBriefPreference:
              patch.object(mcp_server, "PREDICTIONS_LAYER_FILE", mock_identity_layers / "predictions_v3.md"):
             result = mcp_server.get_identity_brief()
 
-        # Should fall back to layers since brief is empty
-        assert "Quality matters more than speed" in result
+        # CORE content present
+        assert "builder and systems thinker" in result
+        # ANCHORS content NOT present
+        assert "Quality matters more than speed" not in result
 
 
 # ============================================================

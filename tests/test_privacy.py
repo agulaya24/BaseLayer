@@ -51,7 +51,7 @@ class TestMCPPrivacy:
         assert sig.parameters["limit"].default == 15
 
     def test_identity_resource_reads_injectable_only(self, mock_identity_layers, tmp_path):
-        """Identity resource should only return injectable blocks, not metadata."""
+        """Resource should only return CORE injectable block, not metadata, not other layers."""
         import baselayer.mcp_server as mcp_server
         with patch.object(mcp_server, "UNIFIED_BRIEF_FILE", tmp_path / "nonexistent_brief.md"), \
              patch.object(mcp_server, "UNIFIED_BRIEF_CITED_FILE", tmp_path / "nonexistent_cited.md"), \
@@ -63,9 +63,11 @@ class TestMCPPrivacy:
             assert "layer: anchors" not in brief
             assert "version: 1" not in brief
             assert "generated:" not in brief
-            # SHOULD contain injectable content
-            assert "Quality matters more than speed" in brief
+            # SHOULD contain CORE injectable content
             assert "builder and systems thinker" in brief
+            # Partial-serving: ANCHORS and PREDICTIONS are NOT in the resource
+            assert "Quality matters more than speed" not in brief
+            assert "systematic analysis over intuition" not in brief
 
 
 class TestNoSecretLeakage:

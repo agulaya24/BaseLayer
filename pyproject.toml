@@ -4,15 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "baselayer"
-version = "0.1.0"
-description = "Behavioral alignment infrastructure for AI agents. Encodes how a person reasons, decides, and communicates into portable specifications. MCP server, 47-predicate behavioral grammar, three-layer architecture."
+version = "0.3.0"
+description = "The interpretive layer above memory. Turns text into a portable specification of how a specific person interprets information, decides, and communicates. MCP server, behavioral predicate grammar, three-layer authoring."
 readme = "README.md"
 license = {text = "Apache-2.0"}
 requires-python = ">=3.10"
 authors = [
     {name = "Aarik Gulaya"},
 ]
-keywords = ["ai", "agent-alignment", "behavioral-specification", "mcp", "behavioral-compression", "agentic-infrastructure", "autonomous-agents", "claude", "llm"]
+keywords = ["ai", "llm", "claude", "anthropic", "mcp", "ai-personalization", "ai-memory", "agent-alignment", "behavioral-specification", "interpretive-layer", "behavioral-prediction"]
 
 dependencies = [
     "anthropic~=0.45",
@@ -41,7 +41,13 @@ Documentation = "https://base-layer.ai/llms-full.txt"
 "Bug Tracker" = "https://github.com/agulaya24/BaseLayer/issues"
 
 [tool.setuptools]
-packages = ["baselayer", "baselayer.archive", "baselayer.archive.dead_pipeline_steps", "baselayer.experiments"]
+# Only ship the active package surface. Dev-internal subpackages
+# (baselayer.archive, baselayer.archive.dead_pipeline_steps, baselayer.experiments)
+# remain on disk for developers but are excluded from the distribution.
+packages = ["baselayer"]
 
 [tool.setuptools.package-dir]
 "" = "src"
+
+[tool.setuptools.exclude-package-data]
+baselayer = ["archive/*", "archive/**/*", "experiments/*", "experiments/**/*"]
