@@ -4,6 +4,61 @@ All notable changes to Base Layer are documented here.
 
 ---
 
+## 0.3.0 - 2026-05-06
+
+### Changed (MCP partial-serving refactor)
+- The `memory://specification` MCP resource now returns the CORE layer (Communication and Context) plus a manifest of available tools, rather than the full specification. Baseline MCP context cost drops from approximately 5,000 to 10,000 tokens to approximately 1,500 to 2,500 tokens. The full specification remains accessible via tools.
+- The `memory://identity` deprecated alias continues to return identical content to `memory://specification` (i.e., it now returns the partial-serving payload too).
+
+### Added
+- `get_anchors()` MCP tool: returns the ANCHORS layer (foundational beliefs and worldview, approximately 2,500 tokens).
+- `get_predictions()` MCP tool: returns the PREDICTIONS layer (situational behavioral predictions, approximately 2,500 tokens).
+- `get_brief()` MCP tool: returns the unified narrative specification (approximately 3,000 tokens).
+- Call logging: every MCP resource read and tool invocation logs to stderr at INFO level. Format: `[base-layer] INFO: mcp_call name=<name> [k=v ...]`. Tail the Claude Code MCP log to monitor usage in real-time.
+- Spec-loading workflow documentation at `docs/internal/spec_loading_workflow.md`.
+
+### Breaking
+- The `memory://specification` resource content shape changed. Any client that hardcoded the assumption that the resource returns the full specification (rather than calling the new tools to fetch the rest) will see partial content. The manifest in the new payload describes the recovery path explicitly.
+
+### Reproducibility
+- This is a 0.3.0 release. The paper-version pin remains `baselayer==0.2.0` / tag `v0.2-paper-2026`.
+
+---
+
+## 0.2.0 - 2026-05-06 (paper version)
+
+This release is the immutable reference state corresponding to the "Beyond Recall" research paper. The git tag `v0.2-paper-2026` points at this commit. Future work continues under semver, with all paper-cited surfaces (URLs, MCP URIs, CLI flags, filesystem paths) preserved as aliases indefinitely.
+
+### Changed (Phase A: vocabulary alignment, non-breaking)
+- Docstrings, comments, log strings, MCP resource descriptions, and CLI help text now use "specification" / "the three layers" / "behavioral specification" instead of "identity model" / "identity brief" / "identity layers." No filesystem, database, or API changes; existing installs work without migration.
+- MCP server: `memory://specification` is now the canonical resource URI. `memory://identity` continues to work as an alias forwarding to the same handler.
+- Repo cleanup: `docs/` consolidated to four sibling directories (`core/`, `eval/`, `archive/`, `internal/`); top-level cleaned of backup folders, internal handoff files, and out-of-scope working directories.
+- Standard OSS files added: `CODEOWNERS`, `CODE_OF_CONDUCT.md`, `SECURITY.md`, `.editorconfig`, `ROADMAP.md`.
+- Token range standardized at 5,000 to 10,000 tokens across all user-facing documentation.
+
+### Deprecated
+- The MCP resource URI `memory://identity` is deprecated in favor of `memory://specification`. Both currently return identical content; the alias will be retained for the foreseeable future to preserve compatibility for any external MCP client that hardcoded the old URI.
+
+### Reproducibility
+- This version is published to PyPI as `baselayer==0.2.0`.
+- The git tag `v0.2-paper-2026` (created at release time) points at this exact commit.
+- Paper readers can reproduce the experiments via `pip install baselayer==0.2.0` or `git checkout v0.2-paper-2026`.
+
+### Roadmap
+- Phase B (planned, non-breaking): add `data/specifications/` directory alongside `data/identity_layers/`; both read on load. Add `specification.md` output filename alongside `brief_v4.md`. Add `--specification-only` CLI flag alongside `--identity-only`. Will ship as `0.3.0`.
+- Phase C (planned, non-breaking): website adds `/api/specifications/{subject}` endpoint alongside the existing `/api/identity/{subject}`. Both serve the same handler. Documented in `baselayer-website` repo.
+
+---
+
+## 0.1.1 - 2026-04-22
+
+### Package surface cleanup
+- Removed dev-internal subpackages from the shipped distribution: `baselayer.archive`, `baselayer.archive.dead_pipeline_steps`, and `baselayer.experiments` are no longer included in `pip install baselayer`. Directories remain on disk for developers.
+- `pyproject.toml` `[tool.setuptools] packages` reduced to `["baselayer"]` with matching `exclude-package-data` entries to keep archive/experiment assets out of the wheel.
+- Version bumped `0.1.0` -> `0.1.1` to reflect the narrowed public surface.
+
+---
+
 ## Unreleased
 
 ### Planned

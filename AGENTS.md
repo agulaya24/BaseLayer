@@ -1,76 +1,149 @@
-# AGENTS.md — Base Layer
+# AGENTS.md for Base Layer
 
-> Behavioral compression for AI identity. Extracts behavioral patterns from text and compresses them into portable operating guides.
+> The interpretive layer above memory. Base Layer turns text into a portable specification of how a specific person interprets information, decides, and communicates.
 
-## What This Repo Does
+This file is for AI coding agents (Claude Code, Cursor, Windsurf, etc.) working in this repo or running Base Layer on a user's data.
 
-Base Layer is a pipeline that takes text (conversations, blog posts, essays) and produces a structured identity model — a document that tells an AI how a specific person reasons, communicates, and makes decisions. Not what they know. How they think.
+## What this repo is
 
-The output is a 3,000-5,000 token operating guide with three layers:
-- **Anchors**: Epistemic axioms — beliefs this person reasons FROM (always active)
-- **Core**: Communication operating guide — context-specific engagement modes (activation-triggered)
-- **Predictions**: Behavioral patterns — situation→response loops (situation-triggered)
+A Python package + CLI + MCP server. The pipeline takes text (conversations, journals, essays) and produces a 5,000 to 10,000 token specification structured in three layers:
+
+- **Anchors:** the axioms a person reasons from (always active)
+- **Core:** operational constraints and communication patterns (activation-triggered)
+- **Predictions:** situation, behavioral pattern, directive (situation-triggered)
+
+Memory systems give the agent the facts of a person. Base Layer gives the framework those facts come from. The two compose; they don't compete.
+
+**Why this matters.** An AI agent can only act in alignment with how a specific person would act to the extent it represents how they reason. The specification is that representation.
 
 ## Setup
 
 ```bash
-git clone https://github.com/agulaya24/BaseLayer.git
-cd BaseLayer
-pip install -r requirements.txt
+pip install baselayer
+export ANTHROPIC_API_KEY=sk-ant-...
 ```
 
-## Quick Start
+Or from source:
 
 ```bash
-# Initialize a subject
+git clone https://github.com/agulaya24/BaseLayer.git
+cd BaseLayer
+pip install -e .
+```
+
+## Running the pipeline
+
+One command, with cost estimate gate:
+
+```bash
 baselayer init
-
-# Import text
-baselayer import path/to/text --source text
-
-# Extract behavioral facts (uses Anthropic Haiku API)
-baselayer extract
-
-# Embed facts for provenance tracing
-baselayer embed
-
-# Author identity layers (uses Anthropic Sonnet API)
-baselayer author --layer all --compose
-
-# View the result
-cat data/identity_layers/identity_model.md
+baselayer import <file>          # ChatGPT/Claude export, journal, text file, directory
+baselayer estimate                # preview cost
+baselayer run <file>              # full pipeline
 ```
 
-## Pipeline (5 Steps)
+Step-by-step:
 
+```bash
+baselayer extract                 # Haiku, 47 predicates, AUDN lifecycle
+baselayer embed                   # MiniLM-L6-v2 -> ChromaDB
+baselayer author --layer all      # Sonnet, three-layer authoring
+baselayer compose                 # Opus, unified specification
 ```
-Import → Extract → Embed → Author → Compose
+
+## Checkpoints
+
+Run between major stages to catch quality issues:
+
+```bash
+baselayer extract && baselayer checkpoint extraction
+baselayer embed && baselayer checkpoint classification
+baselayer author && baselayer compose
 ```
 
-- **Import**: Multi-source (ChatGPT, Claude, journals, text files, directories)
-- **Extract**: 47 constrained predicates via Haiku API. AUDN lifecycle (Add/Update/Delete/Noop)
-- **Embed**: MiniLM-L6-v2 local vector embeddings for provenance tracing (ChromaDB)
-- **Author**: Three-layer generation via Sonnet with H3 domain-agnostic prompts (73-word guard)
-- **Compose**: Unified narrative brief via Opus (they/them, domain guard, FP warnings)
+Add `--fix` to apply rule-based corrections: `baselayer checkpoint classification --fix`.
 
-## Key Files
+## Output
+
+After the pipeline:
+
+1. **Specification** at `data/identity_layers/brief_v4.md` (relative to the subject directory). Primary artifact, 5,000 to 10,000 tokens.
+2. **Three layers** (anchors, core, predictions). Intermediate structured artifacts.
+3. **Fact database** with tier, type, and confidence metadata.
+4. **Vector store** for semantic search over facts and source text.
+
+## Connecting to AI
+
+### MCP server
+
+```bash
+# Claude Code
+claude mcp add --transport stdio base-layer -- baselayer-mcp
+
+# Claude Desktop, claude_desktop_config.json:
+{ "mcpServers": { "base-layer": { "command": "baselayer-mcp" } } }
+```
+
+The MCP server exposes a partial-serving design: the always-on resource carries CORE plus a manifest, and additional layers are fetched on demand.
+
+Resources:
+
+- **`memory://specification`** (always-on, canonical): CORE layer (~2,500 tokens) describing communication approach, context modes, narrative orientation, and essential context, plus a manifest of what is available on demand
+- **`memory://identity`** (deprecated alias): forwards to `memory://specification`, retained for backward compatibility
+
+Specification tools (model-controlled, called when the conversation warrants):
+
+- **`get_anchors`:** foundational beliefs and worldview, the ANCHORS layer (~2,500 tokens)
+- **`get_predictions`:** behavioral predictions across domains, the PREDICTIONS layer (~2,500 tokens)
+- **`get_brief`:** unified composed brief (~7,000 tokens), the full specification document
+
+Memory tools:
+
+- **`recall_memories`:** semantic retrieval of facts and episodic memories
+- **`search_facts`:** keyword search across the fact database
+- **`trace_claim`:** provenance from specification claims back to source facts
+- **`verify_claims`:** run the four-check provenance verifier against authored claims
+- **`get_stats`:** pipeline and database statistics
+
+Every resource read and tool call emits a stderr log line of the form `[base-layer] INFO: mcp_call name=<tool> [k=v ...]`, routed by the MCP host (Claude Code, Claude Desktop) to its log directory. Filter for `[base-layer]` to see which tools the model is calling and how often it fetches additional layers. See [`docs/internal/spec_loading_workflow.md`](docs/internal/spec_loading_workflow.md) for the full design rationale, multi-spec workflows, and rollback procedure.
+
+### Manual injection
+
+```bash
+baselayer brief "Help me write a cover letter"
+```
+
+Outputs a context-tailored specification to stdout. Paste into any model's system prompt.
+
+## Layer regeneration
+
+```bash
+baselayer author --layer anchors      # regenerate anchors
+baselayer author --layer core         # regenerate core
+baselayer author --layer predictions  # regenerate predictions
+baselayer compose                     # recompose specification from existing layers
+```
+
+## Key source files
 
 | File | Purpose |
 |---|---|
 | `src/baselayer/cli.py` | CLI entry point |
-| `src/baselayer/extract_facts.py` | Fact extraction with AUDN |
-| `src/baselayer/author_layers.py` | Layer authoring (ANCHORS/CORE/PREDICTIONS) |
-| `src/baselayer/agent_pipeline.py` | Brief composition |
-| `src/baselayer/mcp_server.py` | MCP server for Claude integration |
-| `src/baselayer/seed_industry.py` | Website seeding pipeline |
-| `src/baselayer/config.py` | All constants and paths |
+| `src/baselayer/extract_facts.py` | Fact extraction with AUDN lifecycle |
+| `src/baselayer/author_layers.py` | Three-layer authoring |
+| `src/baselayer/agent_pipeline.py` | Specification composition |
+| `src/baselayer/mcp_server.py` | MCP server |
+| `src/baselayer/config.py` | Constants and paths |
+| `lexicon_schema.yaml` | 47-predicate behavioral grammar |
 
-## Architecture
+## Environment variables
 
-- **Database**: SQLite (facts, conversations, provenance)
-- **Vectors**: ChromaDB (local embeddings for retrieval)
-- **API**: Anthropic (Haiku for extraction, Sonnet for authoring, Opus for composition)
-- **Serving**: MCP server (identity Resource + recall/search/trace Tools)
+```
+ANTHROPIC_API_KEY=...                  # Required for extraction/authoring/composition
+MEMORY_SYSTEM_ROOT=...                 # Subject directory (default: current)
+BASELAYER_EXTRACTION_BACKEND=ollama    # Optional: local extraction via Ollama
+BASELAYER_SKIP_FACT_FLOOR=1            # Skip minimum fact check
+```
 
 ## Testing
 
@@ -78,30 +151,22 @@ Import → Extract → Embed → Author → Compose
 pytest tests/
 ```
 
-400+ tests. GitHub Actions CI on Python 3.10, 3.11, 3.12.
+403 tests. GitHub Actions CI on Python 3.10, 3.11, 3.12.
 
-## Environment Variables
+## Live examples
 
-```
-ANTHROPIC_API_KEY=your-key     # Required for extraction/authoring
-MEMORY_SYSTEM_ROOT=path        # Subject directory (default: current)
-BASELAYER_SKIP_FACT_FLOOR=1    # Skip minimum fact check
-```
+- [Benjamin Franklin](https://base-layer.ai/examples/franklin): 212 facts from autobiography
+- [Frederick Douglass](https://base-layer.ai/examples/douglass): 88 facts from autobiography
+- [Warren Buffett](https://base-layer.ai/examples/buffett): 505 facts from 48 shareholder letters
 
-## Research Findings
+## Troubleshooting
 
-- 73-word domain guard eliminates topic skew in identity models
-- 20% of facts sufficient for behavioral identification
-- 71.83% prediction accuracy at 18:1 compression (Twin-2K, N=100, p=0.008)
-- Structured output (JSON schema) eliminates parser fragility for predictions
-- Format determines behavioral routing — axiom-structured briefs outperform flat preference lists
-
-## Live Examples
-
-- [Benjamin Franklin](https://base-layer.ai/examples/franklin) — 212 facts from autobiography
-- [Frederick Douglass](https://base-layer.ai/examples/douglass) — 88 facts from autobiography
-- [Warren Buffett](https://base-layer.ai/examples/buffett) — 505 facts from 48 shareholder letters
+- **"No API key"**: `export ANTHROPIC_API_KEY=sk-ant-...`
+- **"No facts extracted"**: Check `baselayer stats`. May need more source data.
+- **"0 identity-tier facts"**: Run `baselayer checkpoint classification --fix`.
+- **Thin predictions**: Normal for short texts. Anchors and core are often sufficient.
+- **Re-extraction needed**: clear facts with `baselayer forget --all`, then delete `data/vectors/` to clear ChromaDB, then re-extract.
 
 ## License
 
-Apache 2.0
+Apache 2.0. See [LICENSE](LICENSE).
