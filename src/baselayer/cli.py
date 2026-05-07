@@ -2,18 +2,24 @@
 """
 Base Layer CLI — Personal AI Memory System
 
-Pipeline (4 steps): Import -> Extract -> Author -> Compose
+Pipeline (5 steps): Import -> Extract -> Embed -> Author -> Compose
+
+The 5-step sequence above is the canonical logical order documented in
+docs/core/ARCHITECTURE.md. The one-command runner `baselayer run` groups embed
+into a post-compose traceability phase together with tiering and verification
+for efficiency; step-by-step usage (baselayer embed between extract and author)
+runs the logical order directly. Both produce the same final artifacts.
 
 Usage:
-    baselayer run <file> [-y]               One-command pipeline: import > extract > author > compose
+    baselayer run <file> [-y]               One-command pipeline: import > extract > author > compose > traceability
     baselayer ui                            Local drag-and-drop web interface
     baselayer init                          Initialize a fresh database
     baselayer import <file> [--source X]    Import conversations (chatgpt/claude/journal)
     baselayer extract [--limit N]           Extract facts from conversations
     baselayer extract --identity-only       Extract identity traits from Claude Code sessions
     baselayer embed                         Generate vector embeddings (optional utility)
-    baselayer author [--layer X]            Generate identity layers (requires Anthropic API key)
-    baselayer compose                       Compose unified brief from deployed layers (Opus API)
+    baselayer author [--layer X]            Generate the three specification layers (requires Anthropic API key)
+    baselayer compose                       Compose unified specification from deployed layers (Opus API)
     baselayer brief <message>               Assemble a memory brief for a message
     baselayer chat                          Interactive chat with memory-augmented Claude
     baselayer checkpoint <stage>            Quality gate reports (extraction/all)
@@ -70,7 +76,9 @@ def cmd_init(args):
     print("  Privacy Notice:")
     print("    Base Layer stores all data locally on your machine.")
     print("    During fact extraction, conversation text is sent to the Anthropic API")
-    print("    (Claude Haiku) for processing. No data is stored by Anthropic.")
+    print("    (Claude Haiku) for processing. Your data is subject to Anthropic's API")
+    print("    data policy (zero-retention by default as of March 2025; policies may")
+    print("    change — see https://www.anthropic.com/policies/privacy).")
     print()
     print("    By continuing, you acknowledge this data processing.")
     try:
@@ -91,7 +99,7 @@ def cmd_init(args):
 
     # --- Pronoun prompt ---
     print()
-    print("  Pronouns for identity layers (used in third-person descriptions):")
+    print("  Pronouns for the specification layers (used in third-person descriptions):")
     print("    1. he/him")
     print("    2. she/her")
     print("    3. they/them")
@@ -293,7 +301,7 @@ def cmd_embed(args):
 
 
 def cmd_author(args):
-    """Generate identity layers (ANCHORS, CORE, PREDICTIONS)."""
+    """Generate the three specification layers (ANCHORS, CORE, PREDICTIONS)."""
     _check_api_key()
     _check_extraction_complete()
     _check_fact_floor()
@@ -326,7 +334,7 @@ def cmd_author(args):
 
 
 def cmd_compose(args):
-    """Compose a unified narrative brief from deployed identity layers."""
+    """Compose a unified narrative specification from the deployed layers."""
     _check_api_key()
     _check_extraction_complete()
     _check_fact_floor()
@@ -359,6 +367,45 @@ def cmd_checkpoint(args):
     """Run pipeline quality checkpoint reports."""
     from baselayer.checkpoint import run_checkpoint
     run_checkpoint(args.stage)
+
+
+
+def cmd_serve(args):
+    """Toggle MCP spec serving without restarting Claude Code.
+
+    Writes a single character ('0' or '1') to ~/.baselayer/serving_enabled.
+    The MCP server reads this file on every resource read and tool call.
+    When disabled, the always-on resource and the layer tools (get_anchors,
+    get_predictions, get_brief) return a polite "disabled" message instead
+    of content. Other tools (recall_memories, search_facts, trace_claim,
+    verify_claims, get_stats) continue to work since they are fact-database
+    queries, not spec serving.
+
+    The MCP server does NOT need to restart for this to take effect; the
+    next call sees the new state.
+    """
+    from pathlib import Path
+
+    state_file = Path.home() / ".baselayer" / "serving_enabled"
+
+    if args.action == "enable":
+        state_file.parent.mkdir(parents=True, exist_ok=True)
+        state_file.write_text("1", encoding="utf-8")
+        print("Spec serving: enabled")
+    elif args.action == "disable":
+        state_file.parent.mkdir(parents=True, exist_ok=True)
+        state_file.write_text("0", encoding="utf-8")
+        print("Spec serving: disabled")
+    elif args.action == "status":
+        if state_file.exists():
+            try:
+                value = state_file.read_text(encoding="utf-8").strip()
+                state = "enabled" if value != "0" else "disabled"
+            except OSError:
+                state = "enabled (default; state file unreadable)"
+        else:
+            state = "enabled (default; no state file)"
+        print(f"Spec serving: {state}")
 
 
 
@@ -538,7 +585,7 @@ def cmd_forget(args):
 
 
 def cmd_provenance(args):
-    """Show provenance chain for identity layer claims."""
+    """Show provenance chain for specification claims."""
     from baselayer.config import DATABASE_FILE, get_db
 
     if not DATABASE_FILE.exists():
@@ -628,7 +675,7 @@ def cmd_provenance(args):
 
 
 def cmd_verify(args):
-    """Verify identity layer provenance (vector similarity + claim checks)."""
+    """Verify specification layer provenance (vector similarity + claim checks)."""
     from baselayer.config import DATABASE_FILE
 
     if not DATABASE_FILE.exists():
@@ -962,11 +1009,11 @@ def cmd_journal(args):
 def _run_traceability():
     """Post-compose traceability: tier facts, generate embeddings, build provenance, detect tensions.
 
-    These steps don't change the identity model output — they build the audit trail
+    These steps don't change the specification output. They build the audit trail
     that makes every claim inspectable. Cost: ~$0.05 per subject (Haiku for tensions).
     """
     import sqlite3
-    from baselayer.config import DATABASE_FILE, VECTORS_DIR, PROJECT_ROOT
+    from baselayer.config import DATABASE_FILE, VECTORS_DIR, PROJECT_ROOT, IDENTITY_PREDICATES
 
     if not DATABASE_FILE.exists():
         print("  No database found, skipping traceability.")
@@ -974,16 +1021,11 @@ def _run_traceability():
 
     conn = sqlite3.connect(str(DATABASE_FILE))
 
-    # 5a: Rule-based tiering (predicate -> knowledge_tier)
+    # 5a: Rule-based tiering (predicate -> knowledge_tier).
+    # IDENTITY_PREDICATES is the canonical subset of CONSTRAINED_PREDICATES;
+    # see config.py for the source-of-truth invariant.
     print("  5a. Tiering facts by predicate...")
-    IDENTITY_PREDS = (
-        'values', 'believes', 'fears', 'identifies_as', 'aspires_to',
-        'prioritizes', 'avoids', 'practices', 'excels_at', 'struggles_with',
-        'loves', 'hates', 'enjoys', 'dislikes', 'builds', 'founded',
-        'decides', 'decided', 'experienced', 'lost', 'follows', 'monitors',
-        'plays', 'trades', 'maintains', 'prefers',
-    )
-    placeholders = ','.join(f"'{p}'" for p in IDENTITY_PREDS)
+    placeholders = ','.join(f"'{p}'" for p in IDENTITY_PREDICATES)
     id_count = conn.execute(f"""
         UPDATE memory_facts SET knowledge_tier = 'identity'
         WHERE (knowledge_tier IS NULL OR knowledge_tier = 'untiered')
@@ -1262,7 +1304,7 @@ def cmd_pipeline(args):
     _check_fact_floor()
 
     # Step 3: Author layers
-    print(f"\n  Step 3: Authoring identity layers...")
+    print(f"\n  Step 3: Authoring the three specification layers...")
     import baselayer.author_layers as author_layers
     sys.argv = ["author_layers.py", "--generate", "all"]
     author_layers.main()
@@ -1303,7 +1345,13 @@ def cmd_pipeline(args):
 
 
 def cmd_run(args):
-    """One-command pipeline: import -> extract -> author -> compose + traceability (5 steps)."""
+    """One-command pipeline (5 steps): import -> extract -> author -> compose -> traceability.
+
+    The canonical logical pipeline is Import -> Extract -> Embed -> Author -> Compose.
+    This runner groups embed into the post-compose traceability phase (alongside
+    tiering and verification) for efficiency. Step-by-step usage runs the logical
+    order directly. See docs/core/ARCHITECTURE.md.
+    """
     from baselayer.config import DATABASE_FILE
 
     file_path = args.file
@@ -1334,7 +1382,7 @@ def cmd_run(args):
         print(f"\n  {_existing} conversations already imported. Skipping import.")
     else:
         print(f"\n{'='*60}")
-        print(f"  Step 1/4: Importing data")
+        print(f"  Step 1/5: Importing data")
         print(f"{'='*60}\n")
         cmd_import(args)
 
@@ -1355,7 +1403,7 @@ def cmd_run(args):
 
     # Step 2: Extract
     print(f"\n{'='*60}")
-    print(f"  Step 2/4: Extracting facts")
+    print(f"  Step 2/5: Extracting facts")
     print(f"{'='*60}\n")
     if getattr(args, 'document_mode', False):
         import baselayer.extract_facts as extract_facts
@@ -1370,7 +1418,7 @@ def cmd_run(args):
     # Step 3: Author (3 layers, no review)
     # Step 4: Compose (unified brief)
     print(f"\n{'='*60}")
-    print(f"  Step 3-4/4: Authoring identity layers + composing brief")
+    print(f"  Step 3-4/5: Authoring the three specification layers + composing brief")
     print(f"{'='*60}\n")
     args.layer = None
     args.no_citations = False
@@ -1397,7 +1445,7 @@ def cmd_run(args):
             brief_text = brief_text[len("## Injectable Block"):].strip()
 
         print(f"\n{'='*60}")
-        print(f"  Done! Your identity brief is ready.")
+        print(f"  Done! Your specification is ready.")
         print(f"{'='*60}")
         print(f"\n  File: {brief_path}")
         print(f"  Length: {len(brief_text)} chars (~{len(brief_text) // 4} tokens)")
@@ -1881,7 +1929,7 @@ def main():
     p_embed.set_defaults(func=cmd_embed)
 
     # author
-    p_author = subparsers.add_parser("author", help="Generate identity layers (Sonnet API)")
+    p_author = subparsers.add_parser("author", help="Generate the three specification layers (Sonnet API)")
     p_author.add_argument("--layer", choices=["anchors", "core", "predictions", "all"],
                           help="Which layer to generate (default: all)")
     p_author.add_argument("--no-citations", action="store_true",
@@ -1892,7 +1940,7 @@ def main():
 
     # compose (S62 — unified brief from deployed layers)
     p_compose = subparsers.add_parser("compose",
-        help="Compose unified narrative brief from deployed identity layers (Opus API)")
+        help="Compose unified narrative specification from the deployed layers (Opus API)")
     p_compose.set_defaults(func=cmd_compose)
 
     # brief
@@ -1907,6 +1955,18 @@ def main():
         help="[ARCHIVED] Interactive memory-augmented chat via assemble_brief.py — "
              "kept for compatibility, not part of the 4-step pipeline")
     p_chat.set_defaults(func=cmd_chat)
+
+    # serve (0.3.0 toggle for MCP spec serving)
+    p_serve = subparsers.add_parser(
+        "serve",
+        help="Toggle MCP spec serving on/off without restarting Claude Code",
+    )
+    p_serve.add_argument(
+        "action",
+        choices=["enable", "disable", "status"],
+        help="enable/disable spec serving, or print current status",
+    )
+    p_serve.set_defaults(func=cmd_serve)
 
     # subject (S98 Phase 3B)
     p_subject = subparsers.add_parser("subject", help="Subject registry (list/show)")
@@ -1934,14 +1994,14 @@ def main():
     p_forget.set_defaults(func=cmd_forget)
 
     # provenance (S56 — trace layer claims to source facts)
-    p_prov = subparsers.add_parser("provenance", help="Trace identity layer claims to supporting facts")
+    p_prov = subparsers.add_parser("provenance", help="Trace specification claims to supporting facts")
     p_prov.add_argument("--claim", type=str, metavar="ID",
                          help="Trace a specific claim by lexicon ID (e.g. A1, P3, C2)")
     p_prov.set_defaults(func=cmd_provenance)
 
     # verify (S57 — vector + claim verification)
     p_verify = subparsers.add_parser("verify",
-        help="Verify identity layer provenance (vector similarity + claim checks)")
+        help="Verify specification layer provenance (vector similarity + claim checks)")
     p_verify.add_argument("--layer", choices=["anchors", "core", "predictions", "all"],
                            default="all", help="Which layer to verify (default: all)")
     verify_mode = p_verify.add_mutually_exclusive_group()
@@ -1966,7 +2026,7 @@ def main():
     p_review.set_defaults(func=cmd_review)
 
     # journal
-    p_journal = subparsers.add_parser("journal", help="Guided journal prompts for identity building")
+    p_journal = subparsers.add_parser("journal", help="Guided journal prompts for building a behavioral specification")
     p_journal.set_defaults(func=cmd_journal)
 
     # checkpoint (Session 49 -- quality gates; scoring/classification stages archived in S79)

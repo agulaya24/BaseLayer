@@ -133,6 +133,66 @@ systems thinker who values rigor and reproducibility above all.
             assert "baselayer compose" in result
 
 
+class TestServingToggle:
+    """Verify the in-session enable/disable toggle for spec serving."""
+
+    def test_default_is_enabled(self, tmp_path):
+        """Missing state file should mean enabled."""
+        with patch.object(mcp_server, "SERVING_STATE_FILE", tmp_path / "nonexistent_state"):
+            assert mcp_server._is_serving_enabled() is True
+
+    def test_zero_disables(self, tmp_path):
+        state = tmp_path / "serving_enabled"
+        state.write_text("0", encoding="utf-8")
+        with patch.object(mcp_server, "SERVING_STATE_FILE", state):
+            assert mcp_server._is_serving_enabled() is False
+
+    def test_one_enables(self, tmp_path):
+        state = tmp_path / "serving_enabled"
+        state.write_text("1", encoding="utf-8")
+        with patch.object(mcp_server, "SERVING_STATE_FILE", state):
+            assert mcp_server._is_serving_enabled() is True
+
+    def test_resource_returns_disabled_message_when_disabled(self, mock_identity_layers, tmp_path):
+        state = tmp_path / "serving_enabled"
+        state.write_text("0", encoding="utf-8")
+        with patch.object(mcp_server, "SERVING_STATE_FILE", state), \
+             patch.object(mcp_server, "CORE_LAYER_FILE", mock_identity_layers / "core_v3.md"):
+            result = mcp_server.get_specification()
+            assert "disabled" in result.lower()
+            assert "baselayer serve enable" in result
+            # CORE content should NOT leak through
+            assert "builder and systems thinker" not in result
+
+    def test_get_anchors_returns_disabled_message(self, mock_identity_layers, tmp_path):
+        state = tmp_path / "serving_enabled"
+        state.write_text("0", encoding="utf-8")
+        with patch.object(mcp_server, "SERVING_STATE_FILE", state), \
+             patch.object(mcp_server, "ANCHORS_LAYER_FILE", mock_identity_layers / "anchors_v3.md"):
+            result = mcp_server.get_anchors()
+            assert "disabled" in result.lower()
+            assert "Quality matters more than speed" not in result
+
+    def test_get_predictions_returns_disabled_message(self, mock_identity_layers, tmp_path):
+        state = tmp_path / "serving_enabled"
+        state.write_text("0", encoding="utf-8")
+        with patch.object(mcp_server, "SERVING_STATE_FILE", state), \
+             patch.object(mcp_server, "PREDICTIONS_LAYER_FILE", mock_identity_layers / "predictions_v3.md"):
+            result = mcp_server.get_predictions()
+            assert "disabled" in result.lower()
+
+    def test_get_brief_returns_disabled_message(self, tmp_path):
+        state = tmp_path / "serving_enabled"
+        state.write_text("0", encoding="utf-8")
+        brief_file = tmp_path / "brief_v5_clean.md"
+        brief_file.write_text("## Injectable Block\n\nReal brief content here.", encoding="utf-8")
+        with patch.object(mcp_server, "SERVING_STATE_FILE", state), \
+             patch.object(mcp_server, "UNIFIED_BRIEF_FILE", brief_file):
+            result = mcp_server.get_brief()
+            assert "disabled" in result.lower()
+            assert "Real brief content here" not in result
+
+
 class TestSearchFactsTool:
     """Test the search_facts MCP tool."""
 
