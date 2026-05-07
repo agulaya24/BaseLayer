@@ -121,14 +121,12 @@ For the canonical command list, parse `src/baselayer/cli.py`.
 
 ---
 
-## MCP tools (returned by the `base-layer` MCP server)
+## MCP tools (returned by the `base-layer` MCP server, as of 0.4.0)
 
 | Tool / Resource                | Purpose                                                                                            |
 |--------------------------------|----------------------------------------------------------------------------------------------------|
-| `memory://specification`       | Always-on resource. Returns CORE layer plus this manifest. Loaded at session start.                |
+| `memory://specification`       | Always-on resource. Returns CORE + ANCHORS + PREDICTIONS inline (~6-8K tokens) plus a brief manifest. Loaded at session start. |
 | `memory://identity`            | Deprecated alias for the above. Forwards to the same content.                                      |
-| `get_anchors(reason)`          | Foundational beliefs and reasoning patterns (~2,500 tokens). Fetch for value-laden questions.      |
-| `get_predictions(reason)`      | Situation-to-response patterns (~2,500 tokens). Fetch for scenario modeling.                       |
 | `get_brief(reason)`            | Unified narrative portrait (~3,000 tokens). Fetch for broad self-reflective queries.               |
 | `recall_memories(query)`       | Semantic retrieval of facts and episodes from the user's history.                                  |
 | `search_facts(query)`          | Keyword search across the active fact database.                                                    |
@@ -137,6 +135,8 @@ For the canonical command list, parse `src/baselayer/cli.py`.
 | `get_stats()`                  | Database summary: counts, tier breakdown, source breakdown.                                        |
 | `get_call_log(limit, name_filter)` | Recent MCP calls in this session (in-memory ring buffer, 500 entries).                          |
 | `get_help(topic)`              | This document. Consult when the user asks anything about Base Layer itself.                        |
+
+**Note (0.4.0 design change):** Earlier 0.3.0 split ANCHORS and PREDICTIONS behind on-demand `get_anchors` and `get_predictions` tools. Live use surfaced two issues: (1) the model had to make routing decisions about layers it could not see, leading to over- and under-fetching; (2) the token savings were negligible. 0.4.0 inlines all three structural layers so the model always has the full structural spec without a routing decision. The unified narrative brief stays on-demand because it serves a different shape of query (broad self-reflective).
 
 ---
 
@@ -178,18 +178,18 @@ set, else the repo root (dev), else `~/.baselayer/` (install).
 
 ---
 
-## When to fetch which layer
+## When to fetch the brief
 
-- `get_anchors` — value-laden questions, decisions with trade-offs,
-  open-ended advice, anywhere "what does this person care about"
-  determines the answer.
-- `get_predictions` — modeling a specific scenario the user is in or
-  about to enter ("what would I do if...", post-mortem on a recent
-  event).
-- `get_brief` — broad, abstract, or self-reflective queries that lack
-  situational context.
-- None of the above for literal-recall questions ("where do I live",
-  "what's my job"); CORE plus the user's own statements cover those.
+The structural layers (CORE, ANCHORS, PREDICTIONS) are always loaded
+inline at session start; you do not need to fetch them. The unified
+brief is the only on-demand layer in 0.4.0.
+
+- `get_brief` — fetch when the query is broad, abstract, or
+  self-reflective and the structural layers feel too schematic for the
+  shape of conversation. Examples: "help me think through my career",
+  "what should I focus on this quarter", "I'm feeling stuck".
+- Do not fetch the brief for narrow factual or single-domain queries;
+  the structural spec already covers those.
 
 ---
 

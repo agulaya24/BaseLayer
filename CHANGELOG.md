@@ -4,6 +4,26 @@ All notable changes to Base Layer are documented here.
 
 ---
 
+## 0.4.0 - 2026-05-07
+
+### Changed (resource simplification: inline structural layers)
+- The `memory://specification` resource now returns CORE + ANCHORS + PREDICTIONS inline (~6 to 8K tokens) plus a brief manifest. The structural specification is fully loaded at session start; the model does not have to make routing decisions about layers it cannot see.
+- Removed the `get_anchors` and `get_predictions` MCP tools. Their content is now part of the always-on resource.
+- The `get_brief` tool remains on-demand because the unified narrative brief serves a different shape of query (broad self-reflective) and is large enough to keep behind a fetch.
+
+### Why
+- The 0.3.0 partial-serving design split CORE on the resource and ANCHORS/PREDICTIONS behind on-demand tools. Live use surfaced two issues. (1) The model had to make routing decisions about layers it could not see, leading to over- and under-fetching. (2) The token savings that justified the split (approximately 5K) are negligible in modern context windows. The proposal at `docs/reviews/mcp_titles_manifest_proposal_20260507.md` (gitignored) makes the structural argument; this release implements it.
+- The `reason` parameter survives only on `get_brief` since it's the single remaining on-demand layer fetch.
+
+### Migration notes
+- External MCP clients that called `mcp__base-layer__get_anchors` or `mcp__base-layer__get_predictions` will receive "tool not found" errors. The same content is now in `memory://specification` payload.
+- Per-session call-log shapes are unchanged. `get_help` still works; the agent guide section "When to fetch which layer" was simplified to reflect the single remaining on-demand fetch.
+
+### Reproducibility
+- The paper-version pin remains git tag `v0.2.0`. 0.4.0 is forward development; the paper does not cite it.
+
+---
+
 ## Unreleased (post-0.3.0)
 
 ### Added (in-session spec-serving toggle)

@@ -86,28 +86,28 @@ claude mcp add --transport stdio base-layer -- baselayer-mcp
 { "mcpServers": { "base-layer": { "command": "baselayer-mcp" } } }
 ```
 
-The MCP server exposes a partial-serving design: the always-on resource carries CORE plus a manifest, and additional layers are fetched on demand.
+The MCP server exposes the structural specification inline plus a single on-demand brief. As of 0.4.0, ANCHORS and PREDICTIONS are loaded with CORE in the always-on resource so the model never has to make a routing decision about a layer it cannot see.
 
 Resources:
 
-- **`memory://specification`** (always-on, canonical): CORE layer (~2,500 tokens) describing communication approach, context modes, narrative orientation, and essential context, plus a manifest of what is available on demand
-- **`memory://identity`** (deprecated alias): forwards to `memory://specification`, retained for backward compatibility
+- **`memory://specification`** (always-on, canonical): CORE + ANCHORS + PREDICTIONS inline (~6 to 8K tokens) plus a brief manifest pointing at supplementary tools.
+- **`memory://identity`** (deprecated alias): forwards to `memory://specification`.
 
-Specification tools (model-controlled, called when the conversation warrants):
+On-demand specification tool:
 
-- **`get_anchors`:** foundational beliefs and worldview, the ANCHORS layer (~2,500 tokens)
-- **`get_predictions`:** behavioral predictions across domains, the PREDICTIONS layer (~2,500 tokens)
-- **`get_brief`:** unified composed brief (~7,000 tokens), the full specification document
+- **`get_brief(reason)`:** unified narrative portrait (~3,000 tokens). Fetched when the query is broad, abstract, or self-reflective. Takes a one-sentence private `reason` for the call log.
 
-Memory tools:
+Other tools:
 
 - **`recall_memories`:** semantic retrieval of facts and episodic memories
 - **`search_facts`:** keyword search across the fact database
 - **`trace_claim`:** provenance from specification claims back to source facts
 - **`verify_claims`:** run the four-check provenance verifier against authored claims
 - **`get_stats`:** pipeline and database statistics
+- **`get_call_log`:** recent MCP calls in this session (in-memory ring buffer)
+- **`get_help(topic)`:** comprehensive Base Layer agent reference. Includes intent-to-action mappings, diagnostic flow, full CLI surface, full MCP-tool surface, state-file layout, and behavioral norms. Consult any time the user asks about Base Layer itself.
 
-Every resource read and tool call emits a stderr log line of the form `[base-layer] INFO: mcp_call name=<tool> [k=v ...]`, routed by the MCP host (Claude Code, Claude Desktop) to its log directory. Filter for `[base-layer]` to see which tools the model is calling and how often it fetches additional layers. See [`docs/internal/spec_loading_workflow.md`](docs/internal/spec_loading_workflow.md) for the full design rationale, multi-spec workflows, and rollback procedure.
+Every resource read and tool call emits a stderr log line of the form `[base-layer] INFO: mcp_call name=<tool> [k=v ...]`, routed by the MCP host to its log directory. Per-session traces live at `~/.baselayer/sessions/<pid>/log.jsonl` and are inspectable with `baselayer log list/show/tail/stats`.
 
 ### Manual injection
 

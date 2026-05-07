@@ -141,8 +141,8 @@ class TestMCPPartialServing:
 
         assert "Unified narrative here." in result
 
-    def test_resource_serves_core_when_no_brief(self, tmp_path, mock_identity_layers):
-        """When no unified brief exists, the resource still serves CORE plus manifest."""
+    def test_resource_serves_inline_layers_when_no_brief(self, tmp_path, mock_identity_layers):
+        """As of 0.4.0, the resource inlines CORE + ANCHORS + PREDICTIONS."""
         import baselayer.mcp_server as mcp_server
 
         no_brief = tmp_path / "nonexistent_brief.md"
@@ -154,10 +154,9 @@ class TestMCPPartialServing:
              patch.object(mcp_server, "PREDICTIONS_LAYER_FILE", mock_identity_layers / "predictions_v3.md"):
             result = mcp_server.get_identity_brief()
 
-        # CORE content present
+        # All three structural layers inlined
         assert "builder and systems thinker" in result
-        # ANCHORS content NOT present (now behind get_anchors("test reason"))
-        assert "Quality matters more than speed" not in result
+        assert "Quality matters more than speed" in result
 
     def test_resource_serves_core_when_brief_empty(self, tmp_path, mock_identity_layers):
         """An empty unified brief does not change resource behavior; CORE is still served."""
@@ -173,10 +172,9 @@ class TestMCPPartialServing:
              patch.object(mcp_server, "PREDICTIONS_LAYER_FILE", mock_identity_layers / "predictions_v3.md"):
             result = mcp_server.get_identity_brief()
 
-        # CORE content present
+        # All three structural layers inlined as of 0.4.0
         assert "builder and systems thinker" in result
-        # ANCHORS content NOT present
-        assert "Quality matters more than speed" not in result
+        assert "Quality matters more than speed" in result
 
 
 # ============================================================

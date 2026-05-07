@@ -62,18 +62,16 @@ Register the Base Layer MCP server with Claude Code:
 claude mcp add --transport stdio base-layer -- baselayer-mcp
 ```
 
-Once registered, the next Claude Code session loads two resources and eight tools.
+Once registered, the next Claude Code session loads two resources and seven tools.
 
 **Resources** (always-on, client-controlled):
 
-- `memory://specification`. The CORE layer (communication approach, context modes, narrative orientation, essential context) plus a manifest of what else is available on demand. Approximately 2,500 tokens, not the full specification. Canonical resource. Loads as context in every conversation.
-- `memory://identity`. Deprecated alias for `memory://specification`. Forwards to the same content. Retained for backward compatibility; will be removed in a future release.
+- `memory://specification`. The structural specification inline: CORE (communication and context), ANCHORS (foundational beliefs and reasoning patterns), PREDICTIONS (situation-to-response patterns), plus a brief manifest. Approximately 6 to 8K tokens. Loaded into every conversation.
+- `memory://identity`. Deprecated alias for `memory://specification`. Forwards to the same content. Retained for backward compatibility.
 
-**Specification tools** (model-controlled, fetched when the conversation warrants):
+**On-demand specification tool:**
 
-- `get_anchors()`. Foundational beliefs and worldview (the ANCHORS layer). Approximately 2,500 tokens. Use when the conversation touches values, principles, or "what does this person care about."
-- `get_predictions()`. Behavioral predictions across domains (the PREDICTIONS layer). Approximately 2,500 tokens. Use when modeling how the user will react in a specific situation.
-- `get_brief()`. Unified composed brief (~7,000 tokens). The full specification document. Use sparingly; usually CORE plus a single layer is enough.
+- `get_brief(reason)`. Unified narrative portrait of the user (~3,000 tokens). The model fetches this when the query is broad, abstract, or self-reflective. Provides a private one-sentence rationale via `reason`; not user-facing.
 
 **Memory tools** (model-controlled, called on demand):
 
@@ -82,10 +80,12 @@ Once registered, the next Claude Code session loads two resources and eight tool
 - `trace_claim(claim_id)`. Provenance from a specification claim (e.g. `A1`, `P3`, `C2`) back to source facts and conversations.
 - `verify_claims(claim_id="", layer="all")`. Run the binary verification checks (existence, recurrence, cross-domain coverage, temporal consistency, contradictions).
 - `get_stats()`. Database summary: conversations, messages, active and superseded facts, tier and source breakdowns.
+- `get_call_log(limit, name_filter)`. Recent MCP calls in this session.
+- `get_help(topic)`. Comprehensive Base Layer agent reference. Consult any time the user asks about Base Layer itself; the guide includes intent-to-action mappings so the agent can run the right command rather than telling the user what to type.
 
-**Monitoring.** Every resource read and tool call emits a stderr log line of the form `[base-layer] INFO: mcp_call name=<tool> [k=v ...]`. Claude Code routes MCP server stderr to its log directory (`%APPDATA%\Claude\logs\` on Windows). Filter for `[base-layer]` to see which tools the model is choosing and how often it fetches additional layers vs operating on CORE alone.
+**Monitoring.** Every resource read and tool call emits a stderr log line of the form `[base-layer] INFO: mcp_call name=<tool> [k=v ...]`. Per-session traces live at `~/.baselayer/sessions/<pid>/log.jsonl`. The `baselayer log list/show/tail/stats` CLI inspects them.
 
-**Partial-serving design.** The resource intentionally returns CORE plus a manifest, not the full specification. Rationale: CORE captures communication style and context-mode triggers (the highest-leverage content for any conversation), while ANCHORS and PREDICTIONS are situational. The model fetches them when relevant and skips them when not, keeping context costs in line with the conversation's actual needs. See [`docs/internal/spec_loading_workflow.md`](docs/internal/spec_loading_workflow.md) for the full picture and rollback procedure.
+**Design note (0.4.0).** Earlier 0.3.0 split CORE on the resource and ANCHORS/PREDICTIONS behind on-demand `get_anchors`/`get_predictions` tools. Live use surfaced two issues: the model had to make routing decisions about layers it could not see, and the token savings were negligible. 0.4.0 inlines all three structural layers so the spec is fully present without a routing decision. Only the unified narrative brief stays on-demand.
 
 ## Where to find what
 

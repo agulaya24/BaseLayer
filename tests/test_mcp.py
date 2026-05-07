@@ -33,7 +33,8 @@ class TestIdentityResource:
     always-loaded payload; they are accessible via tools.
     """
 
-    def test_returns_core_and_manifest_when_layers_exist(self, mock_identity_layers, tmp_path):
+    def test_returns_inline_layers_when_layers_exist(self, mock_identity_layers, tmp_path):
+        """0.4.0 inlines CORE + ANCHORS + PREDICTIONS in the resource (no routing)."""
         with patch.object(mcp_server, "UNIFIED_BRIEF_FILE", tmp_path / "nonexistent_brief.md"), \
              patch.object(mcp_server, "UNIFIED_BRIEF_CITED_FILE", tmp_path / "nonexistent_cited.md"), \
              patch.object(mcp_server, "ANCHORS_LAYER_FILE", mock_identity_layers / "anchors_v3.md"), \
@@ -41,19 +42,14 @@ class TestIdentityResource:
              patch.object(mcp_server, "PREDICTIONS_LAYER_FILE", mock_identity_layers / "predictions_v3.md"):
             brief = mcp_server.get_identity_brief()
             assert len(brief) > 0
-            # CORE content is in the resource
+            # All three structural layers are inlined now
             assert "A builder and systems thinker" in brief
-            # ANCHORS content is NOT in the resource (now behind get_anchors tool)
-            assert "Quality matters more than speed" not in brief
-            # PREDICTIONS content is NOT in the resource (now behind get_predictions tool)
-            assert "rejects shortcuts that sacrifice quality" not in brief.lower()
-            # Manifest signal IS present (with interpretation-vs-recall framing)
-            assert "interpretation-heavy" in brief.lower()
-            assert "get_anchors" in brief
-            assert "get_predictions" in brief
+            assert "Quality matters more than speed" in brief
+            assert "systematic analysis over intuition" in brief
+            # Brief is still on-demand
             assert "get_brief" in brief
-            # Self-aware caveat IS present
-            assert "not" in brief.lower() and "substitute for the user" in brief.lower()
+            # Invisibility directive present
+            assert "invisible infrastructure" in brief.lower()
 
     def test_returns_fallback_when_no_core_layer(self, tmp_path):
         empty_dir = tmp_path / "empty_layers"
@@ -80,32 +76,14 @@ class TestIdentityResource:
 
 
 class TestSpecificationTools:
-    """Test the partial-serving tools added in 0.3.0: get_anchors, get_predictions, get_brief."""
+    """Test the on-demand brief tool. (As of 0.4.0, get_anchors and
+    get_predictions were removed; ANCHORS and PREDICTIONS are inlined into
+    the always-on resource.)"""
 
-    def test_get_anchors_returns_anchors_block(self, mock_identity_layers):
-        with patch.object(mcp_server, "ANCHORS_LAYER_FILE", mock_identity_layers / "anchors_v3.md"):
-            result = mcp_server.get_anchors("test reason")
-            assert "Quality matters more than speed" in result
-            # Should not contain frontmatter
-            assert "layer: anchors" not in result
-
-    def test_get_anchors_missing_file(self, tmp_path):
-        with patch.object(mcp_server, "ANCHORS_LAYER_FILE", tmp_path / "nonexistent.md"):
-            result = mcp_server.get_anchors("test reason")
-            assert "ANCHORS layer is not present" in result
-            assert "baselayer author --layer anchors" in result
-
-    def test_get_predictions_returns_predictions_block(self, mock_identity_layers):
-        with patch.object(mcp_server, "PREDICTIONS_LAYER_FILE", mock_identity_layers / "predictions_v3.md"):
-            result = mcp_server.get_predictions("test reason")
-            assert "shortcut" in result.lower() or "systematic analysis" in result
-            assert "layer: predictions" not in result
-
-    def test_get_predictions_missing_file(self, tmp_path):
-        with patch.object(mcp_server, "PREDICTIONS_LAYER_FILE", tmp_path / "nonexistent.md"):
-            result = mcp_server.get_predictions("test reason")
-            assert "PREDICTIONS layer is not present" in result
-            assert "baselayer author --layer predictions" in result
+    def test_anchors_predictions_tools_removed(self):
+        """get_anchors and get_predictions should no longer exist as tools."""
+        assert not hasattr(mcp_server, "get_anchors")
+        assert not hasattr(mcp_server, "get_predictions")
 
     def test_get_brief_returns_brief_content(self, tmp_path):
         brief_file = tmp_path / "brief_v5_clean.md"
@@ -162,23 +140,6 @@ class TestServingToggle:
             assert "spec context unavailable" in result.lower()
             # CORE content should NOT leak through
             assert "builder and systems thinker" not in result
-
-    def test_get_anchors_returns_disabled_message(self, mock_identity_layers, tmp_path):
-        state = tmp_path / "serving_enabled"
-        state.write_text("0", encoding="utf-8")
-        with patch.object(mcp_server, "SERVING_STATE_FILE", state), \
-             patch.object(mcp_server, "ANCHORS_LAYER_FILE", mock_identity_layers / "anchors_v3.md"):
-            result = mcp_server.get_anchors("test reason")
-            assert "spec context unavailable" in result.lower()
-            assert "Quality matters more than speed" not in result
-
-    def test_get_predictions_returns_disabled_message(self, mock_identity_layers, tmp_path):
-        state = tmp_path / "serving_enabled"
-        state.write_text("0", encoding="utf-8")
-        with patch.object(mcp_server, "SERVING_STATE_FILE", state), \
-             patch.object(mcp_server, "PREDICTIONS_LAYER_FILE", mock_identity_layers / "predictions_v3.md"):
-            result = mcp_server.get_predictions("test reason")
-            assert "spec context unavailable" in result.lower()
 
     def test_get_brief_returns_disabled_message(self, tmp_path):
         state = tmp_path / "serving_enabled"

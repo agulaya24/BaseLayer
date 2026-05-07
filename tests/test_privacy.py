@@ -51,7 +51,11 @@ class TestMCPPrivacy:
         assert sig.parameters["limit"].default == 15
 
     def test_identity_resource_reads_injectable_only(self, mock_identity_layers, tmp_path):
-        """Resource should only return CORE injectable block, not metadata, not other layers."""
+        """Resource returns injectable blocks only, never frontmatter or metadata.
+
+        As of 0.4.0 the resource inlines CORE + ANCHORS + PREDICTIONS, so this
+        test verifies all three are present without metadata bleeding through.
+        """
         import baselayer.mcp_server as mcp_server
         with patch.object(mcp_server, "UNIFIED_BRIEF_FILE", tmp_path / "nonexistent_brief.md"), \
              patch.object(mcp_server, "UNIFIED_BRIEF_CITED_FILE", tmp_path / "nonexistent_cited.md"), \
@@ -59,15 +63,16 @@ class TestMCPPrivacy:
              patch.object(mcp_server, "CORE_LAYER_FILE", mock_identity_layers / "core_v3.md"), \
              patch.object(mcp_server, "PREDICTIONS_LAYER_FILE", mock_identity_layers / "predictions_v3.md"):
             brief = mcp_server.get_identity_brief()
-            # Should NOT contain metadata headers
+            # Should NOT contain metadata headers from any layer
             assert "layer: anchors" not in brief
+            assert "layer: core" not in brief
+            assert "layer: predictions" not in brief
             assert "version: 1" not in brief
             assert "generated:" not in brief
-            # SHOULD contain CORE injectable content
+            # SHOULD contain all three structural layers' injectable content
             assert "builder and systems thinker" in brief
-            # Partial-serving: ANCHORS and PREDICTIONS are NOT in the resource
-            assert "Quality matters more than speed" not in brief
-            assert "systematic analysis over intuition" not in brief
+            assert "Quality matters more than speed" in brief
+            assert "systematic analysis over intuition" in brief
 
 
 class TestNoSecretLeakage:
