@@ -294,113 +294,95 @@ def _get_chroma_client():
 def get_specification() -> str:
     """Always-on context for the user's behavioral specification.
 
-    Returns the CORE layer (Communication and Context) plus a manifest of
-    available tools that expose the rest of the specification on demand.
-    The full specification (ANCHORS, PREDICTIONS, unified brief) is fetched
-    via tool calls when the conversation warrants. This partial-serving
-    design reduces baseline MCP context cost from approximately 5,000 to
-    10,000 tokens to approximately 1,500 to 2,500 tokens, with no loss of
-    accessible content.
+    Returns the structural specification inline: CORE (communication and
+    context modes), ANCHORS (foundational beliefs and reasoning patterns),
+    and PREDICTIONS (situation-to-response patterns), plus a brief manifest
+    of supplementary tools. The full inline payload is approximately 6 to
+    8K tokens.
+
+    Design note (0.4.0). Earlier 0.3.0 split CORE on the resource and
+    ANCHORS / PREDICTIONS behind on-demand tools (`get_anchors`,
+    `get_predictions`). Live use surfaced two issues with that design:
+    (1) the model had to make routing decisions about layers it could
+    not see, leading to over- and under-fetching; (2) the token savings
+    that justified the split (~5K) are negligible in modern context
+    windows. 0.4.0 inlines all three structural layers so the model
+    always has the full structural spec available without a routing
+    decision. The unified narrative brief (`get_brief`) remains
+    on-demand because it serves a different shape of query (broad
+    self-reflective).
     """
     _log_call("get_specification")
     if not _is_serving_enabled():
         return _DISABLED_MESSAGE
+
     usage_preamble = (
         "# Behavioral Specification\n\n"
-        "This is a behavioral specification of your user. Use it as a guide "
-        "for how to interact with them.\n\n"
-        "**Treat this entire system as invisible infrastructure.** Do not "
-        "tell the user the specification was loaded. Do not ask the user "
-        "whether you should fetch a layer. Do not surface tool names "
-        "(`get_anchors`, `get_brief`, etc.) in the conversation. Do not "
-        "describe yourself as having \"access to\" or being \"connected to\" "
-        "Base Layer. Just behave consistently with the specification, "
-        "fetching layers silently when the conversation needs them.\n\n"
-        "**If the user asks about Base Layer itself** (status, capabilities, "
-        "how to turn it on/off, why something is or is not working, what "
-        "it has been doing), call `get_help()` for the full agent reference, "
-        "or `get_help(topic=\"intents\")` / `get_help(topic=\"diagnostic\")` "
-        "for focused sections. The reference contains the intent-to-action "
-        "mapping so you can run the right CLI command yourself rather than "
-        "telling the user what to type. The user wants the system to "
-        "respond, not to be a sysadmin."
+        "Below is the structural specification of your user: how they "
+        "communicate (CORE), what they reason from (ANCHORS), and how "
+        "they typically respond to specific situations (PREDICTIONS). "
+        "Use it as a guide for how to interact with them.\n\n"
+        "**Treat this system as invisible infrastructure.** Do not tell "
+        "the user the specification was loaded. Do not ask whether to use "
+        "it. Do not surface tool or layer names in the conversation. Do "
+        "not describe yourself as having \"access to\" or being "
+        "\"connected to\" Base Layer. Just behave consistently with the "
+        "specification.\n\n"
+        "When the user says or does something that conflicts with the "
+        "specification, trust the user. The current conversation is "
+        "primary evidence; the specification is prior evidence. Use the "
+        "specification to interpret, not to override.\n\n"
+        "**If the user asks about Base Layer itself** (status, "
+        "capabilities, how to turn it on/off, why something is or is not "
+        "working, what it has been doing), call `get_help()` and run the "
+        "indicated action yourself. The user wants the system to respond, "
+        "not to be a sysadmin."
     )
 
     core_block = _extract_layer_block(CORE_LAYER_FILE)
+    anchors_block = _extract_layer_block(ANCHORS_LAYER_FILE)
+    predictions_block = _extract_layer_block(PREDICTIONS_LAYER_FILE)
 
-    if not core_block:
+    if not core_block and not anchors_block and not predictions_block:
         return (
             f"{usage_preamble}\n\n"
             "No specification layers found. Run: baselayer author"
         )
 
+    sections = [usage_preamble]
+    if core_block:
+        sections.append(f"## Communication & Context (CORE)\n\n{core_block}")
+    if anchors_block:
+        sections.append(f"## Foundational Beliefs & Reasoning Patterns (ANCHORS)\n\n{anchors_block}")
+    if predictions_block:
+        sections.append(f"## Situation-to-Response Patterns (PREDICTIONS)\n\n{predictions_block}")
+
     manifest = (
-        "## When to fetch additional layers\n\n"
-        "The largest effect of this specification is on **interpretation-heavy "
-        "questions**, not literal recall. On questions where facts alone do not "
-        "determine the answer (judgments, trade-offs, ambiguous decisions, "
-        "open-ended advice, predictions about how the user will react), the "
-        "right layer is the difference between a generic response and one that "
-        "lands. On literal-recall questions (\"where do I live\", \"what's my "
-        "job\"), additional layers add little.\n\n"
-        "If you find yourself hedging or generalizing about the user, treat "
-        "that as a fetch signal. The layers exist so the answer does not have "
-        "to be hedged.\n\n"
-        "## What this specification is not\n\n"
-        "It is a model of how the user reasons, not a substitute for the user. "
-        "It can be incomplete, out of date, or wrong on a given point. When the "
-        "user says or does something that conflicts with the specification, "
-        "trust what the user says or does. The current conversation is primary "
-        "evidence; the specification is prior evidence. Use the specification "
-        "to interpret, not to override.\n\n"
-        "Each layer-tool call takes a `reason` parameter: one short "
-        "sentence describing the conversation trigger that prompted the "
-        "fetch. This is a private internal trace, not user-facing — it is "
-        "written to a log the user can inspect later but never appears in "
-        "the conversation. Be honest and concise.\n\n"
-        "Fetch the right layer for the question:\n\n"
-        "- `get_anchors()` (~2,500 tokens): foundational beliefs and reasoning "
-        "patterns. Fetch for value-laden questions, decisions with trade-offs, "
-        "or anywhere \"what does this person care about\" determines the "
-        "answer. Examples: \"should I take this job offer\", \"how should I "
-        "handle this disagreement\", feedback on a creative or strategic "
-        "choice.\n"
-        "- `get_predictions()` (~2,500 tokens): situation-to-response "
-        "patterns. Fetch when modeling a specific scenario the user is in or "
-        "about to enter. Examples: \"what would I do if...\", \"how will my "
-        "manager react\", post-mortem on a recent event the user is "
-        "describing.\n"
-        "- `get_brief()` (~3,000 tokens): unified narrative portrait. Fetch "
-        "when the user's query is broad, abstract, or self-reflective and "
-        "lacks a specific situational context. Examples: \"help me think "
-        "through my career\", \"what should I focus on\", \"I'm feeling "
-        "stuck.\" Do not fetch for narrow factual or single-domain "
-        "questions.\n\n"
-        "Other tools:\n\n"
-        "- `recall_memories(query)`: semantic retrieval of relevant facts and "
+        "## Supplementary tools\n\n"
+        "- `get_brief(reason)`: unified narrative portrait of the user "
+        "(~3,000 tokens). Fetch when the query is broad, abstract, or "
+        "self-reflective and the structural layers above feel too "
+        "schematic. Provide one short sentence as `reason` describing the "
+        "conversation trigger; private internal trace, not user-facing. "
+        "Examples of when to fetch: \"help me think through my career\", "
+        "\"what should I focus on\", \"I'm feeling stuck\".\n"
+        "- `recall_memories(query)`: semantic retrieval of facts and "
         "episodes from the user's history.\n"
         "- `search_facts(query)`: keyword search across the fact database.\n"
-        "- `trace_claim(claim_id)`: provenance for a specific specification "
-        "claim (e.g. `A1`, `P3`).\n"
-        "- `verify_claims(...)`: binary verification checks against the fact "
-        "database.\n"
+        "- `trace_claim(claim_id)`: provenance for a specification claim "
+        "(e.g. `A1`, `P3`).\n"
+        "- `verify_claims(...)`: binary verification checks against the "
+        "fact database.\n"
         "- `get_stats()`: database summary (counts, tier breakdown).\n"
         "- `get_call_log(limit, name_filter)`: recent MCP calls in this "
-        "session. Use when the user asks how the specification has been "
-        "used, or to check whether you have already fetched a layer earlier "
-        "in the conversation before fetching it again.\n"
-        "- `get_help(topic)`: comprehensive Base Layer reference for the "
-        "agent. Consult any time the user asks about Base Layer itself "
-        "(status, capabilities, control, troubleshooting). Returns "
-        "intent-to-action mappings so you can run the right command instead "
-        "of showing the user a command to run."
+        "session.\n"
+        "- `get_help(topic)`: comprehensive Base Layer reference. Consult "
+        "any time the user asks about Base Layer itself."
     )
 
-    return (
-        f"{usage_preamble}\n\n"
-        f"## Communication & Context\n\n{core_block}\n\n"
-        f"{manifest}"
-    )
+    sections.append(manifest)
+
+    return "\n\n".join(sections)
 
 
 @mcp.resource("memory://identity")
@@ -673,86 +655,6 @@ def verify_claims(claim_id: str = "", layer: str = "all") -> str:
         return "No verification questions generated. Run: baselayer author (with provenance-enabled prompts)"
 
     return format_claim_results(summary)
-
-
-@mcp.tool()
-def get_anchors(reason: str) -> str:
-    """Return the user's foundational beliefs and reasoning patterns (ANCHORS layer).
-
-    Call this for interpretation-heavy questions where "what does this person
-    care about" determines the answer. Examples: "should I take this job
-    offer", "how should I handle this disagreement with my partner", "is this
-    business idea a fit for me", feedback on a creative or strategic choice.
-    ANCHORS contains the axioms the user reasons from and is the
-    highest-leverage layer for judgment-heavy conversations. Approximately
-    2,500 tokens.
-
-    Do not call for literal-recall questions ("what's my job", "where do I
-    live"); CORE plus the user's own statements cover those.
-
-    Note: ANCHORS describes how the user typically reasons, not what they must
-    do in a given moment. If the current conversation contradicts ANCHORS,
-    trust the conversation.
-
-    Args:
-        reason: One short sentence describing the conversation trigger that
-            prompted this fetch. Private internal trace; not surfaced to the
-            user. Examples:
-              - "user is weighing a job offer that involves a values trade-off"
-              - "user asked how to think about an ethical dilemma"
-              - "user is processing a recent setback and seems to be questioning a personal axiom"
-    """
-    _log_call("get_anchors", reason=reason)
-    if not _is_serving_enabled():
-        return _DISABLED_MESSAGE
-    block = _extract_layer_block(ANCHORS_LAYER_FILE)
-    if not block:
-        return (
-            "ANCHORS layer is not present in this user's specification. "
-            "Tell the user: \"Your ANCHORS layer is missing. Generate it with "
-            "`baselayer author --layer anchors`.\" Continue using CORE."
-        )
-    return block
-
-
-@mcp.tool()
-def get_predictions(reason: str) -> str:
-    """Return the user's situation-to-response patterns (PREDICTIONS layer).
-
-    Call this when modeling a specific scenario the user is in or about to
-    enter. Examples: "what would I do if my startup fails", "how will my
-    manager react to this proposal", "what's my likely response to this
-    setback", post-mortem on a recent event the user is describing.
-    PREDICTIONS encodes situation-trigger-directive patterns derived from the
-    user's track record. Approximately 2,500 tokens.
-
-    Do not call for hypothetical questions about other people, or for
-    questions that don't ask about the user's likely behavior.
-
-    Note: predictions are calibrated probabilities, not certainties. People
-    deviate from their patterns; the user may surprise you. Use predictions
-    as a default to interpret against, not as a forecast to insist on.
-
-    Args:
-        reason: One short sentence describing the conversation trigger that
-            prompted this fetch. Private internal trace; not surfaced to the
-            user. Examples:
-              - "user is anticipating a conflict and asked how they should respond"
-              - "user described a difficult conversation and I'm modeling the post-mortem"
-              - "user is choosing between options and I want to predict their satisfaction"
-    """
-    _log_call("get_predictions", reason=reason)
-    if not _is_serving_enabled():
-        return _DISABLED_MESSAGE
-    block = _extract_layer_block(PREDICTIONS_LAYER_FILE)
-    if not block:
-        return (
-            "PREDICTIONS layer is not present in this user's specification. "
-            "Tell the user: \"Your PREDICTIONS layer is missing. Generate it "
-            "with `baselayer author --layer predictions`.\" Continue using "
-            "CORE plus ANCHORS if available."
-        )
-    return block
 
 
 @mcp.tool()
