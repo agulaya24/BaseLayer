@@ -21,7 +21,7 @@ All notable changes to Base Layer are documented here.
 - The `memory://specification` resource content shape changed. Any client that hardcoded the assumption that the resource returns the full specification (rather than calling the new tools to fetch the rest) will see partial content. The manifest in the new payload describes the recovery path explicitly.
 
 ### Reproducibility
-- This is a 0.3.0 release. The paper-version pin remains `baselayer==0.2.0` / tag `v0.2-paper-2026`.
+- This is a 0.3.0 release. The paper-version pin is git tag `v0.2.0`. The same source is also vendored into the `memory-study-repo` at `./baselayer/` for paper readers. Base Layer is not currently on PyPI; the `baselayer` name is held by an unrelated project. Paper readers install via `pip install git+https://github.com/agulaya24/BaseLayer.git@v0.2.0` or use the vendored copy.
 
 ---
 
@@ -40,9 +40,9 @@ This release is the immutable reference state corresponding to the "Beyond Recal
 - The MCP resource URI `memory://identity` is deprecated in favor of `memory://specification`. Both currently return identical content; the alias will be retained for the foreseeable future to preserve compatibility for any external MCP client that hardcoded the old URI.
 
 ### Reproducibility
-- This version is published to PyPI as `baselayer==0.2.0`.
-- The git tag `v0.2-paper-2026` (created at release time) points at this exact commit.
-- Paper readers can reproduce the experiments via `pip install baselayer==0.2.0` or `git checkout v0.2-paper-2026`.
+- This version is tagged `v0.2.0` on GitHub and vendored into the `memory-study-repo` at `./baselayer/`.
+- Paper readers can reproduce the experiments via `pip install git+https://github.com/agulaya24/BaseLayer.git@v0.2.0` or by cloning the study repo and running `pip install -e ./baselayer`.
+- Base Layer is not on PyPI; the `baselayer` name there is held by an unrelated project. The git-install path is the canonical install method for the paper-cited version.
 
 ### Roadmap
 - Phase B (planned, non-breaking): add `data/specifications/` directory alongside `data/identity_layers/`; both read on load. Add `specification.md` output filename alongside `brief_v4.md`. Add `--specification-only` CLI flag alongside `--identity-only`. Will ship as `0.3.0`.
