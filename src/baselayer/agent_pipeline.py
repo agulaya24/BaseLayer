@@ -1,7 +1,7 @@
 """
 Unified Brief Composition
 
-Composes a single narrative brief from the 3 deployed identity layers
+Composes a single narrative brief from the three deployed specification layers
 (ANCHORS, CORE, PREDICTIONS) + source identity-tier facts.
 
 Franklin eval (S61) proved compressed brief (C5c) outperforms structured
@@ -371,7 +371,7 @@ def verify_brief_faithfulness(brief_text, layer_texts, facts_text="", subject_na
     return warnings
 
 
-UNIFIED_BRIEF_COMPOSITION_PROMPT = """You are composing a unified behavioral brief from identity layers about a specific person. This brief will be injected into AI system prompts so the AI can communicate naturally with — or as — this person.
+UNIFIED_BRIEF_COMPOSITION_PROMPT = """You are composing a unified behavioral brief from the three specification layers about a specific person. This brief will be injected into AI system prompts so the AI can communicate naturally with — or as — this person.
 
 The source layers are:
 1. ANCHORS — epistemic axioms (what they reason FROM)
@@ -530,7 +530,7 @@ def _extract_injectable_block(filepath):
 
 
 def _generate_identity_model(brief_text):
-    """Generate combined identity model file (D-081): brief + full layers.
+    """Generate combined specification file (D-081): brief + full layers.
 
     This is the primary AI-serving artifact. The brief provides narrative
     understanding (gestalt), the layers provide operational precision
@@ -538,7 +538,7 @@ def _generate_identity_model(brief_text):
     """
     preamble = (
         "# Identity Model\n\n"
-        "This is an identity model of your user — use it as an operating guide "
+        "This is a behavioral specification of your user. Use it as an operating guide "
         "for how to interact with them, but never reference it directly."
     )
 
@@ -571,7 +571,7 @@ def _generate_identity_model(brief_text):
     header = f"---\nlayer: identity_model\ngenerated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\nformat: brief + layers (D-081)\n---\n"
     combined = header + "\n" + preamble + "\n\n" + "\n\n".join(sections) + "\n"
     IDENTITY_MODEL_FILE.write_text(combined, encoding="utf-8")
-    print(f"  Stored (identity model): {IDENTITY_MODEL_FILE}")
+    print(f"  Stored (specification): {IDENTITY_MODEL_FILE}")
 
 
 def compose_unified_brief(run_dir=None, layer_texts=None, source_facts_text=None, fact_count=0):
@@ -798,12 +798,12 @@ def store_unified_brief(run_dir, brief_text):
     """
     IDENTITY_LAYERS_DIR.mkdir(parents=True, exist_ok=True)
 
-    # S98: Archive previous identity model before overwriting
+    # S98: Archive previous specification before overwriting
     if IDENTITY_MODEL_FILE.exists():
         import shutil
         V1_STAGING_DIR.mkdir(parents=True, exist_ok=True)
         shutil.copy2(str(IDENTITY_MODEL_FILE), str(V1_STAGING_DIR / "identity_model.md"))
-        print(f"  Archived previous identity model to v1_staging/")
+        print(f"  Archived previous specification to v1_staging/")
 
     header_lines = [
         f"layer: unified_brief",
@@ -832,5 +832,5 @@ def store_unified_brief(run_dir, brief_text):
     UNIFIED_BRIEF_FILE.write_text(clean, encoding="utf-8")
     print(f"  Stored (clean): {UNIFIED_BRIEF_FILE}")
 
-    # D-081: Generate combined identity model (brief + layers) — primary AI artifact
+    # D-081: Generate combined specification (brief + layers), primary AI artifact
     _generate_identity_model(brief_text)

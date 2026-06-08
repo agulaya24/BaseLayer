@@ -80,7 +80,7 @@ class TestNoSecretLeakage:
 
     def test_config_has_no_hardcoded_keys(self):
         """config.py should not contain hardcoded API keys."""
-        config_path = Path(__file__).parent.parent / "scripts" / "config.py"
+        config_path = Path(__file__).parent.parent / "src" / "baselayer" / "config.py"
         content = config_path.read_text(encoding="utf-8")
         assert "sk-ant-" not in content
         assert "sk-proj-" not in content

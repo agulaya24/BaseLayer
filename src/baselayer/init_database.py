@@ -112,16 +112,6 @@ def init_database(db_path=None):
             PRIMARY KEY (fact_id_1, fact_id_2)
         );
 
-        -- Fact cluster assignments (D-026)
-        CREATE TABLE IF NOT EXISTS fact_cluster_assignments (
-            fact_id TEXT NOT NULL,
-            cluster_key TEXT NOT NULL,
-            similarity REAL,
-            assigned_at REAL,
-            PRIMARY KEY (fact_id, cluster_key),
-            FOREIGN KEY (fact_id) REFERENCES memory_facts(id)
-        );
-
         -- Epistemic anchors
         CREATE TABLE IF NOT EXISTS epistemic_anchors (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -138,31 +128,6 @@ def init_database(db_path=None):
             superseded_by INTEGER,
             updated_at REAL,
             FOREIGN KEY (superseded_by) REFERENCES epistemic_anchors(id)
-        );
-
-        -- Identity blocks (legacy single-block + new three-layer)
-        CREATE TABLE IF NOT EXISTS identity_blocks (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            block_text TEXT NOT NULL,
-            token_count INTEGER,
-            fact_ids TEXT,
-            created_at REAL,
-            approved INTEGER DEFAULT 0,
-            notes TEXT
-        );
-
-        -- Brief assembly log
-        CREATE TABLE IF NOT EXISTS brief_assembly_log (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_message TEXT,
-            identity_tokens INTEGER,
-            theme_tokens INTEGER,
-            episode_tokens INTEGER,
-            total_tokens INTEGER,
-            facts_used INTEGER,
-            episodes_used INTEGER,
-            assembly_time_ms REAL,
-            created_at REAL
         );
 
         -- Extraction tracking
@@ -185,38 +150,6 @@ def init_database(db_path=None):
             match_patterns TEXT,
             created_at REAL NOT NULL,
             notes TEXT
-        );
-
-        -- Turn pairs (Phase 4)
-        CREATE TABLE IF NOT EXISTS turn_pairs (
-            id TEXT PRIMARY KEY,
-            conversation_id TEXT,
-            user_message_id TEXT,
-            assistant_message_id TEXT,
-            user_text TEXT,
-            assistant_text TEXT,
-            combined_text TEXT,
-            pair_order INTEGER,
-            created_at REAL,
-            FOREIGN KEY (conversation_id) REFERENCES conversations(id)
-        );
-
-        -- Topic scores
-        CREATE TABLE IF NOT EXISTS topic_scores (
-            topic TEXT PRIMARY KEY,
-            keywords TEXT,
-            recurrence INTEGER,
-            depth_score REAL,
-            span_days INTEGER,
-            significance_type TEXT,
-            recurrence_floor INTEGER,
-            novelty_score REAL,
-            weighted_score REAL,
-            llm_score REAL,
-            final_score REAL,
-            category TEXT,
-            reasoning TEXT,
-            computed_at REAL
         );
 
         -- Provenance: links layer claims to supporting facts (S56)
@@ -350,10 +283,6 @@ def init_database(db_path=None):
                 ON fact_relationships(fact_id_1);
             CREATE INDEX IF NOT EXISTS idx_rel_fact2
                 ON fact_relationships(fact_id_2);
-
-            -- Cluster assignments by fact (retrieval)
-            CREATE INDEX IF NOT EXISTS idx_cluster_fact
-                ON fact_cluster_assignments(fact_id);
 
             -- Extraction log lookup
             CREATE INDEX IF NOT EXISTS idx_extraction_conv

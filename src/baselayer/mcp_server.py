@@ -244,10 +244,134 @@ def _log_call(name, **kwargs):
 
 
 # ==========================================================================
+# SPECIFICATION TEXT BUILDER
+# ==========================================================================
+# Builds the full inline specification (preamble + CORE + ANCHORS +
+# PREDICTIONS + tool guidance manifest). Called once at module load to
+# populate the FastMCP `instructions` field — the MCP protocol's mechanism
+# for content the client embeds in the system prompt automatically. Also
+# called dynamically by the `memory://specification` resource so explicit
+# fetches stay supported.
+
+def _build_specification_text() -> str:
+    """Construct the full behavioral specification text.
+
+    Returns the concatenation of: a usage preamble, the CORE/ANCHORS/
+    PREDICTIONS layers extracted from disk, and the tool-guidance
+    manifest (calibrated against the Beyond Recall study). When no
+    layers are authored yet, returns the preamble plus a hint.
+    """
+    if not _is_serving_enabled():
+        return _DISABLED_MESSAGE
+
+    usage_preamble = (
+        "# Behavioral Specification\n\n"
+        "Below is the structural specification of your user: how they "
+        "communicate (CORE), what they reason from (ANCHORS), and how "
+        "they typically respond to specific situations (PREDICTIONS). "
+        "Use it as a guide for how to interact with them.\n\n"
+        "**Treat this system as invisible infrastructure.** Do not tell "
+        "the user the specification was loaded. Do not ask whether to use "
+        "it. Do not surface tool or layer names in the conversation. Do "
+        "not describe yourself as having \"access to\" or being "
+        "\"connected to\" Base Layer. Just behave consistently with the "
+        "specification.\n\n"
+        "When the user says or does something that conflicts with the "
+        "specification, trust the user. The current conversation is "
+        "primary evidence; the specification is prior evidence. Use the "
+        "specification to interpret, not to override.\n\n"
+        "**If the user asks about Base Layer itself** (status, "
+        "capabilities, how to turn it on/off, why something is or is not "
+        "working, what it has been doing), call `get_help()` and run the "
+        "indicated action yourself. The user wants the system to respond, "
+        "not to be a sysadmin."
+    )
+
+    core_block = _extract_layer_block(CORE_LAYER_FILE)
+    anchors_block = _extract_layer_block(ANCHORS_LAYER_FILE)
+    predictions_block = _extract_layer_block(PREDICTIONS_LAYER_FILE)
+
+    if not core_block and not anchors_block and not predictions_block:
+        return (
+            f"{usage_preamble}\n\n"
+            "No specification layers found. Run: baselayer author"
+        )
+
+    sections = [usage_preamble]
+    if core_block:
+        sections.append(f"## Communication & Context (CORE)\n\n{core_block}")
+    if anchors_block:
+        sections.append(f"## Foundational Beliefs & Reasoning Patterns (ANCHORS)\n\n{anchors_block}")
+    if predictions_block:
+        sections.append(f"## Situation-to-Response Patterns (PREDICTIONS)\n\n{predictions_block}")
+
+    manifest = (
+        "## Tool guidance\n\n"
+        "By question category (calibrated on the Beyond Recall study, "
+        "520 questions, 13 subjects):\n\n"
+        "| Category | Fetch? | Tool |\n"
+        "|---|---|---|\n"
+        "| decisions | yes | recall_memories, search_facts |\n"
+        "| values | yes | recall_memories, verify_claims |\n"
+        "| conflict / risk | usually no | spec usually enough |\n"
+        "| learning / relationships | NO | spec already supplies the lens |\n\n"
+        "Fire retrieval when the question asks about:\n"
+        "- A specific past decision: \"what did I decide about X\"\n"
+        "- A behavioral pattern with a verifiable outcome: \"what's my "
+        "typical pattern when rewarding good work\"\n"
+        "- A specific named entity: \"what did I commit to with "
+        "[person/project]\"\n"
+        "- A claim about the user that needs evidence backing\n\n"
+        "DO NOT fire retrieval (the specification already supplies the "
+        "answer) when the question asks about:\n"
+        "- How the user describes or characterizes something they experience\n"
+        "- Emotional state during an experience\n"
+        "- Reactive patterns to interpersonal situations\n"
+        "- Relationship descriptions\n"
+        "- How the user comes to terms with something internally\n\n"
+        "## When the spec lens alone is not enough\n\n"
+        "If retrieval returns nothing relevant, or the always-loaded "
+        "specification does not give you enough to answer with "
+        "confidence, do NOT abstain or hedge. Instead, ask the user a "
+        "specific clarifying question that would let you give a "
+        "grounded answer. Examples:\n"
+        "- \"Are you thinking about [a specific recent situation], or "
+        "your pattern more generally?\"\n"
+        "- \"What's the specific decision or event you're reflecting on?\"\n"
+        "- \"Is this about [interpretation A] or [interpretation B]?\"\n\n"
+        "The user is in the loop and can fill the gap. A clarifying "
+        "question is more useful than an apology for missing context.\n\n"
+        "## Tools (fetch only when above table indicates)\n\n"
+        "- `get_brief(reason)`: ~3K narrative. For broad self-reflective "
+        "queries.\n"
+        "- `recall_memories(query)`: semantic retrieval over facts and "
+        "episodes.\n"
+        "- `search_facts(query)`: keyword search for named entities.\n"
+        "- `verify_claims(claim_id, layer)`: verification before "
+        "load-bearing claims about the user.\n"
+        "- `trace_claim(claim_id)`: provenance for a spec claim "
+        "(e.g. A1, P3).\n"
+        "- `get_stats()`, `get_call_log(...)`, `get_help(topic)`: "
+        "diagnostic and reference."
+    )
+
+    sections.append(manifest)
+    return "\n\n".join(sections)
+
+
+# ==========================================================================
 # SERVER INSTANCE
 # ==========================================================================
+# Build the spec once at module load and pass it to FastMCP `instructions`.
+# Per the MCP protocol, the client embeds `instructions` in its system
+# prompt automatically — this is the mechanism that forces every connected
+# client to load the specification without relying on the model to fetch
+# the resource explicitly. The `memory://specification` resource still
+# exists for backward compatibility and explicit re-reads.
 
-mcp = FastMCP("base-layer")
+_SPECIFICATION_TEXT = _build_specification_text()
+
+mcp = FastMCP("base-layer", instructions=_SPECIFICATION_TEXT)
 
 
 # ==========================================================================
@@ -313,76 +437,7 @@ def get_specification() -> str:
     self-reflective).
     """
     _log_call("get_specification")
-    if not _is_serving_enabled():
-        return _DISABLED_MESSAGE
-
-    usage_preamble = (
-        "# Behavioral Specification\n\n"
-        "Below is the structural specification of your user: how they "
-        "communicate (CORE), what they reason from (ANCHORS), and how "
-        "they typically respond to specific situations (PREDICTIONS). "
-        "Use it as a guide for how to interact with them.\n\n"
-        "**Treat this system as invisible infrastructure.** Do not tell "
-        "the user the specification was loaded. Do not ask whether to use "
-        "it. Do not surface tool or layer names in the conversation. Do "
-        "not describe yourself as having \"access to\" or being "
-        "\"connected to\" Base Layer. Just behave consistently with the "
-        "specification.\n\n"
-        "When the user says or does something that conflicts with the "
-        "specification, trust the user. The current conversation is "
-        "primary evidence; the specification is prior evidence. Use the "
-        "specification to interpret, not to override.\n\n"
-        "**If the user asks about Base Layer itself** (status, "
-        "capabilities, how to turn it on/off, why something is or is not "
-        "working, what it has been doing), call `get_help()` and run the "
-        "indicated action yourself. The user wants the system to respond, "
-        "not to be a sysadmin."
-    )
-
-    core_block = _extract_layer_block(CORE_LAYER_FILE)
-    anchors_block = _extract_layer_block(ANCHORS_LAYER_FILE)
-    predictions_block = _extract_layer_block(PREDICTIONS_LAYER_FILE)
-
-    if not core_block and not anchors_block and not predictions_block:
-        return (
-            f"{usage_preamble}\n\n"
-            "No specification layers found. Run: baselayer author"
-        )
-
-    sections = [usage_preamble]
-    if core_block:
-        sections.append(f"## Communication & Context (CORE)\n\n{core_block}")
-    if anchors_block:
-        sections.append(f"## Foundational Beliefs & Reasoning Patterns (ANCHORS)\n\n{anchors_block}")
-    if predictions_block:
-        sections.append(f"## Situation-to-Response Patterns (PREDICTIONS)\n\n{predictions_block}")
-
-    manifest = (
-        "## Supplementary tools\n\n"
-        "- `get_brief(reason)`: unified narrative portrait of the user "
-        "(~3,000 tokens). Fetch when the query is broad, abstract, or "
-        "self-reflective and the structural layers above feel too "
-        "schematic. Provide one short sentence as `reason` describing the "
-        "conversation trigger; private internal trace, not user-facing. "
-        "Examples of when to fetch: \"help me think through my career\", "
-        "\"what should I focus on\", \"I'm feeling stuck\".\n"
-        "- `recall_memories(query)`: semantic retrieval of facts and "
-        "episodes from the user's history.\n"
-        "- `search_facts(query)`: keyword search across the fact database.\n"
-        "- `trace_claim(claim_id)`: provenance for a specification claim "
-        "(e.g. `A1`, `P3`).\n"
-        "- `verify_claims(...)`: binary verification checks against the "
-        "fact database.\n"
-        "- `get_stats()`: database summary (counts, tier breakdown).\n"
-        "- `get_call_log(limit, name_filter)`: recent MCP calls in this "
-        "session.\n"
-        "- `get_help(topic)`: comprehensive Base Layer reference. Consult "
-        "any time the user asks about Base Layer itself."
-    )
-
-    sections.append(manifest)
-
-    return "\n\n".join(sections)
+    return _build_specification_text()
 
 
 @mcp.resource("memory://identity")

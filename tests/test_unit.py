@@ -112,22 +112,17 @@ class TestInitDatabase:
 
         # Core tables that MUST exist (excludes FTS virtual tables which may vary)
         expected_core = [
-            "brief_assembly_log",
             "claim_verification",
             "conversation_summaries",
             "conversations",
             "epistemic_anchors",
             "extraction_log",
-            "fact_cluster_assignments",
             "fact_relationships",
-            "identity_blocks",
             "layer_claim_provenance",
             "memory_facts",
             "messages",
             "schema_version",
             "subjects",
-            "topic_scores",
-            "turn_pairs",
             "user_corrections",
         ]
         # Filter out FTS virtual tables (memory_facts_fts*) from actual tables

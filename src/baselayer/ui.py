@@ -106,7 +106,7 @@ input[type="file"] { display: none; }
 <body>
 <div class="container">
 <h1>Base Layer</h1>
-<p class="subtitle">Drop your data. Get your identity brief.</p>
+<p class="subtitle">Drop your data. Get your specification.</p>
 
 <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
     <h2 id="dropLabel">Drop file here or click to browse</h2>
@@ -128,7 +128,7 @@ input[type="file"] { display: none; }
 </div>
 
 <div class="result" id="result">
-    <div class="result-header">Your identity brief is ready.</div>
+    <div class="result-header">Your specification is ready.</div>
     <div class="result-stats" id="resultStats"></div>
     <div class="brief-preview" id="briefPreview"></div>
     <div class="next-steps">
@@ -434,7 +434,7 @@ def run_pipeline_thread(file_path, document_mode, subject):
         pipeline_status["state"] = "done"
         pipeline_status["steps_done"] = 6
         pipeline_status["step"] = "Complete!"
-        log_step("done", "Pipeline complete! Your identity brief is ready.")
+        log_step("done", "Pipeline complete! Your specification is ready.")
 
     except Exception as e:
         pipeline_status["state"] = "error"

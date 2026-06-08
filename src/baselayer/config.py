@@ -6,10 +6,11 @@ definitions used across the pipeline scripts. Scripts import from here
 rather than defining their own copies.
 
 Organization:
-  === ACTIVE PIPELINE CONSTANTS ===   — Used by the current 4-step pipeline
+  === ACTIVE PIPELINE CONSTANTS ===   — Used by the current 5-step pipeline
+      (Import → Extract → Embed → Author → Compose).
   === ARCHIVED (unused, kept for reference) ===  — Dead constants from removed steps;
       kept to avoid breaking any external code that may import them, but not
-      used by the simplified pipeline (Import → Extract → Author → Compose).
+      used by the simplified 5-step pipeline.
 """
 
 import contextlib
@@ -279,6 +280,14 @@ EXTRACTION_CAPS = {
     ],
     # Absolute ceiling regardless of message count (S97: raised from 200 for large documents)
     "max_facts_ceiling": 600,
+    # 2026-05-17: per-source overrides for the absolute ceiling. Multi-day Claude
+    # Code sessions (compacted instead of restarted) can produce thousands of
+    # candidate facts across windows; the default 600 trips the >20% coverage
+    # gate. Per-source override preserves the gate for ChatGPT/journals while
+    # giving dense project sources room to land their content.
+    "max_facts_ceiling_by_source": {
+        "claude_code": 1500,
+    },
     "max_input_char_budget": 24000,
 }
 
@@ -419,9 +428,9 @@ DEFAULT_SCOPE = "personal"
 # Applied as case-insensitive substring matches on fact_text.
 
 # ==========================================================================
-# IDENTITY LAYER PATHS (D-043 — Three-Layer Architecture)
+# SPECIFICATION LAYER PATHS (D-043 — Three-Layer Architecture)
 # ==========================================================================
-# Pre-authored identity layers stored as markdown files with injectable blocks.
+# Pre-authored specification layers stored as markdown files with injectable blocks.
 # Each file has a metadata header above --- and injectable text below.
 # assemble_brief.py reads the injectable blocks at assembly time.
 
@@ -431,8 +440,8 @@ CORE_LAYER_FILE = IDENTITY_LAYERS_DIR / "core_v4.md"
 PREDICTIONS_LAYER_FILE = IDENTITY_LAYERS_DIR / "predictions_v4.md"
 UNIFIED_BRIEF_FILE = IDENTITY_LAYERS_DIR / "brief_v5_clean.md"  # Stripped citations — for serving
 UNIFIED_BRIEF_CITED_FILE = IDENTITY_LAYERS_DIR / "brief_v5.md"  # With citations — for audit
-IDENTITY_MODEL_FILE = IDENTITY_LAYERS_DIR / "identity_model.md"  # D-081: brief + layers combined — primary AI artifact
-V1_STAGING_DIR = IDENTITY_LAYERS_DIR / "v1_staging"  # S98: previous identity model archived here before pipeline overwrites
+IDENTITY_MODEL_FILE = IDENTITY_LAYERS_DIR / "identity_model.md"  # D-081: brief + layers combined, primary AI artifact
+V1_STAGING_DIR = IDENTITY_LAYERS_DIR / "v1_staging"  # S98: previous specification archived here before pipeline overwrites
 
 # D-054: Agent pipeline directories
 AGENT_DEFINITIONS_DIR = PROJECT_ROOT / "agents"
@@ -636,3 +645,32 @@ CONSTRAINED_PREDICATES = [
     "admires",            # respect/admiration relationship
     "conflicts_with",     # tension/disagreement relationship
 ]
+
+
+# ==========================================================================
+# IDENTITY_PREDICATES — tier-classification subset of CONSTRAINED_PREDICATES
+# ==========================================================================
+# Predicates whose facts are tagged knowledge_tier='identity' during the
+# post-compose traceability pass (cli._run_traceability, step 5a).
+# Everything not in this set tiers to 'contextual'.
+#
+# Source-of-truth invariant: every entry MUST appear in CONSTRAINED_PREDICATES.
+# A runtime assertion below enforces this so the two lists cannot drift.
+# Pre-2026-05-06 history: a parallel list lived in cli.py and drifted to
+# include 'decides' (extraction emits 'decided') and 'trades' (not canonical).
+# Both were dead matches at tier time. Removed when this list moved here.
+IDENTITY_PREDICATES = (
+    "values", "believes", "fears", "identifies_as", "aspires_to",
+    "prioritizes", "avoids", "practices", "excels_at", "struggles_with",
+    "loves", "hates", "enjoys", "dislikes", "builds", "founded",
+    "decided", "experienced", "lost", "follows", "monitors",
+    "plays", "maintains", "prefers",
+)
+
+_canonical_set = set(CONSTRAINED_PREDICATES)
+_identity_drift = [p for p in IDENTITY_PREDICATES if p not in _canonical_set]
+assert not _identity_drift, (
+    f"IDENTITY_PREDICATES drifted from CONSTRAINED_PREDICATES: {_identity_drift}. "
+    f"Every identity predicate must be a canonical predicate."
+)
+del _canonical_set, _identity_drift

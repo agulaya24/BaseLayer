@@ -1136,7 +1136,7 @@ def _run_traceability():
     that makes every claim inspectable. Cost: ~$0.05 per subject (Haiku for tensions).
     """
     import sqlite3
-    from baselayer.config import DATABASE_FILE, VECTORS_DIR, PROJECT_ROOT, IDENTITY_PREDICATES
+    from baselayer.config import DATABASE_FILE, VECTORS_DIR, PROJECT_ROOT
 
     if not DATABASE_FILE.exists():
         print("  No database found, skipping traceability.")
@@ -1145,19 +1145,12 @@ def _run_traceability():
     conn = sqlite3.connect(str(DATABASE_FILE))
 
     # 5a: Rule-based tiering (predicate -> knowledge_tier).
-    # IDENTITY_PREDICATES is the canonical subset of CONSTRAINED_PREDICATES;
-    # see config.py for the source-of-truth invariant.
+    # Shared with batch_extract.run_process via tier_facts_by_predicate so both
+    # extraction paths tier identically. Idempotent — only touches untiered
+    # facts, so calling it here after the batch path already tiered is a no-op.
     print("  5a. Tiering facts by predicate...")
-    placeholders = ','.join(f"'{p}'" for p in IDENTITY_PREDICATES)
-    id_count = conn.execute(f"""
-        UPDATE memory_facts SET knowledge_tier = 'identity'
-        WHERE (knowledge_tier IS NULL OR knowledge_tier = 'untiered')
-        AND predicate IN ({placeholders})
-    """).rowcount
-    ctx_count = conn.execute("""
-        UPDATE memory_facts SET knowledge_tier = 'contextual'
-        WHERE knowledge_tier IS NULL OR knowledge_tier = 'untiered'
-    """).rowcount
+    from baselayer.extract_facts import tier_facts_by_predicate
+    id_count, ctx_count = tier_facts_by_predicate(conn)
     conn.commit()
     print(f"      {id_count} -> identity, {ctx_count} -> contextual")
 
@@ -1637,9 +1630,18 @@ def _check_fact_floor():
     """S98 Phase 3A: Block author/compose if fact quality is insufficient.
 
     Multi-dimensional check:
-    - Identity-tier facts (behavioral + positional) >= 50
+    - Identity-tier facts >= 50
     - Distinct predicates >= 15
     - Source documents >= 5
+
+    2026-05-19: The identity-fact count used to filter on
+    `fact_type IN ('behavioral','positional')`. fact_type is the pre-D-056
+    classification taxonomy; D-056 Tier 2 replaced it with the structured
+    predicate taxonomy and nothing populates fact_type on new extractions. The
+    filter made the gate read near-zero on every fresh structured corpus.
+    knowledge_tier='identity' (assigned from IDENTITY_PREDICATES, which encode
+    the behavioral/positional predicates the old filter intended) is the
+    correct post-D-056 signal.
     """
     from baselayer.config import DATABASE_FILE
     if not DATABASE_FILE.exists():
@@ -1648,11 +1650,10 @@ def _check_fact_floor():
     import sqlite3
     conn = sqlite3.connect(str(DATABASE_FILE))
     try:
-        # Identity-tier behavioral + positional facts
+        # Identity-tier facts (knowledge_tier is the post-D-056 identity signal)
         identity_facts = conn.execute("""
             SELECT COUNT(*) FROM memory_facts
             WHERE superseded_by IS NULL
-              AND fact_type IN ('behavioral', 'positional')
               AND knowledge_tier = 'identity'
         """).fetchone()[0]
 
@@ -1881,12 +1882,16 @@ def cmd_batch_extract(args):
     elif args.status:
         batch_extract.run_status()
     elif args.process:
-        batch_extract.run_process()
+        # 2026-05-18: --resume skips Phase 1 (reset of facts + ChromaDB).
+        # Use for follow-up batches that augment an existing v2 set rather than
+        # replace it (e.g. retry of failed chunks from a prior batch).
+        batch_extract.run_process(resume=getattr(args, "resume", False))
     else:
         print("Specify --submit, --status, or --process")
         print("  --submit   Build prompts and submit batch")
         print("  --status   Check processing status")
         print("  --process  Process completed results")
+        print("  --process --resume  Process results without resetting existing facts")
 
 
 def cmd_batch_classify(args):
@@ -2184,6 +2189,10 @@ def main():
                          help="Check batch processing status")
     p_batch.add_argument("--process", action="store_true",
                          help="Process completed batch results into database")
+    p_batch.add_argument("--resume", action="store_true",
+                         help="With --process: skip Phase 1 reset; augment "
+                              "existing facts instead of replacing them. Use "
+                              "for follow-up retry batches.")
     p_batch.set_defaults(func=cmd_batch_extract)
 
     # batch-classify (Session 73 — Batch API classification, 50% cost)

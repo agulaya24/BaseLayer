@@ -44,10 +44,13 @@ from baselayer.extract_facts import (
     build_identity_extraction_prompt,
     build_document_extraction_prompt,
     _abstract_project_conversation,
+    _chunk_text_for_extraction,
+    _get_extraction_caps,
     validate_structured_response,
     store_fact,
     embed_fact,
     link_facts,
+    tier_facts_by_predicate,
     load_corrections,
     check_against_corrections,
     _ensure_structured_columns,
@@ -65,7 +68,13 @@ def _get_batch_state_file():
     return _ROOT / "data" / "database" / "batch_state.json"
 
 BATCH_STATE_FILE = _get_batch_state_file()  # Default for direct CLI usage
-BATCH_MAX_TOKENS = 2000
+# 2026-05-18: raised from 2000. The 50-fact per-chunk cap × ~120 tokens of
+# structured-JSON per fact = ~6,000 output tokens; the 2000 ceiling truncated
+# responses on dense chunks and caused 662 of 2287 chunks (29%) to fail JSON
+# parsing on the first run. 8000 leaves headroom and stays well under Haiku 4.5's
+# 8192 max-output-token cap. Sync path (api_client.call_api) defaults to 4096,
+# which is why the sync smoke test on the same input succeeded.
+BATCH_MAX_TOKENS = 8000
 BATCH_TEMPERATURE = 0.1
 
 
@@ -95,16 +104,92 @@ def _get_anthropic_client():
 
 
 def _build_conv_text(messages):
-    """Build conversation text from messages for extraction prompt."""
+    """Build full conversation text from messages for extraction prompt.
+
+    2026-05-17: Per-message [:1500] cap and 12K hard-break removed. Callers
+    that need windowing should consult _get_extraction_caps and chunk via
+    _chunk_text_for_extraction. AUDN dedups across chunks.
+    """
     conv_text = ""
     for msg in messages:
         role = msg["role"].capitalize()
-        text = msg["text"][:1500]
+        text = msg["text"]
         conv_text += f"{role}: {text}\n"
-        if len(conv_text) > 12000:
-            conv_text += "\n[conversation continues...]\n"
-            break
     return conv_text
+
+
+def _build_request_for_conv(custom_id, prompt, model, max_tokens, temperature, json_instruction):
+    """Build a single batch request dict."""
+    return {
+        "custom_id": custom_id,
+        "params": {
+            "model": model,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "messages": [
+                {"role": "user", "content": json_instruction + prompt}
+            ],
+        },
+    }
+
+
+def _build_chunk_requests(conv_id, conv_title, abstracted_text, source, input_char_budget,
+                          max_facts, prompt_builder, model, max_tokens, temperature,
+                          json_instruction, chunk_map, overlap=None):
+    """Split a long abstracted/built text into windowed batch requests.
+
+    Returns a list of request dicts. Populates chunk_map in place with
+    {custom_id: {parent_conv_id, chunk_idx, total_chunks, source}} entries
+    for downstream result processing.
+
+    Custom_id format: '{conv_id}' for single-chunk; '{conv_id}__c{i}of{n}' for
+    multi-chunk. The chunk_map is the source of truth — custom_id format is for
+    debugging only.
+
+    Args:
+        overlap: chunk overlap in chars for prose continuity. None = source-aware
+            default (0 for claude_code/turn-bounded, 500 for prose corpora).
+    """
+    if overlap is None:
+        # claude_code abstractions are turn-bounded; overlap wastes budget.
+        # Document/ChatGPT prose benefits from continuity overlap.
+        overlap = 0 if source == "claude_code" else 500
+
+    requests = []
+    if len(abstracted_text) <= input_char_budget:
+        custom_id = conv_id
+        chunk_map[custom_id] = {
+            "parent_conv_id": conv_id,
+            "chunk_idx": 1,
+            "total_chunks": 1,
+            "source": source,
+        }
+        prompt = prompt_builder(conv_title, abstracted_text, max_facts=max_facts)
+        requests.append(_build_request_for_conv(
+            custom_id, prompt, model, max_tokens, temperature, json_instruction
+        ))
+        return requests
+
+    chunks = _chunk_text_for_extraction(abstracted_text, input_char_budget, overlap=overlap)
+    per_chunk_cap = min(50, max_facts)
+    total = len(chunks)
+    for i, chunk in enumerate(chunks):
+        chunk_idx = i + 1
+        custom_id = f"{conv_id}__c{chunk_idx}of{total}"
+        chunk_map[custom_id] = {
+            "parent_conv_id": conv_id,
+            "chunk_idx": chunk_idx,
+            "total_chunks": total,
+            "source": source,
+        }
+        chunk_info = f"Section {chunk_idx} of {total} from '{conv_title}'."
+        prompt = prompt_builder(
+            conv_title, chunk, max_facts=per_chunk_cap, chunk_info=chunk_info
+        )
+        requests.append(_build_request_for_conv(
+            custom_id, prompt, model, max_tokens, temperature, json_instruction
+        ))
+    return requests
 
 
 def _get_conversation_messages(conn, conv_id):
@@ -174,58 +259,73 @@ def run_submit(document_mode=False, skip_extracted=False):
             """, (min_msgs,)).fetchall()
             print(f"  Found {len(rows)} conversations with >= {min_msgs} messages")
 
-        # Build batch requests
+        # Build batch requests.
+        # 2026-05-17: Multi-window per-conversation. Long abstracted texts get
+        # split into N requests; chunk_map is the source of truth for
+        # custom_id → parent conv_id lookup on the process side. Raw conv_id is
+        # used as the base custom_id (UUIDs are valid; the prior md5 hash code
+        # path had a latent bug where id_mapping was stored but never read back).
         requests = []
-        id_mapping = {}  # short_id → original conv_id (for results processing)
+        chunk_map = {}  # custom_id → {parent_conv_id, chunk_idx, total_chunks, source}
+        chunk_counts = {}  # how many chunks each conversation produced
         skipped = 0
 
         for i, row in enumerate(rows):
             conv_id = row["id"]
             conv_title = row["title"] or "Untitled"
             source = row["source"] or "chatgpt"
+            message_count = row["message_count"] or 0
 
             messages = _get_conversation_messages(conn, conv_id)
             if not messages:
                 skipped += 1
                 continue
 
-            # Build prompt based on mode and source type
+            # Build abstracted text + caps based on mode and source type
             if document_mode:
                 conv_text = _build_conv_text(messages)
-                prompt = build_document_extraction_prompt(conv_title, conv_text)
+                caps = _get_extraction_caps(len(messages), total_chars=len(conv_text))
+                prompt_builder = build_document_extraction_prompt
+                effective_source = source
             elif source == "claude_code":
                 conv_text = _abstract_project_conversation(messages)
                 if len(conv_text.strip()) < 100:
                     skipped += 1
                     continue
-                prompt = build_identity_extraction_prompt(conv_title, conv_text)
+                caps = _get_extraction_caps(len(messages), source="claude_code")
+                prompt_builder = build_identity_extraction_prompt
+                effective_source = "claude_code"
             else:
                 conv_text = _build_conv_text(messages)
-                prompt = build_extraction_prompt(conv_title, conv_text)
+                caps = _get_extraction_caps(len(messages), total_chars=len(conv_text))
+                prompt_builder = build_extraction_prompt
+                effective_source = source
 
-            # Build batch request (custom_id: alphanumeric + _ - only, max 64 chars)
-            import hashlib
-            import re as _re
-            # Always hash to guarantee valid characters + uniqueness
-            short_id = hashlib.md5(conv_id.encode()).hexdigest()  # 32 hex chars, always valid
-            id_mapping[short_id] = conv_id
-            requests.append({
-                "custom_id": short_id,
-                "params": {
-                    "model": EXTRACTION_API_MODEL,
-                    "max_tokens": BATCH_MAX_TOKENS,
-                    "temperature": BATCH_TEMPERATURE,
-                    "messages": [
-                        {"role": "user", "content": json_instruction + prompt}
-                    ],
-                },
-            })
+            conv_requests = _build_chunk_requests(
+                conv_id=conv_id,
+                conv_title=conv_title,
+                abstracted_text=conv_text,
+                source=effective_source,
+                input_char_budget=caps["input_char_budget"],
+                max_facts=caps["max_facts"],
+                prompt_builder=prompt_builder,
+                model=EXTRACTION_API_MODEL,
+                max_tokens=BATCH_MAX_TOKENS,
+                temperature=BATCH_TEMPERATURE,
+                json_instruction=json_instruction,
+                chunk_map=chunk_map,
+            )
+            requests.extend(conv_requests)
+            chunk_counts[conv_id] = len(conv_requests)
 
             if (i + 1) % 100 == 0:
-                print(f"  Built {i + 1}/{len(rows)} prompts...")
+                print(f"  Built {i + 1}/{len(rows)} conversations "
+                      f"({len(requests)} requests so far)...")
 
+    chunked_convs = sum(1 for n in chunk_counts.values() if n > 1)
     print(f"\n  Total requests: {len(requests)}")
-    print(f"  Skipped: {skipped} (empty or too short)")
+    print(f"  Conversations:  {len(chunk_counts)} ({chunked_convs} chunked into multiple windows)")
+    print(f"  Skipped:        {skipped} (empty or too short)")
 
     if not requests:
         print("ERROR: No conversations to process.")
@@ -247,13 +347,13 @@ def run_submit(document_mode=False, skip_extracted=False):
         print(f"ERROR: Batch submission failed: {e}")
         return
 
-    # Save state
+    # Save state. chunk_map is the authoritative custom_id → parent conv_id mapping.
     state = {
         "batch_id": batch_id,
         "created_at": datetime.now().isoformat(),
         "total_requests": len(requests),
-        "conversation_ids": [r["custom_id"] for r in requests],
-        "id_mapping": id_mapping,  # short_id → original conv_id
+        "conversation_ids": list(chunk_counts.keys()),
+        "chunk_map": chunk_map,  # custom_id → {parent_conv_id, chunk_idx, total_chunks, source}
         "model": EXTRACTION_API_MODEL,
         "status": "submitted",
     }
@@ -326,6 +426,45 @@ def run_status():
 # Phase 3: PROCESS
 # ---------------------------------------------------------------------------
 
+def _ensure_extraction_chunks_done_table(conn):
+    """Create the per-chunk completion-tracking table if missing.
+
+    2026-05-17: Records that a specific custom_id has been processed under a
+    specific batch_id. Resume uses this set instead of extraction_log (which
+    is conv-level and would lose chunk granularity).
+    """
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS extraction_chunks_done (
+            custom_id TEXT NOT NULL,
+            batch_id TEXT NOT NULL,
+            parent_conv_id TEXT NOT NULL,
+            facts_extracted INTEGER NOT NULL,
+            processed_at REAL NOT NULL,
+            PRIMARY KEY (custom_id, batch_id)
+        )
+    """)
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_chunks_done_batch
+        ON extraction_chunks_done (batch_id)
+    """)
+
+
+def _upsert_extraction_log(conn, parent_conv_id, facts_extracted, processed_at):
+    """Upsert into extraction_log with sum semantics.
+
+    A chunked conversation produces multiple results; this accumulates their
+    facts_extracted into a single conv-level row instead of overwriting.
+    The conversation_id column is the PK (INSERT OR REPLACE relied on it).
+    """
+    conn.execute("""
+        INSERT INTO extraction_log (conversation_id, facts_extracted, processed_at)
+        VALUES (?, ?, ?)
+        ON CONFLICT(conversation_id) DO UPDATE SET
+            facts_extracted = facts_extracted + excluded.facts_extracted,
+            processed_at = excluded.processed_at
+    """, (parent_conv_id, facts_extracted, processed_at))
+
+
 def run_process(resume=False):
     """Process completed batch results — reset old facts and store new ones."""
     state = _load_batch_state()
@@ -334,6 +473,7 @@ def run_process(resume=False):
         return
 
     batch_id = state["batch_id"]
+    chunk_map = state.get("chunk_map", {})
     client = _get_anthropic_client()
 
     # Verify batch is complete
@@ -360,31 +500,37 @@ def run_process(resume=False):
         print("ERROR: No successful results to process.")
         return
 
-    # Build set of already-processed conversations (for resume)
+    # Build set of already-processed chunks (for resume).
+    # 2026-05-17: Resume granularity is per-chunk (custom_id), not per-conv.
+    # A multi-day session may have some chunks done and some pending.
     already_processed = set()
     if resume:
         print(f"\n--- Resuming from previous run ---")
         with contextlib.closing(get_db()) as conn:
+            _ensure_extraction_chunks_done_table(conn)
             rows = conn.execute(
-                "SELECT conversation_id FROM extraction_log"
+                "SELECT custom_id FROM extraction_chunks_done WHERE batch_id = ?",
+                (batch_id,),
             ).fetchall()
             already_processed = {r[0] for r in rows}
             existing_facts = conn.execute(
                 "SELECT COUNT(*) FROM memory_facts WHERE superseded_by IS NULL"
             ).fetchone()[0]
-        print(f"  Already processed: {len(already_processed)} conversations")
-        print(f"  Existing facts: {existing_facts}")
-        print(f"  Remaining: ~{counts.succeeded - len(already_processed)} conversations")
+        print(f"  Already processed: {len(already_processed)} chunks (this batch)")
+        print(f"  Existing facts:    {existing_facts}")
+        print(f"  Remaining chunks:  ~{counts.succeeded - len(already_processed)}")
     else:
         # --- Phase 3a: Reset existing extraction data ---
         print(f"\n--- Phase 1: Reset existing extraction data ---")
 
         with contextlib.closing(get_db()) as conn:
             _ensure_structured_columns(conn)
+            _ensure_extraction_chunks_done_table(conn)
 
             with conn:
                 # D-021: Protected reset — only clear extraction-sourced facts
                 conn.execute("DELETE FROM extraction_log")
+                conn.execute("DELETE FROM extraction_chunks_done")
                 deleted = conn.execute("""
                     DELETE FROM memory_facts
                     WHERE source = 'extraction' OR source IS NULL
@@ -470,32 +616,44 @@ def run_process(resume=False):
 
     with contextlib.closing(get_db()) as conn:
         _ensure_structured_columns(conn)
+        _ensure_extraction_chunks_done_table(conn)
 
         for attempt in range(MAX_RETRIES):
             try:
-                # On retry, refresh the set of already-processed conversations
+                # On retry, refresh the set of already-processed chunks (this batch)
                 if attempt > 0:
                     rows = conn.execute(
-                        "SELECT conversation_id FROM extraction_log"
+                        "SELECT custom_id FROM extraction_chunks_done WHERE batch_id = ?",
+                        (batch_id,),
                     ).fetchall()
                     already_processed = {r[0] for r in rows}
                     print(f"\n  Retry {attempt}/{MAX_RETRIES} — "
-                          f"{len(already_processed)} already processed, resuming...")
+                          f"{len(already_processed)} chunks already processed, resuming...")
 
                 for result in client.messages.batches.results(batch_id):
-                    conv_id = result.custom_id
+                    custom_id = result.custom_id
 
-                    # Skip already-processed conversations
-                    if conv_id in already_processed:
+                    # Skip already-processed chunks
+                    if custom_id in already_processed:
                         continue
+
+                    # Resolve parent conv_id via chunk_map (authoritative).
+                    # Fallback: treat custom_id as conv_id for legacy single-chunk runs.
+                    chunk_meta = chunk_map.get(custom_id)
+                    if chunk_meta:
+                        conv_id = chunk_meta["parent_conv_id"]
+                    else:
+                        conv_id = custom_id
 
                     if result.result.type == "errored":
                         total_errors += 1
+                        # Mark chunk as processed-with-error so resume doesn't retry it.
+                        # Don't pollute extraction_log sum with -1 (skip log).
                         conn.execute("""
-                            INSERT OR REPLACE INTO extraction_log
-                            (conversation_id, facts_extracted, processed_at)
-                            VALUES (?, -1, ?)
-                        """, (conv_id, time.time()))
+                            INSERT OR REPLACE INTO extraction_chunks_done
+                            (custom_id, batch_id, parent_conv_id, facts_extracted, processed_at)
+                            VALUES (?, ?, ?, -1, ?)
+                        """, (custom_id, batch_id, conv_id, time.time()))
                         conn.commit()
                         continue
 
@@ -519,19 +677,20 @@ def run_process(resume=False):
                     except (json.JSONDecodeError, IndexError, AttributeError) as e:
                         total_errors += 1
                         conn.execute("""
-                            INSERT OR REPLACE INTO extraction_log
-                            (conversation_id, facts_extracted, processed_at)
-                            VALUES (?, -1, ?)
-                        """, (conv_id, time.time()))
+                            INSERT OR REPLACE INTO extraction_chunks_done
+                            (custom_id, batch_id, parent_conv_id, facts_extracted, processed_at)
+                            VALUES (?, ?, ?, -1, ?)
+                        """, (custom_id, batch_id, conv_id, time.time()))
                         conn.commit()
                         continue
 
                     if "facts" not in parsed:
+                        _upsert_extraction_log(conn, conv_id, 0, time.time())
                         conn.execute("""
-                            INSERT OR REPLACE INTO extraction_log
-                            (conversation_id, facts_extracted, processed_at)
-                            VALUES (?, 0, ?)
-                        """, (conv_id, time.time()))
+                            INSERT OR REPLACE INTO extraction_chunks_done
+                            (custom_id, batch_id, parent_conv_id, facts_extracted, processed_at)
+                            VALUES (?, ?, ?, 0, ?)
+                        """, (custom_id, batch_id, conv_id, time.time()))
                         conn.commit()
                         processed_convos += 1
                         continue
@@ -543,8 +702,9 @@ def run_process(resume=False):
                     ).fetchone()
                     message_count = msg_count_row["message_count"] if msg_count_row else 10
 
-                    # Determine identity-only mode
-                    conv_source = source_map.get(conv_id, "chatgpt")
+                    # Determine identity-only mode. Prefer chunk_meta (set at submit
+                    # time) over source_map for accuracy in chunked path.
+                    conv_source = (chunk_meta or {}).get("source") or source_map.get(conv_id, "chatgpt")
                     identity_only = (conv_source == "claude_code")
 
                     # Validate and normalize
@@ -611,22 +771,24 @@ def run_process(resume=False):
 
                         total_facts += 1
 
-                    # Link co-occurring facts
+                    # Link co-occurring facts (within this chunk)
                     if len(fact_ids) > 1:
                         link_facts(conn, fact_ids, conv_id)
 
-                    # Log extraction
+                    # Log per-chunk completion AND accumulate into per-conv extraction_log
+                    now = time.time()
                     conn.execute("""
-                        INSERT OR REPLACE INTO extraction_log
-                        (conversation_id, facts_extracted, processed_at)
-                        VALUES (?, ?, ?)
-                """, (conv_id, len(fact_ids), time.time()))
+                        INSERT OR REPLACE INTO extraction_chunks_done
+                        (custom_id, batch_id, parent_conv_id, facts_extracted, processed_at)
+                        VALUES (?, ?, ?, ?, ?)
+                    """, (custom_id, batch_id, conv_id, len(fact_ids), now))
+                    _upsert_extraction_log(conn, conv_id, len(fact_ids), now)
 
                     conn.commit()
                     processed_convos += 1
 
                     if processed_convos % 50 == 0:
-                        print(f"    Processed {processed_convos} conversations, {total_facts} facts stored...")
+                        print(f"    Processed {processed_convos} chunks, {total_facts} facts stored...")
 
                 # If we get here, streaming completed successfully
                 break
@@ -647,6 +809,15 @@ def run_process(resume=False):
 
         # Final commit
         conn.commit()
+
+        # 2026-05-19: Tier facts by predicate. The sync extraction path tiers
+        # inline; the batch path did not, leaving the corpus untiered until the
+        # post-compose traceability step. That starved the author fact-floor
+        # gate and pipeline-mode detection of tier signal. Tiering here closes
+        # the gap. Idempotent — only touches untiered facts.
+        id_tiered, ctx_tiered = tier_facts_by_predicate(conn)
+        conn.commit()
+        print(f"  Tiered facts: {id_tiered:,} -> identity, {ctx_tiered:,} -> contextual")
 
         # Run ANALYZE for query optimizer
         conn.execute("ANALYZE")
@@ -669,7 +840,7 @@ def run_process(resume=False):
 
     print(f"\n  Next steps (simplified 4-step pipeline):")
     print(f"    1. baselayer checkpoint extraction    # Verify extraction quality")
-    print(f"    2. baselayer author                   # Generate identity layers (ANCHORS/CORE/PREDICTIONS)")
+    print(f"    2. baselayer author                   # Generate the three specification layers (ANCHORS/CORE/PREDICTIONS)")
     print(f"    3. baselayer compose                  # Compose unified brief")
 
 
