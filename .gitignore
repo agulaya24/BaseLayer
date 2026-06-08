@@ -249,3 +249,33 @@ scripts/overnight_*.py
 src/baselayer/experiments/overnight_results/
 src/baselayer/experiments/results/
 src/baselayer/experiments/archive/
+
+# Build / cache artifacts
+*.egg-info/
+.pytest_cache/
+logs/
+
+# Internal-only docs (handoff notes, dev plans)
+docs/internal/
+
+# Claude Code session state (per-user)
+.claude/
+
+# Local working data: snapshots, experiments, datasets (never commit — size + personal data)
+data/_backup_*/
+data/_snapshot_*/
+data/experiments/
+data/external_datasets/
+data/scotus/
+data/collective_review*/
+data/services_review*/
+data/noise_floor/
+data/tool_usage_calibration/
+data/*.txt
+data/*.md
+
+# Untracked utility/outreach scripts that carry personal data (emails, subject names)
+scripts/push_gmail_drafts.py
+scripts/update_followup_drafts.py
+scripts/collective_*.py
+scripts/extract_voice_bank.py
