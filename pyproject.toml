@@ -51,3 +51,10 @@ packages = ["baselayer"]
 
 [tool.setuptools.exclude-package-data]
 baselayer = ["archive/*", "archive/**/*", "experiments/*", "experiments/**/*"]
+
+[tool.pytest.ini_options]
+# Confine collection to the canonical suite. Without this, a bare `pytest` from
+# the repo root also collects stray test_*.py under scripts/archive/one_off/ and
+# the vendored data/external_datasets/ tree, which fail to import and produce
+# collection errors that mask an otherwise green suite. Run: `pytest` or `pytest tests/`.
+testpaths = ["tests"]

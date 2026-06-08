@@ -1,5 +1,5 @@
 """
-Vector Audit, Claim Verification, and NLI Entailment for Identity Layer Provenance.
+Vector Audit, Claim Verification, and NLI Entailment for Specification Layer Provenance.
 
 Three mechanisms:
 
@@ -1784,7 +1784,7 @@ def main():
     """Run full verification and print results."""
     import argparse
 
-    parser = argparse.ArgumentParser(description="Verify identity layer provenance")
+    parser = argparse.ArgumentParser(description="Verify specification layer provenance")
     parser.add_argument("--layer", choices=["anchors", "core", "predictions", "all"],
                         default="all", help="Which layer to verify")
     parser.add_argument("--vector", action="store_true", help="Run vector verification only")

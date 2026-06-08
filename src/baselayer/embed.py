@@ -6,6 +6,7 @@ Run: python embed.py
 """
 
 import contextlib
+import sys
 import time
 
 from baselayer.config import (
@@ -167,6 +168,17 @@ def verify_embeddings(collection):
 
 def main():
     """Main embedding pipeline."""
+    # Windows consoles default to cp1252; conversation titles and message
+    # previews can contain non-Latin text (BOM, Arabic, CJK). Force UTF-8 so the
+    # verification step cannot crash the process with UnicodeEncodeError *after*
+    # embeddings are already written to ChromaDB (previously exited 1 and aborted
+    # the run at the embed step, never reaching author/compose).
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
+
     print("=" * 60)
     print("Phase 2: Semantic Memory — Embedding Pipeline")
     print("=" * 60)

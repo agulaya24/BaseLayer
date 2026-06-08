@@ -13,6 +13,61 @@ from unittest.mock import patch, MagicMock
 
 
 # ============================================================
+# STABILITY GUARD PREDICATES (no-silent-data-loss tripwires)
+# ============================================================
+
+class TestStaleVectorGuard:
+    """_should_warn_stale_vectors: fires only when facts vectors exist but the log is empty."""
+
+    def test_fires_when_vectors_present_and_log_empty(self):
+        from baselayer.extract_facts import _should_warn_stale_vectors
+        assert _should_warn_stale_vectors(120, 0) is True
+
+    def test_silent_when_log_nonempty(self):
+        from baselayer.extract_facts import _should_warn_stale_vectors
+        assert _should_warn_stale_vectors(120, 5) is False
+
+    def test_silent_when_no_vectors(self):
+        from baselayer.extract_facts import _should_warn_stale_vectors
+        assert _should_warn_stale_vectors(0, 0) is False
+
+
+class TestLowFactCountGuard:
+    """_should_warn_low_fact_count: fires only on a clean full run that yields <50 facts."""
+
+    def _call(self, **kw):
+        from baselayer.extract_facts import _should_warn_low_fact_count
+        base = dict(total_facts=12, errors=0, limit=None, conv_id=None,
+                    retry_errors=False, identity_only=False, document_mode=False)
+        base.update(kw)
+        return _should_warn_low_fact_count(base.pop("total_facts"), base.pop("errors"), **base)
+
+    def test_fires_on_clean_full_run_with_few_facts(self):
+        assert self._call(total_facts=12) is True
+
+    def test_silent_when_facts_sufficient(self):
+        assert self._call(total_facts=200) is False
+
+    def test_silent_on_limited_run(self):
+        assert self._call(limit=5) is False
+
+    def test_silent_on_single_conversation(self):
+        assert self._call(conv_id="conv-001") is False
+
+    def test_silent_on_retry_errors(self):
+        assert self._call(retry_errors=True) is False
+
+    def test_silent_on_identity_mode(self):
+        assert self._call(identity_only=True) is False
+
+    def test_silent_on_document_mode(self):
+        assert self._call(document_mode=True) is False
+
+    def test_silent_when_errors_explain_low_count(self):
+        assert self._call(total_facts=12, errors=3) is False
+
+
+# ============================================================
 # NORMALIZE_CATEGORY
 # ============================================================
 

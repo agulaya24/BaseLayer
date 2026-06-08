@@ -274,6 +274,8 @@ def parse_claude_code_session(filepath):
     - type: "assistant" — assistant message, content in message.content (list of {type, text})
     - type: "summary" — context compression summary — skip
     """
+    from datetime import datetime
+
     messages = []
     session_id = filepath.stem  # Filename without extension is the session ID
     first_user_message = None
@@ -307,13 +309,21 @@ def parse_claude_code_session(filepath):
             msg_uuid = obj.get("uuid", str(uuid.uuid4()))
             parent_uuid = obj.get("parentUuid")
 
-            # Convert timestamps — may be int (ms), float (s), or string
+            # Convert timestamps — may be int (ms), float (s), epoch string,
+            # or ISO 8601 string. Claude Code emits ISO 8601 with a Z suffix
+            # ("2026-05-08T21:08:22.534Z"); float() raises on those, so they
+            # were silently nulled before this 2026-05-20 fix.
             if timestamp is not None:
                 if isinstance(timestamp, str):
                     try:
                         timestamp = float(timestamp)
                     except ValueError:
-                        timestamp = None
+                        try:
+                            timestamp = datetime.fromisoformat(
+                                timestamp.replace("Z", "+00:00")
+                            ).timestamp()
+                        except ValueError:
+                            timestamp = None
                 if timestamp is not None and timestamp > 1e12:
                     timestamp = timestamp / 1000.0
 

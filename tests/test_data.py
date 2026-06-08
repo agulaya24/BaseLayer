@@ -12,22 +12,17 @@ from pathlib import Path
 
 
 EXPECTED_TABLES = [
-    "brief_assembly_log",
     "claim_verification",
     "conversation_summaries",
     "conversations",
     "epistemic_anchors",
     "extraction_log",
-    "fact_cluster_assignments",
     "fact_relationships",
-    "identity_blocks",
     "layer_claim_provenance",
     "memory_facts",
     "messages",
     "schema_version",
     "subjects",
-    "topic_scores",
-    "turn_pairs",
     "user_corrections",
 ]
 

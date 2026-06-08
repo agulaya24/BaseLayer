@@ -98,20 +98,25 @@ class TestBuildConvText:
         result = _build_conv_text(messages)
         assert result.startswith("User:")
 
-    def test_truncates_long_messages(self):
+    def test_preserves_long_messages(self):
+        """2026-05-17: per-message [:1500] cap removed.
+        Callers chunk via _build_chunk_requests / _chunk_text_for_extraction."""
         from baselayer.batch_extract import _build_conv_text
         long_text = "x" * 3000
         messages = [{"role": "user", "text": long_text}]
         result = _build_conv_text(messages)
-        # Each message text is truncated to 1500 chars
-        assert len(result.split("User: ")[1].strip()) <= 1500
+        # Full message content survives; no per-message truncation.
+        assert long_text in result
 
-    def test_truncates_total_length(self):
+    def test_preserves_total_length(self):
+        """2026-05-17: 12K hard-break removed.
+        Long totals get chunked by _build_chunk_requests, not silently truncated."""
         from baselayer.batch_extract import _build_conv_text
-        # Create many messages to exceed 12000 char limit
         messages = [{"role": "user", "text": "x" * 1000} for _ in range(20)]
         result = _build_conv_text(messages)
-        assert "[conversation continues...]" in result
+        assert "[conversation continues...]" not in result
+        # All 20 user messages present.
+        assert result.count("User: ") == 20
 
     def test_empty_messages(self):
         from baselayer.batch_extract import _build_conv_text
@@ -139,7 +144,10 @@ class TestBatchConstants:
     def test_batch_max_tokens(self):
         from baselayer.batch_extract import BATCH_MAX_TOKENS
         assert BATCH_MAX_TOKENS > 0
-        assert BATCH_MAX_TOKENS <= 4096
+        # 2026-05-19: raised from 2000 to 8000. A 50-fact chunk needs ~6000
+        # output tokens; the old 2000/4096 ceilings truncated JSON responses.
+        # Upper bound is Haiku 4.5's 8192 max-output cap.
+        assert BATCH_MAX_TOKENS <= 8192
 
     def test_batch_temperature(self):
         from baselayer.batch_extract import BATCH_TEMPERATURE

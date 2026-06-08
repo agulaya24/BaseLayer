@@ -22,6 +22,7 @@ Run: python extract_facts.py                     # Process all conversations
 import contextlib
 import sys
 import io
+import os
 import sqlite3
 import json
 import time
@@ -312,16 +313,22 @@ def _get_known_entities_for_prompt():
     )
 
 
-def _get_extraction_caps(message_count: int, total_chars: int = 0) -> dict:
+def _get_extraction_caps(message_count: int, total_chars: int = 0,
+                          source: str = None) -> dict:
     """Determine extraction caps based on message count AND total character length.
 
     Session 55 (Plan 2): Scales extraction limits with conversation length.
     Session 65: Added char-based tiers for long single-message imports
     (autobiographies, chapters). Returns whichever tier gives higher max_facts.
+    2026-05-17: Per-source max_facts override. Dense multi-day sources
+    (claude_code) lift the per-conversation cap so AUDN dedup, not a tier cap,
+    is what decides redundancy.
 
     Args:
         message_count: Number of messages in the conversation.
         total_chars: Total character count across all messages. 0 = skip char lookup.
+        source: Conversation source (e.g. "claude_code"). Used to apply per-source
+            max_facts overrides from EXTRACTION_CAPS["max_facts_ceiling_by_source"].
 
     Returns:
         dict with "max_facts" and "input_char_budget" keys.
@@ -341,11 +348,20 @@ def _get_extraction_caps(message_count: int, total_chars: int = 0) -> dict:
         for tier in EXTRACTION_CAPS["char_tiers"]:
             if tier["min_chars"] <= total_chars <= tier["max_chars"]:
                 if tier["max_facts"] > msg_caps["max_facts"]:
-                    return {
+                    msg_caps = {
                         "max_facts": tier["max_facts"],
                         "input_char_budget": tier["input_char_budget"],
                     }
                 break
+
+    # Per-source override (2026-05-17): raise max_facts ceiling for dense sources
+    # so the per-conversation cap is not what bounds extraction. AUDN dedup is.
+    overrides = EXTRACTION_CAPS.get("max_facts_ceiling_by_source", {})
+    if source and source in overrides:
+        msg_caps = {
+            "max_facts": max(msg_caps["max_facts"], overrides[source]),
+            "input_char_budget": msg_caps["input_char_budget"],
+        }
 
     return msg_caps
 
@@ -987,19 +1003,23 @@ Return a JSON object with a "facts" array."""
 
 
 def build_identity_extraction_prompt(conv_title: str, conv_text: str,
-                                     max_facts: int = MAX_FACTS_PER_CONVERSATION) -> str:
+                                     max_facts: int = MAX_FACTS_PER_CONVERSATION,
+                                     chunk_info: str = None) -> str:
     """Build the identity-focused extraction prompt for project conversations (D-048).
 
     Factored out for reuse by batch_extract.py.
     Session 55: Added relationship guidance and dynamic max_facts cap.
+    2026-05-17: chunk_info for multi-window extraction of long project conversations.
     """
     predicates_str = ", ".join(CONSTRAINED_PREDICATES)
 
     # Session 55 (Plan 1): Load known entities to prime relationship extraction
     entity_hints = _get_known_entities_for_prompt()
 
-    return f"""You are extracting PERSONAL IDENTITY facts from a technical project conversation between a user and an AI coding assistant.
+    chunk_context = f"\n<chunk_context>{chunk_info}</chunk_context>\n" if chunk_info else ""
 
+    return f"""You are extracting PERSONAL IDENTITY facts from a technical project conversation between a user and an AI coding assistant.
+{chunk_context}
 <conversation_title>{conv_title}</conversation_title>
 
 <conversation_content>
@@ -1313,8 +1333,13 @@ def extract_facts_from_conversation(conv_id: str, conv_title: str, messages: lis
 
     schema = EXTRACT_SCHEMA_FALLBACK if use_fallback_schema else EXTRACT_SCHEMA
 
-    # Session 65: Chunking path for long texts (e.g., autobiography chapters)
-    if total_chars > input_char_budget:
+    # Session 65: Chunking path for long texts (e.g., autobiography chapters).
+    # 2026-05-17: Also trigger when any single message exceeds budget. Prevents
+    # the single-pass path's per-message [:1500] cap from silently dropping
+    # content in conversations whose total fits the budget but contain a
+    # long-form message.
+    max_msg_chars = max((len(m.get("text", "")) for m in messages), default=0)
+    if total_chars > input_char_budget or max_msg_chars > input_char_budget:
         # Build full text without per-message truncation
         full_text = ""
         for msg in messages:
@@ -1328,7 +1353,10 @@ def extract_facts_from_conversation(conv_id: str, conv_title: str, messages: lis
         per_chunk_cap = min(50, max_facts)  # D-076: Raised from 15 — let AUDN handle dedup, not caps
         all_facts = []
 
+        print(f"  Chunking: {len(full_text):,} chars -> {len(chunks)} chunks (budget {input_char_budget:,}, cap {max_facts})")
+
         for i, chunk in enumerate(chunks):
+            print(f"  Chunk {i+1}/{len(chunks)}: {len(chunk):,} chars", end="", flush=True)
             chunk_info = f"Section {i + 1} of {len(chunks)} from '{conv_title}'. Extract facts from this section."
             if document_mode:
                 prompt = build_document_extraction_prompt(conv_title, chunk,
@@ -1344,6 +1372,9 @@ def extract_facts_from_conversation(conv_id: str, conv_title: str, messages: lis
                     result["facts"], len(messages), max_facts=per_chunk_cap
                 )
                 all_facts.extend(validated)
+                print(f" -> {len(validated)} facts", flush=True)
+            else:
+                print(f" -> FAILED (result={type(result).__name__}: {str(result)[:100]})", flush=True)
 
         # S97: Coverage report — detect underextraction before truncating
         if len(all_facts) > max_facts:
@@ -1365,11 +1396,14 @@ def extract_facts_from_conversation(conv_id: str, conv_title: str, messages: lis
             all_facts.sort(key=lambda f: f.get("confidence", 0.5), reverse=True)
         return all_facts[:max_facts]
 
-    # Standard single-pass path (short conversations, no change)
+    # Standard single-pass path (short conversations).
+    # 2026-05-17: Per-message [:1500] cap removed. The chunking trigger above
+    # now handles single-long-message cases, so any message that arrives here
+    # is already bounded by the conversation-level budget.
     conv_text = ""
     for msg in messages:
         role = msg["role"].capitalize()
-        text = msg["text"][:1500]
+        text = msg["text"]
         conv_text += f"{role}: {text}\n"
         if len(conv_text) > input_char_budget:
             conv_text += "\n[conversation continues...]\n"
@@ -1398,17 +1432,17 @@ def _abstract_project_conversation(messages: list[dict]) -> str:
     The identity signal lives in the user's directives, feedback, and decisions.
 
     Strategy:
-    - Keep ALL user messages (these are the identity signal)
+    - Keep ALL user messages (these are the identity signal) — full length, no truncation
     - Keep only short assistant messages (<500 chars after stripping) — these are
       summaries, questions, and clarifications that provide conversational context
     - Strip code blocks from all messages
     - Result: a "decision conversation" instead of a coding session
+
+    2026-05-17: Removed per-message user-text cap and budget hard-break. Returns
+    the full abstracted text. Callers window via _chunk_text_for_extraction so
+    multi-day sessions get multi-pass extraction instead of silent truncation.
     """
     import re
-
-    # Session 55 (Plan 2): Scale input budget for project conversations too
-    caps = _get_extraction_caps(len(messages))
-    input_char_budget = caps["input_char_budget"]
 
     abstracted = ""
 
@@ -1430,20 +1464,20 @@ def _abstract_project_conversation(messages: list[dict]) -> str:
         text = re.sub(r'\n{3,}', '\n\n', text).strip()
 
         if role == "user":
-            # Keep ALL user messages — this is where identity signal lives
-            abstracted += f"User: {text[:1500]}\n"
+            # Keep ALL user content — identity signal lives here.
+            # Two trailing newlines so each message is a paragraph boundary;
+            # _chunk_text_for_extraction splits on "\n\n" and would otherwise
+            # treat the whole abstracted text as a single unsplittable block.
+            abstracted += f"User: {text}\n\n"
         else:
-            # Only keep short assistant messages (summaries, questions, context)
+            # Only keep short assistant messages (summaries, questions, context).
+            # Long assistant turns are intentional D-048 design: the spec is
+            # about the user, not Claude's reasoning.
             if len(text) <= 500:
-                abstracted += f"Assistant: {text}\n"
+                abstracted += f"Assistant: {text}\n\n"
             else:
-                # For long assistant messages, just keep the first line as context
                 first_line = text.split('\n')[0][:200]
-                abstracted += f"Assistant: {first_line} [...]\n"
-
-        if len(abstracted) > input_char_budget:
-            abstracted += "\n[conversation continues...]\n"
-            break
+                abstracted += f"Assistant: {first_line} [...]\n\n"
 
     return abstracted
 
@@ -1463,10 +1497,18 @@ def extract_identity_from_project_conversation(conv_id: str, conv_title: str,
     even though they come from a project context.
 
     Session 55 (Plan 2): Max facts now scaled by message count.
+    2026-05-17: Multi-window extraction for long project conversations (multi-day
+    compacted Claude Code sessions). When abstracted text exceeds input_char_budget,
+    the text is split into windows and each window gets its own extraction call.
+    AUDN dedups across windows.
     """
-    # Session 55 (Plan 2): Get scaled caps
-    caps = _get_extraction_caps(len(messages))
+    # Session 55 (Plan 2): Get scaled caps. Source hardcoded to claude_code:
+    # this function is only called for project conversations, and the per-source
+    # override lifts the per-conv cap so dense multi-day sessions don't trip
+    # the coverage gate.
+    caps = _get_extraction_caps(len(messages), source="claude_code")
     max_facts = caps["max_facts"]
+    input_char_budget = caps["input_char_budget"]
 
     # D-048: Abstract conversation — strip code, keep user directives
     conv_text = _abstract_project_conversation(messages)
@@ -1474,9 +1516,33 @@ def extract_identity_from_project_conversation(conv_id: str, conv_title: str,
     if len(conv_text.strip()) < 100:
         return []  # Not enough content after abstraction
 
-    prompt = build_identity_extraction_prompt(conv_title, conv_text, max_facts=max_facts)
-
     schema = EXTRACT_SCHEMA_FALLBACK if use_fallback_schema else EXTRACT_SCHEMA
+
+    # Multi-window path: abstracted text exceeds budget
+    if len(conv_text) > input_char_budget:
+        # No overlap for project conversations: text is turn-bounded, not prose.
+        chunks = _chunk_text_for_extraction(conv_text, input_char_budget, overlap=0)
+        per_chunk_cap = min(50, max_facts)
+        all_facts = []
+        for i, chunk in enumerate(chunks):
+            chunk_info = f"Section {i + 1} of {len(chunks)} from '{conv_title}'."
+            prompt = build_identity_extraction_prompt(
+                conv_title, chunk, max_facts=per_chunk_cap, chunk_info=chunk_info
+            )
+            result = call_llm(prompt, schema=schema)
+            if result and "facts" in result:
+                validated = validate_structured_response(
+                    result["facts"], len(messages), identity_only=True, max_facts=per_chunk_cap
+                )
+                all_facts.extend(validated)
+
+        # Apply session-level cap, keeping highest-confidence facts
+        if len(all_facts) > max_facts:
+            all_facts.sort(key=lambda f: f.get("confidence", 0.5), reverse=True)
+        return all_facts[:max_facts]
+
+    # Single-pass path (short abstracted text)
+    prompt = build_identity_extraction_prompt(conv_title, conv_text, max_facts=max_facts)
     result = call_llm(prompt, schema=schema)
 
     if not result or "facts" not in result:
@@ -1629,6 +1695,36 @@ def store_fact(conn, fact_text: str, category: str, confidence: float,
         """, (fact_id, now, supersedes_id))
 
     return fact_id
+
+
+def tier_facts_by_predicate(conn) -> tuple[int, int]:
+    """Rule-based knowledge_tier assignment from predicate.
+
+    Facts whose predicate is in IDENTITY_PREDICATES become 'identity' tier;
+    all other untiered facts become 'contextual'. Only touches untiered facts,
+    so it is idempotent and safe to call repeatedly or after a partial run.
+
+    2026-05-19: Extracted into a shared function. Both the batch extraction
+    path (batch_extract.run_process) and the post-compose traceability step
+    call this. Previously tiering lived only in post-compose traceability, so
+    batch-extracted facts were left untiered until compose ran, and any step
+    between extraction and compose (the author fact-floor gate, pipeline-mode
+    detection) saw an untiered corpus.
+
+    Returns (identity_count, contextual_count) — rows updated for each tier.
+    """
+    from baselayer.config import IDENTITY_PREDICATES
+    placeholders = ",".join("?" * len(IDENTITY_PREDICATES))
+    id_count = conn.execute(f"""
+        UPDATE memory_facts SET knowledge_tier = 'identity'
+        WHERE (knowledge_tier IS NULL OR knowledge_tier = 'untiered')
+          AND predicate IN ({placeholders})
+    """, list(IDENTITY_PREDICATES)).rowcount
+    ctx_count = conn.execute("""
+        UPDATE memory_facts SET knowledge_tier = 'contextual'
+        WHERE knowledge_tier IS NULL OR knowledge_tier = 'untiered'
+    """).rowcount
+    return id_count, ctx_count
 
 
 def link_facts(conn, fact_ids: list[str], conv_id: str):
@@ -1880,6 +1976,24 @@ def process_conversation(conv: dict, conn, fact_collection, embed_model,
     return stats["ADD"] + stats["UPDATE"]
 
 
+def _should_warn_stale_vectors(vector_count: int, log_count: int) -> bool:
+    """Stability guard predicate: a populated facts collection alongside an empty
+    extraction_log is the signature of stale vectors surviving a SQLite-only clear,
+    which makes AUDN NOOP new facts. Pure function so it can be unit-tested."""
+    return vector_count > 0 and log_count == 0
+
+
+def _should_warn_low_fact_count(total_facts: int, errors: int, *, limit,
+                                conv_id, retry_errors: bool,
+                                identity_only: bool, document_mode: bool) -> bool:
+    """Stability guard predicate: a full extraction run (not limited, single-conversation,
+    retry, identity, or document mode) that completes with no errors but very few facts is
+    the signature of a silent failure. Pure function so it can be unit-tested."""
+    full_run = (limit is None and conv_id is None and not retry_errors
+                and not identity_only and not document_mode)
+    return full_run and errors == 0 and total_facts < 50
+
+
 def run_extraction(limit: int = None, conv_id: str = None,
                     identity_only: bool = False, source_filter: str = None,
                     retry_errors: bool = False, document_mode: bool = False):
@@ -1941,6 +2055,25 @@ def run_extraction(limit: int = None, conv_id: str = None,
             print("  WARNING: chromadb/sentence-transformers not available. Running without embeddings.")
             embed_model = None
             fact_collection = None
+
+        # Stability guard (no-silent-data-loss): a populated facts collection with
+        # an empty extraction_log means a prior run's vectors survived a SQLite-only
+        # clear. AUDN would then dedup every new fact against those ghost vectors and
+        # mark them NOOP, silently storing ~0-12 facts instead of 200+. Warn and point
+        # to --reset, which clears both SQLite and ChromaDB (D-022).
+        if fact_collection is not None:
+            try:
+                _stale_vectors = fact_collection.count()
+            except Exception:
+                _stale_vectors = 0
+            _log_count = conn.execute("SELECT COUNT(*) FROM extraction_log").fetchone()[0]
+            if _should_warn_stale_vectors(_stale_vectors, _log_count):
+                print("\n" + "!" * 60)
+                print(f"  WARNING: {_stale_vectors} fact vectors present but extraction_log is empty.")
+                print("  AUDN will likely dedup new facts against these stale vectors (NOOP),")
+                print("  producing far fewer facts than expected. Run `baselayer extract --reset`")
+                print("  (clears SQLite + ChromaDB) before re-extracting.")
+                print("!" * 60)
 
         # Get conversations to process
         # D-048: identity_only mode uses source_filter to target project conversations
@@ -2021,6 +2154,22 @@ def run_extraction(limit: int = None, conv_id: str = None,
         if total > 0:
             print(f"Average: {total_facts/total:.1f} facts per conversation")
             print(f"Rate: {total/total_time:.2f} conversations/second")
+
+        # Stability guard (no-silent-data-loss): a full run that yields very few
+        # facts with no errors is the signature of a silent failure (stale vectors
+        # causing AUDN NOOP, or input text flattened so the corpus collapsed to one
+        # chunk). Only flag full runs — limited/single-conversation runs are
+        # legitimately small.
+        if _should_warn_low_fact_count(total_facts, errors, limit=limit, conv_id=conv_id,
+                                       retry_errors=retry_errors, identity_only=identity_only,
+                                       document_mode=document_mode):
+            print("\n" + "!" * 60)
+            print(f"  WARNING: only {total_facts} facts from a full extraction of {total} conversations.")
+            print("  This is the signature of a silent failure. Likely causes:")
+            print("    - stale ChromaDB vectors making AUDN NOOP new facts (run --reset)")
+            print("    - input text flattened (lost paragraph breaks), collapsing to one chunk")
+            print("  Verify the fact count before running author/compose on this data.")
+            print("!" * 60)
 
 
 def show_stats():

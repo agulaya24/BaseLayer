@@ -61,9 +61,9 @@ class TestCLIInit:
              patch("baselayer.config.DATABASE_FILE", db_path):
             from baselayer.init_database import init_database
             tables = init_database(db_path)
-            # 15 regular tables + 1 FTS5 virtual table = 16
+            # 12 regular tables + 1 FTS5 virtual table = 13
             # (FTS5 shadow tables are excluded from the count)
-            assert len(tables) >= 15  # At least 15 regular + FTS5 if available
+            assert len(tables) >= 12  # At least 12 regular + FTS5 if available
             assert db_path.exists()
 
     def test_init_creates_directories(self, tmp_path):

@@ -1,20 +1,22 @@
 """
-Phase 5: Context Projection + Brief Assembly (D-025: The Ghost Layer)
+Phase 5: Context Projection + Brief Assembly (D-025)
 
 The product. Everything built in Phases 1-4 feeds into this one thing: a ~1,500
-token brief injected into Claude's system prompt so the AI feels like it *knows* you.
+token brief injected into Claude's system prompt so the AI operates within the
+person's reasoning patterns.
 
 Three blocks:
   1. Identity (~500 tokens, always-on) — who you are, always present
   2. Themes (~500 tokens, retrieved) — what matters right now, based on message
   3. Episodes (~500 tokens, retrieved) — "I remember when you said..." moments
 
-The Ghost Layer (D-025):
-  Woven through the system as constants, weights, and structure decisions is an
-  invisible set of priors about what matters to humans. Family carries inherent
-  weight. Motivations are core identity. Loss shapes a person. The code looks like
-  well-designed weights. The philosophy behind them is documented in
-  DESIGN_PRINCIPLES.md but invisible in the code.
+Design priors (D-025):
+  The retrieval weights and structural defaults in this file encode a set of
+  priors about what matters for behavioral representation: family carries weight,
+  motivations are core identity, loss shapes a person. These priors are not
+  hidden — the constants are in this file and the reasoning is documented in
+  DESIGN_PRINCIPLES.md. Inspectability is a first-class property; anything
+  that looks like magic here is a numeric weight you can read and change.
 
 Run:
   python assemble_brief.py --generate-identity       # Retrieve cluster facts for authoring

@@ -92,7 +92,7 @@ Text:
 # PROMPTS: AUTHOR (simplified — just test if model can produce layer markdown)
 # ============================================================================
 
-AUTHOR_PROMPT_A = """You are authoring an ANCHORS identity layer from extracted facts about a person.
+AUTHOR_PROMPT_A = """You are authoring an ANCHORS specification layer from extracted facts about a person.
 
 Anchors are the person's core epistemic principles — the axioms they reason from.
 

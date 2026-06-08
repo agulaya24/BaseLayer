@@ -1,7 +1,7 @@
 """
-Three-Layer Identity Block Authoring Pipeline (D-043)
+Three-Layer Specification Authoring Pipeline (D-043)
 
-Retrieves facts from the database, generates identity layers via API, and stores
+Retrieves facts from the database, generates the three specification layers via API, and stores
 them as injectable markdown files. Three layers:
 
   ANCHORS  — epistemic axioms (beliefs reasoned FROM, not ABOUT)
@@ -82,24 +82,38 @@ def apply_exclusion_filter(facts):
     return filtered
 
 
+_FULL_CLASSIFICATION_THRESHOLD = 0.5
+
+
 def _has_tiered_facts(conn):
     """Check if facts have FULL classification (tier + commitment_depth + scope).
 
-    Returns True only if the full classification pipeline ran (tier + depth + scope).
-    Returns False if we're in simplified mode — even if rule-based tiering was applied,
-    the simplified path should be used when commitment_depth is not populated.
+    Returns True only if the full classification pipeline ran across the corpus.
+    Returns False (simplified mode — predicate routing) otherwise.
+
+    2026-05-19: This used to return True on COUNT(*) > 0 of fully-classified
+    facts. That let a handful of legacy user-corrected facts (preserved through
+    a re-extraction reset, carrying the pre-D-056 trio) flip the entire corpus
+    into the legacy fact_type-routed path, starving the PREDICTIONS layer. The
+    test is now fraction-based: the legacy path is selected only when at least
+    half the active corpus carries full classification. A small residue of
+    legacy facts can no longer dictate pipeline mode.
     """
     try:
-        # Need BOTH identity tier AND conviction depth to use the non-simplified path
-        row = conn.execute("""
+        classified = conn.execute("""
             SELECT COUNT(*) FROM memory_facts
             WHERE superseded_by IS NULL
               AND knowledge_tier = 'identity'
               AND commitment_depth IS NOT NULL
               AND commitment_depth != 'unclassified'
               AND scope IS NOT NULL
-        """).fetchone()
-        return row[0] > 0
+        """).fetchone()[0]
+        total = conn.execute(
+            "SELECT COUNT(*) FROM memory_facts WHERE superseded_by IS NULL"
+        ).fetchone()[0]
+        if total == 0:
+            return False
+        return (classified / total) >= _FULL_CLASSIFICATION_THRESHOLD
     except sqlite3.OperationalError:
         return False
 
@@ -575,7 +589,7 @@ def display_predictions(data):
 # GENERATION PROMPTS — D-041 encoded (updated Session 44)
 # ===========================================================================
 
-ANCHORS_PROMPT = """You are authoring the EPISTEMIC ANCHORS layer of a personal identity brief.
+ANCHORS_PROMPT = """You are authoring the EPISTEMIC ANCHORS layer of a personal behavioral specification.
 
 CRITICAL: The audience is an AI that needs to understand how to interact with this person. Every sentence must shape that understanding — not document the person, but create comprehension.
 
@@ -697,7 +711,7 @@ Write the injectable block now. No preamble — just the block text."""
 # use scenario-specific predictions within the domain. S51 validation: this
 # format scored 82.5/100 vs 0/100 for multi-domain on single-domain corpora.
 
-PREDICTIONS_SINGLE_DOMAIN_PROMPT = """You are authoring the BEHAVIORAL PREDICTIONS layer of a personal identity brief.
+PREDICTIONS_SINGLE_DOMAIN_PROMPT = """You are authoring the BEHAVIORAL PREDICTIONS layer of a personal behavioral specification.
 
 CRITICAL: The audience is the intelligence and understanding an AI needs to take on to communicate naturally with this person. Every sentence must shape that understanding. Each prediction should make the AI *feel* how to respond differently in that situation — not give it a checklist.
 
@@ -2121,7 +2135,7 @@ def read_all_layers():
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Three-Layer Identity Block Authoring Pipeline (D-043)"
+        description="Three-Layer Specification Authoring Pipeline (D-043)"
     )
     parser.add_argument("--retrieve", type=str, metavar="LAYER",
                         choices=["anchors", "core", "predictions", "all"],
@@ -2133,7 +2147,7 @@ def main():
                         choices=["anchors", "core", "predictions", "all"],
                         help="Show current injectable block for a layer")
     parser.add_argument("--brief", action="store_true",
-                        help="Show assembled three-layer identity brief")
+                        help="Show assembled three-layer specification")
     parser.add_argument("--no-citations", action="store_true",
                         help="Disable Citations API — use self-citation [F-xxx] fallback only")
     parser.add_argument("--store", type=str, nargs=2, metavar=("LAYER", "FILE"),
@@ -2249,7 +2263,7 @@ def main():
 
         brief = "\n".join(parts)
         tokens = len(brief) // 4
-        print(f"\n--- THREE-LAYER IDENTITY BRIEF (~{tokens} tokens) ---\n")
+        print(f"\n--- THREE-LAYER SPECIFICATION (~{tokens} tokens) ---\n")
         print(brief)
         print(f"\n--- END ---")
         return
