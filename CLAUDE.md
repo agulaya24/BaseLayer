@@ -51,6 +51,7 @@ All commands invoked as `baselayer <subcommand>`. Source of truth: [`src/baselay
 | `baselayer checkpoint extraction` | Quality gate after extraction. Add `--fix` to apply corrections. |
 | `baselayer forget --all` | Soft-delete all active facts. Confirm before running. |
 | `baselayer journal` | Guided prompts when the user has no conversation history. |
+| `baselayer proxy` | Local OpenRouter proxy on port 5100: injects the specification into OpenAI-compatible requests, captures exchanges locally. Needs `OPENROUTER_API_KEY` and `pip install baselayer[proxy]`. |
 
 For long-form usage details and step-by-step pipeline structure, see [`AGENTS.md`](AGENTS.md). Do not invent commands. If a flag does not appear in `cli.py`, it does not exist.
 

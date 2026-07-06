@@ -89,7 +89,7 @@ baselayer author && baselayer compose
 
 ## Use your Specification
 
-Two ways to put a Specification in front of a model: register the MCP server, or paste the unified brief into a system prompt.
+Three ways to put a Specification in front of a model: register the MCP server, run the OpenRouter proxy, or paste the unified brief into a system prompt.
 
 **MCP server** (Claude Desktop, Claude Code, Cursor):
 
@@ -109,6 +109,18 @@ Reads from the same SQLite + ChromaDB store the pipeline builds, with no re-inde
 | `get_stats()` / `get_call_log()` / `get_help(topic)` | Database summary, session calls, agent reference. |
 
 Stdio, local, no network. Per-session traces land in `~/.baselayer/sessions/<pid>/log.jsonl` (`baselayer log list / show / tail / stats`).
+
+**OpenRouter proxy** (any OpenAI-compatible client, any model OpenRouter serves):
+
+```bash
+pip install 'baselayer[proxy]'
+export OPENROUTER_API_KEY=sk-or-...
+baselayer proxy    # http://localhost:5100/v1
+```
+
+A local proxy that accepts OpenAI-compatible chat requests, injects the structural Specification into the system message, and forwards to OpenRouter. This is the path for models without MCP support: point the client's base URL at the proxy and every model responds through the interpretive layer. Streaming and non-streaming both pass through.
+
+Privacy model: the proxy captures each exchange to the local SQLite database (`source='proxy'`), so future `baselayer extract` runs can learn from proxied conversations. Capture is local-only. Nothing is uploaded anywhere except the forwarded request to OpenRouter itself. Disable capture with `--no-capture`; disable injection per request with the `x-baselayer-inject: off` header (useful when the client already loads the Specification via MCP) or entirely with `--no-inject`. The proxy needs an `OPENROUTER_API_KEY`; the rest of the pipeline does not.
 
 **Paste directly.** Paste the full Specification (three layers plus unified brief, approximately 7,000 tokens) into Claude custom instructions, ChatGPT project files, or any system prompt. Keeps the structural Specification, loses the on-demand fact retrieval.
 

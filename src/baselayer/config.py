@@ -413,6 +413,7 @@ SCOPE_SOURCE_MAPPING = {
     "chatgpt": "personal",
     "claude_web": "personal",
     "claude_code": "project",
+    "proxy": "personal",  # D-049: conversations captured by the OpenRouter proxy
     # Future: "slack" -> "professional", "email" -> "professional"
 }
 
@@ -446,6 +447,32 @@ V1_STAGING_DIR = IDENTITY_LAYERS_DIR / "v1_staging"  # S98: previous specificati
 # D-054: Agent pipeline directories
 AGENT_DEFINITIONS_DIR = PROJECT_ROOT / "agents"
 AGENT_RUNS_DIR = IDENTITY_LAYERS_DIR / "runs"
+
+
+# ==========================================================================
+# OPENROUTER PROXY (D-049)
+# ==========================================================================
+# Local OpenAI-compatible proxy (proxy_server.py, `baselayer proxy`).
+# Injects the specification into chat requests and forwards them to
+# OpenRouter. Conversation capture is local-only (standard SQLite schema,
+# source='proxy'). Requires the optional extra: pip install baselayer[proxy]
+
+OPENROUTER_BASE_URL = os.environ.get(
+    "OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"
+)
+PROXY_HOST = os.environ.get("BASELAYER_PROXY_HOST", "127.0.0.1")
+PROXY_PORT = int(os.environ.get("BASELAYER_PROXY_PORT", "5100"))
+
+
+def get_openrouter_api_key():
+    """Return the OpenRouter API key from the environment.
+
+    Read at call time (not import time) so the proxy sees keys exported
+    after the module was first imported. Empty string when unset; the
+    proxy returns a clear 401 rather than forwarding an unauthorized
+    request.
+    """
+    return os.environ.get("OPENROUTER_API_KEY", "")
 
 
 # ==========================================================================

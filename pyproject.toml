@@ -29,6 +29,11 @@ dependencies = [
 dev = [
     "pytest>=7.0.0",
 ]
+# D-049: local OpenRouter proxy (`baselayer proxy`). aiohttp only; LiteLLM
+# was rejected as a router on top of a router (see docs/core/DECISIONS.md).
+proxy = [
+    "aiohttp>=3.9.0",
+]
 
 [project.scripts]
 baselayer = "baselayer.cli:main"

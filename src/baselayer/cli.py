@@ -34,6 +34,7 @@ Usage:
     baselayer forget --all                  Soft-delete ALL facts (requires confirmation)
     baselayer estimate                      Estimate API cost for extraction
     baselayer rebuild-fts                    Rebuild FTS5 full-text search index
+    baselayer proxy                         Local OpenRouter proxy (specification injection, local-only capture)
 """
 
 import contextlib
@@ -530,6 +531,34 @@ def cmd_serve(args):
             state = "enabled (default; no state file)"
         print(f"Spec serving: {state}")
 
+
+
+def cmd_proxy(args):
+    """Run the local OpenRouter proxy (D-049).
+
+    OpenAI-compatible endpoint on localhost that injects the behavioral
+    specification into the system message and forwards the request to
+    OpenRouter (300+ models). Conversation capture is LOCAL-ONLY: each
+    exchange is written to the local SQLite database (source='proxy') so
+    a later `baselayer extract` can learn from it. Nothing leaves this
+    machine except the forwarded request to OpenRouter itself.
+
+    Requires the optional proxy extra (aiohttp) and OPENROUTER_API_KEY.
+    """
+    try:
+        from baselayer.proxy_server import run_proxy
+    except ImportError as e:
+        print(f"Proxy dependency missing: {e}")
+        print("Install the proxy extra: pip install 'baselayer[proxy]'")
+        sys.exit(1)
+
+    run_proxy(
+        host=args.host,
+        port=args.port,
+        inject=not args.no_inject,
+        capture=not args.no_capture,
+        default_model=args.model_default,
+    )
 
 
 def cmd_stats(args):
@@ -2095,6 +2124,24 @@ def main():
         help="enable/disable spec serving, or print current status",
     )
     p_serve.set_defaults(func=cmd_serve)
+
+    # proxy (D-049 — OpenRouter proxy with specification injection)
+    p_proxy = subparsers.add_parser(
+        "proxy",
+        help="Run the local OpenRouter proxy (specification injection for "
+             "OpenAI-compatible clients; local-only conversation capture)",
+    )
+    p_proxy.add_argument("--port", type=int, default=None,
+                         help="Port (default: 5100, or BASELAYER_PROXY_PORT)")
+    p_proxy.add_argument("--host", default=None,
+                         help="Bind address (default: 127.0.0.1, or BASELAYER_PROXY_HOST)")
+    p_proxy.add_argument("--no-inject", action="store_true",
+                         help="Disable specification injection (forward requests unchanged)")
+    p_proxy.add_argument("--no-capture", action="store_true",
+                         help="Disable local conversation capture")
+    p_proxy.add_argument("--model-default", default=None,
+                         help="Model applied when the request omits one (e.g. openai/gpt-4o)")
+    p_proxy.set_defaults(func=cmd_proxy)
 
     # log (post-0.3.0: inspect MCP call traces per Claude Code session)
     p_log = subparsers.add_parser(

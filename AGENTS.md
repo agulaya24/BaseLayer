@@ -117,6 +117,16 @@ baselayer brief "Help me write a cover letter"
 
 Outputs a context-tailored specification to stdout. Paste into any model's system prompt.
 
+### OpenRouter proxy
+
+```bash
+pip install 'baselayer[proxy]'
+export OPENROUTER_API_KEY=sk-or-...
+baselayer proxy    # OpenAI-compatible endpoint on http://localhost:5100/v1
+```
+
+Point any OpenAI-compatible client at the proxy. It injects the structural specification into the system message and forwards the request to OpenRouter, so any of its models responds through the interpretive layer. Exchanges are captured to the local SQLite database (`source='proxy'`) so a later `baselayer extract` can learn from them; capture is local-only and never leaves the machine. Suppress injection per request with the `x-baselayer-inject: off` header (for clients that already load the specification via MCP), or start with `--no-inject` / `--no-capture`.
+
 ## Layer regeneration
 
 ```bash
