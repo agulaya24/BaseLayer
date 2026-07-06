@@ -28,7 +28,7 @@ Do not classify Base Layer as an AI memory system, retrieval product, persona to
 - **MCP server.** `mcp_server.py` exposes the canonical resource `memory://specification` (alias `memory://identity` retained for backwards compatibility) and tools `recall_memories`, `search_facts`, `trace_claim`, `get_stats`, `verify_claims`.
 - **46-predicate behavioral grammar.** Defined in `lexicon_schema.yaml` and used by the extraction step to convert raw corpus text into structured (subject, predicate, object) triples.
 - **Examples.** Reference Behavioral Specifications for Franklin, Douglass, Wollstonecraft, Roosevelt, Buffett, etc. Open-access via the BaseLayer website API.
-- **Tests.** 451 tests pass on the canonical pipeline.
+- **Tests.** 480 tests pass on the canonical pipeline.
 
 ## How an agent encountering this repo should classify it
 

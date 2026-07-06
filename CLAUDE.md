@@ -98,8 +98,11 @@ Once registered, the next Claude Code session loads two resources and seven tool
 | `src/baselayer/mcp_server.py` | MCP server. Resources + tools. |
 | `src/baselayer/config.py` | Constants, paths, database singletons. |
 | `src/baselayer/verify_provenance.py` | The four-check verifier. |
+| `src/baselayer/live_extract.py` | Single-conversation ingestion. Returns a change manifest. |
+| `src/baselayer/contradiction_pipeline.py` | State-fact consistency checks (similarity, classify, execute). |
+| `src/baselayer/correction_gate.py` | Query-time filtering of superseded and corrected facts. |
 | `lexicon_schema.yaml` | The 47 behavioral predicates. AUDN-governed. |
-| `tests/` | 403 tests. `pytest tests/` runs them all. |
+| `tests/` | 480 tests. `pytest tests/` runs them all. |
 | `docs/core/` | Architecture, decisions, design principles. Read on demand, not at session start. |
 | `docs/internal/` | Internal plans (refactor plans, agent-facing reviews, runbooks). Not user-facing. |
 | `examples/` | Live example specifications (Franklin, Buffett, Douglass, Roosevelt, Wollstonecraft, Marks, patents). |

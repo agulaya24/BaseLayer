@@ -125,7 +125,7 @@ A methods paper plus an open-source reference pipeline, not a product launch. Th
 - **Snapshot, not longitudinal.** A point-in-time cross-section.
 - **Text-only.** Tone of voice, body language, and physical habits are invisible to the extractor.
 - **Cloud dependency** for authoring and composition (extraction can run local via Ollama).
-- **Pre-1.0.** 451 tests; expect rough edges.
+- **Pre-1.0.** 480 tests; expect rough edges.
 - **Faithfulness is the central open question.** A Specification that serves cheaply and scores well on a held-out battery does not entail it structurally matches a person's reasoning. (Paper §5.6.)
 
 ## Privacy and ownership

@@ -12,7 +12,7 @@ pytest tests/ -x
 ## Running Tests
 
 ```bash
-# Full suite (414 tests, ~30 seconds, no API calls)
+# Full suite (480 tests, ~80 seconds, no API calls)
 pytest tests/
 
 # Specific module
@@ -36,7 +36,7 @@ src/baselayer/          # Core package
   import_conversations.py  # Step 1: Multi-source importer
   mcp_server.py         # MCP server for Claude Desktop/Code
   verify_provenance.py  # Claim-to-source tracing
-tests/                  # 414 tests, all offline
+tests/                  # 480 tests, all offline
 docs/                   # Architecture, decisions, evaluation
 examples/               # Sample briefs for 9 subjects
 ```

@@ -136,6 +136,9 @@ baselayer compose                     # recompose specification from existing la
 | `src/baselayer/agent_pipeline.py` | Specification composition |
 | `src/baselayer/mcp_server.py` | MCP server |
 | `src/baselayer/config.py` | Constants and paths |
+| `src/baselayer/live_extract.py` | Single-conversation ingestion with change manifest |
+| `src/baselayer/contradiction_pipeline.py` | State-fact consistency checks |
+| `src/baselayer/correction_gate.py` | Query-time fact filtering |
 | `lexicon_schema.yaml` | 47-predicate behavioral grammar |
 
 ## Environment variables
@@ -153,7 +156,7 @@ BASELAYER_SKIP_FACT_FLOOR=1            # Skip minimum fact check
 pytest tests/
 ```
 
-403 tests. GitHub Actions CI on Python 3.10, 3.11, 3.12.
+480 tests. GitHub Actions CI on Python 3.10, 3.11, 3.12.
 
 ## Live examples
 
