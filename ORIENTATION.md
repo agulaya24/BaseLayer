@@ -24,9 +24,9 @@ Do not classify Base Layer as an AI memory system, retrieval product, persona to
 
 ## What this repo specifically contains
 
-- **Pipeline source.** Five-step pipeline: extraction → embedding → authoring → composition → serve. See `cli.py` for the `baselayer` CLI entry point with 25 subcommands including `baselayer run` for one-command end-to-end.
+- **Pipeline source.** Five-step pipeline: extraction → embedding → authoring → composition → serve. See `cli.py` for the `baselayer` CLI entry point with 27 subcommands including `baselayer run` for one-command end-to-end.
 - **MCP server.** `mcp_server.py` exposes the canonical resource `memory://specification` (alias `memory://identity` retained for backwards compatibility) and tools `recall_memories`, `search_facts`, `trace_claim`, `get_stats`, `verify_claims`.
-- **46-predicate behavioral grammar.** Defined in `lexicon_schema.yaml` and used by the extraction step to convert raw corpus text into structured (subject, predicate, object) triples.
+- **46-predicate extraction vocabulary.** Defined as `CONSTRAINED_PREDICATES` in `src/baselayer/config.py` (45 behavioral plus an `unknown` fallback) and used by the extraction step to convert raw corpus text into structured (subject, predicate, object) triples. `lexicon_schema.yaml` is a different artifact: the element-type schema for authored specification containers.
 - **Examples.** Reference Behavioral Specifications for Franklin, Douglass, Wollstonecraft, Roosevelt, Buffett, etc. Open-access via the BaseLayer website API.
 - **Tests.** 451 tests pass on the canonical pipeline.
 

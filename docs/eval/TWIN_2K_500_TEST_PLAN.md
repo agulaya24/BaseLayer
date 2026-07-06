@@ -43,7 +43,7 @@ A ~3,500-token Base Layer behavioral brief, extracted from structured persona da
 
 1. Download dataset from HuggingFace
 2. Inspect 5 participants' `persona_text` and `persona_summary` fields
-3. Assess whether the text is rich enough for Base Layer's 47 predicates to extract behavioral signal
+3. Assess whether the text is rich enough for Base Layer's 46 constrained predicates to extract behavioral signal
 4. If the data is purely numeric Likert scales with no behavioral texture, STOP — the pipeline isn't designed for this input format
 
 **Decision point:** Proceed to Phase 1 only if extraction looks viable on manual inspection.
@@ -58,7 +58,7 @@ A ~3,500-token Base Layer behavioral brief, extracted from structured persona da
 2. Export each participant's `persona_text` (~130K chars) to a text file
 3. Run Base Layer extraction: `baselayer import` + `baselayer extract --document-mode`
 4. Inspect extracted facts:
-   - Do the 47 predicates find behavioral signal?
+   - Do the 46 constrained predicates find behavioral signal?
    - Are facts meaningful (e.g., "values delayed gratification") or trivial (e.g., "lives in Northeast")?
    - What's the identity-tier yield after classification + tiering?
 5. If extraction produces <20 identity-tier facts per participant, consider Option B (use `persona_summary` as input instead)

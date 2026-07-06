@@ -30,7 +30,7 @@ Generated from raw text through a five-step pipeline:
 
 ```
 IMPORT   Multi-source ingest (ChatGPT, Claude, journals, text)     -> SQLite
-EXTRACT  Haiku, 46 constrained behavioral predicates              -> structured facts
+EXTRACT  Haiku, 46 constrained predicates                          -> structured facts
 EMBED    MiniLM-L6-v2 local embeddings                            -> ChromaDB vectors
 AUTHOR   Sonnet, three-layer authoring with domain-agnostic guard -> anchors / core / predictions
 COMPOSE  Opus, compresses three layers into one specification     -> ~7K token document

@@ -1,6 +1,6 @@
 # Recipe: Serve a specification via MCP
 
-**Goal.** Connect an existing behavioral specification to Claude Desktop or Claude Code via the Base Layer MCP server. Since 0.3.0, the always-on resource serves the CORE layer (communication style and context modes, ~2,500 tokens) plus a manifest. ANCHORS, PREDICTIONS, and the unified brief are reachable on demand via dedicated tools the model calls when the conversation warrants.
+**Goal.** Connect an existing behavioral specification to Claude Desktop or Claude Code via the Base Layer MCP server. Since 0.4.0, the always-on resource serves the full structural specification inline: CORE, ANCHORS, and PREDICTIONS (~6 to 8K tokens) plus a manifest of supplementary tools. Only the unified narrative brief stays on demand, via `get_brief(reason)`.
 
 ## Prerequisites
 
@@ -47,11 +47,11 @@ Read memory://identity
 
 Both should return identical content. `memory://identity` is a deprecated alias that forwards to `memory://specification`. If both resolve to the same text, the server is registered correctly.
 
-If only one resolves: the server is running an older build. Reinstall: `pip install --upgrade baselayer`.
+If only one resolves: the server is running an older build. Reinstall: `pip install --upgrade git+https://github.com/agulaya24/BaseLayer.git`.
 
 ## Step 3 (optional). Test the tools
 
-The server exposes five tools beyond the specification resource. Worth a quick smoke test on first connect.
+The server exposes eight tools beyond the specification resource (`get_brief`, `recall_memories`, `search_facts`, `trace_claim`, `verify_claims`, `get_stats`, `get_call_log`, `get_help`). Worth a quick smoke test on first connect.
 
 ```
 Call get_stats()
@@ -85,7 +85,7 @@ Run the binary verification checks against a specific claim. Returns existence, 
 
 ## Expected output
 
-After registration, every new Claude Code or Claude Desktop conversation will have the CORE layer plus a manifest loaded as background context. The model uses CORE to calibrate communication style and pulls additional layers (`get_anchors()`, `get_predictions()`, `get_brief()`) when the conversation warrants. Recent MCP usage is queryable in-session via `get_call_log()`.
+After registration, every new Claude Code or Claude Desktop conversation will have the structural specification (CORE + ANCHORS + PREDICTIONS) plus a manifest loaded as background context. The model pulls the unified narrative brief via `get_brief(reason)` when the conversation is broad, abstract, or self-reflective. Recent MCP usage is queryable in-session via `get_call_log()`.
 
 ## Verifying the server is actually running
 
@@ -99,9 +99,9 @@ The `/mcp` dialog itself is for managing Anthropic-hosted cloud connectors (Goog
 ## Failure modes
 
 - **`baselayer-mcp: command not found`.** The package is not installed in the active Python environment. `pip install git+https://github.com/agulaya24/BaseLayer.git` and confirm `which baselayer-mcp` resolves.
-- **Resource returns "No specification layers found".** The subject directory has no `data/identity_layers/core_v4.md`. Run the pipeline first; CORE is what the always-on resource reads.
+- **Resource returns "No specification layers found".** The subject directory has no layer files under `data/identity_layers/`. Run the pipeline first; the always-on resource reads the authored layers.
 - **Server starts but no resource appears in Claude Code.** Restart Claude Code after `claude mcp add`. The harness picks up new servers at session start, not mid-session.
-- **The model never calls `get_anchors()` / `get_predictions()`.** Tail the MCP host's stderr log and filter for `[base-layer]` to see what the model is actually fetching. If the model is operating on CORE alone for interpretation-heavy questions, the manifest's trigger language may need sharpening; current behavior is informed by the Beyond Recall finding that interpretation-heavy questions are where additional layers add the most value.
+- **The model never calls `get_brief()`.** Tail the MCP host's stderr log and filter for `[base-layer]` to see what the model is actually fetching. If the model never fetches the brief on broad or self-reflective questions, the manifest's trigger language may need sharpening; current behavior is informed by the Beyond Recall finding that interpretation-heavy questions are where the brief adds the most value.
 - **`memory://identity` returns different content than `memory://specification`.** This is a bug. Both should be identical (alias forwards to same handler). File an issue.
 
 ## Notes

@@ -54,7 +54,7 @@ Shows how much the pipeline will cost before you spend anything:
 baselayer extract
 baselayer extract --backend ollama    # use local Qwen instead of API
 ```
-Reads every conversation, pulls out facts about you using AUDN (Add, Update, Delete, Noop) lifecycle operations. Uses 47 constrained predicates. Default uses Haiku API (fast, cheap). Local Ollama available for zero-cost extraction if you have a GPU.
+Reads every conversation, pulls out facts about you using AUDN (Add, Update, Delete, Noop) lifecycle operations. Uses 46 constrained predicates. Default uses Haiku API (fast, cheap). Local Ollama available for zero-cost extraction if you have a GPU.
 
 ### Step 7: Author Layers + Compose Brief
 ```
@@ -63,7 +63,7 @@ baselayer author                    # generate layers only
 baselayer author --layer core       # regenerate a single layer
 baselayer compose                   # compose specification from existing layers
 ```
-Generates three identity layers from your facts:
+Generates three specification layers from your facts:
 - **ANCHORS** - Your deepest beliefs and epistemic axioms
 - **CORE** - Biographical foundation: who you are, who matters, what you've built
 - **PREDICTIONS** - Behavioral patterns: how you'll react, decide, communicate

@@ -47,7 +47,7 @@ baselayer run <file>              # full pipeline
 Step-by-step:
 
 ```bash
-baselayer extract                 # Haiku, 47 predicates, AUDN lifecycle
+baselayer extract                 # Haiku, 46 constrained predicates, AUDN lifecycle
 baselayer embed                   # MiniLM-L6-v2 -> ChromaDB
 baselayer author --layer all      # Sonnet, three-layer authoring
 baselayer compose                 # Opus, unified specification
@@ -135,8 +135,8 @@ baselayer compose                     # recompose specification from existing la
 | `src/baselayer/author_layers.py` | Three-layer authoring |
 | `src/baselayer/agent_pipeline.py` | Specification composition |
 | `src/baselayer/mcp_server.py` | MCP server |
-| `src/baselayer/config.py` | Constants and paths |
-| `lexicon_schema.yaml` | 47-predicate behavioral grammar |
+| `src/baselayer/config.py` | Constants, paths, and the extraction predicate vocabulary (`CONSTRAINED_PREDICATES`: 46 constrained predicates, 45 behavioral plus an `unknown` fallback) |
+| `lexicon_schema.yaml` | Element-type schema for authored specification containers (axiom, prediction, context_mode, meta_section) plus provenance syntax |
 
 ## Environment variables
 
@@ -153,7 +153,7 @@ BASELAYER_SKIP_FACT_FLOOR=1            # Skip minimum fact check
 pytest tests/
 ```
 
-403 tests. GitHub Actions CI on Python 3.10, 3.11, 3.12.
+451 tests. GitHub Actions CI on Python 3.10, 3.11, 3.12.
 
 ## Live examples
 

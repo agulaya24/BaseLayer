@@ -25,20 +25,20 @@ Base Layer is a structured reasoning process that produces understanding. The be
 
 1. **Ground-Truth Memory:** All conversations stored locally in SQLite. Nothing is ever deleted. This is the source of truth.
 
-2. **Fact Extraction:** Structured fact extraction with 47 constrained predicates. Produces `{subject, predicate, object, qualifier}` triples from any text source.
+2. **Fact Extraction:** Structured fact extraction with 46 constrained predicates (45 behavioral plus an `unknown` fallback). Produces `{subject, predicate, object, qualifier}` triples from any text source.
 
-3. **Identity Authoring:** Facts compressed into a three-layer identity brief using H3 prompts (Session 99 ablation — domain-agnostic guard eliminates topic skew):
+3. **Specification Authoring:** Facts compressed into a three-layer specification using H3 prompts (Session 99 ablation — domain-agnostic guard eliminates topic skew):
    - **Epistemic Anchors:** Core axioms that define reasoning foundations. Cross-scope, always-on.
    - **Operational Constraints (CORE):** Directive-format communication approach, context modes, narrative orientation, essential context. Always-on.
    - **Behavioral Predictions:** Situation-triggered response patterns with detection signatures and interaction directives. Structured output format validated (D-093). Always-on.
 
-4. **Brief Composition:** Three layers compressed into a unified narrative brief (~3,000-5,000 tokens). Compose prompt enforces they/them pronouns (D-092) and domain guard (D-091). Served via MCP (Model Context Protocol) as an always-on identity Resource.
+4. **Brief Composition:** Three layers compressed into a unified narrative brief (~3,000-5,000 tokens). Compose prompt enforces they/them pronouns (D-092) and domain guard (D-091). Served via MCP (Model Context Protocol) as an always-on specification Resource.
 
 5. **Reasoning Model:** Any LLM receives the brief and responds with understanding. Stateless, interchangeable.
 
-### Three-Layer Identity Architecture
+### Three-Layer Specification Architecture
 
-The identity brief is authored in three independent layers, each with its own source data and authoring process:
+The specification is authored in three independent layers, each with its own source data and authoring process:
 
 | Layer | Source | Content |
 |---|---|---|
@@ -54,14 +54,14 @@ The identity brief is authored in three independent layers, each with its own so
 
 ### Adversarial Review Pipeline (The Collective), ARCHIVED
 
-The original pipeline included a multi-agent adversarial review process ("The Collective" — four AI personas evaluating identity layers from different angles: accuracy, completeness, tone, behavioral utility). Pipeline ablation (Session 79, 14 conditions on Benjamin Franklin's autobiography, [results](../eval/ablation/)) demonstrated that skipping Collective review produced higher-quality briefs (87/100 vs 83/100 for the full 14-step pipeline). The review step is preserved in the codebase but is no longer part of the default pipeline.
+The original pipeline included a multi-agent adversarial review process ("The Collective" — four AI personas evaluating specification layers from different angles: accuracy, completeness, tone, behavioral utility). Pipeline ablation (Session 79, 14 conditions on Benjamin Franklin's autobiography, [results](../eval/ablation/)) demonstrated that skipping Collective review produced higher-quality briefs (87/100 vs 83/100 for the full 14-step pipeline). The review step is preserved in the codebase but is no longer part of the default pipeline.
 
 ### Model Roles
 
 | Role | Model | What it does |
 |---|---|---|
-| **Extraction** | Haiku (API) | Structured fact extraction with 47 constrained predicates + 30+ aliases |
-| **Generation** | Sonnet (API) | Three-layer identity authoring from extracted facts |
+| **Extraction** | Haiku (API) | Structured fact extraction with 46 constrained predicates + 98 normalization aliases |
+| **Generation** | Sonnet (API) | Three-layer specification authoring from extracted facts |
 | **Composition** | Opus (API) | Compresses 3 layers into unified narrative brief |
 | **Brief assembly** | Pure code | Loads and serves final brief. No LLM in the critical path. ~100ms. |
 
@@ -69,25 +69,26 @@ Each step uses the cheapest model that can do the job. Embedding, scoring, class
 
 ### Data Architecture
 
-- **Data sovereignty:** All conversations, facts, embeddings, and identity layers stored on the user's machine. No cloud database, no sync, no telemetry.
+- **Data sovereignty:** All conversations, facts, embeddings, and specification layers stored on the user's machine. No cloud database, no sync, no telemetry.
 - **API processing (default):** Conversation text sent to API for extraction and classification. Nothing stored remotely; the API processes and returns results.
 - **Local processing (exploring):** Architecture designed for cloud removal as local models improve. Local extraction available today via Ollama for users with GPU. Full local pipeline on the roadmap.
 - **Brief delivery:** Only the assembled brief (~5,000 tokens) reaches the reasoning model. No raw conversations, no embeddings, no personal database.
 
 ---
 
-## Pipeline (4 Steps)
+## Pipeline (5 Steps)
 
-Pipeline ablation (Session 79) tested 14 conditions on Benjamin Franklin (autobiography) and proved that 10 of the original 14 steps were ceremonial (scoring, classification, tiering, contradiction detection, consolidation, anchor extraction, and collective review added no measurable value). The simplified 4-step pipeline scores higher (87/100 vs 83/100) while costing less.
+Pipeline ablation (Session 79) tested 14 conditions on Benjamin Franklin (autobiography) and proved that 10 of the original 14 steps were ceremonial (scoring, classification, tiering, contradiction detection, consolidation, anchor extraction, and collective review added no measurable value). The simplified pipeline scores higher (87/100 vs 83/100) while costing less. Embed remains as the provenance step: vectors are required for claim-to-fact tracing.
 
 ```
 STEP 1:  IMPORT        — Multi-source importer (ChatGPT, Claude, journals, text files)
 STEP 2:  EXTRACT       — Text → structured triples {subject, predicate, object, qualifier} (Haiku API)
-STEP 3:  AUTHOR        — Facts → three-layer identity generation (Sonnet, H3 prompts with domain guard)
-STEP 4:  COMPOSE       — 3 layers → unified narrative brief (~3,000-5,000 tokens) (Opus, they/them + domain guard)
+STEP 3:  EMBED         — Facts → local vectors (MiniLM-L6-v2, ChromaDB) for provenance tracing
+STEP 4:  AUTHOR        — Facts → three-layer specification generation (Sonnet, H3 prompts with domain guard)
+STEP 5:  COMPOSE       — 3 layers → unified narrative brief (~3,000-5,000 tokens) (Opus, they/them + domain guard)
 ```
 
-**One command:** `baselayer run <file>` runs steps 1-4 automatically with cost estimate gate.
+**One command:** `baselayer run <file>` runs steps 1-5 automatically with cost estimate gate.
 
 The 3-layer architecture (ANCHORS / CORE / PREDICTIONS) IS load-bearing: C11 (3 layers, no review) scored 87 vs C13 (single layer) at 83. The intermediate processing steps are not.
 
@@ -122,7 +123,7 @@ The original pipeline classified facts across 5 dimensions. Ablation testing (Se
 
 | Dimension | Values | Purpose |
 |---|---|---|
-| **fact_type** | biographical, behavioral, positional, preference | Routes facts to identity layers |
+| **fact_type** | biographical, behavioral, positional, preference | Routes facts to specification layers |
 | **commitment_depth** | factual, preference, position, conviction | Filters by strength of belief |
 | **knowledge_tier** | identity, situational, context | Progressive refinement — identity tier feeds layer authoring |
 | **temporal_state** | current, past, unknown | Contradiction vulnerability detection |
@@ -135,7 +136,7 @@ The original pipeline classified facts across 5 dimensions. Ablation testing (Se
 1. **Inherent Incompleteness** — The system will never fully know the person. Confidence is warranted; certainty never is.
 2. **Data Sovereignty** — All personal data stays on the user's machine. Only compressed briefs reach the reasoning model.
 3. **Surprise-Based Writes** — Only store what's novel relative to existing knowledge.
-4. **Always-On Identity** — Behavioral model present in every conversation. Three-layer architecture, each layer authored independently.
+4. **Always-On Specification** — Behavioral model present in every conversation. Three-layer architecture, each layer authored independently.
 5. **Confidence Over Deletion** — Knowledge is never deleted, only confidence-adjusted or superseded. Full history preserved.
 6. **Silence Is Not Evidence of Irrelevance** — Conversation frequency reflects AI usage, not personal importance.
 7. **Contradiction Over Decay** — Staleness detected by contradiction, not elapsed time. No TTL, no access-frequency scoring.
@@ -152,8 +153,8 @@ The original pipeline classified facts across 5 dimensions. Ablation testing (Se
 | Tier | Product | Price | What the User Gets |
 |---|---|---|---|
 | **Tier 1: Preferences** | Structured preferences for paste-in | Free | Minimal pipeline (extract + classify). Exports formatted preferences for Claude/ChatGPT/Gemini native preference UI. Primary onboarding path. |
-| **Tier 2: Core + Anchors** | Full identity layers | $3-5 per run | Full pipeline through layer authoring. ANCHORS + CORE + PREDICTIONS as injectable markdown. Delivered via MCP or manual paste. |
-| **Tier 3: Full Pipeline** | Open-source self-hosted | Free (BYOS) | Complete 4-step pipeline. `pip install baselayer`, 25 CLI subcommands. User provider choice, full data control. |
+| **Tier 2: Core + Anchors** | Full specification layers | $3-5 per run | Full pipeline through layer authoring. ANCHORS + CORE + PREDICTIONS as injectable markdown. Delivered via MCP or manual paste. |
+| **Tier 3: Full Pipeline** | Open-source self-hosted | Free (BYOS) | Complete 5-step pipeline. Installed from the git URL, 27 CLI subcommands. User provider choice, full data control. |
 
 **Cost structure (per user):** Full pipeline ~$0.52-3.33/user. Simple preferences ~$0.17-0.47/user. At 100 users: ~$106 (full) or ~$35 (simple preferences).
 
@@ -189,13 +190,13 @@ Local deployability is being actively explored. The architecture is designed for
 | Classification accuracy | 91.2% type, 93.8% depth |
 | Brief assembly time | ~100ms |
 | Brief token budget | ~3,000-5,000 tokens (unified narrative brief) |
-| Pipeline steps | 4 (simplified from 14 in S79) |
+| Pipeline steps | 5 (simplified from 14 in S79) |
 | Authoring prompts | H3 (domain-agnostic guard, S99 ablation) |
-| CLI subcommands | 25 |
-| MCP tools | 5 tools + 1 resource |
-| Constrained predicates | 47 + 30 aliases |
+| CLI subcommands | 27 |
+| MCP tools | 8 tools + 2 resources (one a deprecated alias) |
+| Constrained predicates | 46 (45 behavioral + `unknown` fallback) + 98 aliases |
 | Build sessions | 100 |
-| Tests passing | 414 |
+| Tests passing | 451 |
 | GPU extraction | mistral:7b best (59 facts, 232s); authoring still requires API |
 | Stacking test | 100 responses, 5 conditions (C4 project leakage finding) |
 | Auth | Magic link (7-day tokens, Redis-backed, Route Handler pattern) + password fallback |
@@ -219,7 +220,7 @@ Local deployability is being actively explored. The architecture is designed for
 - **17 Wave 4/5 subjects seeded** — Ready for outreach.
 - **Serving layer spec** — DONE (Session 99): `docs/core/SERVING_LAYER_SPEC.md`. Activation matching for brief-to-context relevance.
 - **Cross-discipline research** — DONE (Session 99): 10 findings across 7 academic domains mapped to Base Layer architecture.
-- **93 design decisions, 14 principles, 25 CLI subcommands, 100 build sessions.**
+- **93 design decisions, 14 principles, 27 CLI subcommands, 100 build sessions.**
 
 ### Active
 - **Seed Wave 4/5 thinkers pages** — 17 subjects H3-composed, ready to deploy to base-layer.ai. Priority for Tuesday outreach.
@@ -232,7 +233,7 @@ Local deployability is being actively explored. The architecture is designed for
 ### Next
 - **Reddit launch** — 19 subreddits, core post finalized. Start with r/LocalLLaMA.
 - **Twin-2K researcher email** — Columbia team (Toubia, Gui, Peng, Merlau).
-- **Temporality research** — Time-aware identity modeling. Temporal prediction test spec drafted.
+- **Temporality research** — Time-aware specification modeling. Temporal prediction test spec drafted.
 - **VC outreach** — Timothy Chen, Steve Jang, Dharmesh Shah.
 
 ### Post-Launch

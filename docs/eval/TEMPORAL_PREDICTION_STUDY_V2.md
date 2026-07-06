@@ -23,7 +23,7 @@
 
 Each temporal split must run the ACTUAL production pipeline:
 1. Import conversations before cutoff into a fresh database
-2. Extract facts (Haiku API, 47 predicates)
+2. Extract facts (Haiku API, 46 constrained predicates)
 3. Embed (MiniLM, ChromaDB)
 4. Author layers (Sonnet, H3 prompts, domain guard)
 5. Compose unified brief (Opus, domain guard, they/them)

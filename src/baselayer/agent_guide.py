@@ -97,7 +97,7 @@ Run in order and report what you find:
 | `baselayer init`               | Create database + vector store in current subject directory.                             |
 | `baselayer import <file>`      | Import ChatGPT/Claude export, journal directory, or text file.                           |
 | `baselayer estimate`           | Preview API cost before extraction.                                                      |
-| `baselayer extract`            | Extract structured behavioral facts via Haiku (47 predicates, AUDN lifecycle).           |
+| `baselayer extract`            | Extract structured behavioral facts via Haiku (46 constrained predicates, AUDN lifecycle). |
 | `baselayer embed`              | Generate ChromaDB vectors for the fact corpus.                                           |
 | `baselayer author --layer all` | Generate the three layers (anchors, core, predictions) via Sonnet.                       |
 | `baselayer compose`            | Compose unified narrative brief from the three layers via Opus.                          |

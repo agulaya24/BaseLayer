@@ -613,8 +613,8 @@ VALID_COMMITMENT_DEPTHS = {"factual", "preference", "position", "conviction", "u
 # Canonical predicate vocabulary for structured fact extraction.
 # LLM is instructed to use ONLY these predicates. normalize_predicate()
 # maps common variants back to canonical form.
-# 47 verbs covering: ownership, values, activities, biography, relationships,
-# skills, emotions, decisions.
+# 46 verbs (45 behavioral plus the `unknown` fallback) covering: ownership,
+# values, activities, biography, relationships, skills, emotions, decisions.
 # Session 49: +6 predicates. Session 52: +2 (plays, monitors).
 # Session 55: +8 relationship predicates (Plan 1 — 0.8% → 3-5% target).
 
