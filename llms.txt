@@ -28,7 +28,7 @@ A structured document encoding a person's behavioral patterns across three inter
 The Specification is generated from raw text through a five-step pipeline:
 
 1. **Import.** Multi-source ingest (ChatGPT, Claude, journals, text).
-2. **Extract.** Haiku, 47 constrained behavioral predicates. AUDN lifecycle (add, update, delete, noop).
+2. **Extract.** Haiku, 46 constrained predicates. AUDN lifecycle (add, update, delete, noop).
 3. **Embed.** MiniLM-L6-v2 local embeddings produce ChromaDB vectors for provenance tracing.
 4. **Author.** Sonnet generates the three layers independently from different fact subsets.
 5. **Compose.** Opus compresses the three layers into the unified Specification.
@@ -69,7 +69,7 @@ Each returns structured JSON: anchors, core, predictions, unified Specification,
 
 ## Behavioral predicates
 
-47 constrained predicates capture recurring patterns. Categories:
+46 constrained predicates (45 behavioral plus an `unknown` fallback) capture recurring patterns. Categories:
 
 - Epistemic: `believes`, `values`, `identifies_as`, `prioritizes`
 - Operational: `practices`, `avoids`, `struggles_with`, `monitors`, `builds`, `maintains`
@@ -77,7 +77,7 @@ Each returns structured JSON: anchors, core, predictions, unified Specification,
 - Relational: `relates_to`, `collaborates_with`, `follows`
 - Temporal: `experienced`, `decided`, `aspires_to`
 
-Full schema: `lexicon_schema.yaml` in the source repo.
+Full vocabulary: `CONSTRAINED_PREDICATES` in `src/baselayer/config.py` in the source repo.
 
 ## What this is not
 

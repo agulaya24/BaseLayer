@@ -71,7 +71,7 @@ submission payload for each.
 
 **Entry (add under "Memory / Knowledge" or similar section):**
 ```markdown
-- [Base Layer](https://github.com/agulaya24/BaseLayer) - The interpretive layer above memory. Extracts behavioral patterns from text, compresses into a 3-layer specification (anchors, core, predictions), serves via MCP. 47-predicate grammar, provenance-traced, 44+ subjects validated.
+- [Base Layer](https://github.com/agulaya24/BaseLayer) - The interpretive layer above memory. Extracts behavioral patterns from text, compresses into a 3-layer specification (anchors, core, predictions), serves via MCP. 46-predicate extraction vocabulary, provenance-traced, 44+ subjects validated.
 ```
 
 **Notes:** Added under the "Memory / Knowledge" section.

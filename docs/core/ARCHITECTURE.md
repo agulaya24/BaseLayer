@@ -42,7 +42,7 @@ Pipeline ablation (Session 79, 14 conditions) confirmed that 10 of the original 
  |                             |                                |
  |   STEP 2: EXTRACT           v                                |
  |   +--------------------------------------------------------+ |
- |   | Haiku API -- 47 constrained predicates                 | |
+ |   | Haiku API -- 46 constrained predicates                 | |
  |   | Text -> {subject, predicate, object, qualifier} triples| |
  |   | AUDN (Add, Update, Delete, Noop) fact lifecycle        | |
  |   +-------------------------+------------------------------+ |
@@ -68,7 +68,7 @@ Pipeline ablation (Session 79, 14 conditions) confirmed that 10 of the original 
  |   | Opus -- Compress 3 layers -> specification (5-10K tok) | |
  |   | They/them pronouns enforced (D-092)                    | |
  |   | Domain-agnostic guard (D-091)                          | |
- |   | Served via MCP as always-on identity Resource          | |
+ |   | Served via MCP as always-on specification Resource     | |
  |   +--------------------------------------------------------+ |
  |                                                              |
  +--------------------------------------------------------------+
@@ -120,7 +120,7 @@ Each message or text chunk is processed through the AUDN lifecycle:
 | **DELETE** | Contradicts existing fact | "Is vegetarian" contradicted by new info |
 | **NOOP** | Already known | "Lives in SF" already stored |
 
-**Output format:** `{subject, predicate, object, qualifier}` triples. The 47 constrained predicates (owns, values, practices, trades, fears, excels_at, relates_to, collaborates_with, and others) enforce keyword-rich, structured output. `normalize_predicate()` maps LLM variants to canonical forms. This structured format replaced free-text extraction after discovering that generic language ("The user is interested in X") inflated recurrence counts by 30x (D-056).
+**Output format:** `{subject, predicate, object, qualifier}` triples. The 46 constrained predicates, 45 behavioral plus an `unknown` fallback (owns, values, practices, fears, excels_at, relates_to, collaborates_with, and others; see `CONSTRAINED_PREDICATES` in `config.py`), enforce keyword-rich, structured output. `normalize_predicate()` maps LLM variants to canonical forms. This structured format replaced free-text extraction after discovering that generic language ("The user is interested in X") inflated recurrence counts by 30x (D-056).
 
 **Text chunking:** Long texts exceeding `input_char_budget` are auto-chunked on paragraph boundaries with 500-char overlap. Character tiers: 0-12K chars yields 10 facts max, 12K-30K yields 20, 30K-60K yields 35, 60K+ yields 50. Per-chunk cap: 15 facts. AUDN dedup handles cross-chunk duplication.
 
@@ -216,7 +216,7 @@ Compresses the three authored layers into a single specification (5,000 to 10,00
 
 ## Serving: MCP Server
 
-The specification is served via Model Context Protocol (MCP) as an always-on identity Resource. No LLM in the serving path: pure file read.
+The specification is served via Model Context Protocol (MCP) as an always-on specification Resource. No LLM in the serving path: pure file read.
 
 **Script:** `src/baselayer/mcp_server.py`
 
@@ -224,11 +224,13 @@ The specification is served via Model Context Protocol (MCP) as an always-on ide
 
 | Type | Name | Function |
 |------|------|----------|
-| Resource | Identity | Returns the specification for injection into system prompt |
-| Tool | `recall` | Retrieves facts relevant to a query via vector similarity |
-| Tool | `search` | Full-text keyword search across facts |
+| Resource | `memory://specification` | Returns the structural specification (CORE + ANCHORS + PREDICTIONS) for injection into the system prompt. `memory://identity` is a deprecated alias. |
+| Tool | `get_brief` | Unified narrative brief (~3,000 tokens), fetched on demand |
+| Tool | `recall_memories` | Retrieves facts relevant to a query via vector similarity |
+| Tool | `search_facts` | Full-text keyword search across facts |
 | Tool | `trace_claim` | Given a claim, returns source facts with similarity scores |
 | Tool | `verify_claims` | Runs binary verification questions against the database |
+| Tool | `get_stats` / `get_call_log` / `get_help` | Database summary, session call log, agent reference |
 
 **Runtime data flow:**
 
@@ -269,7 +271,7 @@ CREATE TABLE memory_facts (
     scope TEXT,                      -- 'personal', 'project', 'professional' (D-044)
     fact_type TEXT,                  -- 'biographical', 'behavioral', 'positional', 'preference'
     commitment_depth TEXT,           -- 'factual', 'preference', 'position', 'conviction'
-    predicate TEXT,                  -- constrained verb from 47 CONSTRAINED_PREDICATES
+    predicate TEXT,                  -- constrained verb from the 46 CONSTRAINED_PREDICATES
     object_text TEXT,                -- structured object field
     qualifier TEXT                   -- temporal/conditional context
 );
@@ -318,7 +320,7 @@ The shipped audit is a strong data-quality check, not a causal-traceability guar
 
 | Model | Step | Role | Typical Cost |
 |-------|------|------|-------------|
-| **Haiku** (API) | Extract | Structured fact extraction, 47 predicates | ~$0.10-0.50/corpus |
+| **Haiku** (API) | Extract | Structured fact extraction, 46 constrained predicates | ~$0.10-0.50/corpus |
 | **MiniLM-L6-v2** (local) | Embed | 384-dim vectors for provenance | $0 |
 | **Sonnet** (API) | Author | Three-layer generation | ~$0.05-0.15 |
 | **Opus** (API) | Compose | Compress 3 layers into specification | ~$0.05-0.15 |
@@ -380,7 +382,7 @@ Scores are from the original 10-subject validation. Additional subjects have bee
 | D-044 | Scoped memory (personal/project/professional) | Prevents project language from contaminating personal identity. |
 | D-046 | Sonnet generates, Opus reviews | Cheap constraint (Sonnet), expensive discrimination (Opus). Prompt quality is the leverage point. |
 | D-053 | No prior layer leakage in regeneration | Blind regeneration only. No Collective evaluation artifacts feed into generation prompts. |
-| D-056 | Structured extraction schema (47 predicates) | Replaced free-text extraction that caused 30x recurrence inflation. |
+| D-056 | Structured extraction schema (46 constrained predicates) | Replaced free-text extraction that caused 30x recurrence inflation. |
 | D-089 | Domain-agnostic guard (73 words) | Eliminates topic skew. "How someone reasons IS identity. What they reason ABOUT is not." |
 | D-091 | Compose domain guard | Prevents topic-specific content from reassembling in the specification. |
 | D-092 | Universal they/them pronouns | Gender-neutral across all subjects in the composed specification. |
@@ -411,7 +413,7 @@ Journal input produces higher-quality behavioral facts per entry than conversati
 | Specification composition | Opus API | Three-layer compression |
 | Serving | MCP (Model Context Protocol) | Specification injection at runtime |
 | Language | Python 3.10+ | All scripts and pipelines |
-| Package | `pip install git+https://github.com/agulaya24/BaseLayer.git` | CLI with 25 subcommands. Not on PyPI. |
+| Package | `pip install git+https://github.com/agulaya24/BaseLayer.git` | CLI with 27 subcommands. Not on PyPI. |
 
 ---
 
@@ -422,7 +424,7 @@ memory_system/
 +-- pyproject.toml                     # Package config (install via git URL; not on PyPI)
 +-- README.md                          # Quick-start guide
 +-- src/baselayer/                     # Canonical source location
-|   +-- cli.py                         # CLI entry (baselayer command, 25 subcommands)
+|   +-- cli.py                         # CLI entry (baselayer command, 27 subcommands)
 |   +-- config.py                      # Shared constants (single source of truth)
 |   +-- import_conversations.py        # Step 1: Multi-source importer
 |   +-- extract_facts.py               # Step 2: AUDN fact extraction (Haiku/Ollama)
@@ -447,26 +449,25 @@ memory_system/
 |       +-- core_v4.md
 |       +-- predictions_v4.md
 |       +-- brief_v4.md                # The specification (primary artifact)
-+-- tests/                             # 400+ tests
++-- tests/                             # 451 tests
 +-- docs/
 |   +-- core/                          # Architecture, decisions, principles
 |   +-- eval/                          # Benchmarks, ablation studies, eval frameworks
-|   +-- research/                      # Philosophy of identity, axiom hypotheses
-|   +-- reviews/                       # Security, contamination, temporal processing
-+-- agents/                            # Agent definitions (ANCHORS, CORE, PREDICTIONS)
 ```
 
 ---
 
 ## Serving Layer
 
-The 0.4.0 release serves all three structural layers inline. The always-on `memory://specification` resource returns CORE + ANCHORS + PREDICTIONS (~6K to 8K tokens) plus a manifest of additional tools. Only the unified brief stays a model-controlled tool (`get_brief()`) the model fetches on demand for broad self-reflective queries. Historical: 0.3.0 shipped a partial-serving design that returned only CORE inline and split ANCHORS and PREDICTIONS behind on-demand `get_anchors()` / `get_predictions()` tools; live use showed the model over- and under-fetched layers it could not see and the token savings were negligible, so 0.4.0 inlines the full structural spec.
+The current (0.4.0) MCP design serves the full structural specification inline. The always-on `memory://specification` resource returns CORE, ANCHORS, and PREDICTIONS (~6 to 8K tokens) plus a manifest of supplementary tools. Only the unified narrative brief stays on demand, behind `get_brief(reason)`.
 
-The manifest's fetch-trigger language is grounded in the Beyond Recall finding that the specification's largest effect is on interpretation-heavy questions (judgments, decisions, predictions about user behavior), not literal recall. The model is told to fetch the brief when a query is broad or self-reflective and to rely on the inline structural spec otherwise.
+History: the 0.3.0 release shipped a partial-serving design that put only CORE on the resource and exposed ANCHORS and PREDICTIONS behind on-demand `get_anchors()`/`get_predictions()` tools. Live use surfaced two issues: the model had to make routing decisions about layers it could not see, and the token savings were negligible. 0.4.0 removed those tools and inlined all three layers.
 
-A separate, more aggressive design exists in spec form but is not implemented: activation matching, which scores specification sections against the current conversation and injects only the top-K relevant constraints per turn. This is a future direction that complements rather than replaces 0.4.0 inline serving.
+The manifest's fetch-trigger language for `get_brief` is grounded in the Beyond Recall finding that the specification's largest effect is on interpretation-heavy questions (judgments, decisions, predictions about user behavior), not literal recall. The model is told to fetch when interpreting and to skip when recalling.
 
-**0.4.0 implementation:** `src/baselayer/mcp_server.py`
+A separate, more aggressive design exists in spec form but is not implemented: activation matching, which scores specification sections against the current conversation and injects only the top-K relevant constraints per turn. This is a future direction that complements rather than replaces the inline design.
+
+**Implementation:** `src/baselayer/mcp_server.py`
 **Activation-matching spec (future):** `docs/core/SERVING_LAYER_SPEC.md`
 **Activation-matching eval (future):** `docs/eval/SERVING_LAYER_EVAL.md`. 5 conditions, 30 prompts. Required before activation-matching can ship.
 
