@@ -16,6 +16,14 @@ Each decision has:
 
 ---
 
+## Terminology note (Phase A naming canon)
+
+This is a historical ledger. Many entries use the project's earlier vocabulary ("identity model", "identity block", "identity brief", "behavioral compression") because that was the term when the decision was made. Those entries are preserved as written for historical fidelity and are not rewritten.
+
+Per the current naming canon (Phase A, 2026-05-06): the canonical artifact is the "specification" (first mention: "behavioral specification"), and the concept is the "interpretive layer". New prose elsewhere uses those terms. Where an "Active" entry below describes the system as it works today, read "identity model / block / brief" as "the specification" and "behavioral compression" as "the behavioral specification". Code identifiers (`IdentityLayer`, `identity_layers`), the `memory://identity` alias, and on-disk filenames stay under the additive-alias policy (see D-081's naming note); the refactor is additive, not a rename.
+
+---
+
 ## Decision Index (Quick Reference)
 
 | ID | Title | Status | Summary |

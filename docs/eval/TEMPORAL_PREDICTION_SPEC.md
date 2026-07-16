@@ -2,14 +2,14 @@
 
 ## Hypothesis
 
-If identity compression captures genuine behavioral invariants (not topic snapshots), then an identity model built exclusively from 2024 conversations should predict behavioral patterns observed in 2025/2026 conversations. The identity model is a specification of HOW someone operates, not WHAT they discuss — so it should generalize forward in time even as topics, projects, and circumstances change.
+If identity compression captures genuine behavioral invariants (not topic snapshots), then a behavioral specification built exclusively from 2024 conversations should predict behavioral patterns observed in 2025/2026 conversations. The specification captures HOW someone operates, not WHAT they discuss — so it should generalize forward in time even as topics, projects, and circumstances change.
 
 ## Why This Matters
 
-1. **Strongest validation of identity compression.** If past behavior predicts future behavior through the identity model, the compression is capturing something real.
+1. **Strongest validation of identity compression.** If past behavior predicts future behavior through the specification, the compression is capturing something real.
 2. **Directly addresses the temporality concern.** The redesigned temporal model (Session 23) argues that events accrue meaning and states change via contradiction, not decay. This test validates that framework.
 3. **Publishable finding.** No existing memory system has demonstrated temporal prediction from compressed behavioral models. This is novel.
-4. **Practical implication.** If it works, it means an identity model doesn't need to be rebuilt constantly — the behavioral core is durable.
+4. **Practical implication.** If it works, it means a specification doesn't need to be rebuilt constantly — the behavioral core is durable.
 
 ## Test Design
 
@@ -31,14 +31,14 @@ Need to verify conversation date distribution first:
 ### Pipeline
 
 1. **Extract facts from 2024 conversations only** — fresh extraction, isolated environment
-2. **Author identity model from 2024 facts using H3 prompts** — anchors, core, predictions, brief
+2. **Author the specification from 2024 facts using H3 prompts** — anchors, core, predictions, brief
 3. **Extract facts from 2025/2026 conversations** — separate extraction
 4. **Test predictions against 2025/2026 facts** — does the 2024 model predict observed patterns?
 
 ### Evaluation Methods
 
 #### Method 1: Twin-2K Style Prediction Test
-- Generate paired responses to 2025/2026 conversation prompts: one using the 2024 identity model, one generic
+- Generate paired responses to 2025/2026 conversation prompts: one using the 2024 specification, one generic
 - Have the actual 2025/2026 responses as ground truth
 - Blind evaluation: which response better matches the actual behavior?
 - Metric: prediction accuracy (% of times the identity-informed response is closer to ground truth)
@@ -53,10 +53,10 @@ Need to verify conversation date distribution first:
 - Author anchors from 2024 data
 - Author anchors from 2025/2026 data
 - Compare: which axioms persist? Which change? Which are new?
-- High persistence = durable identity. High change = identity model captures states, not traits.
+- High persistence = durable identity. High change = the specification captures states, not traits.
 
 #### Method 4: Fact Prediction (Most Rigorous)
-- From the 2024 identity model, generate 20 specific predictions about how this person would handle novel situations
+- From the 2024 specification, generate 20 specific predictions about how this person would handle novel situations
 - Check whether 2025/2026 conversations contain evidence confirming or disconfirming each prediction
 - This is the most publishable metric — specific, falsifiable, scored against real data
 
@@ -120,7 +120,7 @@ The temporal prediction test directly informs serving layer design:
 1. **If axioms are durable**: the serving layer can cache anchors aggressively. No need to re-author frequently.
 2. **If predictions decay**: the serving layer needs temporal weighting — recent predictions scored higher than old ones.
 3. **If context modes shift**: the serving layer needs to detect context changes and trigger re-authoring of core modes.
-4. **If the 2024 model works for 2025/2026**: the identity model is a long-lived artifact, not a session-by-session computation. This changes the serving layer from "compute per request" to "serve cached artifact with periodic refresh."
+4. **If the 2024 model works for 2025/2026**: the specification is a long-lived artifact, not a session-by-session computation. This changes the serving layer from "compute per request" to "serve cached artifact with periodic refresh."
 
 ## Prior Work
 

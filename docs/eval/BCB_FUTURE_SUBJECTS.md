@@ -1,7 +1,7 @@
 # BCB Future Subject Candidates
 
 ## Why Multiple Subjects Matter
-Running BCB on a single subject proves the pipeline works for that subject. Running on multiple subjects with different source types proves the pipeline generalizes. Each additional subject strengthens the claim that behavioral compression is a universal capability, not a one-off result.
+Running BCB on a single subject proves the pipeline works for that subject. Running on multiple subjects with different source types proves the pipeline generalizes. Each additional subject strengthens the claim that building a behavioral specification is a universal capability, not a one-off result.
 
 ## Current: Franklin (BCB-0.1 Primary)
 - **Source:** Autobiography (~100K chars)

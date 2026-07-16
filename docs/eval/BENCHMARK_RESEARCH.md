@@ -339,7 +339,7 @@ Every existing benchmark tests: **"Given facts about conversations, can the syst
 
 No existing benchmark tests: **"Given a person's history, does the system understand who they are well enough to behave as if it knows them?"**
 
-KnowMe-Bench (January 2026) is the first attempt to bridge this gap with its Tier 3 tasks (decision reasoning, mnestic triggers, psychoanalysis), but it evaluates comprehension of autobiographical narratives — not whether an AI system can build an identity model and use it to generate personalized responses in live interaction.
+KnowMe-Bench (January 2026) is the first attempt to bridge this gap with its Tier 3 tasks (decision reasoning, mnestic triggers, psychoanalysis), but it evaluates comprehension of autobiographical narratives — not whether an AI system can build a behavioral specification and use it to generate personalized responses in live interaction.
 
 The gap is real. The claim holds — with the nuance that KnowMe-Bench is the first step in the right direction.
 
@@ -349,7 +349,7 @@ The gap is real. The claim holds — with the nuance that KnowMe-Bench is the fi
 
 ### 6.1 Design Principles
 
-1. **Measure understanding, not recall.** Every existing benchmark tests retrieval. Base Layer must test whether the compressed identity model enables the AI to behave as if it knows the person.
+1. **Measure understanding, not recall.** Every existing benchmark tests retrieval. Base Layer must test whether the compressed specification enables the AI to behave as if it knows the person.
 
 2. **Test generation quality, not extraction quality.** The pipeline's value is in the end-to-end output (personalized AI responses), not in intermediate artifacts (fact count, embedding quality).
 
