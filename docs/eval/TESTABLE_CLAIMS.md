@@ -10,7 +10,7 @@ This document is the backbone of the Base Layer research publication. The framin
 
 ## Compression & Signal
 
-1. **Behavioral compression outperforms raw structured data.** A ~7-14K char narrative brief produces higher-quality behavioral predictions than dumping all structured facts/layers into context. Compression is not lossy — it is additive. The act of compressing forces synthesis that raw data does not provide.
+1. **The behavioral specification outperforms raw structured data.** A ~7-14K char narrative brief produces higher-quality behavioral predictions than dumping all structured facts/layers into context. Compression is not lossy — it is additive. The act of compressing forces synthesis that raw data does not provide.
    - *Evidence:* Franklin SRS — C5c (brief) scores 4.350 vs C2 (three-layer) 3.975. C2 provides zero lift over cold baseline; C5c provides +0.350.
    - *Test:* Repeat on Marks. If C5c > C2 again, the claim generalizes beyond one subject.
 
@@ -24,7 +24,7 @@ This document is the backbone of the Base Layer research publication. The framin
 
 ## Extraction & Fidelity
 
-4. **A single source document is sufficient to extract a psychologically complex identity model.** The pipeline does not require multiple sources, external biographies, or critical analyses to find genuine tensions. It finds them in the subject's own voice.
+4. **A single source document is sufficient to produce a psychologically complex specification.** The pipeline does not require multiple sources, external biographies, or critical analyses to find genuine tensions. It finds them in the subject's own voice.
    - *Evidence:* Franklin brief from one autobiography. Pipeline extracted vanity-frugality tension, public virtue vs. private ambition, speculative conviction vs. behavioral follow-through. Enough complexity that adversarial frames could exploit it.
    - *Test:* Compare DRS tension density across single-source subjects (Franklin, Marks memos) vs multi-source subjects (if we build one). Also: does tension density correlate with source word count, or is it source-independent?
 
@@ -85,7 +85,7 @@ This document is the backbone of the Base Layer research publication. The framin
 ## Reasoning Prediction (Novel Contribution)
 
 17. **No published system predicts HOW someone reasons — only WHAT they conclude.** Outcome prediction is well-studied (Katz SCOTUS 70%, Maia Chess 65%, Twin-2K 71.7%). Reasoning prediction — predicting the argument chain, not the answer — is an open gap. A behavioral brief is uniquely positioned to fill it because it models reasoning patterns, not just preference vectors.
-    - *Evidence:* Literature review across ML prediction, persona evaluation, and decision science. No published framework attempts reasoning chain prediction from identity models.
+    - *Evidence:* Literature review across ML prediction, persona evaluation, and decision science. No published framework attempts reasoning chain prediction from behavioral specifications.
     - *Test:* Dissenting opinion benchmark (D-076). Build brief from judge's prior opinions, predict held-out dissent reasoning, compare to actual text. Ground truth is public, novel situations are guaranteed (new cases).
     - *Falsification:* If a model with raw facts (C2) predicts reasoning chains as well as a model with the brief (C5c), then compression adds no reasoning value and the claim fails.
 

@@ -23,8 +23,8 @@ Open questions from S101 design review:
 
 | ID | Identity Context | Fact Retrieval | Token Budget | Hypothesis |
 |---|---|---|---|---|
-| **C1** | Full unified brief (current production) | None | ~2,500 | Baseline. Narrative is readable but may bury structural signal |
-| **C2** | Full unified brief | + top-K activated facts per query | ~3,500 | Brief + facts. Tests whether supplemental facts improve responses |
+| **C1** | Full specification (current production) | None | ~2,500 | Baseline. Narrative is readable but may bury structural signal |
+| **C2** | Full specification | + top-K activated facts per query | ~3,500 | Brief + facts. Tests whether supplemental facts improve responses |
 | **C3** | Raw structured layers (ANCHORS + CORE + PREDICTIONS) | + top-K activated facts per query | ~4,000 | **Key condition.** Model gets structure, not narrative. Self-routes. |
 | **C4** | Raw structured layers + narrative post-pass (brief injected AFTER layers) | + top-K activated facts per query | ~5,500 | Tests whether narrative adds value on top of structure |
 | **C5** | Anchors only (~1,200 tokens) | + top-K activated facts per query | ~2,500 | Minimal identity. Tests canalizing kernel hypothesis: are anchors enough? |

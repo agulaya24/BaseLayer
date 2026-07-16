@@ -1,24 +1,24 @@
-# Interaction Quality Test — GPT Memory vs Identity Model
+# Interaction Quality Test — GPT Memory vs Specification
 **Date:** 2026-03-19
 **Evaluator:** Aarik (self-evaluation, subject is evaluator)
 **Status:** In Progress
 
 ## Hypothesis
-A compressed identity model (3-6K tokens) adds measurable signal to AI interaction quality, even on top of a platform's accumulated memory from 1,800+ conversations.
+A compressed behavioral specification (3-6K tokens) adds measurable signal to AI interaction quality, even on top of a platform's accumulated memory from 1,800+ conversations.
 
 ## Conditions
 
-| ID | Name | Platform | Memory | Identity Model | Purpose |
+| ID | Name | Platform | Memory | Specification | Purpose |
 |---|---|---|---|---|---|
 | C1 | Control (GPT Memory) | ChatGPT | Native (1,821 convos) | None | Baseline — what platform memory alone produces |
-| C2 | Full Identity Model | ChatGPT | Native | Single file (identity_model.md) | Does the identity model add signal on top of memory? |
-| C3 | Granular Identity Model | ChatGPT | Native | 25 individual files (axioms, predictions, core, brief) | Does file-level granularity improve retrieval/traceability? |
+| C2 | Full Specification | ChatGPT | Native | Single file (identity_model.md) | Does the specification add signal on top of memory? |
+| C3 | Granular Specification | ChatGPT | Native | 25 individual files (axioms, predictions, core, brief) | Does file-level granularity improve retrieval/traceability? |
 | C4 | Fresh GPT-4 (No Memory) | GPT-4 (new account/incognito) | None | None | Data leakage control — does GPT know Aarik from training data? |
 
 ## Key Comparisons
 
-- **C1 vs C2:** Primary question — does identity model add value on top of platform memory?
-- **C2 vs C3:** Does granular file structure improve GPT's ability to ground responses in specific model components?
+- **C1 vs C2:** Primary question — does the specification add value on top of platform memory?
+- **C2 vs C3:** Does granular file structure improve GPT's ability to ground responses in specific specification components?
 - **C1 vs C4:** How much does 1,800+ conversations of platform memory actually contribute?
 - **C4 baseline:** If C4 scores well, there's data leakage from training data (Aarik's public presence is minimal, so this should score low)
 
@@ -79,31 +79,31 @@ Each question asked in its own chat within the project. No follow-up, no feedbac
 | Condition | Expected Score | Rationale |
 |---|---|---|
 | C1 (GPT Memory) | 35-45 / 60 | Platform memory captures facts but misses behavioral patterns |
-| C2 (Full Model) | 45-55 / 60 | Identity model adds behavioral predictions and axioms |
-| C3 (Granular Model) | 45-55 / 60 | Same content as C2; granularity may help or hurt retrieval |
+| C2 (Full Spec) | 45-55 / 60 | Specification adds behavioral predictions and axioms |
+| C3 (Granular Spec) | 45-55 / 60 | Same content as C2; granularity may help or hurt retrieval |
 | C4 (Fresh, No Memory) | 20-30 / 60 | Should be mostly generic. High score = data leakage concern |
 
 ## Significance
 
-- C2 > C1 by 5+ points: Identity model adds meaningful signal on top of platform memory
+- C2 > C1 by 5+ points: Specification adds meaningful signal on top of platform memory
 - C3 > C2: Granular file structure improves grounding
 - C3 ≈ C2: File structure doesn't matter, content matters
-- C4 > 35: Data leakage — GPT knows enough from training data to score well without memory or model
+- C4 > 35: Data leakage — GPT knows enough from training data to score well without memory or specification
 - C1 ≈ C4: Platform memory adds no value (unlikely but would be devastating for ChatGPT's memory product)
 
 ## What This Proves If Successful
 
 If C2 or C3 significantly outperform C1:
-- A 3-6K token compressed identity model outperforms 1,800+ conversations of accumulated platform memory
-- The identity layer is additive even when the platform already "knows" you
-- Behavioral compression captures something that raw conversation history does not
+- A 3-6K token compressed specification outperforms 1,800+ conversations of accumulated platform memory
+- The interpretive layer is additive even when the platform already "knows" you
+- The specification captures something that raw conversation history does not
 
 This is the core Base Layer thesis: **understanding ≠ storage**.
 
 ## Files
 
-- Identity model (single): `memory_system/data/identity_layers/identity_model.md`
-- Identity model (25 files): `memory_system_v4/data/identity_layers/gpt_upload/`
+- Specification (single file): `memory_system/data/identity_layers/identity_model.md`
+- Specification (25 files): `memory_system_v4/data/identity_layers/gpt_upload/`
 - Results: Record in spreadsheet or JSON after completion
 
 ## Notes

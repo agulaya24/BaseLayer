@@ -9,7 +9,7 @@
 
 ## Core Hypothesis
 
-**Structured behavioral compression produces more framework-adherent, structured reasoning than unstructured knowledge, persona prompting, or raw fact injection.**
+**A structured behavioral specification produces more framework-adherent, structured reasoning than unstructured knowledge, persona prompting, or raw fact injection.**
 
 This is NOT a claim that the brief makes the model "smarter" or produces objectively better investment advice. It is a claim that the compression step — axioms, predictions, directives, false positives — changes HOW the model reasons in domain-specific tasks.
 

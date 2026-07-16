@@ -2,8 +2,8 @@
 
 Returned by the get_help() MCP tool. Loaded on demand when the user asks
 about Base Layer itself (status, capabilities, control, troubleshooting).
-The text below is the canonical surface map: every CLI command, every
-MCP tool, every state file, and the intent-to-action mapping the agent
+The text below is the canonical surface map: the primary CLI commands,
+MCP tools, state files, and the intent-to-action mapping the agent
 should use to satisfy user requests without bouncing the user back to
 docs.
 
@@ -149,7 +149,7 @@ For the canonical command list, parse `src/baselayer/cli.py`.
 | `~/.baselayer/sessions/<pid>/count`               | Live call counter for that session. Removed on clean shutdown.   |
 | `~/.baselayer/sessions/<pid>/log.jsonl`           | Append-only call log, one JSON entry per call. Persists.         |
 | `~/.claude.json` (`mcpServers` section)           | Claude Code MCP registration. Modified by `claude mcp add/remove`.|
-| `<MEMORY_SYSTEM_ROOT>/data/identity_layers/`      | Layer source files. CORE is what the resource serves.            |
+| `<MEMORY_SYSTEM_ROOT>/data/identity_layers/`      | Layer source files. CORE + ANCHORS + PREDICTIONS inline is what the resource serves. |
 | `<MEMORY_SYSTEM_ROOT>/data/database/memory.db`    | SQLite fact + conversation database.                             |
 | `<MEMORY_SYSTEM_ROOT>/data/vectors/`              | ChromaDB vector store for provenance and recall.                 |
 
@@ -209,10 +209,11 @@ If they're stale relative to the user's recent corpus, suggest running
 the pipeline to re-author.
 
 **"Make Base Layer faster" / "trim what it sends"**
-0.3.0 is already partial-serving (CORE plus on-demand layers). Further
-reductions would require either (a) sub-CORE chunking or (b) activation
-matching, both not yet implemented. Note as a future direction; don't
-manually trim CORE.
+0.4.0 serves all three structural layers (CORE, ANCHORS, PREDICTIONS)
+inline and keeps only the unified brief on-demand. Further reductions
+would require either (a) sub-layer chunking or (b) activation matching,
+both not yet implemented. Note as a future direction; don't manually
+trim the structural layers.
 
 **"Disable Base Layer for this conversation only"**
 There is no per-conversation toggle. Run `baselayer serve disable`
@@ -250,8 +251,8 @@ def get_topic_section(topic: str) -> str:
         "state": "## State files",
         "norms": "## Behavioral norms",
         "behavior": "## Behavioral norms",
-        "fetch": "## When to fetch which layer",
-        "layer": "## When to fetch which layer",
+        "fetch": "## When to fetch the brief",
+        "layer": "## When to fetch the brief",
         "questions": "## Common follow-up questions",
         "faq": "## Common follow-up questions",
     }

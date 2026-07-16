@@ -103,7 +103,7 @@ This release is the immutable reference state corresponding to the "Beyond Recal
 ### Planned
 - **D-056 Tier 3** — Quality gate between extraction and storage (reject hedging, low-density, LLM artifacts)
 - **Cross-provider blind evaluation** — Claude / ChatGPT / Gemini comparison
-- **Fact correction UI/CLI** — `baselayer correct` command to flag, edit, or supersede individual facts. Current `user_corrections` table exists but has no user-facing interface. Triggered by S62 finding: aspirational facts ("aspires to provide for wife and future children" rec:93) and situational facts ("lives in Victoria" rec:24) were promoted into identity layers as confident biographical claims. Need: (1) CLI to list/search/edit/supersede facts by ID, (2) corrections cascade to layers on next authoring cycle, (3) hybrid verification — heuristic term-match + Haiku semantic check on composed brief vs source facts
+- **Fact correction UI/CLI** — `baselayer correct` command to flag, edit, or supersede individual facts. Current `user_corrections` table exists but has no user-facing interface. Triggered by S62 finding: aspirational facts ("aspires to a long-term personal goal" rec:93) and situational facts ("lives in a particular city" rec:24) were promoted into identity layers as confident biographical claims. Need: (1) CLI to list/search/edit/supersede facts by ID, (2) corrections cascade to layers on next authoring cycle, (3) hybrid verification — heuristic term-match + Haiku semantic check on composed brief vs source facts
 
 ---
 

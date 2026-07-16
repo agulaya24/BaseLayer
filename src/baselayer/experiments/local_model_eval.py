@@ -15,7 +15,7 @@ Scoring: JSON parse success, section completeness, embedding similarity to
 API-generated output, character count, response time.
 
 Usage:
-    cd C:/Users/user/Anthropic/memory_system/scripts
+    cd <repo>/scripts
     python experiments/local_model_eval.py                    # All available models
     python experiments/local_model_eval.py --models qwen2.5:14b,phi4:14b
     python experiments/local_model_eval.py --step extract     # Extract only
@@ -38,8 +38,13 @@ import time
 import argparse
 import requests
 from datetime import datetime
+from pathlib import Path
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+# Root that holds subject memory dirs. Override with BASELAYER_ROOT; falls back
+# to the repo-relative Anthropic workspace root derived from this file.
+ANTHROPIC_ROOT = os.environ.get("BASELAYER_ROOT", str(Path(__file__).resolve().parents[4]))
 
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
 
@@ -56,7 +61,7 @@ CANDIDATE_MODELS = [
 ]
 
 # Test data paths
-FRANKLIN_DIR = "C:/Users/user/Anthropic/subjects/franklin_memory"
+FRANKLIN_DIR = f"{ANTHROPIC_ROOT}/subjects/franklin_memory"
 
 # ============================================================================
 # PROMPTS: EXTRACT

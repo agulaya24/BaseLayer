@@ -35,7 +35,7 @@ STEP 8:  CONSOLIDATE     — Union-find clustering + dedup         [Cleans fact 
 STEP 9:  ANCHORS         — Extract epistemic axioms              [Optional — manual step, not in `baselayer run`]
 STEP 10: AUTHOR LAYERS   — Generate 3 layers (Sonnet)           [REQUIRED — compose needs layers]
 STEP 11: COLLECTIVE      — 4-persona adversarial review (Opus)   [Optional — `--no-review` flag]
-STEP 12: COMPOSE         — 3 layers → unified brief (Opus)      [REQUIRED — brief is the artifact]
+STEP 12: COMPOSE         — 3 layers → specification (Opus)      [REQUIRED — specification is the artifact]
 STEP 13: ASSEMBLE        — Brief + theme + episode → injection   [Runtime only, not evaluated here]
 STEP 14: SERVE           — MCP server                            [Runtime only, not evaluated here]
 ```

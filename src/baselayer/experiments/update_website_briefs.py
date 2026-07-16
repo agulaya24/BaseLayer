@@ -5,19 +5,23 @@ Reads each subject's brief_v4.md, converts to BriefParagraph[], and replaces
 the existing brief array in the corresponding website .ts data file.
 
 Usage:
-    cd C:/Users/user/Anthropic/memory_system/scripts
+    cd <repo>/scripts
     python experiments/update_website_briefs.py [--dry-run]
 """
 
 import os
 import re
 import sys
+from pathlib import Path
 
 # Import the parser from brief_to_website
 sys.path.insert(0, os.path.dirname(__file__))
 from brief_to_website import parse_brief, format_ts, SUBJECTS
 
-WEBSITE_DATA_DIR = "C:/Users/user/Anthropic/baselayer-website/data"
+# Website checkout dir. Override with BASELAYER_ROOT; falls back to the
+# repo-relative Anthropic workspace root derived from this file.
+ANTHROPIC_ROOT = os.environ.get("BASELAYER_ROOT", str(Path(__file__).resolve().parents[4]))
+WEBSITE_DATA_DIR = f"{ANTHROPIC_ROOT}/baselayer-website/data"
 
 # Map subject → website data file
 WEBSITE_FILES = {

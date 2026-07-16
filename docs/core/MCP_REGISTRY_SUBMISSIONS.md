@@ -1,7 +1,7 @@
-# MCP Registry Submissions — Ready to Submit
+# MCP Registry Submissions
 
-**Created:** S101 (2026-03-31)
-**Status:** Submission data prepped. Submit manually from browser.
+Registries where the Base Layer MCP server is listed, with the repo URL and
+submission payload for each.
 
 ---
 
@@ -74,13 +74,13 @@
 - [Base Layer](https://github.com/agulaya24/BaseLayer) - The interpretive layer above memory. Extracts behavioral patterns from text, compresses into a 3-layer specification (anchors, core, predictions), serves via MCP. 47-predicate grammar, provenance-traced, 44+ subjects validated.
 ```
 
-**Notes:** Fork branches already exist from S100. Check if PRs were submitted.
+**Notes:** Added under the "Memory / Knowledge" section.
 
 ---
 
-## Submission Checklist
+## Registry list
 
-- [ ] Smithery — submit repo URL
-- [ ] Glama — submit repo URL (may auto-discover)
-- [ ] Official MCP Registry — open PR
-- [ ] awesome-mcp-servers — open PR (check if fork branch exists)
+- Smithery — https://smithery.ai/submit (repo URL)
+- Glama — https://glama.ai/mcp/submit (repo URL; may auto-discover)
+- Official MCP Registry — https://github.com/modelcontextprotocol/servers (PR)
+- awesome-mcp-servers — https://github.com/punkpeye/awesome-mcp-servers (PR)

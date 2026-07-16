@@ -4,24 +4,24 @@ Base Layer MCP Server. Behavioral alignment for AI agents.
 Exposes behavioral specifications and fact retrieval to MCP-compatible clients
 (Claude Desktop, Claude Code, Cursor, etc.).
 
-Partial-serving architecture (since 0.3.0):
+Serving architecture (0.4.0):
   Resources (always available, client-controlled):
-    memory://specification  Communication & Context (CORE layer) plus a manifest
-                            of available tools. Roughly 1.5K to 2.5K tokens.
-                            The full specification is accessible via tools.
+    memory://specification  CORE + ANCHORS + PREDICTIONS inline plus a manifest
+                            of available tools. Roughly 6K to 8K tokens.
+                            The structural spec is fully present at session start.
     memory://identity       Deprecated alias for memory://specification.
                             Returns identical content. Retained for backward
                             compatibility; will be removed in a future release.
 
   Tools (model-controlled, called on demand):
-    get_anchors        Foundational beliefs and worldview (ANCHORS layer)
-    get_predictions    Situational behavioral predictions (PREDICTIONS layer)
-    get_brief          Unified narrative specification
+    get_brief          Unified narrative specification (the only on-demand layer)
     recall_memories    Semantic retrieval of relevant facts + episodes for a query
     search_facts       Keyword search across all active facts
     trace_claim        Provenance from a specification claim to source facts
     verify_claims      Binary verification checks against the fact database
     get_stats          Database statistics
+    get_call_log       Recent MCP calls in this session
+    get_help           Base Layer agent reference
 
 Transport: stdio (local, no network)
 

@@ -4,18 +4,22 @@ Update examples.ts brief arrays with C31 briefs.
 The examples.ts BriefParagraph format is simpler (no relatedItems).
 
 Usage:
-    cd C:/Users/user/Anthropic/memory_system/scripts
+    cd <repo>/scripts
     python experiments/update_examples_briefs.py [--dry-run]
 """
 
 import os
 import re
 import sys
+from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(__file__))
 from brief_to_website import parse_brief, extract_sources, escape_ts_string, SUBJECTS
 
-EXAMPLES_TS = "C:/Users/user/Anthropic/baselayer-website/data/examples.ts"
+# Website checkout dir. Override with BASELAYER_ROOT; falls back to the
+# repo-relative Anthropic workspace root derived from this file.
+ANTHROPIC_ROOT = os.environ.get("BASELAYER_ROOT", str(Path(__file__).resolve().parents[4]))
+EXAMPLES_TS = f"{ANTHROPIC_ROOT}/baselayer-website/data/examples.ts"
 
 # Map examples.ts id → SUBJECTS key
 EXAMPLE_SUBJECTS = {

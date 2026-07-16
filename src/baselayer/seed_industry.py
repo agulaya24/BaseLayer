@@ -30,7 +30,7 @@ from typing import Optional
 # Subject directory resolution
 # ---------------------------------------------------------------------------
 
-ANTHROPIC_ROOT = Path(os.environ.get("BASELAYER_ROOT", "C:/Users/user/Anthropic"))
+ANTHROPIC_ROOT = Path(os.environ.get("BASELAYER_ROOT", str(Path(__file__).resolve().parents[3])))
 
 
 def resolve_subject_dir(subject: str) -> Path:

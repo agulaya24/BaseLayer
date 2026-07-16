@@ -12,11 +12,11 @@ from pathlib import Path
 _SWEBENCH_DIR = Path(__file__).parent
 
 # External OpenHands benchmarks directory.
-# Override with OPENHANDS_BENCHMARKS_DIR env var when running on a different machine.
-# Default assumes WSL path; set env var for Windows-native or other layouts.
+# Set OPENHANDS_BENCHMARKS_DIR env var to point at the local benchmark checkout.
+# Defaults to a repo-relative sibling dir when the env var is unset.
 _OPENHANDS_DIR = Path(os.environ.get(
     "OPENHANDS_BENCHMARKS_DIR",
-    "/home/user/openhands-benchmarks"
+    str(_SWEBENCH_DIR / "openhands-benchmarks")
 ))
 
 

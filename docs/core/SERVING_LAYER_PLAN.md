@@ -1,4 +1,6 @@
-# Serving Layer Plan — Behavioral Alignment Infrastructure
+> **STATUS: SUPERSEDED (2026-05-07).** Captures the Session 102 (2026-04-07) thesis ("not recall, influence") and the diff-cascade evaluation protocol. Was not formally deployed. The diff thesis is load-bearing and continues as a live always-on daemon (the dogfood logger). The activation-matching architecture sketched here was killed in Step 5 (embedding routing failed) and made obsolete by v0.4.0 inlining. `runners/serving_layer_v2.py` (on-demand CLI) and `runners/serving_tui.py` remain working and reusable for ad-hoc inspection. Safe to archive.
+
+# Serving Layer Plan — The Interpretive Layer Above Memory
 
 **Created:** Session 102 (2026-04-07)
 **Status:** In Progress

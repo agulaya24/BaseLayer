@@ -7,16 +7,21 @@ Sends all 6 briefs (C28 × 3 subjects + C31 × 3 subjects) to Opus for head-to-h
 import json
 import os
 import sys
+from pathlib import Path
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from api_client import get_anthropic_client
 
 OPUS = "claude-opus-4-20250514"
 
+# Root that holds subject memory dirs. Override with BASELAYER_ROOT; falls back
+# to the repo-relative Anthropic workspace root derived from this file.
+ANTHROPIC_ROOT = os.environ.get("BASELAYER_ROOT", str(Path(__file__).resolve().parents[4]))
+
 SUBJECTS = [
-    ("franklin", "C:/Users/user/Anthropic/subjects/franklin_memory"),
-    ("buffett", "C:/Users/user/Anthropic/subjects/buffett_memory"),
-    ("aarik", "C:/Users/user/Anthropic/memory_system_v4"),
+    ("franklin", f"{ANTHROPIC_ROOT}/subjects/franklin_memory"),
+    ("buffett", f"{ANTHROPIC_ROOT}/subjects/buffett_memory"),
+    ("aarik", f"{ANTHROPIC_ROOT}/memory_system_v4"),
 ]
 
 DECISION_PROMPT = """You are the Collective — a panel of behavioral brief evaluators making a production decision.

@@ -460,13 +460,13 @@ memory_system/
 
 ## Serving Layer
 
-The 0.3.0 release shipped a partial-serving MCP design. The always-on `memory://specification` resource returns the CORE layer (~2,500 tokens) plus a manifest of additional tools. ANCHORS, PREDICTIONS, and the unified brief are exposed as model-controlled tools (`get_anchors()`, `get_predictions()`, `get_brief()`) the model fetches on demand. This drops baseline MCP context cost from approximately 5,000 to 10,000 tokens to approximately 2,500 tokens, with the rest reachable in one tool call.
+The 0.4.0 release serves all three structural layers inline. The always-on `memory://specification` resource returns CORE + ANCHORS + PREDICTIONS (~6K to 8K tokens) plus a manifest of additional tools. Only the unified brief stays a model-controlled tool (`get_brief()`) the model fetches on demand for broad self-reflective queries. Historical: 0.3.0 shipped a partial-serving design that returned only CORE inline and split ANCHORS and PREDICTIONS behind on-demand `get_anchors()` / `get_predictions()` tools; live use showed the model over- and under-fetched layers it could not see and the token savings were negligible, so 0.4.0 inlines the full structural spec.
 
-The manifest's fetch-trigger language is grounded in the Beyond Recall finding that the specification's largest effect is on interpretation-heavy questions (judgments, decisions, predictions about user behavior), not literal recall. The model is told to fetch when interpreting and to skip when recalling.
+The manifest's fetch-trigger language is grounded in the Beyond Recall finding that the specification's largest effect is on interpretation-heavy questions (judgments, decisions, predictions about user behavior), not literal recall. The model is told to fetch the brief when a query is broad or self-reflective and to rely on the inline structural spec otherwise.
 
-A separate, more aggressive design exists in spec form but is not implemented: activation matching, which scores specification sections against the current conversation and injects only the top-K relevant constraints per turn. This is a future direction that complements rather than replaces 0.3.0 partial-serving.
+A separate, more aggressive design exists in spec form but is not implemented: activation matching, which scores specification sections against the current conversation and injects only the top-K relevant constraints per turn. This is a future direction that complements rather than replaces 0.4.0 inline serving.
 
-**0.3.0 implementation:** `src/baselayer/mcp_server.py`
+**0.4.0 implementation:** `src/baselayer/mcp_server.py`
 **Activation-matching spec (future):** `docs/core/SERVING_LAYER_SPEC.md`
 **Activation-matching eval (future):** `docs/eval/SERVING_LAYER_EVAL.md`. 5 conditions, 30 prompts. Required before activation-matching can ship.
 

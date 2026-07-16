@@ -7,7 +7,7 @@ Collective chose C31 unanimously with high confidence over C28.
 Replaces brief_v4.md for each subject. Backs up old brief as brief_v4_pre_c31.md.
 
 Usage:
-    cd C:/Users/user/Anthropic/memory_system/scripts
+    cd <repo>/scripts
     python experiments/recompose_c31.py [--dry-run] [--subjects franklin,buffett]
 """
 
@@ -18,6 +18,11 @@ import time
 import shutil
 import argparse
 from datetime import datetime
+from pathlib import Path
+
+# Root that holds subject memory dirs. Override with BASELAYER_ROOT; falls back
+# to the repo-relative Anthropic workspace root derived from this file.
+ANTHROPIC_ROOT = os.environ.get("BASELAYER_ROOT", str(Path(__file__).resolve().parents[4]))
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from api_client import get_anthropic_client
@@ -46,18 +51,17 @@ You have complete creative freedom on format and structure. Choose whatever orga
 
 # All subjects with v4 layers
 ALL_SUBJECTS = [
-    ("franklin", "C:/Users/user/Anthropic/subjects/franklin_memory"),
-    ("buffett", "C:/Users/user/Anthropic/subjects/buffett_memory"),
-    ("aarik", "C:/Users/user/Anthropic/memory_system_v4"),
-    ("douglass", "C:/Users/user/Anthropic/subjects/douglass_memory"),
-    ("marks", "C:/Users/user/Anthropic/subjects/marks_memory"),
-    ("bavani", "C:/Users/user/Anthropic/subjects/bavani_memory"),
-    ("patent", "C:/Users/user/Anthropic/subjects/patent_memory"),
-    ("lesswrong", "C:/Users/user/Anthropic/subjects/lesswrong_clt"),
-    ("baselayer_meta", "C:/Users/user/Anthropic/subjects/baselayer_meta"),
-    ("paul_graham", "C:/Users/user/Anthropic/subjects/paul_graham"),
-    ("roosevelt", "C:/Users/user/Anthropic/subjects/roosevelt_memory"),
-    ("wollstonecraft", "C:/Users/user/Anthropic/subjects/wollstonecraft_memory"),
+    ("franklin", f"{ANTHROPIC_ROOT}/subjects/franklin_memory"),
+    ("buffett", f"{ANTHROPIC_ROOT}/subjects/buffett_memory"),
+    ("aarik", f"{ANTHROPIC_ROOT}/memory_system_v4"),
+    ("douglass", f"{ANTHROPIC_ROOT}/subjects/douglass_memory"),
+    ("marks", f"{ANTHROPIC_ROOT}/subjects/marks_memory"),
+    ("patent", f"{ANTHROPIC_ROOT}/subjects/patent_memory"),
+    ("lesswrong", f"{ANTHROPIC_ROOT}/subjects/lesswrong_clt"),
+    ("baselayer_meta", f"{ANTHROPIC_ROOT}/subjects/baselayer_meta"),
+    ("paul_graham", f"{ANTHROPIC_ROOT}/subjects/paul_graham"),
+    ("roosevelt", f"{ANTHROPIC_ROOT}/subjects/roosevelt_memory"),
+    ("wollstonecraft", f"{ANTHROPIC_ROOT}/subjects/wollstonecraft_memory"),
 ]
 
 

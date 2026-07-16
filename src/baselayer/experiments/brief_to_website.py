@@ -4,7 +4,7 @@ Convert C31 brief_v4.md files to BriefParagraph[] TypeScript format for the webs
 Parses the C31 markdown brief into structured paragraphs with source tags.
 
 Usage:
-    cd C:/Users/user/Anthropic/memory_system/scripts
+    cd <repo>/scripts
     python experiments/brief_to_website.py franklin
     python experiments/brief_to_website.py --all
 """
@@ -12,40 +12,45 @@ Usage:
 import os
 import re
 import sys
+from pathlib import Path
+
+# Root that holds subject memory dirs. Override with BASELAYER_ROOT; falls back
+# to the repo-relative Anthropic workspace root derived from this file.
+ANTHROPIC_ROOT = os.environ.get("BASELAYER_ROOT", str(Path(__file__).resolve().parents[4]))
 
 
 # Subject name → (brief path, website data variable name)
 SUBJECTS = {
     "franklin": (
-        "C:/Users/user/Anthropic/subjects/franklin_memory/data/identity_layers/brief_v4.md",
+        f"{ANTHROPIC_ROOT}/subjects/franklin_memory/data/identity_layers/brief_v4.md",
         "franklinBrief",
     ),
     "douglass": (
-        "C:/Users/user/Anthropic/subjects/douglass_memory/data/identity_layers/brief_v4.md",
+        f"{ANTHROPIC_ROOT}/subjects/douglass_memory/data/identity_layers/brief_v4.md",
         "douglassBrief",
     ),
     "wollstonecraft": (
-        "C:/Users/user/Anthropic/subjects/wollstonecraft_memory/data/identity_layers/brief_v4.md",
+        f"{ANTHROPIC_ROOT}/subjects/wollstonecraft_memory/data/identity_layers/brief_v4.md",
         "wollstonecraftBrief",
     ),
     "roosevelt": (
-        "C:/Users/user/Anthropic/subjects/roosevelt_memory/data/identity_layers/brief_v4.md",
+        f"{ANTHROPIC_ROOT}/subjects/roosevelt_memory/data/identity_layers/brief_v4.md",
         "rooseveltBrief",
     ),
     "patents": (
-        "C:/Users/user/Anthropic/subjects/patent_memory/data/identity_layers/brief_v4.md",
+        f"{ANTHROPIC_ROOT}/subjects/patent_memory/data/identity_layers/brief_v4.md",
         "patentsBrief",
     ),
     "buffett": (
-        "C:/Users/user/Anthropic/subjects/buffett_memory/data/identity_layers/brief_v4.md",
+        f"{ANTHROPIC_ROOT}/subjects/buffett_memory/data/identity_layers/brief_v4.md",
         "buffettBrief",
     ),
     "marks": (
-        "C:/Users/user/Anthropic/subjects/marks_memory/data/identity_layers/brief_v4.md",
+        f"{ANTHROPIC_ROOT}/subjects/marks_memory/data/identity_layers/brief_v4.md",
         "marksBrief",
     ),
     "baselayer": (
-        "C:/Users/user/Anthropic/subjects/baselayer_meta/data/identity_layers/brief_v4.md",
+        f"{ANTHROPIC_ROOT}/subjects/baselayer_meta/data/identity_layers/brief_v4.md",
         "baselayerBrief",
     ),
 }

@@ -29,7 +29,7 @@ Every benchmark follows the same three-condition pattern:
 
 **Interpretation:**
 - C2 > C1 → Brief adds value (the identity layer thesis)
-- C2 > C3 → Compression beats raw dump (the behavioral compression thesis)
+- C2 > C3 → Compression beats raw dump (the interpretive layer thesis)
 - C2 >= C3 → Compression MATCHES raw at 1/20th the tokens (efficiency thesis)
 
 ---
@@ -233,7 +233,7 @@ BCB validates WHAT we're stacking. The other benchmarks validate WHERE stacking 
 - C2: LLM + Base Layer brief capturing preference patterns
 - C3: LLM + raw preference examples
 
-**Why this matters:** PersonalLLM uses reward models to simulate diverse users. If our brief captures preference structure that reward models recognize, that validates behavioral compression at the preference level.
+**Why this matters:** PersonalLLM uses reward models to simulate diverse users. If our brief captures preference structure that reward models recognize, that validates the interpretive layer at the preference level.
 
 ---
 

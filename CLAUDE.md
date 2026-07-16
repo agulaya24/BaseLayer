@@ -99,7 +99,7 @@ Once registered, the next Claude Code session loads two resources and seven tool
 | `src/baselayer/config.py` | Constants, paths, database singletons. |
 | `src/baselayer/verify_provenance.py` | The four-check verifier. |
 | `lexicon_schema.yaml` | The 47 behavioral predicates. AUDN-governed. |
-| `tests/` | 403 tests. `pytest tests/` runs them all. |
+| `tests/` | 451 tests. `pytest` (or `pytest tests/`) runs them all. |
 | `docs/core/` | Architecture, decisions, design principles. Read on demand, not at session start. |
 | `docs/internal/` | Internal plans (refactor plans, agent-facing reviews, runbooks). Not user-facing. |
 | `examples/` | Live example specifications (Franklin, Buffett, Douglass, Roosevelt, Wollstonecraft, Marks, patents). |

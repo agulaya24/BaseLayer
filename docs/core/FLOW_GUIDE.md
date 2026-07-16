@@ -19,9 +19,9 @@ Creates your data directory (`~/.baselayer/`) with an empty database and vector 
 ```
 export ANTHROPIC_API_KEY=sk-ant-...
 ```
-Required for extraction, authoring, and composition. Get your key at [console.anthropic.com](https://console.anthropic.com/). Steps 1-4, 8, and 9 work without it.
+Get your key at [console.anthropic.com](https://console.anthropic.com/). API key is required only for extract, author, and compose; every other step runs locally.
 
-### Step 4: Import Your Data (no API key needed)
+### Step 4: Import Your Data
 ```
 baselayer import chatgpt-export.zip
 baselayer import claude-export.json
@@ -36,7 +36,7 @@ Supports multiple input types:
 
 Personal notes and journals tend to produce the highest quality identity data because they're self-reflective by nature.
 
-### Step 5: Estimate Cost (no API key needed)
+### Step 5: Estimate Cost
 ```
 baselayer estimate
 ```
@@ -78,18 +78,18 @@ baselayer run <file>
 ```
 Runs the full pipeline (Import, Extract, Author, Compose) automatically with a cost estimate gate before spending.
 
-### Step 8: Your Brief (no API key needed)
+### Step 8: Your Brief
 ```
 baselayer brief "Help me write a cover letter"
 ```
-Assembles a behavioral specification (the compressed document that teaches an AI how you think and communicate) tailored to the current message. **Prefers the unified specification** (`brief_v4.md`, ~2,500 tokens) if available, a single compressed document that eval proved dramatically outperforms structured layer injection (+0.40 vs baseline). Falls back to three-layer format if no specification exists:
+Assembles a behavioral specification (the compressed document that teaches an AI how you think and communicate) tailored to the current message. **Prefers the composed specification** if available, a single compressed document that eval showed outperforms structured layer injection. Falls back to three-layer format if no specification exists:
 - **Layer 1: Identity** (~3,500 tokens) - Three pre-authored layers (always present)
 - **Layer 2: Themes** (~800 tokens) - Relevant facts retrieved by semantic similarity
 - **Layer 3: Episodes** (~600 tokens) - Specific conversation memories
 
 The brief gets injected into the AI's system prompt. The AI now knows you.
 
-### Step 9: Connect to Your AI (MCP Server, no API key needed)
+### Step 9: Connect to Your AI (MCP Server)
 ```
 baselayer-mcp
 ```

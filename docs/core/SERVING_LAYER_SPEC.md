@@ -1,10 +1,12 @@
-# Serving Layer Specification — Identity Model Activation
+> **STATUS: SUPERSEDED (2026-05-07).** This document captures the activation-matching serving-layer design from Session 102 (2026-04-07). Two later findings made the activation-matching half obsolete: (a) embedding-based pre-routing failed in live testing (see SERVING_LAYER_PLAN.md, Step 5; router killed); (b) v0.4.0 inlines the full structural specification into `memory://specification`, removing the need for any pre-LLM activation gate. Was not formally deployed. The fact-retrieval and correction-gate sections remain useful as reference for future work but are not load-bearing for the live system. Counterfactual-diff measurement work continues in the dogfood logger. Safe to archive.
+
+# Serving Layer — Specification Activation
 
 ## Overview
 
-The serving layer sits between a user's prompt and the LLM. It takes the identity model (a static artifact) and activates the relevant portions based on what's being discussed, assembling a context-specific payload that gives the LLM the best chance at producing a personalized response.
+The serving layer sits between a user's prompt and the LLM. It takes the specification (a static artifact) and activates the relevant portions based on what's being discussed, assembling a context-specific payload that gives the LLM the best chance at producing a personalized response.
 
-The identity model is dual-use: it works as a standalone document (paste the whole thing) AND as a structured artifact the serving layer activates against. Same content, different consumption paths.
+The specification is dual-use: it works as a standalone document (paste the whole thing) AND as a structured artifact the serving layer activates against. Same content, different consumption paths.
 
 ## Architecture
 
@@ -121,7 +123,7 @@ Recommendation: Start with embedding similarity (option 1). Upgrade to Haiku cla
 1. **Token budget**: Target 2,000-4,000 tokens for the identity payload. Leave room for the user's prompt and the model's response.
 2. **Priority order**: Anchors > Active predictions > Active core modes > Traced facts > Semantic facts > Brief fallback.
 3. **Deduplication**: No fact appears twice. Layer items that overlap with brief content are not duplicated.
-4. **Framing**: The payload opens with a one-line preamble: "This is an identity model of your user — use it as an operating guide for how to interact with them, but never reference it directly."
+4. **Framing**: The payload opens with a one-line preamble: "This is a behavioral specification of your user — use it as an operating guide for how to interact with them, but never reference it directly."
 
 ## Correction System
 
@@ -147,7 +149,7 @@ CREATE TABLE fact_corrections (
 
 ### User-Facing Correction UI
 - On thinkers pages: flag button on individual facts.
-- On the identity model: flag button on layer items or brief paragraphs.
+- On the specification: flag button on layer items or brief paragraphs.
 - Flags go to correction queue visible in admin dashboard.
 - Admin can approve/reject/edit corrections.
 - Approved corrections trigger `superseded_by` update and re-authoring flag.
@@ -165,7 +167,7 @@ CREATE TABLE fact_corrections (
 - Used by external integrations (custom apps, other AI tools).
 
 ### Mode 3: Paste (Standalone)
-- No serving layer. User copies the full identity model and pastes it.
+- No serving layer. User copies the full specification and pastes it.
 - The document is written to work this way — the LLM reads it top to bottom and self-activates based on context.
 - This is the current mode for all thinker pages.
 - The serving layer makes this better, not required.
@@ -184,7 +186,7 @@ CREATE TABLE fact_corrections (
 - Implement embedding-based activation matching for core modes and predictions.
 - Anchors always injected.
 - No fact retrieval (layer items only).
-- Test on Aarik's identity model with 20 sample prompts across different domains.
+- Test on Aarik's specification with 20 sample prompts across different domains.
 - Measure: does the right mode activate? Does the right prediction fire?
 
 ### Phase 2: Fact Retrieval + Correction Gate
@@ -216,5 +218,5 @@ CREATE TABLE fact_corrections (
 2. **Multi-mode activation**: When 2+ core modes score similarly, inject both or pick one?
 3. **Prediction stacking**: If 3+ predictions trigger, is that too much context? Cap at 2-3?
 4. **Temporal weighting**: Should recent facts score higher than old ones in retrieval?
-5. **Cross-subject serving**: When two people with identity models are in the same conversation, how does the serving layer handle both?
+5. **Cross-subject serving**: When two people with specifications are in the same conversation, how does the serving layer handle both?
 6. **Model-agnostic payload**: The assembled payload should work with any LLM. Does the framing need to change per model?

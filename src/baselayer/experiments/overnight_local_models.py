@@ -11,7 +11,7 @@ Total estimated cost: $0 (all local)
 Total estimated time: 3-6 hours depending on GPU load
 
 Usage:
-    cd C:/Users/user/Anthropic/memory_system/scripts
+    cd <repo>/scripts
     python experiments/overnight_local_models.py            # All phases
     python experiments/overnight_local_models.py --phase A  # One phase
     python experiments/overnight_local_models.py --dry-run
@@ -31,21 +31,23 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
 RESULTS_DIR = Path(__file__).parent / "overnight_results"
-SUBJECTS_DIR = Path("C:/Users/user/Anthropic/subjects")
-V4_DIR = Path("C:/Users/user/Anthropic/memory_system_v4")
+# Root that holds subject memory dirs. Override with BASELAYER_ROOT; falls back
+# to the repo-relative Anthropic workspace root derived from this file.
+ANTHROPIC_ROOT = Path(os.environ.get("BASELAYER_ROOT", str(Path(__file__).resolve().parents[4])))
+SUBJECTS_DIR = ANTHROPIC_ROOT / "subjects"
+V4_DIR = ANTHROPIC_ROOT / "memory_system_v4"
 
 # Models for each phase (ordered: best quality first, fallback to smaller)
 PIPELINE_MODELS = ["qwen2.5:7b", "sam860/LFM2:2.6b", "sam860/LFM2:350m"]
 REASONING_MODELS = ["deepseek-r1:7b", "qwen2.5:7b"]
 
-# All 12 subjects with V5 briefs
+# All subjects with V5 briefs
 ALL_SUBJECTS = [
     ("franklin",      SUBJECTS_DIR / "franklin_memory"),
     ("buffett",       SUBJECTS_DIR / "buffett_memory"),
     ("aarik",         V4_DIR),
     ("douglass",      SUBJECTS_DIR / "douglass_memory"),
     ("marks",         SUBJECTS_DIR / "marks_memory"),
-    ("bavani",        SUBJECTS_DIR / "bavani_memory"),
     ("patent",        SUBJECTS_DIR / "patent_memory"),
     ("lesswrong",     SUBJECTS_DIR / "lesswrong_clt"),
     ("baselayer_meta",SUBJECTS_DIR / "baselayer_meta"),

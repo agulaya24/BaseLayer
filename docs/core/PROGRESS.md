@@ -1,433 +1,460 @@
 # Base Layer — Session Progress (S86+)
 
+> **⚠️ SUPERSEDED — logging stopped at Session 114 (2026-04-23) (banner added 2026-07-02).** This file has no entries since April and predates launch, arXiv, MATS, and the SCOTUS work. The CLAUDE.md session protocol's "read last entry only" instruction currently returns pre-launch April state — do NOT use this file for current status. Live state: `Anthropic/todo_dashboard.html` + the latest `Anthropic/SESSION_HANDOFF_*.md`.
+
 > Sessions S1-S85 archived in [PROGRESS_ARCHIVE.md](PROGRESS_ARCHIVE.md)
 
-## Session 101 (2026-03-31 to 2026-04-01) — Unified System, Findability, Outreach, Job Hunt
+## Session 114 (2026-04-23) — v9 Paper Revision, 233 Annotations Triaged, Phase 1 Data Jobs
 
-Biggest session to date. Covered: unified system build, comprehensive agent findability, Wave 1 V2 follow-ups, 12+ new pipeline runs, job hunt kickoff, resume/applications, funding research.
+### Headline
+Full triage of 233 Word-comments from Aarik on v8 "Beyond Recall." v8 forked to v9 draft. Phase 1 data reruns executed (Supermemory paid-tier, author derangement). Six Part A sweeps applied, eight more queued. Recovered from one methodology propagation error by verifying primary source.
 
-### Unified System (experimental/unified-system branch)
-- 6 new modules + 4 modified, all compiling/passing tests
-- Serving layer eval specced (`docs/eval/SERVING_LAYER_EVAL.md`) — must run before architecture decision
-- Key design insight: serve full structured layers, let model self-route. Brief is human-only artifact.
-- Self-referential pipeline: 191 docs → 2,504 facts → authored + composed (Base Layer's own identity model)
+### What Was Done
 
-### Agent Findability — COMPREHENSIVE DEPLOYMENT
-All live: llms.txt, llms-full.txt, .well-known (agent-card, agents, mcp/server-card), OpenAPI, robots.txt, expanded sitemap (29 URLs), identity API fixed (10 examples), Link headers, crawler tracking middleware, agent-feedback endpoint, agent visit admin dashboard, AEO FAQ schema on research page, llms.txt in repo root, PyPI description updated, GitHub README agent section, Google Forms upload on try-it page.
+**Annotation triage (all 233 Aarik comments on v8):**
+- Full edit plan: `memory-study-repo/docs/reviews/s114_v9_edit_plan.md`
+- Cross-LLM consensus review: `memory-study-repo/docs/reviews/s114_v9_triage_consensus.md`
+- v8 forked to v9: `memory-study-repo/docs/beyond_recall_v9_draft.md`
 
-MCP registries: Glama submitted, awesome-mcp-servers PR open, Smithery plan saved (needs hosted endpoint).
+**Phase 1 data reruns (complete):**
+- **P0-2 Supermemory paid tier** (4 subjects): ingest + generate done. 7-judge panel running.
+  Report: `memory-study-repo/docs/research/p0_2_supermemory_paid_tier_rerun.md`
+- **P0-6 author derangement** (Seacole random-pick, Babur max-distance): 120 wrong-spec responses across both conditions plus existing Franklin. **H6 holds robustly** — zero downward crossings vs. C5 on any of 40 questions under either new draw. Lift lands +1.15 (Seacole) to +1.32 (Babur) vs. +1.56 Franklin, consistent with §4.1.2 "atypically favourable draw" decomposition.
+  Report: `memory-study-repo/docs/research/p0_6_author_derangement.md`
+- **P0-4 / P0-5 / P0-7 / P0-15 / P0-16 / P0-17** analyses complete. Reports in `memory-study-repo/docs/research/`.
+
+**v9 Part A sweeps:**
+- Applied: A4, A5, A6, A7, A8, A12, A13, A14
+- Remaining: A1, A2, A3, A9, A10, A11
+
+**Other integrations:**
+- §4.1.2 updated with 3-way wrong-spec control data (Franklin + Seacole + Babur)
+- Battery leakage audit confirmed clean: 2/586 matches (0.34%), Franklin-only
+
+### Mistakes Made and Recovered
+- **Propagated a flawed research-doc claim** that §4.1 used a simpler Haiku spec. Verified against primary source `run_global_rerun.py:285`, confirmed §4.1 uses the full 4-layer Sonnet+Opus spec for all 14 subjects. The research doc was wrong.
+- **Ran a Hamerton unified rerun under the wrong premise**, produced contaminated numbers, deleted the artifacts from the repo.
+- **Process lesson:** verify primary sources before building on prior-session claims. Research docs are not primary sources — code is.
+
+### Running Background Jobs at Session End
+- Supermemory 7-judge panel
+- Em-dash structural re-review
+- Figure rebuild plan
+- Appendix audit
+- Q&A digest from annotations
+- This documentation update
+
+### Open Items Blocking Paper Close
+- Part B structural moves
+- Part F section-by-section walkthrough
+- Figure rebuild execution
+- Abstract (deferred to last)
+
+### Post-Release Note
+After v9 ships, a new self-referential rerun of the Base Layer pipeline on Aarik's own updated corpus is planned. Current Aarik spec in `_internal/aarik_clean_pilot/` is the one used for §4.1.2 living-user replication; post-paper rerun will re-extract and regenerate against his current state.
+
+---
+
+## Session 109 (2026-04-14) — Paper References Verified + Corrected, Free Law CSV Checkpointed
+
+### Headline
+Full reference audit on "Beyond Recall" — 9 uncertain citations verified by search agent, corrections applied to paper and REFERENCE_TABLE.md. Free Law Project CSV generator rewritten with checkpoint/resume logic. Researcher outreach targets added (4 tiers). Computer restart pending.
+
+### What Was Done
+
+**References — 9 verified, all corrections applied:**
+- REF-08 (Chen Persona Vectors): title corrected to "Monitoring and Controlling"; lead author Runjin Chen not "Y. Chen"
+- REF-11 (AlpsBench): full title corrected; "Alignment Beyond Recall" was invented subtitle
+- REF-13 (Context Rot): Kelly Hong at Chroma; no arXiv — technical report; URL confirmed
+- REF-14: lead author Yufeng Du not "Li, N."; venue EMNLP 2025
+- REF-15 (CAUSM): **does not exist** — replaced with real Jain et al. arXiv:2509.12517, CHI 2026
+- REF-16 (Lu): title corrected "Situating and Stabilizing"; author Christina Lu not "K. Lu"
+- REF-17 (PersonaMem): real paper is Jiang et al. "Know Me, Respond to Me", arXiv:2504.14225, COLM 2025
+- REF-18 (PersonaX): real paper is Shi et al. arXiv:2503.02398; ACL venue unconfirmed
+- REF-19 (Stacy social cognition): **does not exist** — removed from paper entirely
+- Body text corrections: "Li et al." → "Du et al.", "PersonaMem" → "Jiang et al.", CAUSM → real Jain citation, Lu first initial C not K
+- PersonaX in-body mention removed (actual paper is recommendation agents, not behavioral profiling)
+
+**REFERENCE_TABLE.md** (`memory-study-repo/docs/REFERENCE_TABLE.md`):
+- All 9 updated with VERIFIED/PARTIAL/NOT FOUND status and corrections
+- Pre-submission checklist updated
+
+**Free Law Project CSV generator** (`data/scotus/generate_author_fix_csv.py`):
+- Full rewrite with checkpoint/resume logic
+- Saves `author_fix_checkpoint.json` every 50 clusters
+- On restart: skips already-processed clusters, reuses cached cluster IDs per term
+- 1.5s delay (was 2.0s), better 502/503/504 backoff
+- `--reset` flag for clean start
+- **DO NOT auto-start** — Aarik runs manually from terminal (4-5 hrs, resumes on interruption)
+- When complete: run `python fix_author_csv.py` to produce final clean CSV
+
+**Outreach — referenced researchers added:**
+- `project_outreach_post_publish.md`: 4 tiers of researcher outreach added
+- Tier 1: Toubia (Twin-2K), Xiao/AlpsBench, Jiang/PersonaMem, Jandaghi/PersonaGym
+- Tier 2: LongMemEval, LoCoMo, Chroma (Hong/Troynikov), Du et al.
+- Tier 3: Chen/Arditi/Evans/Lindsey (check Anthropic affiliation first), Lu/Christina (check Anthropic), Betley, Jain
+- Framing: peer-to-peer "you're cited, here's what connects" — not founder outreach style
+
+**Paper synced:** both copies updated (memory-study-repo + memory_system/drafts)
+
+### Current State at End of Session
+- Paper: all S107-S109 editorial edits complete. Aarik doing voice pass. Launch ~Thursday.
+- Free Law CSV: script ready with checkpoints. Run manually after restart.
+- SCOTUS study: unchanged, pending paper launch.
+- Global pipeline (S108): compose was running for 11/13 subjects. Status unknown — check after restart.
+
+---
+
+## Session 108 (2026-04-14) — Pipeline Bugs 3+4 Fixed, Compose Running, Paper Redline
+
+### Headline
+Two more pipeline bugs found and fixed (bugs 3+4 of 4 total across S106-S108). All 13 global subjects: extract+embed+author complete. Compose running for 11/13. Paper redline with Aarik.
+
+### Bugs Fixed (bugs 3 and 4 — see `memory/feedback_pipeline_refactor_needed.md` for all 4)
+- **BUG 3 — embed.py Unicode crash:** `verify_embeddings()` calls `print(preview)` which fails on Windows cp1252 when facts contain non-Latin characters (Arabic, Japanese, BOM). Embedding itself succeeds but process exits 1. Fix: `PYTHONIOENCODING=utf-8` in subprocess env via `make_env()`.
+- **BUG 4 — compose wrong module:** `run_overnight_pipeline.py` called `python -m baselayer.agent_pipeline compose`. `agent_pipeline.py` has no CLI handler — it silently exits 0 and writes nothing. Fix: `python -m baselayer.cli compose`.
+
+### Pipeline State for 13 Global Subjects
+| Step | Status |
+|---|---|
+| split (paragraph-preserving) | DONE — all 13 |
+| init + import | DONE — all 13 |
+| extract (Haiku, --document-mode) | DONE — 125-358 facts each |
+| embed (MiniLM-L6-v2) | DONE — all 13 |
+| author (Sonnet) | DONE — all 13 |
+| compose (Opus) | RUNNING — 11/13 (augustine+babur: need re-run) |
+| spec (layers+brief) | PENDING compose |
+
+### Paper Updates
+- Limitation #8 corrected: global subjects use full Sonnet+Opus pipeline (old text said Haiku-only).
+- Limitation #8 rewritten: import structure difference noted (single-doc vs chapter-by-chapter).
+
+### Current State at End of Session
+- Compose in progress (PID 41564). ~25 min remaining for 11 subjects.
+- After complete: re-run augustine + babur with `--from-step compose`.
+- Then: full status check, copy specs to study repo.
+- Paper redline with Aarik: pending compose completion.
+
+---
+
+## Session 107 (2026-04-13) — Paper Editorial Pass: References, Citations, Figures, Hedging Metric
+
+### Headline
+Full editorial pass on "Beyond Recall" paper. Deterministic reference table created, 19 references audited and verification-flagged, 7 inline citations added to body, Section 5.5 hedging metric made prominent, 4 figure specifications written for formal pass, SCOTUS study updated.
+
+### What Was Done
+
+**Paper edits (`memory-study-repo/docs/beyond_recall_arxiv_draft.md`):**
+1. **Reference table** (`docs/REFERENCE_TABLE.md`) — 19 references keyed REF-01 through REF-19 with verification status (VERIFIED / PROBABLE / NEEDS CHECK), body citation map, and pre-submission checklist. 9 references need arXiv ID confirmation before ArXiv submission — marked with †.
+2. **Section 5.5** — Renamed "The Hedging Problem". 51%→31% hedging metric pulled into a callout block, labeled as the key finding. Jain et al. (CAUSM) and Lu et al. (Assistant Axis) cited as supporting context.
+3. **Inline citations added:**
+   - PersonaMem → Section 5.1 (50% user modeling failure)
+   - PersonaX → Section 5.3 (decoupled behavioral profiling)
+   - Chen et al. → Section 2 Related Work (new paragraph on persona vectors as complementary approach)
+   - Betley et al. → Section 5.6 (domain guard as misalignment countermeasure)
+   - Jain/CAUSM + Lu → Section 5.5 (hedging as structural property)
+4. **References section** — reformatted with [REF-XX] keys, † flags for unverified IDs, pointer to REFERENCE_TABLE.md
+5. **Appendix D** — Figure specifications written for 4 figures: Global Gradient scatter, Compression Curve, Retrieval Disagreement, Hedging Reduction. Each spec includes: chart type, data source, axis definitions, annotation points, key message. Ready for formal pass.
+
+**SCOTUS study:**
+- Domain-expert human evaluator removed → LLM-as-judge
+- Mem0 Pro added as 4th condition
+- Thomas-first approach confirmed
+- Free Law Project CSV pipeline: `generate_author_fix_csv.py` + `fix_author_csv.py` complete
+- All 11 SCOTUS justice person IDs mapped (OT2008-OT2015 gap)
+
+**Other:**
+- 17GB local backup of the working tree completed to external storage
+- Both paper copies synced (memory-study-repo and memory_system/drafts)
+
+### Current State at End of Session
+- Paper: all structural edits done. Aarik doing voice pass in Google Drive. Launch ~Thursday 2026-04-17.
+- References: 9 need human search for arXiv IDs before ArXiv submission (see REFERENCE_TABLE.md checklist)
+- Figures: 4 fully specified in Appendix D; require production tooling to generate
+- SCOTUS: CSV generator running; `fix_author_csv.py` ready to post-process output
+- Stats still TODO: Wilcoxon signed-rank, Krippendorff's alpha across 7 judges, scatter plot
+
+---
+
+## Session 106 (2026-04-13) — Global Subjects Pipeline Fixed + Overnight Run Launched
+
+### Headline
+Fixed two critical bugs that were producing 12-42 facts per subject instead of 200+. All 13 global subjects pipeline relaunched overnight.
+
+### What Was Built
+1. **Root cause identified**: `split_corpus()` was splitting corpus by words (`corpus.split()`) and rejoining with spaces, destroying all `\n\n` paragraph breaks. `_chunk_text_for_extraction()` relies on `\n\n` to chunk. Result: 1 chunk per 185K chars → ~36 facts instead of 200+.
+2. **Fix**: Character-midpoint split finding nearest `\n\n` boundary, preserving original paragraph structure. Confirmed: augustine 261 paragraph breaks, sunity_devee 469 paragraph breaks.
+3. **AUDN NOOP bug confirmed**: Must clear BOTH SQLite AND ChromaDB vectors before re-extraction. Stale vectors cause all new facts to be marked NOOP (duplicate). Documented in `memory/feedback_clear_chromadb_on_reset.md`.
+4. **Overnight runner**: `run_overnight_pipeline.py` — complete overnight runner with OPENBLAS_NUM_THREADS=1, sequential execution, auto-clearing of both SQLite and ChromaDB, diagnostic logging, resume-from-step support.
+5. **Paper voice pass support**: All Section 5 additions for paper — 5.4 (compression story with size table), 5.5 (when to use spec), 5.6 (what this paper is and is not). Em dashes removed (77 instances restructured). Closing added.
+
+### Bugs Fixed
+- `split_corpus()` word-split destroying paragraph structure → character-midpoint with `\n\n` search
+- `capture_output=True` on pipeline subprocesses swallowing all output → `stdout=sys.stdout, stderr=sys.stderr`
+- OPENBLAS memory exhaustion on parallel runs → sequential + `OPENBLAS_NUM_THREADS=1` in subprocess env
+
+### Current State at End of Session
+- 13 subjects pipeline running overnight via `run_overnight_pipeline.py`
+- All corpora re-split with paragraph preservation
+- All SQLite + ChromaDB cleared
+- Log: `data/experiments/memory_systems/overnight_run_*.log`
+
+---
+
+## Session 105 (2026-04-10 to 2026-04-12) — "Beyond Recall" Study — Most Comprehensive Memory Study Published
+
+### Headline
+**"Beyond Recall: Behavioral Specification as the Missing Primitive for AI Personalization."** Full layer stack (anchors + core + predictions + brief) tested across 14 subjects, 11 cultures, 6 response models, 7 judges, 15+ conditions. Judge calibration framework built. N=1→N=14 in one session.
+
+### What Was Built This Session
+1. **Franklin replication** — known-figure test. Baseline 3.99 dominates. Context hurts for known subjects.
+2. **Franklin obscure letters** — partial knowledge test. Baseline 3.50. Cross-corpus spec.
+3. **Clean Franklin spec** — regenerated from chapters 0-10 only. No leakage.
+4. **Full-stack spec** — anchors + core + predictions + brief. The actual product configuration.
+5. **C4a (all facts + spec)** — new highest condition for Hamerton (3.23 brief, 2.69 full-stack).
+6. **C9 (raw corpus)** — 25K words in context. Spec + 10 facts beats raw text (3.01 vs 2.31).
+7. **C8 (raw corpus per system)** — each system processes raw text. Spec helps all pipelines.
+8. **C7 (named baseline)** — "This is Benjamin Franklin." Model already knows without being told.
+9. **6 response models** — Haiku, Sonnet, GPT-4.1, GPT-5.4, Gemini Flash, Gemini Pro.
+10. **7 judges** — Haiku, Sonnet, Opus, GPT-4o, GPT-5.4, Gemini Flash, Gemini Pro.
+11. **Judge calibration framework** — verbatim/paraphrase/length tests. Ceiling 5.00 for judges, 4.23 for response model. Length bias detected in Haiku. Publishable contribution.
+12. **13 global subjects** — running overnight. Keckley, Sunity Devee, Zitkala-Sa, Equiano, Seacole, Fukuzawa, Babur, Yung Wing, Cellini, Bernal Diaz, Ebers, Rousseau, Augustine. 11 cultures.
+13. **Outreach plan** — 6 tiers, templates, study release list.
+14. **Study repo plan** — agent-friendly with .agents/ directory.
+15. **Publication strategy** — 4 posts + ArXiv preprint "Beyond Recall."
+
+### Key Results (Full-Stack Spec)
+**Hamerton (unknown, baseline 1.37):**
+- C3_full_mem0: 2.97 (Haiku) / 3.79 (Gemini) / 2.82 (GPT-5.4). Cohen's d = 1.21 (large).
+- C2c wrong spec: 1.38. Indistinguishable from baseline. Wrong full-stack adds nothing.
+- C4a: 2.69. Spec helps even with all facts.
+- C9 raw corpus: 2.31. Spec + 10 facts beats 25K raw words.
+
+**Franklin (known, baseline 3.99):** All conditions below baseline. Context hurts.
+**Franklin obscure (partial, baseline 3.50):** Below baseline. Model's general Franklin knowledge dominates.
+
+### Issues Caught & Fixed
+- Franklin spec data leakage (generated from full autobiography → clean spec from ch 0-10)
+- Brief-only vs full-stack spec (study used brief only → re-ran with full layer stack)
+- Q50 misclassified as behavioral_prediction (no held-out passage → reclassified to inferential)
+- Supermemory 308 redirect (follow_redirects=True fix)
+- Gemini Pro Unicode crash (UTF-8 encoding fix)
+- GPT-5.4 max_tokens → max_completion_tokens parameter change
+
+### Insights Captured (Aarik's voice bank at `memory/aarik_insights_s105.md`)
+- "The model has no idea who you are — and that's a problem."
+- "It's not a filing cabinet, it's an undervalued copy."
+- "Memory is really about how the facts are used. Why leave that to a pure inference machine."
+- "There is no other metric to optimize for besides predictive reasoning."
+- "We must embody open source, what it should be, not what it is."
+- "I want it to be between research and belief."
+
+### Cost
+- Total API spend: ~$50-60 across all runs, all models, all subjects
+- Gemini Flash: free
+- Gemini Pro: free (rate limited)
+
+---
+
+## Session 104 (2026-04-09 to 2026-04-10) — Memory Systems Study COMPLETE. Monday Launch.
+
+### Headline Finding
+**A 3,156-token behavioral specification outpredicts four funded SOTA memory systems (Mem0, Letta, Supermemory, Zep) on held-out behavioral prediction. Adding it to any of them makes them better.**
+
+Title: **"Mem0, Zep, Letta, Supermemory: State of the Art Is Missing the Art"**
+
+### Study Execution — 1,036 Data Points
+- 80 questions × 13 conditions across 5 tiers (recall, inference, behavioral prediction, adversarial, boundary)
+- Corpus: Philip Gilbert Hamerton autobiography (Victorian art critic, near-zero LLM prior knowledge)
+- 462 shared facts ingested into all 4 memory systems
+- Behavioral spec (3,156 tokens) generated from same corpus via Base Layer pipeline
+- 14 conditions: C1×4 (memory systems), C2a (spec only), C2c (wrong spec — Franklin), C3×4 (spec+memory), C4 (all facts), C5 (baseline), C6 (random)
+- Held-out validation: questions designed backward from chapters 11-32, spec built from chapters 1-10 only
+
+### Results
+- **C3 > C1 across all systems (p=0.012).** Spec + facts beats facts alone. 16 wins, 4 losses.
+- **C2a (spec only) trends higher but NOT significant vs C1 (p=0.83).** Spec needs facts.
+- **C2c wrong spec (2.21) < correct spec (2.77).** Right spec matters — not just "any framework helps."
+- **C4 fact dump (2.74) ≈ C2a spec (2.77).** 462 facts ≈ 3,156 tokens. Compression ratio finding.
+- **Bimodal → gradient:** C1_mem0 has 16 ones + 11 fives. C3_mem0 has 3 ones + 11 fives. Spec rescues 13 predictions from catastrophic failure.
+- **65% retrieval disagreement** across embedding systems on top-1 fact. They don't agree with each other.
+- **Zep graph bias:** retrieves same father-property fact for 39% of all questions.
+- **Adversarial:** all conditions 100% abstention on unanswerable questions except C4 (80%). More facts = overconfidence.
+- **Spec amplification:** C3 produces 2.07-2.25x output tokens of C1, consistent across all systems.
+
+### Inter-Rater Reliability (4 judges) — ALL COMPLETE
+- **Haiku 4.5:** primary judge (complete)
+- **Sonnet 4.6:** exact agreement 66.3%, within-1 87.1%, Spearman rho=0.885 (complete)
+- **Opus:** complete. Sonnet-Opus rho=0.983 (near-perfect agreement).
+- **GPT-4o:** complete. 505/505 scored, 0 failures. Most generous judge (~0.2-0.4 points higher than Anthropic models). Does not change ranking.
+- All 4 judges agree: C3 conditions are top 4, C5/C6/C1_zep are bottom 3.
+- Pairwise Spearman rho: all pairs 0.89-0.98. Sonnet-Opus highest (0.983).
+- 4-judge averages: C3_letta 3.13, C3_mem0 3.01, C3_supermemory 3.01, C3_zep 2.69.
+- C3 avg 2.96 vs C1 avg 2.33 = +0.63 (+27%). p=0.012 holds across all judges.
+
+### Methodological Checks
+- Length bias: r=0.334 (moderate). Acknowledged.
+- C1 refusal rate: 51%. When C1 answers, scores 3.7. Spec cuts refusal to 31%.
+- Baseline contamination: C5 scores 1 on 32/39 questions. Model doesn't know Hamerton.
+- Bootstrap 95% CIs: C3_mem0 [2.79, 3.67], C1_mem0 [2.13, 3.23]. Overlap exists but sign test significant.
+
+### Collective Reviews on Results
+- Rao: "Spec adds a failure mode that degrades gracefully instead of catastrophically."
+- Marks: "Wrong framework still outperforms no framework. Illusion of knowledge more dangerous than ignorance."
+- Galef: "Advantage is additive not substitutive. Check score when all 3 systems agree." (TODO)
+- Graham: "Wrong map better than no map, right map 25% better. That ratio is the business case."
+- patio11: "3-6K token artifact with zero latency. Ship a feature around C4 fabrication."
+
+### Technical Issues
+- SDK init hangs after ~50 queries (urllib3/chardet version mismatch). Fixed with raw httpx.
+- Zep `list_ordered()` returns named tuples not User objects. Fixed in standalone runner.
+- Supermemory search API: `POST /v3/search` with `containerTags` (camelCase array).
+- Config had wrong IDs (hamerton_study_v2 → hamerton_study). Fixed.
+
+### Franklin Replication (S105) — COMPLETE, Judges Running
+- **80 questions × 12 conditions** — all responses collected
+- **4 judges complete:** Haiku, Sonnet 4.6, Opus, Gemini 2.5 Flash. GPT-4o blocked (key permissions).
+- **Headline:** Baseline dominates (3.99). Context hurts for known subjects. Spec is a tool for the unknown.
+- **C4a (all facts + spec):** 3.23 (new Hamerton highest). Spec helps even with complete information.
+- **C9 (raw corpus):** Hamerton 2.31. Spec + 10 facts (3.01) beats 25K raw words.
+- **C8 (raw corpus per system):** Ingestion DONE. Queries RUNNING.
+- **Franklin C9:** Running (Q19-80).
+- **Zep standalone Franklin:** Running.
+- **Obscure Franklin corpus downloaded:** Complete Works Vol 2 (151K words).
+- **5 judges from 3 providers** (Anthropic, OpenAI, Google) — all agree on rankings.
+
+### Infrastructure (S105)
+- Google Docs MCP server configured (`@a-bonus/google-docs-mcp`). Pending OAuth on session restart.
+- Gemini 2.5 Flash API configured as 5th judge. Free tier, `GEMINI_API_KEY` set.
+- Blog post updated with Franklin results, C9/C4a findings, 5-judge stats.
+- Charts regenerated: 7 charts in `drafts/charts/`.
+- Study repo created (memory-study-repo).
+- SCOTUS study spec formalized at `docs/eval/SCOTUS_STUDY_SPEC.md`.
+- Provider issues documented at `data/experiments/memory_systems/PROVIDER_ISSUES.md`.
+
+### Distribution Plan — MONDAY 2026-04-14
+1. Blog post + interactive data explorer on base-layer.ai
+2. Public study repo (all scripts, data, results) — NOT YET CREATED
+3. ArXiv preprint same week
+4. Email founders: Taranjeet (Mem0), Charles Packer (Letta), Dhravya Shah (Supermemory)
+5. Email investors: a16z, Felicis
+6. Social: X, HN, r/LocalLLaMA, LinkedIn
+7. Franklin replication to follow (known-figure test)
+
+### Files
+- Runner: `data/experiments/memory_systems/run_full_study.py` (14 conditions)
+- Fallback: `data/experiments/memory_systems/run_remaining.py` (raw httpx)
+- Judge: `data/experiments/memory_systems/run_judge_batch.py` (batch submit/check/process)
+- Results: `data/experiments/memory_systems/results/run_20260409_182743/results_merged.json`
+- Analysis: `data/experiments/memory_systems/results/run_20260409_182743/analysis/`
+- Study spec: `docs/eval/MEMORY_SYSTEMS_STUDY.md`
+- Experiment log: `data/experiments/memory_systems/EXPERIMENT_LOG.md`
+
+---
+
+## Session 103 (2026-04-08 to 2026-04-09) — Memory Study Designed, Test Run, SCOTUS Corpus
+
+### Memory Systems Study — Designed and Test Run Complete
+- Study spec finalized: `docs/eval/MEMORY_SYSTEMS_STUDY.md`
+- All 4 memory systems connected and tested (Mem0, Letta, Supermemory, Zep Cloud)
+- 462 shared facts extracted and ingested
+- Hamerton spec generated (3,156 tokens)
+- 80-question battery built (39 with held-out ground truth passages)
+- LLM-as-judge method locked (replaces embedding similarity)
+- 5-question test run: embedding systems 40-60% top-1 overlap, Zep 0-20%
+- Key test finding: spec transforms refusal into prediction
+
+### SCOTUS Corpus — Downloaded
+- Harvard CAP: 572 volumes, 1.2GB, every SCOTUS opinion 1754-2019
+- Thomas: 517 opinions extracted (OT1991-OT2013)
+- CourtListener: OT2016-OT2025 supplemented
+- Gap: OT2014-OT2015 needs reconciliation
+
+---
+
+## Session 102 (2026-04-06 to 2026-04-08) — Serving Layer Built, Messaging Reframe, SCOTUS Study Designed
+
+Longest session in project history (~16 hours). Serving layer designed, built, and tested. Full messaging reframe. Battery results. SCOTUS study scoped as the definitive experiment.
+
+### Serving Layer — DESIGNED AND BUILT
+- **Architecture:** Behavioral spec always-on. The diff between with-spec and without-spec IS the identity signal.
+- **Engine:** `runners/serving_engine.py` — diff cascade with Mem0-faithful baseline (Chhikara et al., 2025)
+- **TUI:** `runners/serving_tui.py` — 7-panel visual debugger with live cascade updates. Non-blocking startup, error logging, embedding cache.
+- **Key finding:** 18/19 retrieval divergence between Mem0 and Base Layer on same fact store. Mem0 retrieved cake recipes and mattress preferences for "what makes base layer special?" Base Layer retrieved agency, resilience, sovereignty.
+- **Killed:** Embedding-based routing (15-35% similarity range too narrow). Replaced with model-routed activation (C6).
+- **Multi-subject support:** `--subject buffett`, `--subject <subject>`
+
+### 50-Question Battery — COMPLETE
+- 50 questions across 10 topics, 3 conditions, mechanical measurements only
+- Relationships diverge most (4.75 avg), career least (3.29)
+- Consistent pattern: Mem0 gives lists (avg 12 items), Spec gives conversation (avg 2 items)
+- Buffett battery (10 questions, H3 spec): 2.12 avg divergence — half of Aarik's, suggesting spec value correlates with how much the base model already knows about the subject
+
+### Messaging Reframe — COMPLETE
+- All 14 website + 10 codebase touchpoints updated
+- "Behavioral specification" adopted as single term
+- OpenAPI schema, agent cards, llms.txt, README, PyPI, MCP server all reframed
+- Services page hidden (redirects to homepage)
+- GitHub repo description updated
+
+### SCOTUS Reasoning Study — DESIGNED
+- 8 current justices (drop Jackson, insufficient corpus)
+- Build behavioral spec from pre-2020 opinions
+- Test: predict reasoning structure on 2020-2025 held-out cases
+- All conditions receive same citation bank — selection and application is the signal
+- C3 control: wrong justice's spec loaded — proves specific content matters
+- A domain-expert human evaluator as blind evaluator
+- Citation enforcement: mechanical stripping of hallucinated citations, logged
+- Gap in literature: vote prediction solved (70%), reasoning prediction open
+- Cost: ~$50-100
+
+### Blind Recognition Test — DESIGNED
+- 100 questions, 4 conditions (your spec, wrong spec, facts only, no context)
+- Obfuscation layer strips style markers, preserves reasoning
+- Subject picks "which response is mine?" — recognition, not evaluation
+- Chance = 25%. If spec picked at 50%+, p < 0.001
+
+### Temporal Prediction Study
+- v1 FAILED: quick-gen 625-token specs, tactical decisions → invalid (Mem0 60% > Spec 27%)
+- v2 specced: full pipeline runs, behavioral decisions, production specs
+- 15 decisions from S86-S102 pre-registered
+- Contaminated prediction test: 9/10 spec, 6/10 facts (invalid but directionally interesting)
+
+### Research Findings
+- AlpsBench (2026) proved recall != alignment: "explicit memory mechanisms improve recall but do not inherently guarantee more preference-aligned or emotionally resonant responses"
+- Nobody in the literature measures behavioral influence from compressed specs
+- Prediction fulfillment rate proposed as novel metric
+- The prediction triangle: spec prediction, fact prediction, actual outcome — three-way comparison
+- Cognitive psychology instruments identified: integrative complexity, expert-novice categorization, counterfactual generation, CART, A-DMC
+- InMind (EMNLP 2025) is closest adjacent work
 
 ### Outreach
-- Wave 1 V2 follow-ups: 11 emails sent (all pages reseeded H3, magic links + passwords)
-- 6 pipeline runs done: Tyler Cowen (1,254 facts), Sasha Chapin, Ryan Holiday, Adam Mastroianni, Evan Armstrong (231), Guillermo Rauch (174)
-- 6 pipeline runs in progress: Dario Amodei, Taranjeet Singh, Charles Packer, Michael Truell, Timothy Chen, Dharmesh Shah
-- 9 new subjects scraped. Dropped: Alex Albert (thin), Steve Yegge (blocked), Karri Saarinen (corrupted)
-- Added: Garry Tan (blocked), Elad Gil (38 files, queued)
+- 25 agentic infrastructure targets identified with platform-specific demos
+- CRM updated with "Agentic Infrastructure" category (blue highlighted)
+- Wave 9 scraped (7/10): Cal Newport 500, Nir Eyal 389, Sahil Bloom 242
+- Wave 10 scraped (3/5): Harrison Chase 388, Joao Moura 31, Flo Crivello 25
+- Engagement: Byrne Hobart (viewed+unlocked), Derek Sivers (viewed+unlocked), Visakan Veerasamy (viewed)
 
-### Job Hunt
-- Resume finalized. Application answers written.
-- Target roles: Claude Evangelist, PM Claude Code, Product Marketing Lead (Agents), Chief of Staff AI
-- Funding: AI Grant, Sequoia Fellowship, NSF SBIR/STTR, OpenAI Foundation, angel targets (Timothy Chen, Dharmesh Shah)
-- Dashboard: FUNDING & JOB HUNT workstream added
+### Infrastructure
+- `baselayer export` command added — self-contained HTML of spec, opens in browser
+- Buffett re-authored with H3 prompts (was pre-H3)
+- H-ARC dataset downloaded (1,729 humans, 800 reasoning tasks)
+- Game of 24 think-aloud dataset downloaded (541 participants, 4,947 verbal traces)
+- All serving layer code pushed to GitHub as experimental
 
-## Session 100 (2026-03-30/31) — H3 Complete, Daemon Agent, Pipeline Refactor Validated
+### Key Decisions
+- Research over revenue — services page hidden, research path chosen
+- "Behavioral specification" as single term everywhere (collective consensus)
+- Embedding router killed — model does the routing (C6 architecture)
+- The diff IS the identity signal — the spec operates alongside the human, never alone
+- SCOTUS study as the definitive experiment — reasoning chains as ground truth
 
-### Pipeline Refactor Complete (S98-S99)
-- H3 prompts adopted as production prompt set (73-word domain-agnostic guard, 78% prompt reduction).
-- Compose prompt fixed: they/them pronouns (D-092) + domain guard (D-091).
-- Extraction gate added — blocks authoring on incomplete extractions.
-
-### H3 Prompt Ablation Results (S99)
-- 4 rounds, 10 conditions. Domain guard eliminated topic skew entirely (prediction market mentions 9 to 0).
-- All authoring prompts updated. 44 subjects H3-authored, all recomposed — 0 he/him, 0 topic skew.
-
-### Compose Prompt Fixes
-- **Universal they/them pronouns (D-092):** ALL 38 subjects recomposed with fixed prompt — 0 he/him across entire batch.
-- **Domain guard added to compose (D-091):** Prevents topic-specific content from reassembling in the brief.
-
-### Structured Output for Predictions Validated (D-093)
-- Validated on Scott Alexander. Planned for all layers. Improves parsing reliability and enables serving layer activation matching.
-
-### Serving Layer Specced
-- `docs/core/SERVING_LAYER_SPEC.md` — activation matching MVP. Not yet built.
-
-### Daemon Agent Built
-- **OODA loop architecture:** Observe-Orient-Decide-Act cycle for autonomous background processing.
-- **Local reasoning:** phi4-mini and gemma3:12b for local decision-making without API calls.
-- **System tray integration:** Background daemon with system tray presence.
-- **Self-scaffolding workspace:** Agent creates and manages its own working context.
-
-### Provenance Fixes
-- **claim_id format corrected** — consistent format across pipeline.
-- **Vector IDs fixed** — alignment between SQLite and ChromaDB references.
-- **Embedding import chain repaired** — end-to-end provenance tracing restored.
-
-### Website Updates
-- **Pipeline visualization updated to 5 steps** — reflects simplified pipeline (import, extract, author, compose, serve).
-- **Agent findability:** `llms.txt` added, identity API endpoint, magic link auth for direct page access.
-
-### New Subjects + Re-extractions
-- **Katie Parrott:** 43 posts scraped, 206 facts extracted, H3 composed.
-- **Dan Shipper re-extracted:** 549 facts (up from 244). H3 composed.
-- **44 subjects H3-authored total**, 17 Wave 4/5 subjects seeded to thinkers pages.
-
-### Outreach
-- **Scott Alexander emailed with magic link** — H3 V2 model + magic link auth.
-- **Sycophancy study email sent** to Stanford researchers.
-- **Wave 4/5 email drafts generated** — 16 subjects. Gmail drafts pushed (13/16 automated, 3 manual).
-
-### Overnight GPU Test Results
-- **1,200 extraction runs + predicate ablation completed.**
-- Results inform local model selection for extraction pipeline.
-
-### Self-Referential Pipeline
-- Base Layer docs re-imported as source material for identity model generation.
-
-### Aarik Identity Model
-- Regenerated with H3 prompts. A=8 anchors, C=7 core sections, P=8 predictions. Seeded to website.
-
-### Other
-- Research page updated: authoring ablation study + stacking test section.
-- Visionist trading facts corrected (misattribution from corpus).
-- Parser fixes: flexible heading separators for H3 output.
-- 93 design decisions, 14 principles logged. D-089 through D-093 (S99-S100).
+### Feller's Key Observations
+- "Cart before horse" — naming was consuming energy that should go to the serving layer
+- "Spec predicts itself. Raw facts predict you. Which one's actually you?" — the prediction triangle
+- "The spec predicts the spec. What predicts the spec changing?" — the daemon's purpose
+- "Blocking calls hide in quiet places" — TUI had synchronous startup loading
+- "Milliseconds precise; thinking stays opaque. Name those states." — on the Game of 24 data
 
 ---
 
-## Session 99 (2026-03-27) — H3 Prompt Ablation, Serving Layer Spec, Thoughts Page
-
-### H3 Prompt Ablation (Major Finding)
-- **4 rounds, 10 conditions tested.** Ablation on authoring prompts to eliminate topic skew in identity models.
-- **Key finding:** A 73-word domain-agnostic guard ("How someone reasons IS identity. What they reason ABOUT is not.") eliminated topic skew entirely — prediction market mentions reduced from 9 to 0.
-- **78% prompt size reduction:** ANCHORS prompt from 983 words to 333 words. 700 words of existing prompt proved ceremonial.
-- **H3 adopted** as production prompt set. Implemented in ANCHORS_PROMPT, CORE_PROMPT, PREDICTIONS_PROMPT in `author_layers.py`.
-- Detection/suppression balance validated: guard catches domain bleed without suppressing genuine epistemic patterns.
-- **All 44 subjects H3-authored** (author + compose) after adoption.
-- See D-089 for full decision record.
-- Prompt ablation published on research page + LinkedIn.
-
-### Serving Layer Spec Drafted
-- `docs/core/SERVING_LAYER_SPEC.md` — specification for activation matching (which parts of the brief are relevant to the current conversation context).
-- Phase 1: activation matching MVP. Flagged as next priority on pipeline workstream.
-
-### Temporal Prediction Test Spec Drafted
-- Specification for testing whether identity models can predict behavioral changes over time.
-
-### Cross-Discipline Research
-- 10 findings across 7 academic domains mapped to Base Layer's architecture. Validates compression-first approach from multiple independent research traditions.
-
-### Thoughts Page Created
-- New section on base-layer.ai for long-form thinking and research notes.
-
-### Magic Link Auth Fixed
-- Route Handler pattern adopted — fixes auth flow reliability issues.
-- Magic links now correctly set cookies, record logins, redirect to clean URLs.
-
-### ALL V2s Reverted to V1
-- Prompt ablation discovered topic skew in existing V2 briefs. All 28 Wave 1/2/3 subjects reverted to clean V1 state. Re-runs needed with H3 prompts before any V2 claims are valid.
-- Version history cleared across all thinkers pages.
-
-### Key Decisions (S99)
-- D-089: Domain-Agnostic Identity Guard — 73-word guard in authoring prompts.
-- D-090: Sycophancy Resistance as Architecture — structural anti-sycophancy, not prompt-level.
-- D-091: Compose Domain Guard — equivalent to D-089 for composition step.
-- D-092: Universal They/Them Pronouns — enforced in compose prompt.
-- D-093: Structured Output for Predictions — parsing reliability.
-
-### Design Principles Added
-- Principle 13: Domain-Agnostic Identity — formalized from D-089.
-- Principle 14: Sycophancy Resistance as Architecture — formalized from D-090.
-
----
-
-## Session 98 (2026-03-25) — Full System Audit, V2 Paused, Refactor Plan
-
-### V2 Status Corrected
-- Only Kevin Kelly is real V2 (76→2,324 facts, 670 files). Layers changed but brief byte-for-byte identical (compose saturation).
-- David Perell + Henrik Karlsson are V1-FINAL (corpus-limited, fully scraped).
-- Casey Newton (55/285 extracted) + Maggie Appleton (58/213 extracted) halted mid-extraction.
-- S96 claimed 5 V2 upgrades — 4 were false (re-ran on identical data). Dashboard + docs corrected.
-
-### Pipeline Failures Found
-- **Agents ran author/compose on 10% extracted data** — no extraction completeness gate existed. Casey + Maggie briefs are garbage.
-- **Batch extract doesn't support document mode** — all subject extractions burning 2x API cost on sequential calls.
-- **No manifest gate** — nothing prevents re-runs on unchanged source data.
-- Extraction gate added to cli.py + author_layers.py (blocks if extraction incomplete). Untested end-to-end.
-
-### Full System Audit (3 parallel agents)
-- **Pipeline audit:** 16,631 LOC, 20 modules. 19 duplicate files, 12 dead steps, llm_provider.py unused, assemble_brief.py dead.
-- **Supporting files audit:** 67 source dirs, 50 subject envs, 148 docs (many stale), duplicate archives.
-- **Website audit:** 2 critical security bugs (password plaintext + timing-safe negated), type inconsistencies, 2 dead components.
-
-### External LLM Review (5 models: Claude, DeepSeek, Gemini, GPT, Grok)
-- Unanimous: compose saturation must be investigated before pipeline work.
-- Unanimous: Phase 2 overloaded — split into 2A (gates) and 2B (registry).
-- GPT: manifest = input fingerprint (not just file hash). V2 needs snapshot-before-clear. Document mode explicit not auto-detect.
-- Claude: done criteria per phase, rollback plans, Issue #7 needs phase assignment.
-- Gemini: golden dataset regression test needed before schema changes.
-
-### Code Changes
-- Identity model versioning: auto-archive to v1_staging, changeSummary generation, website version history diffs all tabs.
-- Website pushed + deployed (version history modal, changeSummary, layer prop chain).
-- Extraction gate added to cli.py and author_layers.py.
-- batch_extract.py partially wired for document mode (incomplete).
-- V2 scraping: Casey Newton 103→273 files, Maggie Appleton 121→213 files. David Perell +12 (corpus-limited), Henrik +4 (corpus-limited).
-
-### Anthropic Folder Cleanup
-- Deleted API key file (outdated key exposed as filename since Feb 18).
-- Archived: memory_system_v4, data exports (2.3GB), overnight results, stale scripts, old reviews.
-- Organized: outreach files → drafts/, runner scripts → memory_system/runners/, ablation briefs → archive.
-- Root-level: 9 active items, everything else archived with backups in _archive/backup_s98_20260325/.
-
-### Refactor Plan Produced
-- 8 phases, 10-14 sessions, gated with entry/done/verification/rollback per phase.
-- See: `docs/core/REFACTOR_PLAN_S98.md`
-- ALL V2 runs + outreach ON HOLD until refactor completes through Phase 4.
-
-### Key Decisions (S98)
-- D-087: Compose fact scaling (100→300 for large corpora). Confirmed: Kevin Kelly brief changed.
-- D-088: Unified pipeline + safety gates. `baselayer pipeline <subject> [--v2]`
-- Keep multi-provider (deprioritize), markdown+frontmatter, per-subject DBs
-- Golden dataset: Aarik's own model
-- Version history: full identity model as one document, not tabs
-
-### Aarik's Pipeline Test
-- Full pipeline run completed. 4,605 active facts, 2,682 identity-tier. 300 facts sampled for compose (was 100).
-- Brief: 10,415 chars. All gates passed (contamination + faithfulness).
-- Hallucinations fixed: Victoria/young child (authoring fabrication), SpaceX (quoted content misattributed).
-- Thinkers page live at base-layer.ai/thinkers/aarik with version history.
-
-### Overnight Runs (in progress)
-- 12 high priority V1 pipelines: Derek Sivers, Andy Matuschak, Gwern, Kyle Harrison, Tunguz, Zvi, Schwitzgebel, Jack Clark, Morgan Housel, patio11, Seth Godin, Visakan. ~8,500 source files.
-- Local model comparison: qwen2.5:32b, deepseek-r1:32b, gemma2:27b, mistral:7b, phi4:14b, haiku — 2 prompt variants x 20 conversations each.
-- New model test (queued): qwen3:14b + gemma3:12b (just released, pulled).
-
-### New Models Available
-- Qwen 3 released (0.6B-32B). qwen3:14b matches qwen2.5:32b performance.
-- Qwen 3.5 released (0.8B-27B). Native tool calling. March 2026.
-- Gemma 3 released (270M-27B).
-- Ollama now supports native structured JSON output (format parameter).
-
----
-
-## Session 97 (2026-03-24) — Underextraction Fix, Agentic Patterns V2, GPU Large Models
-
-### CRITICAL: Underextraction Bug Found + Fixed
-- **Root cause:** `extract_facts.py` line 1349 — `return all_facts[:max_facts]` truncated positionally, not by quality. With 200-cap, later chunks (Ch14-Ch21) got 0-2 facts despite Haiku extracting them. 71% of facts silently discarded.
-- **Fix 1:** Raised `max_facts_ceiling` to 600 (done prior session, confirmed working).
-- **Fix 2:** Sort by confidence before truncating — keeps best facts, not first facts. Applied to both `src/baselayer/extract_facts.py` and `scripts/extract_facts.py`.
-- **Fix 3:** Coverage warning added — prints discard % and recommendation when cap is hit.
-- **Still needed:** Chapter-level import splitter, round-robin allocation, automated coverage gating (>20% discard = pipeline block).
-
-### Agentic Patterns V2 Re-extraction
-- Cleared SQLite + ChromaDB, re-extracted with 600 cap.
-- **306 facts** (was 144) — 2.1x improvement. AUDN dedup kept quality high.
-- Predicate distribution: believes 122, values 52, practices 46, avoids 33, prioritizes 32, builds 12.
-- 3 layers authored: ANCHORS (vector provenance), CORE (433% citation provenance — 26 claims, 48 fact refs), PREDICTIONS (vector provenance).
-- Brief composed: **8,417 chars / 2,104 tokens** (was 6,183 chars). Quality/contamination/faithfulness gates: all PASSED.
-- Total cost: ~$0.22.
-
-### GPU Large Models Downloaded
-- `gemma2:27b` (15 GB), `deepseek-r1:32b` (19 GB), `qwen2.5:32b` (19 GB) — all pulled.
-- 13 models total available for overnight testing.
-- `overnight_gpu_full_pipeline.py` updated with new model lists for extraction/authoring/compose.
-
-### Percepta GPU Test (Small Models)
-- 10 models × 20 computational tasks = 200 runs.
-- 126/200 complete at session mid-point. Final 2 models (sam860/LFM2 variants) still running.
-- Results: `gpu_experiment_results/percepta/results_20260324_191052.json`.
-
-### Priority Review
-- Full audit of CLAUDE.md + MEMORY.md + PROGRESS.md active items — nothing dropped.
-- Flagged: Moltbook Agent stale (dashboard scripts deleted), Aarik's brief short (738 words), 3 bounced emails unresolved.
-
-### Folder Cleanup Verified
-- All 50 subject directories intact, 91 subjects properly organized.
-- No orphaned files, temp artifacts, or misplaced data.
-- Archives clearly labeled in `archive/scripts_backup_20260310/` and `archive/stale_scripts/`.
-
----
-
-## Session 88 (2026-03-11) — Aria Case Study, V5 Briefs Live, JSON Import
-
-### Aria (VividnessMem AI Character) Case Study
-- **First non-human subject.** Ran full pipeline on Aria's memory dump (70 reflections from u/Upper-Promotion8574's VividnessMem project).
-- JSON import support added to pipeline (`--json` flag, auto-detect `.json` in `baselayer run`).
-- Extracted 42 facts, authored 3 layers (24 axioms, 3 context modes, 5→6 predictions), composed V5 brief.
-- **Axiom inflation identified:** 24 axioms from 42 facts vs typical 7-9 from hundreds of conversations. Insufficient data density to separate load-bearing axioms from surface opinions.
-- Re-authored with citation API — CORE got 29 citation-linked claims. ANCHORS/PREDICTIONS fell back to vector provenance (heavy synthesis, API limitation).
-- Tension detection run: 12 tensions found, added to website.
-- Hidden example page at `base-layer.ai/examples/aria` — accessible via direct URL, not listed in nav or examples page.
-- Total pipeline cost: ~$0.27.
-
-### V5 Briefs Live on All Examples
-- All 8 public example pages updated from V4 to V5 clean briefs.
-- Added "Annotated Brief" download option — serves the cited brief_v5.md with [A1], [C2], [P3] markers preserved.
-- Added `citedBrief` export to all data files + SubjectConfig interface + DownloadMenu.
-
-### Research Page Fixes
-- Section ordering fixed to match nav sidebar (prompt-ablation first).
-- Study count updated: "Six studies" → "Seven studies".
-- Design decisions: 76 → 80.
-- Preliminary results disclaimer added to prompt ablation section.
-
-### Script Cleanup
-- 10 orphaned scripts moved to `scripts/archive/utilities/` (add_indexes, check_progress, create_turn_pairs, detect_contradictions, generate_docx, generate_tension_data, generate_website_data, monitor, query, summarize).
-- Dependency graph traced from cli.py and mcp_server.py — 19 active scripts confirmed.
-
-### External Project Reviews
-- Reviewed claude-memory-mcp, VividnessMem, LAM protocol, identity-ai, AIUC-1.
-- Drafted Reddit responses for r/aigamedev (VividnessMem) and r/aimemory.
-
-### Pipeline Notes
-- **Citations API on ANCHORS/PREDICTIONS:** Returns 0 because model synthesizes too heavily. Vector provenance fallback works. This is an API limitation, not a bug.
-- **Tension detection + predicate distributions are not pipeline steps** — they run separately via archived scripts. Should be integrated into the pipeline.
-- **JSON import design (Approach A):** Flatten JSON tree, try known text field names (content, text, message, body, reflection, etc.), fall back to all strings >50 chars.
-
----
-
-## Session 89 — 2026-03-12 (SWE-Bench Infrastructure + T4 Ready)
-
-### Infrastructure Setup
-- WSL2 v2.6.3 installed (Ubuntu 22.04).
-- Docker Desktop v29.2.1 installed (WSL2 backend).
-- swebench 4.1.0 installed in WSL Python venv (`~/swebench-env`).
-- Docker images cached: base (Ubuntu + conda, 2.18GB), env (Django deps), instance (Django at base_commit).
-
-### Harness Built (`scripts/swebench_harness.py`)
-- Two-phase architecture: GENERATE (agent loop) + EVALUATE (swebench Docker).
-- Agent: Minimal — Anthropic API tool_use + bash in Docker container. 25 turns max, temp=0.
-- Framework constant across conditions — only system prompt varies.
-- Resume support — skips completed problem×condition pairs on rerun.
-- Subcommands: `generate`, `evaluate`, `run` (both).
-
-### Validation Run
-- Problem: `django__django-10097` (URLValidator invalid chars).
-- Condition: C0 (bare). Model: Haiku.
-- Agent used 25 turns, explored repo, found `validators.py`, tested fix in Python, applied regex change.
-- Patch: 641 chars. Cost: $0.30.
-- swebench evaluation: **RESOLVED** (all fail-to-pass tests passed).
-- End-to-end pipeline confirmed working.
-
-### Bugs Fixed During Setup
-- `make_test_spec` import path changed in swebench 4.1.0 (`swebench.harness.test_spec.test_spec`).
-- `build_container()` requires `nocache` param in 4.1.0.
-- `swebench` doesn't run on Windows (Unix-only `resource` module) — must run in WSL.
-- Docker `exec_run` `workdir` unreliable — wrapped commands with `cd /testbed &&`.
-- API key not inherited in WSL — must export explicitly.
-
-### T4 Gating Strategy (decided)
-1. Run full T4 on Haiku first (~$63, ~10 hrs overnight). 30 problems × 7 conditions.
-2. If C2 > C0 with p < 0.05: replicate on Sonnet (~$100).
-3. If null on Haiku: save $100, publish null honestly.
-- Rationale: Haiku ~10x cheaper. E1 showed format effect is LARGER on smaller models. Haiku pilot is the cheapest path to a publishable result.
-
-### Pre-Flight Tasks (Opus + Sonnet review recommendations)
-1. **Axiom-problem relevance ratings** — Sonnet rated all 30 problems. 16 score 1 (no axiom relevant), 8 score 2, 6 score ≥3. Saved: `data/swebench/axiom_relevance_ratings.json`. Enables subgroup analysis if H1 fails.
-2. **Token counts measured** — All conditions counted via API. C7 (1183 tokens) is 3.6x C2 (327). Saved: `data/swebench/condition_token_counts.json`.
-3. **C7 built** — Raw Django design philosophy docs (unstructured, same source as C2). Replaces C6. Tests ETH Zurich finding: structured compression vs raw repo context.
-4. **C6 dropped** — Length-matched generic SE advice was weakest control. C7 is stronger comparison. C3 + C7 cover length confound.
-
-### Study Design Changes (S89)
-- **C6 → C7:** Reviewed by Opus and Sonnet. Both approved. C7 tests Base Layer's core thesis: structured compression > raw context dumping.
-- **Two-phase launch:** Phase A = C0 baseline (verify solve rate). Phase B = remaining conditions.
-- **Subgroup analysis pre-registered:** High-relevance problems (score ≥3, N=6).
-- **H6 updated:** C2 > C7 (structured axioms > raw repo context).
-
-### Migration to OpenHands (S89 continued)
-- **Switched from custom bash-only harness to OpenHands** — industry-standard agent framework used by ETH Zurich study (arxiv 2602.11988).
-- **Why:** Custom harness gave agent only bash tool. OpenHands provides file editor, search, bash — proper SWE-bench agent toolset. Results directly comparable to published benchmarks.
-- **OpenHands benchmarks repo cloned:** `/home/user/openhands-benchmarks/` (git submodule initialized, `uv sync` for deps).
-- **7 Jinja2 prompt templates created:** `benchmarks/swebench/prompts/swe_C0.j2` through `swe_C7.j2`. Each prepends condition text to OpenHands' default 8-phase instruction template.
-- **LLM config:** `llm_config_haiku.json` — `anthropic/claude-haiku-4-5-20251001`, temp=0, prompt caching enabled.
-- **Instance list:** `selected_django_30.txt` — 30 Django problem IDs, one per line.
-- **Wrapper script:** `run_axiom_study.sh` — supports `phase_a`, `phase_b`, `all`, or single condition.
-- **Max iterations:** 100 (OpenHands standard). Each iteration = one tool call. Typical solve: 30-60 iterations.
-- **Docker images:** Auto-built on first run via `ensure_local_image()`. No pre-build needed.
-- **Old harness (`scripts/swebench_harness.py`) SUPERSEDED** — kept for reference only.
-
-### Updated Cost Estimates (OpenHands + Haiku 4.5)
-- **Phase A (C0 baseline, 30 runs):** ~$15-45
-- **Phase B (C1-C5,C7, 180 runs):** ~$90-270
-- **Total Haiku T4:** ~$100-300
-- **Sonnet replication (if signal):** ~$400-800
-- Higher than custom harness (~$63) because OpenHands uses richer tools, longer context per iteration, and 100 max iterations (vs 25 turns). Standard for published SWE-bench evaluations.
-
-### Next Step
-- **Phase A:** C0 baseline on 30 problems. Verify solve rate 10-70%.
-- **Phase B:** If Phase A passes, run remaining 6 conditions.
-- Run commands: `cd /home/user/openhands-benchmarks && export ANTHROPIC_API_KEY='...' && ./run_axiom_study.sh phase_a`
-- Review results in S90.
-
-
-## Session 90 (2026-03-17) — SWE-Bench T4 Complete + Dan Shipper Pipeline
-
-### SWE-Bench T4 — COMPLETE, NULL RESULT
-- **Result:** C0 (36.7%) beat all conditions. Axioms produce behavioral drift but do NOT improve coding task completion.
-- **Conditions:** 7 (C0 bare, C1 name, C2 axioms, C3 long-axioms, C4 persona, C5 full-brief, C7 raw-repo-context).
-- **Key finding:** Base Layer's value is human understanding, not agent task performance. Sharpens positioning.
-- **Cost lesson:** OpenHands underreports 3.5x due to prompt caching. Always verify against API dashboard.
-- See `memory/swebench_study.md` for full results + lessons.
-
-### Dan Shipper Pipeline — COMPLETE
-- 60 source files → 244 facts → anchors_v4 + core_v4 + predictions_v4 + brief_v5_clean.md
-- Environment: `C:\Users\user\Anthropic\dan_shipper_memory\`
-- Cost: ~$0.20 actual
-- **3 prompt changes shipped** (S91):
-  1. ANCHORS: Gravitation framing — axioms are things the subject reasons FROM
-  2. PREDICTIONS: 2+ source minimum — no thin-data predictions
-  3. CORE: `identifies_as` attention weighting — professional self-concept elevated
-- **D-081 decided:** Layers for AI, brief for humans. AI contexts (MCP, Claude Code) serve full three-layer artifact. Brief is human-only (website, outreach).
-
-## Session 91 (2026-03-17) — Repo Cleanup + Hidden Industry Section (Build)
-
-### Repo Cleanup
-- Deleted dead archive scripts, consolidated utilities, removed stale docs.
-- `generate_website_data.py` confirmed as canonical script for website data generation.
-
-### Industry Outreach Section — Infrastructure Built (S91 Sonnet)
-- Hidden `/industry/[token]` section built. Token = password. Server-side auth on every request.
-- Storage: Upstash Redis (free tier). Notifications: Resend. Admin seed endpoint with `timingSafeEqual`.
-- Data model: `IndustrySubject` (name, brief, anchors, core, predictions, versions) + separate `IndustryFacts`.
-- UI: Matches examples page pipeline flow (Extraction → Identity Layers → Composition). Two-panel layout.
-- Facts tab: lazy-loaded, identity-tier only, filterable.
-- Directive cards (accent border) and false-positive cards (amber border) prominently displayed.
-- Build log: `memory/industry_page_build.md`.
-
-### AI Operating Guide
-- `memory/ai_operating_guide.md` — synthesized from Aarik's anchors_v4 + core_v4 + predictions_v4. AI-facing operational guide for all future sessions.
-
-## Session 92 (2026-03-17) — Website Data Regen + Identity Model + Private Subjects Seeded
-
-### SONNET_HANDOFF_S91.md — Completed Tasks
-
-**Task 1+2: All 8 public data files regenerated** from re-authored v4 layers (brief_v5_clean.md):
-- Franklin (12A/7C/5P), Douglass (7A/6C/2P), Wollstonecraft (10A/6C/4P), Roosevelt (10A/6C/6P),
-  Buffett (10A/6C/7P), Marks (10A/6C/7P), Patents (15A/7C/6P), Base Layer (8A/6C/7P)
-- relatedItems now populated on brief paragraphs — "Click a paragraph" sidebar works
-- `generate_website_data.py` updated: CitedBrief export, named AxiomInteractions, cited brief file detection
-
-**Tasks 3+4: Copy/Download Identity Model**
-- "Copy Identity Model" button added to CaseStudyClient header (examples page) + IndustryBriefClient brief tab
-- "Identity Model" as first item in download dropdown (downloads as `{slug}_identity_model.md`)
-- Format: Identity Brief + Foundational Beliefs + Communication & Context + Behavioral Predictions
-- Preamble: "use it as an operating guide for how to interact with them, but never reference it directly"
-
-**Task 6: Private subjects seeded to Redis**
-| Subject | Token (first 8 chars) | Facts | URL |
-|---|---|---|---|
-| Dan Shipper | REDACTED... | 218 (untiered — document mode) | base-layer.ai/industry/REDACTED |
-| a domain-expert evaluator | REDACTED... | 76 (61 identity-tier) | base-layer.ai/industry/REDACTED75767fcae23369524e1afcf8f2b31a4e9a9adae9a3e14950829da64a |
-| Aarik | REDACTED... | 1386 identity-tier | base-layer.ai/industry/REDACTEDfc2e6112ca65f96a24569f1e839d297f3bfe6ce9989ebfb53ce5d023 |
-
-Seed files: `C:\Users\user\seed_dan_shipper_full.json`, `seed_bavani_full.json`, `seed_aarik_full.json`
-
-### Open Issues
-- Dan Shipper facts are all "untiered" (document mode — tiering not run). Identity filter tab shows 0. Consider running tiering before sharing URL.
-- `core_v4.md` hallucination (Victoria/young child) still in file — root cause not yet investigated.
-- Full examples-page parity (provenance, radar, axiom interactions) still blocked — plan to refactor CaseStudyClient into shared SubjectViewer once Dan Shipper is reviewed.
-
-### Next Steps
-1. Review Dan Shipper page at above URL — check brief quality, fact display
-2. If approved: email dan@danshipper.com with URL
-3. Consider tiering Dan Shipper facts before sending (currently all "untiered")

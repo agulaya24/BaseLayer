@@ -99,6 +99,7 @@ Each decision has:
 | D-077 | Provenance-Informed Review + Regeneration | Active | Citation provenance into review + fact usage stats into regen |
 | D-078 | Compose Directive Language Must Be Person-Specific | Active | V4 compose templating bug — identical directives across subjects |
 | D-079 | Planner-Executor Composition Architecture | Tested (S84) | Context-isolated composition eliminates pre-training contamination: 33→0 ungrounded claims on Franklin |
+| D-081 | Layers for AI, Brief for Humans | Active (S91) | Combined brief + layers artifact (`identity_model.md`) is the AI-serving file. Brief alone strips operational metadata (0/8 FP warnings, ~3/8 directives survive composition). |
 | D-082 | V2 Upgrade Strategy | Active | Re-scrape + re-extract with larger corpus. 5 Wave 1 subjects upgraded (Subject K 76→2824). Corpus size drives fact density |
 | D-083 | Stacking Test Framework | Complete (scoring pending) | 100 responses across 5 conditions (C1-C5). C4 project leakage finding. C3 strongest signal |
 | D-084 | Textual TUI Dashboard | Active | dashboard_textual.py replaces Rich dashboard.py. Sortable, scrollable, tier display, auto-refresh |
@@ -502,7 +503,7 @@ Each decision has:
 **Key findings from review:**
 1. **Attribution problem** — facts about the user's spouse (health conditions) were attributed to the user. System can't distinguish "user asks about X" from "X is true of user"
 2. **Relationship roles not captured** — board members, co-founders, colleagues, and investors all get generic "relationship" tag
-3. **Sentiment missing entirely** — "didn't like him at all" (a former colleague) → extracted as neutral professional contact
+3. **Sentiment missing entirely** — a negative sentiment about a former colleague → extracted as neutral professional contact
 4. **Single mentions weighted same as 200+ mentions** — Excel 7/10 from one conversation treated equally to trading skills from 264+ conversations
 5. **No temporal awareness** — S.T.A.L.K.E.R. 2 (months ago) presented as current; Deadlock (current game) underrepresented
 6. **Negatives not surfaced** — overtrading, impulsiveness, anxiety, "never doing enough" exist in data but weren't organized into profile
@@ -569,19 +570,19 @@ Each decision has:
 
 **First application (corrections_v1.json):**
 - Applied 14 corrections from Identity Review v1 (D-019)
-- Superseded 23 wrong facts (Canadian citizen, a minor health detail attribution, S2000 ownership, Glenn Curtis, Razvan role, board member roles, etc.)
+- Superseded 23 wrong facts (a misattributed citizenship, a misattributed health fact, a vehicle-ownership error, several misattributed roles, etc.)
 - Added 10 corrected facts (citizenship, spouse, reattributed health/vehicle facts, board member roles, negative traits)
 - All 14 corrections stored as permanent guard patterns
 
 **Key design choices:**
 - **Separate table, not just a column**: Corrections persist even when `memory_facts` is cleared for re-extraction
-- **Keyword substring matching, not vector similarity**: Faster, deterministic, human-readable. "a minor health detail honey" catches all variants
+- **Keyword substring matching, not vector similarity**: Faster, deterministic, human-readable. A short substring key catches all phrasings of the same wrong fact
 - **Post-extraction guard, not prompt injection**: Deterministic blocking > unreliable LLM instructions
 - **User corrections always win**: No hierarchy of correction confidence. The user is always right about their own facts
 
 **Why:**
 - The user's key insight from identity review: "If I correct something once, it should be fixed for all future conversations"
-- Without this, every re-extraction run would reintroduce the same wrong facts (Canadian citizen, S2000 ownership, etc.)
+- Without this, every re-extraction run would reintroduce the same misattributed facts
 - The correction propagation must happen BEFORE the improvement re-run so the guard is active when re-extraction happens
 
 **Artifacts:**
@@ -781,7 +782,7 @@ The Ghost Layer applied weights to individual facts via a 9-component composite 
 2. **Confidence is flat** — 83% of facts have confidence 1.0, providing zero signal
 3. **Category weights dominated** — with data signals effectively constant, the ghost weights became the ONLY ranking factor. A 3x gap between relationship (12) and project (4) meant trivial relationship facts ("joint checking account") outscored formative life events ("founded a startup, raised significant funding")
 
-Result: Identity block #2 ranked a spouse's minor health detail as the #1 fact about the user. The user's startup (100+ facts, core life chapter) had zero facts in the top 10.
+Result: Identity block #2 ranked a low-signal personal detail as the #1 fact about the user. The user's startup (100+ facts, core life chapter) had zero facts in the top 10.
 
 **The Collective review identified:** The ghost weights were applied at the wrong level of abstraction. Weighting individual facts when upstream data doesn't differentiate is adding signal to noise. The ghost belongs at the topic/cluster level — deciding how much space each life chapter gets, not which fact ranks #1.
 
@@ -819,7 +820,7 @@ Result: Identity block #2 ranked a spouse's minor health detail as the #1 fact a
 - Separates concerns: data retrieval, topic identification, representative selection, and narrative generation are independent, inspectable steps
 - No 9-component formula — each step can be tested and fixed alone
 - The framework is universal (works for any person), the data is personal
-- Noise is filtered by the schema itself — "spouse's dry skin" has no cluster to belong to
+- Noise is filtered by the schema itself — a low-signal personal detail has no cluster to belong to
 - Aligns with narrative identity theory (McAdams): turning points, throughlines, tensions
 - Brain-inspired: mirrors how humans store identity as schemas with slots, not ranked attribute lists
 
@@ -2125,6 +2126,41 @@ Anchoring destroys this signal by making v2 artificially similar to v1. Blind ge
 
 ---
 
+### D-081: Layers for AI, Brief for Humans
+**Date:** 2026-03-17 (Session 91)
+**Status:** Active
+**Category:** Architecture / Serving Format
+
+**Problem:** The composed unified brief was the only AI-serving artifact, but Collective review (S91) showed that narrative composition systematically strips operational metadata produced by the layer authors. On the 8 predictions reviewed, 0/8 false-positive warnings survived composition, roughly 3/8 directives survived clearly, and 5/8 directives were diluted into descriptive prose. Detection triggers were compressed into narrative form and lost their structural utility. The prediction triplet (detection trigger, directive, false-positive warning) is the most actionable output of the entire pipeline, and composition was destroying it.
+
+**Root cause:** Twin-2K and other compression-saturation evidence ("brief matches layers at 20% of facts") had been measuring identification accuracy ("which person is this?"), not interaction quality ("did the AI respond correctly?"). Compression saturation is real for identification. Directives and FP warnings serve interaction quality, a dimension Twin-2K never tested. The brief had been optimized on the wrong axis.
+
+**Decision:** AI-serving contexts receive a combined artifact, `data/identity_layers/identity_model.md`, that concatenates a usage preamble plus the three operational layers (CORE, ANCHORS, PREDICTIONS) plus the unified brief. The compose step still produces the brief, but the brief alone is now scoped to human-facing surfaces (website, outreach previews, "read your own specification"). Generated by `_generate_identity_model()` in `agent_pipeline.py` at the end of `compose_unified_brief()`. The MCP server (`memory://specification`) reproduces the same shape at request time by reading the layers and the brief directly, rather than reading `identity_model.md` from disk. The on-disk file serves non-MCP consumers: Claude Code injection, copy-paste into other clients, agent integrations that read from the filesystem.
+
+**Token budget:** The combined artifact runs roughly 3,500 tokens (three layers) plus the brief, versus ~1,350 tokens for the brief alone. Acceptable for all current AI contexts.
+
+**Why not just tighten the compose prompt:** Composition's purpose is narrative coherence. Asking it to also preserve directives, detection triggers, and FP warnings as structured operational metadata fights what compose is good at. The cheaper move is to skip the compression step for the AI surface and serve the layers directly, while keeping compose for human readability.
+
+**Alternatives considered:**
+- Continue serving the brief alone: rejected. Directly contradicted by the S91 measurement of operational-metadata loss.
+- Serve only the three layers, drop the brief from AI contexts: rejected. The brief contextualizes the layers into a holistic portrait that the layers alone do not provide. The combined form gives both the gestalt (brief) and the operational precision (layers).
+- Tighten compose to preserve operational metadata structurally: rejected. Compose's job is narrative. Structural preservation belongs upstream, not in the compression step.
+
+**Code references:**
+- `src/baselayer/config.py:435`. `IDENTITY_MODEL_FILE` constant.
+- `src/baselayer/agent_pipeline.py:533`. `_generate_identity_model()` definition.
+- `src/baselayer/agent_pipeline.py:571`. Frontmatter `format: brief + layers (D-081)`.
+- `src/baselayer/agent_pipeline.py:835`. Call site at end of `compose_unified_brief()`.
+- `src/baselayer/mcp_server.py:120-160`. MCP resource reproduces the shape at request time.
+
+**Origin:** Session 91 (commit `eaa91ba`, "S91: D-081 identity model architecture + 3 prompt changes"). Originally titled "Layers for AI, Brief for Humans." Same session shipped three orthogonal layer-prompt changes (ANCHORS gravitation framing, PREDICTIONS multi-source minimum, ANCHORS identifies_as ordering); those are not part of D-081.
+
+**Naming note:** Per current naming canon (Phase A, 2026-05-06), the artifact is the "specification." The on-disk filename remains `identity_model.md` for backward compatibility; Phase B will alias it to `specification.md`. New prose should refer to "the specification" or "the combined specification artifact." This entry retains the original S91 title for historical fidelity.
+
+**Related decisions:** D-043 (three-layer architecture, defines the layers being concatenated). D-040 (blind authoring, upstream constraint that determines what the layers contain). D-024 (Collective review, surfaced the operational-metadata loss that motivated this decision; review component since deprecated S79). D-047 (MCP server architecture, defines the resource that serves this content). D-088 (unified pipeline command, `baselayer run` orchestrates the compose step that emits this file).
+
+---
+
 ### D-082: V2 Upgrade Strategy
 **Date:** 2026-03-23 (Session 96)
 **Status:** Active
@@ -2204,12 +2240,12 @@ Anchoring destroys this signal by making v2 artificially similar to v1. Blind ge
 
 **Problem:** Password-only authentication for thinkers pages creates friction in outreach. Recipients must find and enter a password from the email — some never do. Needed frictionless first-click access while maintaining security.
 
-**Decision:** Single-use 64-character hex tokens with 7-day expiry, Redis-backed (`magiclink:{token}` key). URL format: `?t={token}`. Auto-auth on first click: sets httpOnly cookie, records login event, redirects to clean URL. Password remains as fallback for repeat visits or expired tokens.
+**Decision:** Single-use expiring token links, server-side backed. Auto-auth on first click: sets an httpOnly session cookie, records the login event, redirects to a clean URL. Password remains as fallback for repeat visits or expired tokens.
 
 **Implementation:**
-- `lib/magic-link.ts` — token generation and validation
-- `app/api/magic-link/generate/route.ts` — admin API endpoint
-- Generate via `POST /api/magic-link/generate` with `x-admin-secret` header + `{ slugs: [...] }`
+- token generation and validation (server-side library)
+- a server-side admin endpoint that generates tokens
+- Generated in batch via an authenticated admin endpoint
 
 **Why:** Reduces authentication friction from "find password in email → copy → paste" to "click link." Single-use prevents token sharing. 7-day expiry limits exposure window. Password fallback ensures no lockout.
 
@@ -2298,3 +2334,18 @@ Anchoring destroys this signal by making v2 artificially similar to v1. Blind ge
 **Evidence:** Prediction format inconsistency across subjects — some use labeled Detection/Directive/FP, others use prose paragraphs. Structured output guarantees format while preserving generative content quality.
 **Status:** Planned. Test on Subject S vs free-form comparison before adoption. If quality degrades, fallback to improved prompt scaffolding.
 **Risk:** Constrained decoding may produce more formulaic prose in string fields. Phase 1 test required before batch adoption.
+
+### D-094: Spec Is a Layer, Not a Replacement (S104)
+**Decision:** The behavioral spec is not a replacement for memory systems — it is a layer that makes any memory system better. C3 (spec + facts) significantly outperforms both C2a (spec only) and C1 (facts only). The spec changes how the model uses retrieved facts, not what facts are available. Product positioning must reflect this: "the missing layer" not "the alternative."
+**Evidence:** Memory Systems Study S104 — C3 > C1 (p=0.012) across all 4 SOTA systems. C2a vs C1 NOT significant (p=0.83). The spec needs facts to reason on. Two independent judges (Haiku + Sonnet 4.6, rho=0.885) confirm ranking.
+**Status:** Active. Shapes all public messaging and distribution.
+
+### D-095: Prompt Parity in Comparative Studies (S104)
+**Decision:** All conditions in a comparative study must receive identical prompts except for the injected context. No condition gets "say so if you don't know" or any instruction that coaches abstention/confidence. No condition reveals the subject's name in the system prompt — spec conditions say "your user." This prevents instruction-following from confounding behavioral differences.
+**Evidence:** S104 study design review. Initial runner had asymmetric prompts (C1 told to "say so if facts don't contain enough," C5 told to "answer based on whatever you know"). Fixed before full run.
+**Status:** Active. Applies to all future studies.
+
+### D-096: Wrong-Spec Control Required (S104)
+**Decision:** Any study comparing behavioral spec performance must include a wrong-spec condition (C2c) — a different subject's spec applied to the target's questions. This controls for "any framework helps" vs "the right framework helps." The model cannot be told whose spec it is — prompt says "your user" for both correct and wrong spec.
+**Evidence:** S104 — C2c (Franklin's spec on Hamerton's questions) scored 2.21 vs C2a (correct spec) 2.77 vs C5 (baseline) 1.41. Wrong spec > no spec, but correct spec > wrong spec. All three are publishable findings.
+**Status:** Active. Required in Franklin replication and SCOTUS study.

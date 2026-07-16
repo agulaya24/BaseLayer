@@ -1,5 +1,5 @@
 # Design Principles & Philosophy
-## Base Layer: Behavioral Compression for AI Identity
+## Base Layer: The Interpretive Layer Above Memory
 **Updated 2026-03-09 (Session 82)**
 
 This document captures the core principles and philosophical commitments that guide every decision in this project. These aren't aspirational; they're load-bearing constraints that shape what the system does and doesn't do.
@@ -113,7 +113,7 @@ Brief assembly is **pure code** with no LLM in the critical path. When the syste
 
 **The system borrows selectively from how human memory works. Some mappings are genuine design guides; others are useful communication metaphors. We should be honest about which is which.**
 
-**Session 79 pipeline ablation study (14 conditions, [results](../eval/ablation/)):** Many of the brain-inspired intermediate processing steps — novelty scoring, significance scoring, tiered classification, contradiction detection, consolidation — were proven ceremonial. The simplified 4-step pipeline (Import → Extract → Author → Compose) scored 87/100 vs the full 14-step brain-inspired pipeline at 83/100. The metaphors were useful for designing the system, but the system outgrew them. What remains load-bearing is the compression itself: raw text → structured facts → three-layer identity → unified brief. The intermediate scoring and classification steps that mirrored hippocampal encoding turned out to add no measurable value.
+**Session 79 pipeline ablation study (14 conditions, [results](../eval/ablation/)):** Many of the brain-inspired intermediate processing steps — novelty scoring, significance scoring, tiered classification, contradiction detection, consolidation — were proven ceremonial. The simplified 4-step pipeline (Import → Extract → Author → Compose) scored 87/100 vs the full 14-step brain-inspired pipeline at 83/100. The metaphors were useful for designing the system, but the system outgrew them. What remains load-bearing is the compression itself: raw text → structured facts → three-layer identity → specification. The intermediate scoring and classification steps that mirrored hippocampal encoding turned out to add no measurable value.
 
 Where the mapping **remains load-bearing:**
 - **Tiered compression** (raw → facts → identity layers → brief) is the core of the pipeline and mirrors complementary learning systems. The compression IS the value. Session 78 (compression saturation experiments) proved that 20% of facts is enough, and that more data hurts.
@@ -185,9 +185,9 @@ Each layer has its own authoring process because the conflation that arises from
 
 #### Audience Principle (D-041)
 
-**The audience of identity blocks is the AI, not the subject. Every sentence must change how the model responds to this person.**
+**The audience of specifications is the AI, not the subject. Every sentence must change how the model responds to this person.**
 
-This is a defining philosophical commitment. An identity block that describes a person *to* the person is self-portraiture: beautiful, accurate, unusable. An identity block that describes a person *to* the AI is an instruction set for behavioral prediction. The test for every sentence: "Does this change how the LM responds?" If not, it doesn't belong in the block regardless of how true or insightful it is.
+This is a defining philosophical commitment. An specification that describes a person *to* the person is self-portraiture: beautiful, accurate, unusable. An specification that describes a person *to* the AI is an instruction set for behavioral prediction. The test for every sentence: "Does this change how the LM responds?" If not, it doesn't belong in the block regardless of how true or insightful it is.
 
 Content must satisfy two simultaneous constraints:
 1. **Evidence-grounded (D-040):** Every claim must be inferrable from the fact base. Utility without truth is manipulation.
@@ -197,15 +197,15 @@ This resolves the D-037 tension. D-037 prohibited "prescriptions and AI instruct
 
 #### Behavioral Modeling, Not Fact Retrieval
 
-The identity block uses **behavioral predictions**, not fact retrieval. LLMs are probability machines. Raw facts ("likes coffee, works in tech") require the model to infer behavior. Behavioral predictions ("rejects shortcuts that sacrifice quality, even under pressure") skip that inference step entirely. The model directly weights predictions against the current conversation. This reduces the inference chain between context and response.
+The specification uses **behavioral predictions**, not fact retrieval. LLMs are probability machines. Raw facts ("likes coffee, works in tech") require the model to infer behavior. Behavioral predictions ("rejects shortcuts that sacrifice quality, even under pressure") skip that inference step entirely. The model directly weights predictions against the current conversation. This reduces the inference chain between context and response.
 
-**Predictions compose.** Orthogonal behavioral predictions combine to produce appropriate responses in situations none of them individually anticipated. Two or three predictions intersecting can generate novel, contextually precise behavior from the model — behavior that was never explicitly described in the identity block. This composability is the mechanism by which the system produces responses that feel like genuine understanding rather than retrieval. Measurable via the evaluation protocol: does the model generate contextually appropriate responses that go beyond what any single prediction describes?
+**Predictions compose.** Orthogonal behavioral predictions combine to produce appropriate responses in situations none of them individually anticipated. Two or three predictions intersecting can generate novel, contextually precise behavior from the model — behavior that was never explicitly described in the specification. This composability is the mechanism by which the system produces responses that feel like genuine understanding rather than retrieval. Measurable via the evaluation protocol: does the model generate contextually appropriate responses that go beyond what any single prediction describes?
 
-The identity block functions as a **Markov blanket**, the boundary layer between the person and the AI. The reasoning model can only "see" the user through this membrane. Everything inside (raw facts, embeddings, extraction history) is hidden. The quality of the boundary determines the quality of the interaction, which is why the identity layers receive the largest token allocation in the brief.
+The specification functions as a **Markov blanket**, the boundary layer between the person and the AI. The reasoning model can only "see" the user through this membrane. Everything inside (raw facts, embeddings, extraction history) is hidden. The quality of the boundary determines the quality of the interaction, which is why the identity layers receive the largest token allocation in the brief.
 
 #### Authoring Constraints
 
-Identity blocks are **authored via API** (Sonnet for generation, Opus for composition), under **blind derivation** (D-040), from raw facts and philosophy frameworks only, with no prior blocks, no analysis documents, and no template carry-forward. This prevents the cognitive anchoring that caused 7 generations of identity blocks to converge on 3-4% coverage of the fact base.
+Specifications are **authored via API** (Sonnet for generation, Opus for composition), under **blind derivation** (D-040), from raw facts and philosophy frameworks only, with no prior blocks, no analysis documents, and no template carry-forward. This prevents the cognitive anchoring that caused 7 generations of specifications to converge on 3-4% coverage of the fact base.
 
 **Empirical budget (D-042):** The original 1,500-2,600 token budget was a heuristic that calcified into a constraint. Token allocation is now determined empirically through optimization study: generate blocks at multiple token levels, evaluate interaction quality, find the knee of the curve where additional tokens stop improving responses. Quality per token is the metric.
 
@@ -215,7 +215,7 @@ Identity blocks are **authored via API** (Sonnet for generation, Opus for compos
 
 **Division of labor:** The memory system models the person with honest confidence metadata. The reasoning model decides what's relevant per conversation. The system should err toward complete representation with uncertainty signals rather than pre-filtering. The memory system provides; the reasoning model interprets.
 
-**Behavioral data, not behavioral prescriptions (D-037).** The identity block provides behavioral data about the person — knowns, unknowns, predictions, and certainties. It does NOT provide instructions for how the AI should respond. The distinction matters because prescriptions constrain the model to a fixed playbook, while behavioral data lets the model compose novel responses across contexts no prescription anticipated. The job is not to tell the probability machine how to predict — it is to give it the supporting evidence and context to predict well. See the full Design Philosophy below.
+**Behavioral data, not behavioral prescriptions (D-037).** The specification provides behavioral data about the person — knowns, unknowns, predictions, and certainties. It does NOT provide instructions for how the AI should respond. The distinction matters because prescriptions constrain the model to a fixed playbook, while behavioral data lets the model compose novel responses across contexts no prescription anticipated. The job is not to tell the probability machine how to predict — it is to give it the supporting evidence and context to predict well. See the full Design Philosophy below.
 
 ---
 
@@ -275,13 +275,13 @@ This is not about overriding the user. It's about the three-truths model: who yo
 
 **Generative outputs must not feed back into their own inputs. Every generation must be derived from primary data, not from prior generations.**
 
-This principle addresses a failure mode discovered empirically: identity blocks authored with access to prior blocks converge toward the prior content rather than the underlying data. Over 7 generations, 70-75% of text was inherited, zero genuinely new behavioral predictions were created, and coverage of the identity-tier fact base stagnated at 3-4%. The authoring process was editing inherited text rather than synthesizing from facts.
+This principle addresses a failure mode discovered empirically: specifications authored with access to prior blocks converge toward the prior content rather than the underlying data. Over 7 generations, 70-75% of text was inherited, zero genuinely new behavioral predictions were created, and coverage of the identity-tier fact base stagnated at 3-4%. The authoring process was editing inherited text rather than synthesizing from facts.
 
 The mechanism is cognitive anchoring. When a prior generation is available, it acts as a gravitational center. The author's effort goes toward editing the prior text rather than re-deriving from data. This produces blocks that are accurate (the inherited text was correct) but narrow (the inherited text covered a tiny fraction of available knowledge). Accuracy without coverage is a failure mode the system must actively prevent.
 
-**The rule:** Any process that generates a compressed representation of the fact base (identity blocks, character overviews, analysis documents) must receive its input exclusively from the primary data source (facts, embeddings, raw conversations) and authorized structural frameworks (philosophy, design principles, format specifications). It must NOT receive prior outputs of the same process.
+**The rule:** Any process that generates a compressed representation of the fact base (specifications, character overviews, analysis documents) must receive its input exclusively from the primary data source (facts, embeddings, raw conversations) and authorized structural frameworks (philosophy, design principles, format specifications). It must NOT receive prior outputs of the same process.
 
-**Contamination vectors are transitive.** If Document A was derived from a prior identity block, and Document B summarizes Document A, then Document B carries the prior block's phrasings indirectly. The exclusion applies not only to prior blocks but to any document that absorbed their content: analysis docs, review docs, session summaries, progress notes that describe block content.
+**Contamination vectors are transitive.** If Document A was derived from a prior specification, and Document B summarizes Document A, then Document B carries the prior block's phrasings indirectly. The exclusion applies not only to prior blocks but to any document that absorbed their content: analysis docs, review docs, session summaries, progress notes that describe block content.
 
 **Contamination is measurable.** Session 37 measured contamination vector 1 (project language leaking into personal facts) at 0/3,898 facts (zero contamination). The existing AUTHORING_EXCLUSION_PATTERNS in config.py are sufficient. Contamination vector 2 (personal identity facts trapped in project-scoped sessions) requires a message-level classifier, not conversation-level filtering.
 
@@ -289,14 +289,14 @@ The mechanism is cognitive anchoring. When a prior generation is available, it a
 
 **What this means in practice:**
 - Identity block authoring receives raw facts, philosophy frameworks, design principle constraints, and token budgets. Nothing else.
-- Facts that reference previous identity blocks or the block creation process itself must be filtered from the authoring data view. Meta-facts about the system's own outputs are contamination vectors.
+- Facts that reference previous specifications or the block creation process itself must be filtered from the authoring data view. Meta-facts about the system's own outputs are contamination vectors.
 - User feedback is transmitted as evaluative criteria ("cover self-concept, worldview, tension architecture, epistemic anchors") not as references to prior block content ("the last block was too narrow because it said X").
 - Analysis documents are re-derived from facts periodically, not maintained as living documents that accumulate block phrasings.
 - Automated validation gates (overlap < 25%, coverage > 5%, novel claims > 0) prevent storage of inherited blocks.
 - Structure is not templated. If every block has the same headers and the same prediction count, the template is the anchor. Structure should emerge from content.
 - Each identity layer (ANCHORS, CORE, PREDICTIONS) is independently blind-authored from its own fact queries; isolation applies within the three-layer architecture, not just between generations.
 
-**This principle is broader than identity blocks.** It applies to any generative loop in the system: character overviews, analysis documents, autobiography pipeline outputs, eval protocol responses. Wherever the system generates a compressed representation and then uses that representation as input to the next generation, this principle applies.
+**This principle is broader than specifications.** It applies to any generative loop in the system: character overviews, analysis documents, autobiography pipeline outputs, eval protocol responses. Wherever the system generates a compressed representation and then uses that representation as input to the next generation, this principle applies.
 
 ---
 
@@ -304,7 +304,7 @@ The mechanism is cognitive anchoring. When a prior generation is available, it a
 
 **Facts are tagged by interaction mode. The scope of a conversation determines where its knowledge flows. Not every fact feeds every output.**
 
-A person interacts with AI in different modes: as themselves (personal), as a technical lead (project), as a professional (professional). These modes produce different kinds of knowledge, and that knowledge serves different purposes. Personal-scope facts feed identity blocks. Project-scope facts feed project briefs (CLAUDE.md). Professional-scope facts will feed professional profiles. Mixing scopes produces contamination — project-meta facts ("the extraction pipeline uses Qwen") appearing in personal identity blocks, or personal identity facts being extracted from project sessions where they appear only as injected context.
+A person interacts with AI in different modes: as themselves (personal), as a technical lead (project), as a professional (professional). These modes produce different kinds of knowledge, and that knowledge serves different purposes. Personal-scope facts feed specifications. Project-scope facts feed project briefs (CLAUDE.md). Professional-scope facts will feed professional profiles. Mixing scopes produces contamination — project-meta facts ("the extraction pipeline uses Qwen") appearing in personal specifications, or personal identity facts being extracted from project sessions where they appear only as injected context.
 
 **Scope is determined by the interaction context and relationship, not by subject matter.** A person discussing their management philosophy in a personal conversation produces personal-scope facts. The same person demonstrating that philosophy in a code review session produces project-scope facts. The content may overlap; the scope differs because the interaction mode differs.
 
@@ -355,7 +355,7 @@ Every time complexity has been added to the extraction prompt, results got worse
 
 Don't check the code. Check whether the result makes sense to the person it's about.
 
-"I've never used an iron condor" is a better test than any unit test. "Eczema belongs to my wife, not me" catches a class of bugs that no automated evaluation would find. The person is the test suite.
+"I've never used an iron condor" is a better test than any unit test. A single "that's about someone else in my life, not me" catches a class of misattribution bugs that no automated evaluation would find. The person is the test suite.
 
 ### Corrections Are Data, Not Failures (D-021)
 
@@ -389,11 +389,11 @@ Facts are building blocks. The layers are architecture. The brief must cohere ac
 
 ### Behavioral Data Over Behavioral Prescriptions (D-037, refined D-041, expanded D-089/D-090, Session 24/36/99/100)
 
-**The identity block provides behavioral data — not instructions for how the AI should respond. The job is not to tell the probability machine how to predict. The job is to give it the evidence and context to predict well.**
+**The specification provides behavioral data — not instructions for how the AI should respond. The job is not to tell the probability machine how to predict. The job is to give it the evidence and context to predict well.**
 
 *S100 Update (D-089, D-090):* H3 prompts produce "psychologically precise directives" — naming what the person NEEDS in a given moment, not just what they're doing. This is valid per D-041's test (directive follows from observed behavior) but extends it: the directive can now name the psychological mechanism, not just the behavioral pattern. Example: "They are not stalling — they are running a required pre-flight" names the mechanism (confirmation-seeking) and the need (don't reframe slowness as weakness). This is the highest-quality form of behavioral data because it gives the AI both the WHAT (pattern) and the WHY (mechanism), enabling more precise response calibration. See also D-090: false-positive warnings on predictions are load-bearing sycophancy countermeasures, not optional polish.
 
-LLMs are probability machines. Given accurate behavioral data about a person, a capable model will infer the appropriate response — and will do so flexibly across novel contexts that prescriptions cannot anticipate. The identity block is input to the model's prediction engine, not a script for the model to follow.
+LLMs are probability machines. Given accurate behavioral data about a person, a capable model will infer the appropriate response — and will do so flexibly across novel contexts that prescriptions cannot anticipate. The specification is input to the model's prediction engine, not a script for the model to follow.
 
 The distinction:
 - **Behavioral data (correct):** "Emotional processing happens through mechanical analysis, not alongside it. Frustration after rule violations turns inward and compounds."
@@ -448,7 +448,7 @@ The person looking in the mirror always knows more than the mirror does. But a m
 
 **How someone reasons IS identity. What they reason ABOUT is not.**
 
-Identity models must capture universal behavioral patterns, not topic-specific positions. The test: if removing a specific domain (markets, policy, technology, medicine) makes an item meaningless, it does not belong in the identity model.
+Specifications must capture universal behavioral patterns, not topic-specific positions. The test: if removing a specific domain (markets, policy, technology, medicine) makes an item meaningless, it does not belong in the specification.
 
 This principle applies at all pipeline stages:
 - **Extraction:** 47 predicates constrain what can be extracted (D-056)
@@ -460,24 +460,24 @@ This principle applies at all pipeline stages:
 
 **Theoretical backing:** MDL theory predicts that compression should remove domain-specific information (Moskovitz et al., 2024). Information Bottleneck framework defines the optimal representation as one that strips non-predictive content (Tishby). PersonaX (ACL 2025) found 30-50% of behavioral data captures the signal — the rest is domain noise.
 
-**Practical implication:** A person who writes 1,000 posts about AI is not defined by AI. They are defined by HOW they write about AI — the reasoning patterns, the epistemic standards, the argumentative moves. The identity model captures the HOW. The fact store captures the WHAT. The serving layer connects them per-query.
+**Practical implication:** A person who writes 1,000 posts about AI is not defined by AI. They are defined by HOW they write about AI — the reasoning patterns, the epistemic standards, the argumentative moves. The specification captures the HOW. The fact store captures the WHAT. The serving layer connects them per-query.
 
 ---
 
 ### 14. Sycophancy Resistance as Architecture (D-090, Session 100)
 
-**Identity models increase sycophancy risk. The framing is the countermeasure.**
+**Specifications increase sycophancy risk. The framing is the countermeasure.**
 
-Jain et al. (ICLR 2025, CAUSM study) proved that condensed user profiles had the GREATEST impact on sycophancy — more than conversation history or role framing. This means every identity model Base Layer produces carries inherent sycophancy risk: the AI knows who it's talking to and tries harder to please them.
+Jain et al. (ICLR 2025, CAUSM study) proved that condensed user profiles had the GREATEST impact on sycophancy — more than conversation history or role framing. This means every specification Base Layer produces carries inherent sycophancy risk: the AI knows who it's talking to and tries harder to please them.
 
 Our countermeasures are architectural, not advisory:
 - **"Operating guide" framing** — the preamble positions the model as an adviser operating from an external guide, not as a persona trying to please a known user. The MIT study found adviser role retains independence; persona role amplifies agreement.
 - **"Never reference the model directly" preamble** — prevents the model from performing knowledge of the user, which would trigger social reciprocity dynamics.
 - **False-positive warnings on predictions** — explicitly tell the model when NOT to apply a pattern. This prevents over-application of behavioral knowledge as a sycophancy vector.
-- **Falsification-validated axioms (D-045)** — axioms are validated by searching for counter-evidence, not by accumulating confirmation. The identity model is built to resist its own confirmation bias.
+- **Falsification-validated axioms (D-045)** — axioms are validated by searching for counter-evidence, not by accumulating confirmation. The specification is built to resist its own confirmation bias.
 - **Domain-agnostic guard (D-089)** — prevents the model from validating the user's topic positions by framing them as identity.
 
-**These are not optional polish. They are load-bearing architecture.** Any pipeline change that weakens these countermeasures is a regression, because the identity model becomes a sycophancy amplifier rather than a personalization tool.
+**These are not optional polish. They are load-bearing architecture.** Any pipeline change that weakens these countermeasures is a regression, because the specification becomes a sycophancy amplifier rather than a personalization tool.
 
 **The distinction matters:** "I know you value directness, so here's the direct answer you want" is sycophancy. "This person's coherence demand means they need contradictions named, not smoothed over" is personalization. The first performs agreement. The second provides calibrated friction. The architecture must produce the second, never the first.
 
@@ -489,9 +489,9 @@ Our countermeasures are architectural, not advisory:
 
 9. **Ignoring the best version.** The system should not only model who you are now. It should identify patterns of peak performance, clarity, and growth, and make that knowledge available. Not prescriptively, but informatively.
 
-10. **Writing portraits instead of instruments.** An identity block that describes a person beautifully but doesn't change how the AI responds is self-portraiture, not a behavioral model. Every sentence must pass the LM-actionability test (D-041). Literary quality is not a proxy for utility.
+10. **Writing portraits instead of instruments.** An specification that describes a person beautifully but doesn't change how the AI responds is self-portraiture, not a behavioral model. Every sentence must pass the LM-actionability test (D-041). Literary quality is not a proxy for utility.
 
-11. **Mixing scopes.** Project-meta facts ("the pipeline uses Qwen") have no place in personal identity blocks. Personal identity facts have no place in project briefs unless they are cross-scope anchors validated by independent recurrence. Scope contamination produces blocks that model the person's current project, not the person.
+11. **Mixing scopes.** Project-meta facts ("the pipeline uses Qwen") have no place in personal specifications. Personal identity facts have no place in project briefs unless they are cross-scope anchors validated by independent recurrence. Scope contamination produces blocks that model the person's current project, not the person.
 
 12. **Confirming axioms instead of falsifying them.** Accumulating supporting evidence for a candidate axiom proves nothing; confirmation bias selects for it. The system validates axioms by searching for counter-evidence and classifying it as violation (the axiom holds, the person failed to follow it) or refutation (the axiom is wrong). Only falsification produces justified confidence.
 
@@ -507,7 +507,7 @@ These principles emerged from testing real fact pairs against human judgment. Th
 
 2. **Temporal Order Dependence.** Ordering is required input to judgment, not optional metadata. "Wakes at 5:30am" followed by "Wakes at 7am" is a state change. Without knowing which came first, the system cannot determine which is current. Temporal order is a prerequisite for contradiction detection, not a supplementary signal.
 
-3. **Scope Resolution.** Confirm same entity/scope before comparing content. "Spouse has a minor health detail" and "User has dry skin" are not contradictions; they describe different people. "Trades SPY options" and "Trades futures" may not contradict if the user trades both. The system must verify that two facts refer to the same entity, the same scope, and the same dimension before evaluating contradiction.
+3. **Scope Resolution.** Confirm same entity/scope before comparing content. "Manager prefers Slack" and "User prefers email" are not contradictions; they describe different people. "Trades SPY options" and "Trades futures" may not contradict if the user trades both. The system must verify that two facts refer to the same entity, the same scope, and the same dimension before evaluating contradiction.
 
 4. **Context-Bound Truth.** Some fact pairs are indeterminate in isolation and require external knowledge to judge. "Lives in Dubai" and "Lives in Toronto" could be a contradiction (moved) or coexistence (dual residence). The system cannot resolve this without additional context. When context is insufficient, the correct output is "indeterminate," not a forced judgment.
 
@@ -525,7 +525,7 @@ These principles emerged from testing real fact pairs against human judgment. Th
 
 The original Ghost Layer (D-025) attempted to implement this through a composite scoring formula with per-fact weights: category hierarchy, subject multipliers, temporal weights, intent weights, and significance type weights. This produced a single score per fact that blended data signals with philosophical priors.
 
-**Why it failed (D-026):** The data inputs to the formula (significance, confidence, recurrence) turned out to be effectively flat (94% of facts scored "High" significance, 83% got confidence 1.0). This made the ghost weights the *only* differentiating signal, which meant the category hierarchy (relationship=12 vs project=4) dominated everything. Result: "spouse's dry skin" outranked "founded a startup." The ghost layer was working; it was just working at the wrong level.
+**Why it failed (D-026):** The data inputs to the formula (significance, confidence, recurrence) turned out to be effectively flat (94% of facts scored "High" significance, 83% got confidence 1.0). This made the ghost weights the *only* differentiating signal, which meant the category hierarchy (relationship=12 vs project=4) dominated everything. Result: "spouse's coffee order" outranked "founded a startup." The ghost layer was working; it was just working at the wrong level.
 
 **The fix (D-026 — Identity Cluster Framework):** Ghost priors now operate at the *topic level*, not the *fact level*. Ten universal identity clusters — who you are, who you love, what you've built, what you've lost, what drives you, what you believe, what you struggle with, how you operate, where you're headed, what's unresolved — define what dimensions matter about a person. Within each cluster, semantic retrieval finds the best representative facts. The philosophy is in the cluster design; the selection is empirical.
 
@@ -628,7 +628,7 @@ $0 cost. Human-reviewable. No LLM judge in the loop for the mechanical layers. T
 
 ### Fidelity Creates Vulnerability, And That's Correct (Session 77+, from Benjamin Franklin DRS)
 
-**A faithful identity model increases adversarial surface area. This is a feature of accuracy, not a flaw in the system.**
+**A faithful specification increases adversarial surface area. This is a feature of accuracy, not a flaw in the system.**
 
 The Benjamin Franklin DRS (Dialectical Robustness Score) benchmark revealed a paradox: the briefed model (C5c) scored LOWER on adversarial resistance than the unbriefed model (C1). The brief preserved Franklin's genuine self-doubt about vanity — so when an adversarial frame asked "is your frugality actually vanity?", the briefed model engaged deeply because the brief told it this was a real tension Franklin held. The unbriefed model deflected because it lacked the internal complexity to be vulnerable.
 
