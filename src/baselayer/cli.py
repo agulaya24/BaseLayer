@@ -1205,17 +1205,7 @@ def _run_traceability():
     # 5d: Tension detection (embedding pairs + Haiku classification)
     print("  5d. Detecting tensions...")
     try:
-        import sys as _sys
-        import baselayer.config as _cfg
-        _sys.modules['config'] = _cfg
-        import baselayer.api_client as _ac
-        _sys.modules['api_client'] = _ac
-
-        _archive = str(Path(__file__).parent / "archive" / "utilities")
-        if _archive not in _sys.path:
-            _sys.path.insert(0, _archive)
-
-        import detect_contradictions as dc
+        from baselayer import detect_contradictions as dc
         from baselayer.config import get_db
         import contextlib
 
@@ -1894,60 +1884,6 @@ def cmd_batch_extract(args):
         print("  --process --resume  Process results without resetting existing facts")
 
 
-def cmd_batch_classify(args):
-    """Batch classification via Anthropic Batch API.
-
-    NOTE: batch_classify.py is an archived script (pipeline simplification, S79).
-    Classification is no longer part of the default 4-step pipeline.
-    Script location: scripts/archive/dead_pipeline_steps/batch_classify.py
-    """
-    _check_api_key()
-    import sys as _sys
-    import os as _os
-    _archive = _os.path.join(_os.path.dirname(__file__), "archive", "dead_pipeline_steps")
-    _sys.path.insert(0, _archive)
-    try:
-        import batch_classify
-        if args.submit:
-            batch_classify.run_submit()
-        elif args.status:
-            batch_classify.run_status()
-        elif args.process:
-            batch_classify.run_process()
-        else:
-            print("Specify --submit, --status, or --process")
-    finally:
-        if _archive in _sys.path:
-            _sys.path.remove(_archive)
-
-
-def cmd_batch_tier(args):
-    """Batch tier reclassification via Anthropic Batch API.
-
-    NOTE: batch_tier.py is an archived script (pipeline simplification, S79).
-    Tier reclassification is no longer part of the default 4-step pipeline.
-    Script location: scripts/archive/dead_pipeline_steps/batch_tier.py
-    """
-    _check_api_key()
-    import sys as _sys
-    import os as _os
-    _archive = _os.path.join(_os.path.dirname(__file__), "archive", "dead_pipeline_steps")
-    _sys.path.insert(0, _archive)
-    try:
-        import batch_tier
-        if args.submit:
-            batch_tier.run_submit(source_tier=args.source_tier, subject=args.subject)
-        elif args.status:
-            batch_tier.run_status()
-        elif args.process:
-            batch_tier.run_process()
-        else:
-            print("Specify --submit, --status, or --process")
-    finally:
-        if _archive in _sys.path:
-            _sys.path.remove(_archive)
-
-
 def cmd_rebuild_fts(args):
     """Rebuild the FTS5 full-text search index from existing facts."""
     import sqlite3
@@ -2196,31 +2132,6 @@ def main():
                               "for follow-up retry batches.")
     p_batch.set_defaults(func=cmd_batch_extract)
 
-    # batch-classify (Session 73 — Batch API classification, 50% cost)
-    p_bclass = subparsers.add_parser("batch-classify",
-        help="[ARCHIVED] Batch classification via Anthropic Batch API (removed in S79 simplification)")
-    p_bclass.add_argument("--submit", action="store_true",
-                          help="Build prompts and submit batch")
-    p_bclass.add_argument("--status", action="store_true",
-                          help="Check batch processing status")
-    p_bclass.add_argument("--process", action="store_true",
-                          help="Process completed batch results")
-    p_bclass.set_defaults(func=cmd_batch_classify)
-
-    # batch-tier (Session 73 — Batch API tier reclassification, 50% cost)
-    p_btier = subparsers.add_parser("batch-tier",
-        help="[ARCHIVED] Batch tier reclassification via Anthropic Batch API (removed in S79 simplification)")
-    p_btier.add_argument("--submit", action="store_true",
-                         help="Build prompts and submit batch")
-    p_btier.add_argument("--status", action="store_true",
-                         help="Check batch processing status")
-    p_btier.add_argument("--process", action="store_true",
-                         help="Process completed batch results")
-    p_btier.add_argument("--source-tier", choices=["context", "situational"],
-                         default="context", help="Tier to promote from (default: context)")
-    p_btier.add_argument("--subject", type=str, default=None,
-                         help="Primary subject name for document corpora")
-    p_btier.set_defaults(func=cmd_batch_tier)
 
     # rebuild-fts (Session 57 — C11: FTS5 full-text search index)
     p_fts = subparsers.add_parser("rebuild-fts",

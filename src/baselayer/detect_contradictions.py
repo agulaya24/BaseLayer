@@ -32,9 +32,8 @@ import argparse
 import numpy as np
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
 
-from config import (
+from baselayer.config import (
     PROJECT_ROOT, DATABASE_FILE,
     EXTRACTION_BACKEND, EXTRACTION_API_MODEL,
     CONTRADICTION_SIMILARITY_THRESHOLD,
@@ -94,7 +93,7 @@ def load_facts(conn):
 
 def embed_facts(facts):
     """Embed fact texts using sentence-transformers (on-the-fly, no ChromaDB)."""
-    from api_client import get_embedding_model
+    from baselayer.api_client import get_embedding_model
     model = get_embedding_model()
     if model is None:
         raise ImportError("Could not load embedding model")
@@ -202,7 +201,7 @@ def find_candidate_pairs(facts, embeddings, threshold=0.45):
 
 def classify_pair_haiku(fact_a_text, fact_b_text, pred_a, pred_b):
     """Classify a fact pair using Haiku API via api_client.call_api."""
-    from api_client import call_api
+    from baselayer.api_client import call_api
 
     prompt = f"""Classify the relationship between these two facts about the same person.
 
