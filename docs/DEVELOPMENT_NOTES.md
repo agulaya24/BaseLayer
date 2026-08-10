@@ -54,8 +54,16 @@ A faithfulness check compared an authored summary against its supporting facts a
 summary when the best match fell below 0.35.
 
 Measured against the encoder now in use, randomly paired, unrelated facts from the same corpus have
-a **minimum** cosine similarity of 0.358. Every random pair clears 0.35. The guard was incapable of
-flagging anything.
+a median cosine similarity around 0.62, and the 0.1st percentile sits near 0.38. The guard also
+takes the maximum over a summary's supporting facts, so every one of them would have to fall below
+0.35 simultaneously. In the operating range the threshold provides no discrimination: an unrelated
+pair of facts clears it almost as reliably as a related one.
+
+An earlier draft of this note said random pairs have a minimum similarity of 0.358 and that the
+guard could therefore never fire. That was a sample minimum over 600 pairs. Measured across roughly
+eight million within-corpus pairs the true minimum is 0.276, and about 0.015% of pairs fall below
+0.35. The guard is effectively unreachable for any on-topic English summary, which is the claim the
+evidence supports; "never" is a stronger claim than the data licenses.
 
 Its own source comment already said the value was inferred rather than calibrated. The comment was
 correct and nobody acted on it.
@@ -74,14 +82,24 @@ We sampled 100 of those decisions, labelled each pair independently with a stron
 passes (the second with the pair order reversed, so that a changed answer indicates position bias
 rather than noise), and compared the labels to what the pipeline decided.
 
-Results:
+The result, stated at the strength the sample supports:
 
-- The adjudicator is correct about **83%** of the time when two facts genuinely are the same.
-- It is correct about **23%** of the time when they are not.
-- It chose a merging action on 30 of 35 clearly-labelled pairs. The correct rate was 12.
+Across the full population of decisions in that band, the pipeline chose to keep a fact as new in
+**4.1%** of the cases it examined (610 of 14,771), while the labelled sample puts roughly two thirds
+of that band in the keep-as-new category. The gap is large and one-directional.
+
+The per-cell rates from the sample point the same way, but their confidence intervals are wide
+enough that the individual percentages should not be quoted as findings. A Fisher exact test on the
+split gives p = 0.001, so the direction is solid even though the magnitudes are not pinned down.
 
 The bias has a plausible cause. The prompt asks "Is this a duplicate?", which invites a yes, and the
 measured base rate of true duplicates in that band is about one third.
+
+Two limitations of our own method, since they cut against the conclusion. The labelling rubric
+instructed the labeller to be strict about calling pairs distinct, which biases the ground truth
+toward finding the pipeline too merge-happy. And the measurement harness supplied the adjudicator
+with one candidate neighbour where production supplies three, so it was not scored on exactly the
+input it sees. Both need fixing before these numbers are used for anything beyond direction.
 
 We also found that the similarity gate itself is doing real work and should be kept: above it,
 roughly a third of pairs are genuine restatements; below it, in the sample, none were.
@@ -113,7 +131,8 @@ facts needs no such component.
 
 ### The test suite was green throughout
 
-756 tests, all passing, for the entire period in which the above was true.
+769 tests, all passing, for the entire period in which the above was true. (It was 756 before this
+block of work added tests; the count is not the point.)
 
 The suite verifies that data moves in the shapes the test author expected under inputs the test
 author invented. No test loads a real embedding model or a real vector store. The test for the
