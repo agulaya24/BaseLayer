@@ -27,6 +27,12 @@ data/contradictions/
 
 # Identity layers (contain personal data — NEVER commit)
 data/identity_layers/
+# Backups and dated copies of the above. The bare directory name does not
+# cover them: a checkout with data/identity_layers_backup_pre_20260812/ was
+# measured to stage 60 personal-layer files under `git add -A`.
+# Note: `git check-ignore` reported that directory as already ignored,
+# matching a BLANK line. It was a false positive. Trust `git add -An`.
+data/identity_layers_*/
 
 # Exported data files
 data/*.csv
