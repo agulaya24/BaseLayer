@@ -88,12 +88,6 @@ Full reference audit on "Beyond Recall" — 9 uncertain citations verified by se
 - **DO NOT auto-start** — Aarik runs manually from terminal (4-5 hrs, resumes on interruption)
 - When complete: run `python fix_author_csv.py` to produce final clean CSV
 
-**Outreach — referenced researchers added:**
-- `project_outreach_post_publish.md`: 4 tiers of researcher outreach added
-- Tier 1: Toubia (Twin-2K), Xiao/AlpsBench, Jiang/PersonaMem, Jandaghi/PersonaGym
-- Tier 2: LongMemEval, LoCoMo, Chroma (Hong/Troynikov), Du et al.
-- Tier 3: Chen/Arditi/Evans/Lindsey (check Anthropic affiliation first), Lu/Christina (check Anthropic), Betley, Jain
-- Framing: peer-to-peer "you're cited, here's what connects" — not founder outreach style
 
 **Paper synced:** both copies updated (memory-study-repo + memory_system/drafts)
 

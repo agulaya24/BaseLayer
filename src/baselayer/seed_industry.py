@@ -6,8 +6,8 @@ Reads specification layer .md files and SQLite database, pushes enriched data
 to the Base Layer website via the /api/industry/seed endpoint.
 
 Usage:
-    python -m baselayer.seed_industry --subject dan_shipper --slug dan-shipper --password "REDACTED"
-    python -m baselayer.seed_industry --subject dan_shipper --slug dan-shipper --password "REDACTED" --dry-run
+    python -m baselayer.seed_industry --subject <subject_key> --slug <slug> --password "..."
+    python -m baselayer.seed_industry --subject <subject_key> --slug <slug> --password "..." --dry-run
 
 Environment:
     INDUSTRY_ADMIN_SECRET: Required. Admin secret for the seed API.
@@ -950,61 +950,27 @@ _PASSWORDS = _load_passwords()
 
 
 
-SUBJECTS = {
-    "dan_shipper":      {"name": "Dan Shipper",         "slug": "dan-shipper",      "password": "",              "source": "84 Chain of Thought essays, interviews, and talks"},
-    "anne_lecunff":      {"name": "Anne-Laure Le Cunff", "slug": "anne-laure",        "password": "",            "source": "131 Ness Labs essays"},
-    "henrik_karlsson":   {"name": "Henrik Karlsson",     "slug": "henrik-karlsson",   "password": "",        "source": "90 Escaping Flatland essays"},
-    "david_perell":      {"name": "David Perell",        "slug": "david-perell",      "password": "",         "source": "140 essays"},
-    "fred_wilson":       {"name": "Fred Wilson",         "slug": "fred-wilson",       "password": "",           "source": "143 AVC posts"},
-    "simon_willison":    {"name": "Simon Willison",      "slug": "simon-willison",    "password": "",         "source": "208 blog posts"},
-    "maggie_appleton":   {"name": "Maggie Appleton",     "slug": "maggie-appleton",   "password": "",              "source": "121 essays, notes, and talks"},
-    "cedric_chin":       {"name": "Cedric Chin",         "slug": "cedric-chin",       "password": "",        "source": "297 Commoncog posts"},
-    "casey_newton":      {"name": "Casey Newton",        "slug": "casey-newton",      "password": "",             "source": "103 Platformer articles"},
-    "scott_alexander":   {"name": "Scott Alexander",     "slug": "scott-alexander",   "password": "",   "source": "100 ACX posts"},
-    "matt_yglesias":     {"name": "Matt Yglesias",       "slug": "matt-yglesias",     "password": "",                  "source": "277 Slow Boring posts"},
-    "swyx":              {"name": "swyx",                "slug": "swyx",              "password": "",        "source": "70 posts"},
-    "ethan_mollick":     {"name": "Ethan Mollick",       "slug": "ethan-mollick",     "password": "",            "source": "99 One Useful Thing posts"},
-    "cory_doctorow":     {"name": "Cory Doctorow",       "slug": "cory-doctorow",     "password": "",         "source": "163 Pluralistic posts"},
-    "kevin_kelly":       {"name": "Kevin Kelly",         "slug": "kevin-kelly",       "password": "",              "source": "670 Technium essays, Extrapolations, and archives"},
-    # Wave 2
-    "paul_graham":       {"name": "Paul Graham",         "slug": "paul-graham",       "password": "",       "source": "56 essays"},
-    "dan_luu":           {"name": "Dan Luu",             "slug": "dan-luu",           "password": "",               "source": "80 blog posts"},
-    "derek_thompson":    {"name": "Derek Thompson",      "slug": "derek-thompson",    "password": "",                  "source": "40 essays"},
-    "linus_lee":         {"name": "Linus Lee",           "slug": "linus-lee",         "password": "",             "source": "64 essays and project write-ups"},
-    "byrne_hobart":      {"name": "Byrne Hobart",        "slug": "byrne-hobart",      "password": "",        "source": "40 Diff essays"},
-    "noah_smith":        {"name": "Noah Smith",          "slug": "noah-smith",        "password": "",            "source": "40 Noahpinion essays"},
-    "venkatesh_rao":     {"name": "Venkatesh Rao",       "slug": "venkatesh-rao",     "password": "",                 "source": "43 Ribbonfarm essays"},
-    "nathan_lambert":    {"name": "Nathan Lambert",      "slug": "nathan-lambert",    "password": "",                 "source": "40 Interconnects posts"},
-    "packy_mccormick":   {"name": "Packy McCormick",     "slug": "packy-mccormick",   "password": "",                 "source": "40 Not Boring essays"},
-    "tina_he":           {"name": "Tina He",             "slug": "tina-he",           "password": "",              "source": "40 Fakepixels essays"},
-    "bernie_sanders":    {"name": "Bernie Sanders",      "slug": "bernie-sanders",    "password": "",         "source": "130 speeches, op-eds, and interviews"},
-    "ivan_bercovich":    {"name": "Ivan Bercovich",      "slug": "ivan-bercovich",    "password": "",           "source": "50 essays and interviews"},
-    "jonathan_fulton":   {"name": "Jonathan Fulton",     "slug": "jonathan-fulton",   "password": "",            "source": "20 blog posts"},
-    "eli_tyre":          {"name": "Eli Tyre",            "slug": "eli-tyre",          "password": "",           "source": "197 posts and essays"},
-    # Wave 6 (S101)
-    "tyler_cowen":       {"name": "Tyler Cowen",         "slug": "tyler-cowen",       "password": "",          "source": "150 Marginal Revolution essays"},
-    "sasha_chapin":      {"name": "Sasha Chapin",        "slug": "sasha-chapin",      "password": "",          "source": "270 essays and posts"},
-    "ryan_holiday":      {"name": "Ryan Holiday",        "slug": "ryan-holiday",      "password": "",          "source": "452 essays and articles"},
-    "adam_mastroianni":  {"name": "Adam Mastroianni",    "slug": "adam-mastroianni",  "password": "",          "source": "124 Experimental History posts"},
-    "evan_armstrong":    {"name": "Evan Armstrong",      "slug": "evan-armstrong",    "password": "",          "source": "24 Napkin Math essays"},
-    "guillermo_rauch":   {"name": "Guillermo Rauch",     "slug": "guillermo-rauch",   "password": "",          "source": "15 blog posts and talks"},
-    "dario_amodei":      {"name": "Dario Amodei",        "slug": "dario-amodei",      "password": "",          "source": "8 long-form essays"},
-    "taranjeet_singh":   {"name": "Taranjeet Singh",     "slug": "taranjeet-singh",   "password": "",          "source": "34 Mem0 blog posts"},
-    "charles_packer":    {"name": "Charles Packer",      "slug": "charles-packer",    "password": "",          "source": "39 Letta blog posts and papers"},
-    "michael_truell":    {"name": "Michael Truell",      "slug": "michael-truell",    "password": "",          "source": "20 Cursor blog posts and interviews"},
-    "timothy_chen":      {"name": "Timothy Chen",        "slug": "timothy-chen",      "password": "",          "source": "20 Essence VC blog posts"},
-    "dharmesh_shah":      {"name": "Dharmesh Shah",       "slug": "dharmesh-shah",     "password": "",          "source": "104 OnStartups and dharmesh.com posts"},
-    "elad_gil":          {"name": "Elad Gil",            "slug": "elad-gil",          "password": "",          "source": "38 blog posts"},
-    "katie_parrott":     {"name": "Katie Parrott",       "slug": "katie-parrott",     "password": "",          "source": "43 posts"},
-    # Wave 8 (S102)
-    "amanda_askell":     {"name": "Amanda Askell",       "slug": "amanda-askell",     "password": "",          "source": "34 blog posts and papers"},
-    "elizabeth_yin":     {"name": "Elizabeth Yin",        "slug": "elizabeth-yin",     "password": "",          "source": "36 blog posts"},
-    "tim_urban":         {"name": "Tim Urban",           "slug": "tim-urban",         "password": "",          "source": "Wait But Why essays"},
-    "julia_galef":       {"name": "Julia Galef",         "slug": "julia-galef",       "password": "",          "source": "Blog posts and talks"},
-    "nabeel_qureshi":    {"name": "Nabeel Qureshi",      "slug": "nabeel-qureshi",    "password": "",          "source": "Blog posts and essays"},
-    "amjad_masad":       {"name": "Amjad Masad",         "slug": "amjad-masad",       "password": "",          "source": "35 blog posts and essays"},
-    "pieter_levels":     {"name": "Pieter Levels",       "slug": "pieter-levels",     "password": "",          "source": "21 blog posts"},
-}
+def _load_subjects():
+    """Load the subject roster from the untracked subjects.json file.
+
+    The roster names real people whose published writing was used as a
+    corpus. It is deliberately not kept in version control: this is a
+    public repository, and a checked-in roster publishes both the names
+    and the slugs those names resolve to. Same pattern as _load_passwords
+    above.
+
+    Returns an empty dict when the file is absent, so the module imports
+    cleanly for anyone without the roster. Commands that need a subject
+    will report an unknown-subject error rather than failing on import.
+    """
+    import json
+    subj_file = Path(__file__).parent.parent.parent / "data" / "seeds" / "subjects.json"
+    if subj_file.exists():
+        return json.loads(subj_file.read_text(encoding="utf-8"))
+    return {}
+
+
+SUBJECTS = _load_subjects()
 
 
 # ---------------------------------------------------------------------------
@@ -1013,7 +979,7 @@ SUBJECTS = {
 
 def main():
     parser = argparse.ArgumentParser(description="Seed industry pages with enriched data.")
-    parser.add_argument("--subject", help="Subject key (e.g. dan_shipper). Omit to seed all.")
+    parser.add_argument("--subject", help="Subject key from subjects.json. Omit to seed all.")
     parser.add_argument("--slug", help="Override slug")
     parser.add_argument("--password", help="Override password")
     parser.add_argument("--token", help="Existing Redis token (for re-seeding)")

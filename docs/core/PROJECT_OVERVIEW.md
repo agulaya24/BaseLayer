@@ -263,10 +263,7 @@ Every claim in a generated specification cites the facts used to author it. Ever
 What is left unmeasured is interpretation: how a specific person processes facts and experiences into judgments, decisions, and reactions. The same facts can yield different conclusions depending on whose interpretive framework reads them.
 
 ### Next
-- **Reddit launch** — 19 subreddits, core post finalized. Start with r/LocalLLaMA.
-- **Twin-2K researcher email** — Columbia team (Toubia, Gui, Peng, Merlau).
 - **Temporality research** — Time-aware specification modeling. Temporal prediction test spec drafted.
-- **VC outreach** — Timothy Chen, Steve Jang, Dharmesh Shah.
 
 1. **Retrieval-only questions.** The memory system has the answer in storage. The specification adds nothing. Use retrieval alone.
 2. **Interpretation-heavy questions.** The retrieved facts underdetermine the answer. The specification supplies the pattern that has to transfer to the new situation. Layer the specification on top of retrieval.
