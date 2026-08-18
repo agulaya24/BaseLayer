@@ -508,7 +508,7 @@ memory_system/
 
 ## Serving Layer
 
-The current (0.4.0) MCP design serves the full structural specification inline. The always-on `memory://specification` resource returns CORE, ANCHORS, and PREDICTIONS (~6 to 8K tokens) plus a manifest of supplementary tools. Only the unified narrative brief stays on demand, behind `get_brief(reason)`.
+The current MCP design serves the full structural specification inline. The always-on `memory://specification` resource returns CORE, ANCHORS, and PREDICTIONS (~6 to 8K tokens) plus a manifest of supplementary tools. Only the unified narrative brief stays on demand, behind `get_brief(reason)`.
 
 History: the 0.3.0 release shipped a partial-serving design that put only CORE on the resource and exposed ANCHORS and PREDICTIONS behind on-demand `get_anchors()`/`get_predictions()` tools. Live use surfaced two issues: the model had to make routing decisions about layers it could not see, and the token savings were negligible. 0.4.0 removed those tools and inlined all three layers.
 
