@@ -33,6 +33,22 @@ EMBED      embed.py, all-MiniLM-L6-v2 -> ChromaDB
              Side branch. Serves search, verify, and vector provenance. AUTHOR does not read it.
 ```
 
+⚠️ **DISTILL, ASSEMBLE and AUTHOR are not in this repository.** `distill.py`, `assemble.py` and
+`author_from_package.py` live in a separate experimental repository, available on request. What
+ships here is the older authoring path: `baselayer author` runs a Sonnet pass over a SQL selection
+capped at 15 facts per category. If you clone this repo and follow the steps above, you can run
+IMPORT, EXTRACT, EMBED and COMPOSE, and you cannot run the three stages in the middle.
+
+⚠️ **Citations are not produced on this branch.** The authoring prompt requests them but
+`CITATION_DIRECTIVE` is absent here, so measured across six live authoring calls on two corpora,
+**every provenance row was `link_method='vector'`** — nearest match by meaning, not a link the
+model asserted. That includes CORE, which earlier text implied does cite. It does not.
+
+⚠️ **`verify_claims` is therefore empty on anything this repository authors.** It builds its
+questions by re-parsing inline citations out of the layer text, so with no inline citations it
+generates none and the checks never run. `trace_claim` still works and is the tool that tells you
+a link was vector-guessed.
+
 DISTILL runs once per layer. `--layer` takes `anchors`, `core`, or `predictions`. This yields three distill runs, three assembles, and one author pass.
 
 What happens, step by step:
