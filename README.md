@@ -8,12 +8,12 @@
 
 ## What it does
 
-This pulls out patterns in how a person weighs and uses information: what they count as evidence, what they treat as settled, and where they refuse tradeoffs. That is what we mean by interpretive patterns. The output is a ~7,000 token document an AI agent reads before responding.
+This pulls out patterns in how a person weighs and uses information: what they count as evidence, what they treat as settled, and where they refuse tradeoffs. The output is a ~7,000 token document an AI agent reads before responding.
 
 - Reasoning is auditable. `trace_claim` lets you follow a claim back to the facts it cites, and then follow each fact back to the conversation it was taken from. The exact source passage is not stored, so that second step lands on a conversation rather than the sentence itself.
 - The representation is editable. The layers are markdown files on your disk. If you delete or rewrite an axiom, the next session serves your version with no retraining.
 
-A model fine-tuned on someone's behaviour cannot be inspected, disputed, or corrected. A written specification can, which is the trade this project makes.
+A model fine-tuned on someone's behaviour cannot be inspected, disputed, or corrected. A written specification can.
 
 > "memory is really about how the facts are used. Why leave that to a pure inference machine, you must tell it"
 >
@@ -22,48 +22,23 @@ A model fine-tuned on someone's behaviour cannot be inspected, disputed, or corr
 
 ## How
 
-Terms used below, in plain words:
-
-- predicates: fixed labels for the kind of fact an extractor writes down, such as preference, rule, goal.
-- constrained predicates: the extractor can only choose from that fixed list.
-- blind to each other: each layer is written without seeing the other layers.
-- corroboration: independent agreement; two layers saying the same thing count as support.
-- vector store: a database that holds vector embeddings of texts so you can find nearest matches by meaning.
-- provenance: the record of where a claim came from and how it was linked to sources.
-
-Interpretive distillation is the current architecture and the pipeline to use going forward. The repository still ships the older authoring path shown below because it runs today. You will encounter it when you run `baselayer author`. It is superseded.
+Unified pipeline:
 
 ```
-IMPORT   ChatGPT, Claude, journals, text            -> SQLite
-EXTRACT  Haiku, 46 constrained predicates           -> structured facts
-AUTHOR   Sonnet, three layers, blind to each other  -> anchors / core / predictions
-COMPOSE  Opus, three layers into one brief          -> ~3K brief (full spec ~7K)
+IMPORT     import_conversations.py                      text -> SQLite
+EXTRACT    extract_facts.py, claude-haiku-4-5           -> memory_facts, 46 constrained predicates
+DISTILL    distill.py, claude-sonnet-5, --max-facts 120 -> one tree per layer
+ASSEMBLE   assemble.py                                  -> one stratified package per layer
+AUTHOR     author_from_package.py, claude-opus-5        -> layers, citations required by schema
+COMPOSE                                                 -> one brief
 
-EMBED    MiniLM-L6-v2, runs locally                 -> ChromaDB (local vector store)
-         side branch. Powers search, verify, and vector provenance.
-         The author does not read from it.
+EMBED      embed.py, all-MiniLM-L6-v2 -> ChromaDB
+             Side branch. Serves search, verify, and vector provenance. AUTHOR does not read it.
 ```
 
-The shipped authoring path does not receive the whole fact base. Each layer runs a SQL selection capped at 15 facts per category, so the specification is written from a slice chosen by sort order. That cap is the reason distillation exists.
+DISTILL runs once per layer. `--layer` takes `anchors`, `core`, or `predictions`. A fourth value, `blind`, is a control arm. This yields three distill runs, three assembles, and one author pass.
 
-### Interpretive distillation, the current architecture
-
-Before the steps, a few terms in simple language:
-
-- leaves: the small end items on a tree of reasoning, each tied to specific fact ids.
-- chunk: a manageable group of facts processed together at one time.
-- stratified package: a bundle grouped by role and priority so each kind of content travels in its own lane.
-- dispositions: a per-fact verdict that says how this fact should be handled by the author.
-
-Distillation replaces AUTHOR with three steps that read every fact instead of a selection:
-
-```
-DISTILL   every fact -> a tree of leaves, four channels per chunk
-ASSEMBLE  one or more trees -> a stratified package
-AUTHOR    package -> layers, citations mandatory by schema
-```
-
-Each chunk of facts produces four things that do not compete for space:
+Each distillation chunk produces four channels that do not compete for space:
 
 ```
 THEMES          what recurs, each naming the fact ids it drew on
@@ -74,21 +49,21 @@ DISPOSITIONS    every fact id gets exactly one verdict: theme, singular, or
                 not_load_bearing. Omitting an id is not permitted.
 ```
 
-When you summarise again and again, the parts that show up many times keep getting picked, while a one-off detail is likely to be dropped, even if it matters more than the repeated parts. How often something is said is not the same as how important it is. A plain summariser gets this backwards and treats count as importance, which is why we keep a separate lane that carries one-off facts through untouched.
+Repeated summarising keeps what repeats and drops one-off detail even when it matters more. That is why one-off facts get their own channel.
 
-Dispositions let you check that every fact was seen and assigned a role. There is no sampling and no stopping rule, so coverage is part of the control flow rather than a side effect.
+Distillation reads the same SQLite database EXTRACT writes: `memory_facts` with `id`, `fact_text`, `predicate`, `category`, and `superseded_by`.
 
-Distillation reads this repository's database directly. It needs `memory_facts` with `id`, `fact_text`, `predicate`, `category` and `superseded_by`, all of which `baselayer init` creates, so the two compose without an adapter.
+Distillation is an experimental release in a separate repository, not heavily tested, access by request.
 
-It lives in a separate repository and is an experimental release, not a tested pipeline. Its own README states what has and has not been verified about it. Access is by request while it stabilises.
+`author_layers.py:307` in the superseded path caps each category at 15 facts, discarding about 65% of the CORE layer's corpus by sort position. Distillation exists to write from the full fact base instead.
 
 ```
 ANCHORS      Axioms the person reasons from.
 CORE         Communication patterns and context modes.
-PREDICTIONS  Behavioral triggers with detection cues and directives.
+PREDICTIONS  Behavioural triggers with detection cues and directives.
 ```
 
-The three layers are authored blind to each other. Agreement counts as corroboration, and contradiction is treated as a finding and kept.
+The three layers are authored blind to each other. Agreement counts as corroboration, and contradiction is kept. The deprecated path still runs under `baselayer author`.
 
 ## What it looks like
 
@@ -121,21 +96,17 @@ A fourth, NLI entailment (a local natural language inference model scores whethe
 
 Not all provenance is a citation. ANCHORS and PREDICTIONS synthesise across facts rather than quoting them, so the citation pass returns nothing for those layers and the pipeline falls back to `generate_vector_provenance`: it embeds the claim and links the nearest facts, stored with `link_method='vector'`. That link is embedding proximity, not something the model asserted. `trace_claim` prints the method for every row, so you can tell the two apart, and you should: a vector link means "this fact is nearby", not "this fact was used".
 
-Two things that will otherwise surprise you:
-
-Citation coverage is not enforced here. The authoring prompt does not compel a citation per claim, so some claims carry them and some do not. Read "auditable" as "what is cited can be checked". It does not mean everything is cited.
-
-`author_layers.py:307` caps each category at 15 facts before authoring. Measured, that discards about 65% of the CORE layer's corpus, cutting by sort position rather than importance. It was never a recorded decision. There is no environment override in this repo: to change it, edit the constant.
+Citation coverage is not enforced on the shipped path. The authoring prompt does not compel a citation per claim, so some claims carry them and some do not. Read "auditable" as "what is cited can be checked". It does not mean everything is cited.
 
 ## What we tested
 
 We evaluated on 14 historical subjects with public-domain autobiographies, with a 5-judge primary panel and a 7-judge sensitivity panel, using a pre-registered analysis plan. Full numbers are at [base-layer.ai/research](https://base-layer.ai/research) and in the [*Beyond Recall* paper](https://arxiv.org/abs/2605.28969).
 
 - Direction reproduces across response models and battery-generation models. Absolute magnitudes are panel-dependent.
-- Given a response, a judge can tell which specification produced it **51.6% of the time from the reasoning, and 13.4% from the decision alone** (chance is 11.1%). The reasoning carries the signal; the verdict is nearly empty.
+- Given a response, a judge can tell which specification produced it 51.6% of the time from the reasoning, and 13.4% from the decision alone (chance is 11.1%). The reasoning carries the signal; the verdict is nearly empty.
 - It helps most where the model knows the person least. On a well-known public figure it adds close to nothing.
 
-**Specifications change how decisions are argued in every situation tested, and change the decision itself in some.**
+Specifications change how decisions are argued in every situation tested, and change the decision itself in some.
 
 ## What it is not
 
@@ -155,12 +126,12 @@ We evaluated on 14 historical subjects with public-domain autobiographies, with 
 
 ## Where this is headed
 
-Mandatory citation, exhaustive coverage and carried contradictions are done. They are described above, under distillation. What is actually open:
+Mandatory citation, exhaustive coverage and carried contradictions are done. They are described above under distillation. Open work:
 
-- **Contradictions surviving composition.** The layers carry contested claims. The brief carries none of them, so a reader of the brief sees a settled claim where the layers record a dispute. This is the honest property that does not survive the last hop.
-- **Testing distillation.** It is an experimental release. The suite is 10 mutation tests over one audit, and most measurements were taken on a 407-fact corpus.
-- **Faithfulness.** No member check has run. Everything below in "What is unknown" stays unknown until someone reads their own specification and says where it is wrong.
-- **Governance.** The same call shape applied to decisions made on someone's behalf, where the warrant cites the specification claims it rested on.
+- Contradictions surviving composition. The layers carry contested claims. The brief carries none of them, so a reader of the brief sees a settled claim where the layers record a dispute.
+- Testing distillation. It is an experimental release. The suite is 10 mutation tests over one audit, and most measurements were taken on a 407-fact corpus.
+- Faithfulness. No member check has run. Everything below in "What is unknown" stays unknown until someone reads their own specification and says where it is wrong.
+- Governance. The same call shape applied to decisions made on someone's behalf, where the warrant cites the specification claims it rested on.
 
 ## Quick start
 
