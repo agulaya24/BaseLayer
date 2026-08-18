@@ -10,7 +10,7 @@
 
 This pulls out patterns in how a person weighs and uses information: what they count as evidence, what they treat as settled, and where they refuse tradeoffs. The output is a ~7,000 token document an AI agent reads before responding.
 
-- Reasoning is auditable. `trace_claim` lets you follow a claim back to the facts it cites, and then follow each fact back to the conversation it was taken from. The exact source passage is not stored, so that second step lands on a conversation rather than the sentence itself.
+- Reasoning is auditable. `trace_claim` lets you follow a claim back to the facts it cites, and then follow each fact back to the conversation it was taken from. The second step lands on the conversation, not the exact sentence, because the source passage is not stored.
 - The representation is editable. The layers are markdown files on your disk. If you delete or rewrite an axiom, the next session serves your version with no retraining.
 
 A model fine-tuned on someone's behaviour cannot be inspected, disputed, or corrected. A written specification can.
@@ -26,9 +26,9 @@ Unified pipeline:
 
 ```
 IMPORT     import_conversations.py                      text -> SQLite
-EXTRACT    extract_facts.py, claude-haiku-4-5           -> memory_facts, 46 constrained predicates
+EXTRACT    extract_facts.py, claude-haiku-4-5           -> memory_facts, 46 constrained predicates (a fixed vocabulary of relation types the extractor may use)
 DISTILL    distill.py, claude-sonnet-5, --max-facts 120 -> one tree per layer
-ASSEMBLE   assemble.py                                  -> one stratified package per layer
+ASSEMBLE   assemble.py                                  -> one package per layer, grouped so each kind of content stays in its own lane
 AUTHOR     author_from_package.py, claude-opus-5        -> layers, citations required by schema
 COMPOSE                                                 -> one brief
 
@@ -49,7 +49,7 @@ DISPOSITIONS    every fact id gets exactly one verdict: theme, singular, or
                 not_load_bearing. Omitting an id is not permitted.
 ```
 
-Repeated summarising keeps what repeats and drops one-off detail even when it matters more. That is why one-off facts get their own channel.
+Repeated summarising keeps what repeats and drops one-off detail even when it matters more. One-off facts therefore get their own channel.
 
 Distillation reads the same SQLite database EXTRACT writes: `memory_facts` with `id`, `fact_text`, `predicate`, `category`, and `superseded_by`.
 
@@ -92,7 +92,7 @@ Checks use three levels:
 - recurrence gating: the claim should not rest on a single one-off mention if the theme needs repetition.
 - cross-domain span: the support should not come only from one narrow source type or topic.
 
-A fourth, NLI entailment (a local natural language inference model scores whether the cited facts support the claim), is opt-in via `baselayer verify --nli` and downloads ~700MB on first use. This is a data-quality audit. It does not guarantee that a cited fact caused the claim to be written. A resolving citation proves the reference is real; it does not show the fact drove the claim.
+A fourth, NLI entailment (a local natural language inference model scores whether the cited facts support the claim), is opt-in via `baselayer verify --nli` and downloads ~700MB on first use. This is a data-quality audit. It does not guarantee that a cited fact caused the claim to be written. A resolving citation proves the reference is real but not that the fact drove the claim.
 
 Not all provenance is a citation. ANCHORS and PREDICTIONS synthesise across facts rather than quoting them, so the citation pass returns nothing for those layers and the pipeline falls back to `generate_vector_provenance`: it embeds the claim and links the nearest facts, stored with `link_method='vector'`. That link is embedding proximity, not something the model asserted. `trace_claim` prints the method for every row, so you can tell the two apart, and you should: a vector link means "this fact is nearby", not "this fact was used".
 
@@ -100,7 +100,7 @@ Citation coverage is not enforced on the shipped path. The authoring prompt does
 
 ## What we tested
 
-We evaluated on 14 historical subjects with public-domain autobiographies, with a 5-judge primary panel and a 7-judge sensitivity panel, using a pre-registered analysis plan. Full numbers are at [base-layer.ai/research](https://base-layer.ai/research) and in the [*Beyond Recall* paper](https://arxiv.org/abs/2605.28969).
+We evaluated on 14 historical subjects with public-domain autobiographies, with a 5-judge primary panel and a 7-judge sensitivity panel, using a analysis plan registered before the data was seen. Full numbers are at [base-layer.ai/research](https://base-layer.ai/research) and in the [*Beyond Recall* paper](https://arxiv.org/abs/2605.28969).
 
 - Direction reproduces across response models and battery-generation models. Absolute magnitudes are panel-dependent.
 - Given a response, a judge can tell which specification produced it 51.6% of the time from the reasoning, and 13.4% from the decision alone (chance is 11.1%). The reasoning carries the signal; the verdict is nearly empty.
@@ -165,7 +165,7 @@ No conversation history? `baselayer journal` runs guided prompts that bootstrap 
 
 On Windows use `$env:ANTHROPIC_API_KEY = "sk-ant-..."` instead of `export`. Note `init` is interactive (consent, name, pronouns), so it needs a terminal and will fail if piped. The first `embed` downloads the embedding model, ~90MB.
 
-In cloud settings, extraction, authoring, and composition call the [Anthropic API](https://www.anthropic.com/policies/privacy) (zero-retention by default). Extraction can run local via Ollama.
+In cloud settings, extraction, authoring, and composition call the [Anthropic API](https://www.anthropic.com/policies/privacy) (zero-retention by default, meaning the provider does not store the request). Extraction can run local via Ollama.
 
 ## Use it
 
