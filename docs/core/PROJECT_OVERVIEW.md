@@ -112,7 +112,7 @@ EMBED      embed.py                                       side branch, same role
 
 DISTILL runs once per layer (`--layer` takes `anchors`, `core`, or `predictions`), so a full build is three distill runs, three assembles, and one author pass. On a 149-fact corpus: DISTILL took 44 seconds and $0.04, ASSEMBLE 0.1 seconds at no cost, AUTHOR plus COMPOSE 83 seconds and $0.14. $0.18 in total.
 
-Distillation is an experimental release in a separate repository, available on request. This repository still ships the capped author.
+Distillation ships in this repository as the experimental subpackage `baselayer.distillation` (`baselayer distill` / `assemble` / `author-from-package`); its test coverage is 10 mutation tests over one audit, so read `docs/core/DISTILLATION.md` before depending on it. This repository still ships the capped author as the default.
 
 ---
 

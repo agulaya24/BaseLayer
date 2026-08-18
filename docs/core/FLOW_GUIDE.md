@@ -72,7 +72,7 @@ Then composes a behavioral specification from all three layers. Collective revie
 
 Pre-authored once, reused across every conversation.
 
-**Superseded, but still runs.** This author step hands each layer a capped slice of facts: at most 15 per category (`MAX_FACTS_PER_CATEGORY` in `author_layers.py`), selected by sort position rather than importance. On large corpora most facts never reach the author; on one measured 407-fact corpus, the CORE layer was written from 141 of them. The command works as documented and remains the default in this repository. Its experimental successor, interpretive distillation, first compresses every fact into one package per layer so that nothing is dropped by a cap, and requires citations by schema. It is released separately as an experimental repository, available on request.
+**Superseded, but still runs.** This author step hands each layer a capped slice of facts: at most 15 per category (`MAX_FACTS_PER_CATEGORY` in `author_layers.py`), selected by sort position rather than importance. On large corpora most facts never reach the author; on one measured 407-fact corpus, the CORE layer was written from 141 of them. The command works as documented and remains the default in this repository. Its experimental successor, interpretive distillation, first compresses every fact into one package per layer so that nothing is dropped by a cap, and requires citations by schema. It ships in this repository as the experimental subpackage `baselayer.distillation` (`baselayer distill` / `assemble` / `author-from-package`); see `DISTILLATION.md` for its caveats.
 
 **One-command version:**
 ```

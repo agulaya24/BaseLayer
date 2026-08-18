@@ -33,21 +33,27 @@ EMBED      embed.py, all-MiniLM-L6-v2 -> ChromaDB
              Side branch. Serves search, verify, and vector provenance. AUTHOR does not read it.
 ```
 
-⚠️ **DISTILL, ASSEMBLE and AUTHOR are not in this repository.** `distill.py`, `assemble.py` and
-`author_from_package.py` live in a separate experimental repository, available on request. What
-ships here is the older authoring path: `baselayer author` runs a Sonnet pass over a SQL selection
-capped at 15 facts per category. If you clone this repo and follow the steps above, you can run
-IMPORT, EXTRACT, EMBED and COMPOSE, and you cannot run the three stages in the middle.
+⚠️ **DISTILL, ASSEMBLE and AUTHOR ship in this repository as an experimental subpackage**
+(`src/baselayer/distillation/`), exposed as `baselayer distill`, `baselayer assemble` and
+`baselayer author-from-package`. Experimental means exactly this: the suite covering them is 10
+mutation tests over the citation audit in `distill.py` and exercises none of the other modules;
+most measurements behind the design come from a single 407-fact corpus; and the study harnesses
+`distill_batch.py` and `convergence.py` do not call `validate()`, so their output is unstripped
+(fabricated fact ids are not removed). The older authoring path also still ships: `baselayer
+author` runs a Sonnet pass over a SQL selection capped at 15 facts per category. It stays until
+distillation earns the default, which is a separate decision.
 
-⚠️ **Citations are not produced on this branch.** The authoring prompt requests them but
+⚠️ **Citations are not produced by the older `baselayer author` path.** Its prompt requests them but
 `CITATION_DIRECTIVE` is absent here, so measured across six live authoring calls on two corpora,
 **every provenance row was `link_method='vector'`** — nearest match by meaning, not a link the
 model asserted. That includes CORE, which earlier text implied does cite. It does not.
+`baselayer author-from-package` is the path that requires a citation per claim by schema.
 
-⚠️ **`verify_claims` is therefore empty on anything this repository authors.** It builds its
+⚠️ **`verify_claims` is therefore empty on anything `baselayer author` writes.** It builds its
 questions by re-parsing inline citations out of the layer text, so with no inline citations it
 generates none and the checks never run. `trace_claim` still works and is the tool that tells you
-a link was vector-guessed.
+a link was vector-guessed. Whether `verify_claims` parses the layers `author-from-package` writes
+has not been tested.
 
 DISTILL runs once per layer. `--layer` takes `anchors`, `core`, or `predictions`. This yields three distill runs, three assembles, and one author pass.
 
@@ -77,7 +83,7 @@ Repeated summarising keeps what repeats and drops one-off detail even when it ma
 
 Distillation reads the same SQLite database EXTRACT writes: `memory_facts` with `id`, `fact_text`, `predicate`, `category`, and `superseded_by`.
 
-Distillation is an experimental release in a separate repository, not heavily tested, access by request, and must NOT be linked.
+Distillation ships here as `baselayer.distillation` and is experimental. Read the caveat block near the top before depending on it; `docs/core/DISTILLATION.md` carries the full status.
 
 `author_layers.py:307` in the superseded path caps each category at 15 facts, discarding about 65% of the CORE layer's corpus by sort position. Distillation exists to write from the full fact base instead.
 
@@ -107,7 +113,7 @@ Checks use three levels:
 
 | level | question | status |
 |---|---|---|
-| syntactic | does the claim carry citations? | **not guaranteed on this branch** |
+| syntactic | does the claim carry citations? | **not guaranteed on `author`**; required by schema on `author-from-package` |
 | referential | do the ids resolve to facts the run read? | checkable against the database |
 | causal | does removing the cited fact change the claim? | sampled, never exhaustive |
 
@@ -120,7 +126,7 @@ A fourth, NLI entailment (a local natural language inference model scores whethe
 
 Not all provenance is a citation. ANCHORS and PREDICTIONS synthesise across facts rather than quoting them, so the citation pass returns nothing for those layers and the pipeline falls back to `generate_vector_provenance`: it embeds the claim and links the nearest facts, stored with `link_method='vector'`. That link is embedding proximity, not something the model asserted. `trace_claim` prints the method for every row, so you can tell the two apart, and you should: a vector link means "this fact is nearby", not "this fact was used".
 
-Citation coverage is not enforced on the shipped path. The authoring prompt does not compel a citation per claim, so some claims carry them and some do not. Read "auditable" as "what is cited can be checked". It does not mean everything is cited.
+Citation coverage is not enforced on the shipped `author` path. Its authoring prompt does not compel a citation per claim, so some claims carry them and some do not. Read "auditable" as "what is cited can be checked". It does not mean everything is cited. The experimental `author-from-package` path makes the citation field mandatory by schema; mandatory is not the same as accurate, so the causal row above still applies.
 
 ## What we tested
 
@@ -180,6 +186,14 @@ baselayer import chatgpt-export.zip       # or claude-export.json, ~/journals/, 
 baselayer estimate
 baselayer extract && baselayer embed
 baselayer author && baselayer compose
+```
+
+The experimental distillation path (successor to `author`; caveats above) runs one distill per layer:
+
+```bash
+baselayer distill --layer anchors --out anchors_tree.json          # repeat for core, predictions
+baselayer assemble anchors_tree.json --out anchors_pkg.json        # repeat per layer
+baselayer author-from-package --package anchors_pkg.json --package core_pkg.json --package predictions_pkg.json --outdir spec_out/
 ```
 
 Re-extracting requires clearing both stores. Run `forget --all` and delete `data/vectors/`. Stale vectors make deduplication treat new facts as already-known, yielding tens of facts where a clean run yields hundreds. `init --force` is not that reset; it drops nothing.

@@ -407,6 +407,49 @@ def cmd_compose(args):
         sys.exit(1)
 
 
+def cmd_distill(args):
+    """EXPERIMENTAL: distill every fact into an auditable tree (interpretive distillation)."""
+    _check_api_key()
+    from baselayer.distillation import distill
+    db = args.db
+    if not db:
+        from baselayer.config import DATABASE_FILE
+        db = str(DATABASE_FILE)
+    argv = ["distill.py", "--db", db, "--out", args.out,
+            "--model", args.model, "--max-facts", str(args.max_facts),
+            "--limit-chunks", str(args.limit_chunks), "--partition", args.partition,
+            "--seed", str(args.seed), "--layer", args.layer]
+    if args.checkpoint:
+        argv += ["--checkpoint", args.checkpoint]
+    if args.resume_from:
+        argv += ["--resume-from", args.resume_from]
+    if args.write_provenance:
+        argv.append("--write-provenance")
+    sys.argv = argv
+    distill.main()
+
+
+def cmd_assemble(args):
+    """EXPERIMENTAL: stratify one or more distillation trees into a handoff package."""
+    from baselayer.distillation import assemble
+    argv = ["assemble.py"] + list(args.trees) + ["--out", args.out]
+    if args.min_runs is not None:
+        argv += ["--min-runs", str(args.min_runs)]
+    sys.argv = argv
+    assemble.main()
+
+
+def cmd_author_from_package(args):
+    """EXPERIMENTAL: author layers plus brief from handoff packages (citations required by schema)."""
+    _check_api_key()
+    from baselayer.distillation import author_from_package
+    argv = ["author_from_package.py", "--outdir", args.outdir, "--model", args.model]
+    for pkg in args.package:
+        argv += ["--package", pkg]
+    sys.argv = argv
+    author_from_package.main()
+
+
 def cmd_brief(args):
     """Assemble a memory brief for a message."""
     import baselayer.assemble_brief as assemble_brief
@@ -2094,6 +2137,61 @@ def main():
     p_compose = subparsers.add_parser("compose",
         help="Compose unified narrative specification from the deployed layers (Opus API)")
     p_compose.set_defaults(func=cmd_compose)
+
+    # --- interpretive distillation (EXPERIMENTAL) ---------------------------------
+    # Successor authoring path. `author` above stays the shipped default; removing it
+    # is a separate decision. Test coverage on this path is 10 mutation tests over
+    # distill.py's citation audit and nothing else; distill_batch.py and convergence.py
+    # (script-only, not exposed here) do not strip fabricated ids from their output.
+    p_distill = subparsers.add_parser("distill",
+        help="EXPERIMENTAL: distill every fact into an auditable tree, one run per "
+             "layer. Successor to `author`; coverage is 10 mutation tests over the "
+             "citation audit, most measurements from one 407-fact corpus.")
+    p_distill.add_argument("--db", default=None,
+                           help="SQLite corpus (default: this project's memory.db), opened read-only")
+    p_distill.add_argument("--out", required=True, help="where to write the tree JSON")
+    p_distill.add_argument("--model", default="claude-sonnet-5")
+    p_distill.add_argument("--max-facts", type=int, default=120, help="chunk size (untuned lever: "
+                           "finer chunks cite more facts and cost proportionally more)")
+    p_distill.add_argument("--limit-chunks", type=int, default=0,
+                           help="stop after N chunks (stamped PARTIAL_RUN)")
+    p_distill.add_argument("--partition", default="predicate",
+                           choices=["predicate", "category", "predcat", "random", "semantic", "time"],
+                           help="chunking strategy; `semantic` additionally needs scikit-learn "
+                                "(pip install baselayer[semantic])")
+    p_distill.add_argument("--seed", type=int, default=0)
+    p_distill.add_argument("--layer", default="blind",
+                           choices=["anchors", "blind", "core", "predictions"],
+                           help="layer directive; `blind` is the undirected control")
+    p_distill.add_argument("--checkpoint", default="", help="write leaves here after every chunk")
+    p_distill.add_argument("--resume-from", default="", help="reload leaves from a checkpoint file")
+    p_distill.add_argument("--write-provenance", action="store_true",
+                           help="persist root citations to layer_claim_provenance. WRITES to "
+                                "the corpus db; off by default.")
+    p_distill.set_defaults(func=cmd_distill)
+
+    p_assemble = subparsers.add_parser("assemble",
+        help="EXPERIMENTAL: stratify distillation trees into one handoff package per "
+             "layer (no API calls). No test exercises this module.")
+    p_assemble.add_argument("trees", nargs="+", help="tree JSONs from `baselayer distill`, same layer")
+    p_assemble.add_argument("--out", required=True, help="where to write the package JSON")
+    p_assemble.add_argument("--min-runs", type=int, default=None,
+                            help="runs a singularity must appear in to count as verified "
+                                 "(default: 3, or n_runs when fewer)")
+    p_assemble.set_defaults(func=cmd_assemble)
+
+    p_afp = subparsers.add_parser("author-from-package",
+        help="EXPERIMENTAL: author layers and brief from handoff packages; every claim "
+             "must cite fact ids (strict schema). No test exercises this module. "
+             "Successor to `author`, which remains the shipped path.")
+    p_afp.add_argument("--package", action="append", required=True,
+                       help="handoff package json; repeat once per layer")
+    p_afp.add_argument("--outdir", required=True)
+    p_afp.add_argument("--model", default="claude-opus-5",
+                       help="authoring+compose. Compose is 0.24%% of pipeline cost, so the "
+                            "best model here is effectively free.")
+    p_afp.set_defaults(func=cmd_author_from_package)
+
 
     # brief
     p_brief = subparsers.add_parser("brief",

@@ -29,6 +29,11 @@ dependencies = [
 dev = [
     "pytest>=7.0.0",
 ]
+# `baselayer distill --partition semantic` clusters embeddings with KMeans; every other
+# partition strategy runs without this. sentence-transformers/numpy are already core deps.
+semantic = [
+    "scikit-learn>=1.3",
+]
 
 [project.scripts]
 baselayer = "baselayer.cli:main"
@@ -44,7 +49,7 @@ Documentation = "https://base-layer.ai/llms-full.txt"
 # Only ship the active package surface. Dev-internal subpackages
 # (baselayer.archive, baselayer.archive.dead_pipeline_steps, baselayer.experiments)
 # remain on disk for developers but are excluded from the distribution.
-packages = ["baselayer"]
+packages = ["baselayer", "baselayer.distillation"]
 
 [tool.setuptools.package-dir]
 "" = "src"
