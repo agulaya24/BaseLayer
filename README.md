@@ -15,10 +15,7 @@ This pulls out patterns in how a person weighs and uses information: what they c
 
 A model fine-tuned on someone's behaviour cannot be inspected, disputed, or corrected. A written specification can.
 
-> "memory is really about how the facts are used. Why leave that to a pure inference machine, you must tell it"
->
-> "we arent trying to create a copy of a person or how they think, we are trying to model an understanding of them for the language model"
-
+The point is not to hand interpretation to a pure inference machine. The model has no access to your interpretation of the facts, and that interpretation is what matters. This captures how a specific person reasons about and interprets information so an AI can apply that lens when using retrieved facts or making decisions.
 
 ## How
 
@@ -36,7 +33,18 @@ EMBED      embed.py, all-MiniLM-L6-v2 -> ChromaDB
              Side branch. Serves search, verify, and vector provenance. AUTHOR does not read it.
 ```
 
-DISTILL runs once per layer. `--layer` takes `anchors`, `core`, or `predictions`. A fourth value, `blind`, is a control arm. This yields three distill runs, three assembles, and one author pass.
+DISTILL runs once per layer. `--layer` takes `anchors`, `core`, or `predictions`. This yields three distill runs, three assembles, and one author pass.
+
+What happens, step by step:
+
+1. IMPORT. You give it your own writing: ChatGPT or Claude exports, journals, notes, plain text. It loads them into a local SQLite database on your machine.
+2. EXTRACT. It reads every conversation and pulls out individual statements about how you operate, such as a preference, a rule you follow, something you avoid. Each one is tagged with a type from a fixed list of 46. Output is a table of facts, each linked to the conversation it came from.
+3. DISTILL. It reads the facts in batches. Every single fact gets one verdict: part of a recurring pattern, a one-off worth keeping word for word, or not load-bearing. Nothing is skipped and nothing is sampled. It runs three times, once for each layer.
+4. ASSEMBLE. The results are combined into one package per layer, with recurring patterns and one-off facts kept in separate groups so the writing step can tell them apart.
+5. AUTHOR. Each layer is written as readable text. Every claim has to name the facts it came from.
+6. COMPOSE. The three layers are merged into a single brief.
+
+EMBED is separate from that sequence. It builds a searchable index used by search and by `verify`. The writing step does not read from it.
 
 Each distillation chunk produces four channels that do not compete for space:
 
@@ -53,7 +61,7 @@ Repeated summarising keeps what repeats and drops one-off detail even when it ma
 
 Distillation reads the same SQLite database EXTRACT writes: `memory_facts` with `id`, `fact_text`, `predicate`, `category`, and `superseded_by`.
 
-Distillation is an experimental release in a separate repository, not heavily tested, access by request.
+Distillation is an experimental release in a separate repository, not heavily tested, access by request, and must NOT be linked.
 
 `author_layers.py:307` in the superseded path caps each category at 15 facts, discarding about 65% of the CORE layer's corpus by sort position. Distillation exists to write from the full fact base instead.
 
@@ -69,7 +77,7 @@ The three layers are authored blind to each other. Agreement counts as corrobora
 
 Here is the first paragraph of a real specification, authored by this pipeline from ~1,900 conversations:
 
-> He operates from an uncompromising need for logical coherence that manifests as immediate challenge to any inconsistency, in systems, arguments, or his own positions. When he encounters a gap between stated beliefs and actual behavior, he treats it as personal failure requiring accountability rather than understanding, taking extreme ownership of every outcome while maintaining clear causal links between actions and results. This isn't philosophical posturing but lived practice: in trading, he waits for multiple confirming signals before entries, implements overlapping safety mechanisms through fixed dollar loss limits and systematic stop losses, yet struggles with the gap between knowing these rules and executing them consistently during early morning sessions when his energy is highest but discipline most vulnerable.
+He operates from an uncompromising need for logical coherence that manifests as immediate challenge to any inconsistency, in systems, arguments, or his own positions. When he encounters a gap between stated beliefs and actual behavior, he treats it as personal failure requiring accountability rather than understanding, taking extreme ownership of every outcome while maintaining clear causal links between actions and results. This isn't philosophical posturing but lived practice: in trading, he waits for multiple confirming signals before entries, implements overlapping safety mechanisms through fixed dollar loss limits and systematic stop losses, yet struggles with the gap between knowing these rules and executing them consistently during early morning sessions when his energy is highest but discipline most vulnerable.
 
 There are no questionnaires or forms. [More examples](https://base-layer.ai/examples/franklin).
 
@@ -115,6 +123,7 @@ Specifications change how decisions are argued in every situation tested, and ch
 - Not "an AI that knows you" in the sense that phrase usually carries. It models how someone reasons, not facts about them.
 - Not useful on subjects the model already knows. On a well-known public figure it adds close to nothing. It helps most where the model knows the person least.
 - Not a final implementation. This is one implementation of an interpretive layer. Others are welcome and expected.
+- It is an interaction guide for an AI. The audience is the model rather than the person. It helps an AI understand someone and is not a tool for helping someone understand themselves.
 
 ## What is unknown
 
@@ -143,7 +152,7 @@ export ANTHROPIC_API_KEY=sk-ant-...
 baselayer run chatgpt-export.zip
 ```
 
-> Not on PyPI; the name is held by an unrelated project. Install from source, or clone and `pip install -e .`.
+Not on PyPI; the name is held by an unrelated project. Install from source, or clone and `pip install -e .`.
 
 Expect ~30 minutes and $0.50 to $2.00 for ~1,000 conversations. Treat the cost gate as a floor. Cost tracks API calls, not corpus size.
 
@@ -200,7 +209,7 @@ Facts do not carry their own significance. An extractor can find that you rewrot
 
 Database, vectors, facts, and specification live on your machine. There is no cloud sync, no accounts, and no telemetry. A representation that is opaque to the person it represents is built for someone else.
 
-> "everyone should own their identity. It's architectural, not philosophical, local-first, model-agnostic, portable"
+The artefact is local-first, model-agnostic and portable.
 
 ## Reference
 
