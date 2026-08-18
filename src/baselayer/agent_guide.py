@@ -182,7 +182,7 @@ set, else the repo root (dev), else `~/.baselayer/` (install).
 
 The structural layers (CORE, ANCHORS, PREDICTIONS) are always loaded
 inline at session start; you do not need to fetch them. The unified
-brief is the only on-demand layer in 0.4.0.
+brief is the only on-demand layer.
 
 - `get_brief` — fetch when the query is broad, abstract, or
   self-reflective and the structural layers feel too schematic for the
@@ -209,7 +209,7 @@ If they're stale relative to the user's recent corpus, suggest running
 the pipeline to re-author.
 
 **"Make Base Layer faster" / "trim what it sends"**
-0.4.0 serves all three structural layers (CORE, ANCHORS, PREDICTIONS)
+the resource serves all three structural layers (CORE, ANCHORS, PREDICTIONS)
 inline and keeps only the unified brief on-demand. Further reductions
 would require either (a) sub-layer chunking or (b) activation matching,
 both not yet implemented. Note as a future direction; don't manually
