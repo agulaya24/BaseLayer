@@ -8,12 +8,12 @@
 
 ## What it does
 
-Extracts interpretive patterns from a person's writing: how they weigh evidence, what they treat as settled, where they refuse tradeoffs. Outputs a ~7,000 token document an AI agent reads before responding.
+This extracts interpretive patterns from a person's writing: how they weigh evidence, what they treat as settled, and where they refuse tradeoffs. It produces a ~7,000 token document an AI agent reads before responding.
 
 - Reasoning is auditable. `trace_claim` walks a claim back to the facts behind it, and each fact back to the conversation it was extracted from. The source passage itself is not stored, so the second hop lands on a conversation rather than a sentence.
-- The representation is editable. The layers are markdown on your disk. Delete an axiom, rewrite one, and the next session serves your version. No retraining.
+- The representation is editable. The layers are markdown on your disk. You can delete an axiom or rewrite one, and the next session serves your version with no retraining.
 
-A model fine-tuned on someone's behaviour cannot be inspected, disputed, or corrected. A specification can. That is the trade this makes.
+A model fine-tuned on someone's behaviour cannot be inspected, disputed, or corrected. A specification can, which is the trade this project makes.
 
 > "memory is really about how the facts are used. Why leave that to a pure inference machine, you must tell it"
 >
@@ -22,7 +22,7 @@ A model fine-tuned on someone's behaviour cannot be inspected, disputed, or corr
 
 ## How
 
-Two authoring paths exist. This repository ships the first. The second is where the work is.
+Interpretive distillation is the current architecture and the pipeline to use going forward. The repository still ships the older authoring path shown below because it runs today. You will encounter it when you run `baselayer author`. It is superseded.
 
 ```
 IMPORT   ChatGPT, Claude, journals, text            -> SQLite
@@ -35,9 +35,7 @@ EMBED    MiniLM-L6-v2, runs locally                 -> ChromaDB (local vector st
          The author does not read from it.
 ```
 
-The author does not receive the whole fact base. Each layer runs a SQL selection capped at 15
-facts per category, so the specification is written from a slice chosen by sort order. That cap
-is the reason the second path exists.
+The shipped authoring path does not receive the whole fact base. Each layer runs a SQL selection capped at 15 facts per category, so the specification is written from a slice chosen by sort order. That cap is the reason distillation exists.
 
 ### Interpretive distillation, the current architecture
 
@@ -60,21 +58,13 @@ DISPOSITIONS    every fact id gets exactly one verdict: theme, singular, or
                 not_load_bearing. Omitting an id is not permitted.
 ```
 
-The singularity lane exists because a summariser is a frequency amplifier. A recurring theme
-enters every round with many tickets; a fact that appeared once has to survive elimination.
-Significance is not frequency, and a plain summariser does not merely fail to encode that, it
-inverts it.
+The singularity lane exists because a summariser is a frequency amplifier. A recurring theme enters every round with many tickets, while a fact that appeared once has to survive elimination. Significance is not frequency, and a plain summariser does not merely fail to encode that, it inverts it.
 
-Dispositions are what make "every fact was considered" checkable rather than asserted. There is
-no sampling and no stopping rule: coverage is a property of the control flow.
+Dispositions make the claim that every fact was considered checkable. There is no sampling and no stopping rule, so coverage becomes a property of the control flow.
 
-Distillation reads this repository's database directly. It needs `memory_facts` with `id`,
-`fact_text`, `predicate`, `category` and `superseded_by`, all of which `baselayer init` creates,
-so the two compose without an adapter.
+Distillation reads this repository's database directly. It needs `memory_facts` with `id`, `fact_text`, `predicate`, `category` and `superseded_by`, all of which `baselayer init` creates, so the two compose without an adapter.
 
-It lives in a separate repository and is an experimental release, not a tested pipeline. Its own
-README states what has and has not been verified about it. Nothing below in "Where this is
-headed" is speculative; it describes what distillation already does.
+It lives in a separate repository and is an experimental release, not a tested pipeline. Its own README states what has and has not been verified about it. Access is by request while it stabilises.
 
 ```
 ANCHORS      Axioms the person reasons from.
@@ -82,16 +72,15 @@ CORE         Communication patterns and context modes.
 PREDICTIONS  Behavioral triggers with detection cues and directives.
 ```
 
-The three layers are authored blind to each other. Agreement is corroboration. Contradiction is a
-finding and is kept.
+The three layers are authored blind to each other. Agreement counts as corroboration, and contradiction is treated as a finding and kept.
 
 ## What it looks like
 
-First paragraph of a real specification, authored by this pipeline from ~1,900 conversations:
+Here is the first paragraph of a real specification, authored by this pipeline from ~1,900 conversations:
 
 > He operates from an uncompromising need for logical coherence that manifests as immediate challenge to any inconsistency, in systems, arguments, or his own positions. When he encounters a gap between stated beliefs and actual behavior, he treats it as personal failure requiring accountability rather than understanding, taking extreme ownership of every outcome while maintaining clear causal links between actions and results. This isn't philosophical posturing but lived practice: in trading, he waits for multiple confirming signals before entries, implements overlapping safety mechanisms through fixed dollar loss limits and systematic stop losses, yet struggles with the gap between knowing these rules and executing them consistently during early morning sessions when his energy is highest but discipline most vulnerable.
 
-No questionnaires, no forms. [More examples](https://base-layer.ai/examples/franklin).
+There are no questionnaires or forms. [More examples](https://base-layer.ai/examples/franklin).
 
 ## What you can check
 
@@ -113,7 +102,7 @@ Citation coverage is not enforced here. The authoring prompt does not compel a c
 
 ## What we tested
 
-14 historical subjects, public-domain autobiographies. 5-judge primary panel, 7-judge sensitivity, pre-registered analysis plan. Full numbers: [base-layer.ai/research](https://base-layer.ai/research) and the [*Beyond Recall* paper](https://arxiv.org/abs/2605.28969).
+We evaluated on 14 historical subjects with public-domain autobiographies, with a 5-judge primary panel and a 7-judge sensitivity panel, using a pre-registered analysis plan. Full numbers are at [base-layer.ai/research](https://base-layer.ai/research) and in the [*Beyond Recall* paper](https://arxiv.org/abs/2605.28969).
 
 - Direction reproduces across response models and battery-generation models. Absolute magnitudes are panel-dependent.
 - Given a response, a judge can tell which specification produced it **51.6% of the time from the reasoning, and 13.4% from the decision alone** (chance is 11.1%). The reasoning carries the signal; the verdict is nearly empty.
@@ -127,7 +116,7 @@ Citation coverage is not enforced here. The authoring prompt does not compel a c
 - Not a competitor on recall benchmarks. Recall is close to saturated and this does not target it.
 - Not "an AI that knows you" in the sense the phrase usually carries: "i feel like saying knowing someone is such an overused and incorrectly used term in the industry, ai that knows you, yes that, but the way it's been built is not that"
 - Not useful on subjects the model already knows. On a well-known public figure it adds close to nothing. It helps most where the model knows the person least.
-- Not a final implementation. One implementation of an interpretive layer. Others are welcome and expected.
+- Not a final implementation. This is one implementation of an interpretive layer. Others are welcome and expected.
 
 ## What is unknown
 
@@ -139,18 +128,12 @@ Citation coverage is not enforced here. The authoring prompt does not compel a c
 
 ## Where this is headed
 
-Mandatory citation, exhaustive coverage and carried contradictions are done. They are described
-above under distillation, not here. What is actually open:
+Mandatory citation, exhaustive coverage and carried contradictions are done. They are described above, under distillation. What is actually open:
 
-- **Contradictions surviving composition.** The layers carry contested claims. The brief carries
-  none of them, so a reader of the brief sees a settled claim where the layers record a dispute.
-  This is the honest property that does not survive the last hop.
-- **Testing distillation.** It is an experimental release. The suite is 10 mutation tests over one
-  audit, and most measurements were taken on a 407-fact corpus.
-- **Faithfulness.** No member check has run. Everything below in "What is unknown" stays unknown
-  until someone reads their own specification and says where it is wrong.
-- **Governance.** The same call shape applied to decisions made on someone's behalf, where the
-  warrant cites the specification claims it rested on.
+- **Contradictions surviving composition.** The layers carry contested claims. The brief carries none of them, so a reader of the brief sees a settled claim where the layers record a dispute. This is the honest property that does not survive the last hop.
+- **Testing distillation.** It is an experimental release. The suite is 10 mutation tests over one audit, and most measurements were taken on a 407-fact corpus.
+- **Faithfulness.** No member check has run. Everything below in "What is unknown" stays unknown until someone reads their own specification and says where it is wrong.
+- **Governance.** The same call shape applied to decisions made on someone's behalf, where the warrant cites the specification claims it rested on.
 
 ## Quick start
 
@@ -164,7 +147,7 @@ baselayer run chatgpt-export.zip
 
 > Not on PyPI; the name is held by an unrelated project. Install from source, or clone and `pip install -e .`.
 
-~30 minutes and $0.50 to $2.00 for ~1,000 conversations. Treat the cost gate as a floor. Cost tracks API calls, not corpus size.
+Expect ~30 minutes and $0.50 to $2.00 for ~1,000 conversations. Treat the cost gate as a floor. Cost tracks API calls, not corpus size.
 
 Step by step:
 
@@ -176,15 +159,15 @@ baselayer extract && baselayer embed
 baselayer author && baselayer compose
 ```
 
-Re-extracting: clear both stores. `forget --all` and delete `data/vectors/`. Stale vectors make deduplication treat new facts as already-known, yielding tens of facts where a clean run yields hundreds. `init --force` is not that reset; it drops nothing.
+Re-extracting requires clearing both stores. Run `forget --all` and delete `data/vectors/`. Stale vectors make deduplication treat new facts as already-known, yielding tens of facts where a clean run yields hundreds. `init --force` is not that reset; it drops nothing.
 
 Document mode: `baselayer extract --document-mode` asserts the subject is the document. Never use it for a person. On identical text it produced 11 distinct predicates against 59 in default mode.
 
 No conversation history? `baselayer journal` runs guided prompts that bootstrap a starter specification.
 
-Windows: use `$env:ANTHROPIC_API_KEY = "sk-ant-..."` instead of `export`. Note `init` is interactive (consent, name, pronouns), so it needs a terminal and will fail if piped. First `embed` downloads the embedding model, ~90MB.
+On Windows use `$env:ANTHROPIC_API_KEY = "sk-ant-..."` instead of `export`. Note `init` is interactive (consent, name, pronouns), so it needs a terminal and will fail if piped. The first `embed` downloads the embedding model, ~90MB.
 
-Cloud: extraction, authoring, composition call the [Anthropic API](https://www.anthropic.com/policies/privacy) (zero-retention by default). Extraction can run local via Ollama.
+In cloud settings, extraction, authoring, and composition call the [Anthropic API](https://www.anthropic.com/policies/privacy) (zero-retention by default). Extraction can run local via Ollama.
 
 ## Use it
 
@@ -194,7 +177,7 @@ Register it as an MCP (Model Context Protocol) server:
 claude mcp add --transport stdio base-layer -- baselayer-mcp
 ```
 
-No re-indexing. Loads `memory://specification` always-on, plus:
+There is no re-indexing. It loads `memory://specification` as always-on, plus:
 
 | Tool | Purpose |
 |---|---|
@@ -205,19 +188,19 @@ No re-indexing. Loads `memory://specification` always-on, plus:
 | `verify_claims(claim_id, layer)` | Checks against the fact database. |
 | `get_stats()` / `get_call_log()` / `get_help(topic)` | Summary, session calls, agent reference. |
 
-Stdio, local, no network. Traces in `~/.baselayer/sessions/<pid>/log.jsonl`.
+It runs over stdio locally with no network. Traces write to `~/.baselayer/sessions/<pid>/log.jsonl`.
 
-Or paste the layers plus brief into any system prompt; you lose retrieval.
+You can also paste the layers plus brief into any system prompt. You will lose retrieval.
 
 ## Edit it
 
-The layers are markdown in `data/identity_layers/`. Open them, delete what is wrong, rewrite what is close, add what your writing never said. The MCP server reads from disk.
+The layers are markdown in `data/identity_layers/`. Open them, delete what is wrong, rewrite what is close, and add what your writing never said. The MCP server reads directly from disk.
 
-Facts do not carry their own significance. An extractor can find that you rewrote a plan three times; it cannot tell you whether that was diligence or avoidance. Editing is where that judgment enters. The artifact is text rather than weights so you can apply it.
+Facts do not carry their own significance. An extractor can find that you rewrote a plan three times, but it cannot tell you whether that was diligence or avoidance. Editing is where that judgment enters. The artifact is text rather than weights so you can apply it.
 
 ## Privacy
 
-Database, vectors, facts, and specification live on your machine. No cloud sync, no accounts, no telemetry. A representation that is opaque to the person it represents is built for someone else.
+Database, vectors, facts, and specification live on your machine. There is no cloud sync, no accounts, and no telemetry. A representation that is opaque to the person it represents is built for someone else.
 
 > "everyone should own their identity. It's architectural, not philosophical, local-first, model-agnostic, portable"
 
@@ -240,7 +223,7 @@ Pre-1.0, 451 tests.
 
 ## Reproducibility
 
-Paper version tagged `v0.2.0`, frozen copy vendored into [memory-study-repo](https://github.com/agulaya24/memory-study-repo). Old surfaces (`/api/identity/{subject}`, `memory://identity`, `--identity-only`) serve as aliases; new names are added alongside, never as replacements.
+The paper version is tagged `v0.2.0`, with a frozen copy vendored into [memory-study-repo](https://github.com/agulaya24/memory-study-repo). Old surfaces (`/api/identity/{subject}`, `memory://identity`, `--identity-only`) serve as aliases; new names are added alongside, never as replacements.
 
 ```bash
 pip install git+https://github.com/agulaya24/BaseLayer.git@v0.2.0
@@ -248,7 +231,7 @@ pip install git+https://github.com/agulaya24/BaseLayer.git@v0.2.0
 
 ## Contributing
 
-Especially evaluation, source-type adapters, alternative interpretive-layer implementations, local model support. See [CONTRIBUTING.md](CONTRIBUTING.md).
+We welcome contributions on evaluation, source-type adapters, alternative interpretive-layer implementations, and local model support. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Citation
 
