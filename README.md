@@ -58,7 +58,7 @@ DISPOSITIONS    every fact id gets exactly one verdict: theme, singular, or
                 not_load_bearing. Omitting an id is not permitted.
 ```
 
-The singularity lane exists because a summariser is a frequency amplifier. A recurring theme enters every round with many tickets, while a fact that appeared once has to survive elimination. Significance is not frequency, and a plain summariser does not merely fail to encode that, it inverts it.
+When you summarise again and again, the parts that show up many times keep getting picked, while a one-off detail is likely to be dropped, even if it matters more than the repeated parts. How often something is said is not the same as how important it is. A plain summariser gets this backwards and treats count as importance, which is why we keep a separate lane that carries one-off facts through untouched.
 
 Dispositions make the claim that every fact was considered checkable. There is no sampling and no stopping rule, so coverage becomes a property of the control flow.
 
