@@ -825,6 +825,13 @@ def import_json_files(conn, filepath, existing_ids):
 # MAIN
 # ===========================================================================
 
+# Files shorter than this are skipped. The floor exists because a file of a few words
+# yields no extractable behaviour and costs an API call to discover that. 50 is inherited and
+# has no measurement behind it; it is named here so it can be found and argued with rather
+# than sitting as a literal inside a condition.
+MIN_TEXT_FILE_CHARS = 50
+
+
 def import_text_files(conn, filepath, existing_ids):
     """Import personal notes, journals, or text files as conversations.
 
@@ -834,6 +841,7 @@ def import_text_files(conn, filepath, existing_ids):
     """
     print(f"\n=== Importing Text Files ===")
     print(f"  Path: {filepath}")
+    skipped_short = []
 
     path = Path(filepath)
     files = []
@@ -881,7 +889,12 @@ def import_text_files(conn, filepath, existing_ids):
                     print(f"  Skipping {file_path.name}: encoding error")
                     continue
 
-        if not text.strip() or len(text.strip()) < 50:
+        if not text.strip() or len(text.strip()) < MIN_TEXT_FILE_CHARS:
+            # SAY SO. This used to `continue` in silence while the encoding-error branch
+            # directly above it printed. A user pointing the importer at a directory of short
+            # notes got "0 conversations" and no reason, which is the same silent-first-run
+            # shape as import-before-init.
+            skipped_short.append((file_path.name, len(text.strip())))
             continue
 
         # Get file modification time as conversation date
@@ -911,6 +924,14 @@ def import_text_files(conn, filepath, existing_ids):
 
     conn.commit()
     print(f"  Imported: {new_count} files ({new_messages} messages)")
+    if skipped_short:
+        print(f"  Skipped {len(skipped_short)} file(s) under {MIN_TEXT_FILE_CHARS} characters:")
+        for name, n in skipped_short[:10]:
+            print(f"    {name} ({n} chars)")
+        if len(skipped_short) > 10:
+            print(f"    ... and {len(skipped_short) - 10} more")
+    if new_count == 0 and skipped_short:
+        print(f"  Nothing was imported. Every file was under {MIN_TEXT_FILE_CHARS} characters.")
     return new_count
 
 
