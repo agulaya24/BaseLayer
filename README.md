@@ -10,8 +10,6 @@
 
 Extracts interpretive patterns from a person's own writing: how they weigh evidence, what they treat as settled, where they refuse to trade one thing for another. Outputs a ~7,000 token document an AI agent reads before responding.
 
-Two properties are the point:
-
 - **Reasoning is auditable.** `trace_claim` walks a claim back to the facts behind it, and each fact back to the conversation it was extracted from. The source passage itself is not stored, so the second hop lands on a conversation rather than a sentence.
 - **The representation is editable.** The layers are markdown on your disk. Delete an axiom, rewrite one, and the next session serves your version. No retraining.
 
@@ -22,7 +20,7 @@ A model fine-tuned on someone's behaviour cannot be inspected, disputed, or corr
 ```
 IMPORT   ChatGPT, Claude, journals, text            -> SQLite
 EXTRACT  Haiku, 46 constrained predicates           -> structured facts
-EMBED    MiniLM-L6-v2, local                        -> ChromaDB
+EMBED    MiniLM-L6-v2, runs locally                 -> ChromaDB (local vector store)
 AUTHOR   Sonnet, three layers, blind to each other  -> anchors / core / predictions
 COMPOSE  Opus, three layers into one brief          -> ~3K brief (full spec ~7K)
 ```
@@ -41,7 +39,7 @@ First paragraph of a real specification, from ~1,900 conversations:
 
 > He operates from an uncompromising need for logical coherence that manifests as immediate challenge to any inconsistency, in systems, arguments, or his own positions. When he encounters a gap between stated beliefs and actual behavior, he treats it as personal failure requiring accountability rather than understanding, taking extreme ownership of every outcome while maintaining clear causal links between actions and results. This isn't philosophical posturing but lived practice: in trading, he waits for multiple confirming signals before entries, implements overlapping safety mechanisms through fixed dollar loss limits and systematic stop losses, yet struggles with the gap between knowing these rules and executing them consistently during early morning sessions when his energy is highest but discipline most vulnerable.
 
-Text alone. No questionnaires, no forms. [More examples](https://base-layer.ai/examples/franklin).
+No questionnaires, no forms. [More examples](https://base-layer.ai/examples/franklin).
 
 ## What you can check
 
@@ -51,11 +49,11 @@ Text alone. No questionnaires, no forms. [More examples](https://base-layer.ai/e
 | referential | do the ids resolve to facts the run read? | checkable against the database |
 | causal | does removing the cited fact change the claim? | sampled, never exhaustive |
 
-`baselayer verify` runs three checks against the citation graph: vector proximity (does the claim sit near its cited facts), recurrence gating (no claim rests on a one-off mention), and cross-domain span (no single-domain overfit). A fourth, NLI entailment (a local model scores whether the cited facts support the claim), is opt-in via `baselayer verify --nli` and downloads ~700MB on first use. This is a data-quality audit, not a causal-traceability guarantee. A resolving citation proves the reference is real, not that the fact drove the claim.
+`baselayer verify` runs three checks against the citation graph: vector proximity (does the claim sit near its cited facts), recurrence gating (no claim rests on a one-off mention), and cross-domain span (no single-domain overfit). A fourth, NLI entailment (a local model scores whether the cited facts support the claim), is opt-in via `baselayer verify --nli` and downloads ~700MB on first use. This is a data-quality audit. It does not guarantee causal traceability. A resolving citation proves the reference is real; it does not show the fact drove the claim.
 
 **Two things that will otherwise surprise you:**
 
-Citation coverage is not enforced here. The authoring prompt does not compel a citation per claim, so some claims carry them and some do not. Read "auditable" as "what is cited can be checked", not "everything is cited".
+Citation coverage is not enforced here. The authoring prompt does not compel a citation per claim, so some claims carry them and some do not. Read "auditable" as "what is cited can be checked". It does not mean everything is cited.
 
 `author_layers.py:307` caps each category at 15 facts before authoring. Measured, that discards about 65% of the CORE layer's corpus, cutting by sort position rather than importance. It was never a recorded decision. There is no environment override in this repo: to change it, edit the constant.
 
@@ -64,10 +62,10 @@ Citation coverage is not enforced here. The authoring prompt does not compel a c
 14 historical subjects, public-domain autobiographies. 5-judge primary panel, 7-judge sensitivity, pre-registered analysis plan. Full numbers: [base-layer.ai/research](https://base-layer.ai/research) and the [*Beyond Recall* paper](https://arxiv.org/abs/2605.28969).
 
 - Direction reproduces across response models and battery-generation models. Absolute magnitudes are panel-dependent.
-- Specifications separate arms at **51.6% via justification vs 13.4% via decision** (chance 11.1%). The reasoning carries the signal; the verdict is nearly empty.
+- Given a response, a judge can tell which specification produced it **51.6% of the time from the reasoning, and 13.4% from the decision alone** (chance is 11.1%). The reasoning carries the signal; the verdict is nearly empty.
 - It helps most where the model knows the person least. On a well-known public figure it adds close to nothing.
 
-Supportable claim: **specifications change how decisions are argued in every situation tested, and change the decision itself in some.**
+**Specifications change how decisions are argued in every situation tested, and change the decision itself in some.**
 
 ## What is unknown
 
@@ -96,7 +94,7 @@ baselayer run chatgpt-export.zip
 
 > Not on PyPI; the name is held by an unrelated project. Install from source, or clone and `pip install -e .`.
 
-~30 minutes and $0.50 to $2.00 for ~1,000 conversations. The cost gate is a floor, not a budget: cost tracks API call count, not corpus size.
+~30 minutes and $0.50 to $2.00 for ~1,000 conversations. Treat the cost gate as a floor. Cost tracks API calls, not corpus size.
 
 Step by step:
 
@@ -110,7 +108,7 @@ baselayer author && baselayer compose
 
 **Re-extracting:** clear both stores. `forget --all` **and** delete `data/vectors/`. Stale vectors make deduplication treat new facts as already-known, yielding tens of facts where a clean run yields hundreds. `init --force` is not that reset; it drops nothing.
 
-**Documents, not people:** `baselayer extract --document-mode` asserts the subject *is* the document. Never use it for a person. On identical text it produced 11 distinct predicates against 59 in default mode.
+**Document mode:** `baselayer extract --document-mode` asserts the subject *is* the document. Never use it for a person. On identical text it produced 11 distinct predicates against 59 in default mode.
 
 **No conversation history?** `baselayer journal` runs guided prompts that bootstrap a starter specification.
 
@@ -120,24 +118,26 @@ baselayer author && baselayer compose
 
 ## Use it
 
+Register it as an MCP (Model Context Protocol) server:
+
 ```bash
 claude mcp add --transport stdio base-layer -- baselayer-mcp
 ```
 
-Reads the same store the pipeline builds, no re-indexing. Loads `memory://specification` always-on, plus:
+No re-indexing. Loads `memory://specification` always-on, plus:
 
 | Tool | Purpose |
 |---|---|
 | `get_brief(reason)` | Narrative portrait (~3,000 tokens). |
 | `recall_memories(query)` | Semantic retrieval over facts and episodes. |
-| `search_facts(query, limit)` | FTS5 keyword search. |
+| `search_facts(query, limit)` | Keyword search (SQLite full-text). |
 | `trace_claim(claim_id)` | Claim (`A1`, `P3`) back to source facts. |
 | `verify_claims(claim_id, layer)` | Checks against the fact database. |
 | `get_stats()` / `get_call_log()` / `get_help(topic)` | Summary, session calls, agent reference. |
 
 Stdio, local, no network. Traces in `~/.baselayer/sessions/<pid>/log.jsonl`.
 
-Or paste the layers plus brief into any system prompt. Keeps the specification, loses retrieval.
+Or paste the layers plus brief into any system prompt; you lose retrieval.
 
 ## Edit it
 
@@ -164,7 +164,7 @@ Database, vectors, facts, and specification live on your machine. No cloud sync,
 | [`ROADMAP.md`](ROADMAP.md) | Near-term and research-horizon work |
 | [`docs/eval/`](docs/eval/) | Evaluation frameworks and results |
 
-The prompts are in the code. Nothing is hidden. Pre-1.0, 451 tests, expect rough edges.
+Pre-1.0, 451 tests.
 
 ## Reproducibility
 
