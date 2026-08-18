@@ -1587,8 +1587,15 @@ def parse_provenance_from_layer(layer_name, layer_text):
     current_claim_id = None
     current_claim_text = None
 
-    # Pattern for lexicon IDs: **A1. NAME**, **P2. NAME**, etc.
-    id_pattern = re.compile(r'\*\*([APCM]\d+)\.\s+(.+?)\*\*')
+    # Pattern for claim headers. Two shapes ship in this repo and both must parse:
+    #   bold:    **A1. NAME**                (static self-citation format)
+    #   heading: ## A1 NAME / ## A1 — NAME   (distillation render_claims, static v4)
+    # This mirrors parse_claims_from_layer's structural pattern in verify_provenance.py
+    # so the two parsers cannot disagree about what a claim header is. The old
+    # bold-only pattern parsed nothing on distillation output, which made
+    # verify_claims a silent no-op there ("no questions generated" is also what a
+    # healthy empty layer returns).
+    id_pattern = re.compile(r'(?:\*\*|#{2,4}\s+)([APCM]\d+)[^A-Za-z0-9\n]+(.+?)(?:\*\*|$)')
     # Pattern for provenance lines: provenance: [F-xxx, F-yyy]
     prov_pattern = re.compile(r'provenance:\s*\[([^\]]+)\]', re.IGNORECASE)
 
@@ -1598,6 +1605,9 @@ def parse_provenance_from_layer(layer_name, layer_text):
         if id_match:
             current_claim_id = id_match.group(1)
             current_claim_text = id_match.group(2).strip()
+            # render_claims appends "(CONTESTED)" to the header line; it is a
+            # flag on the claim, not part of the claim name.
+            current_claim_text = re.sub(r'\s*\(CONTESTED\)\s*$', '', current_claim_text)
 
         # Check for provenance line
         prov_match = prov_pattern.search(line)

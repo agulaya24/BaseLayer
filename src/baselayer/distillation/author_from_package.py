@@ -296,10 +296,26 @@ def call_structured(cl, model, prompt, schema, supplied, maxtok=16000, tries=3,
 
 
 def render_claims(d):
-    """Render the structured layer to markdown, ids inline so the artifact is auditable too."""
+    """Render the structured layer to markdown, ids inline so the artifact is auditable too.
+
+    🚨 TWO CITATION SHAPES, BOTH REQUIRED, NEITHER REPLACES THE OTHER.
+    This module emitted inline [F-xxxxxxxx] tags while the verification tooling
+    (`parse_provenance_from_layer` -> `generate_verification_questions` -> `verify_claims`)
+    only reads `provenance: [F-xxx, ...]` lines. The result was a spec with 115 resolving
+    citations on which `verify_claims` reported "No verification questions generated" --
+    byte-identical to what a healthy run with zero claims reports, so the whole check
+    family was a silent no-op on this pipeline's own output.
+      - The inline tags STAY: the citation gate in this file and compose's `supplied` set
+        (the [0-9a-f]{8} findall over the layer text) both read them, and the gate has
+        fired correctly on real runs.
+      - The `provenance:` block is ADDED per claim: it is the line every parser in the
+        repo already understands (author_layers, verify_provenance, seed_industry all
+        split the same comma list).
+    """
     L = ["# %s" % (d.get("layer") or "").upper(), "", d.get("preamble") or "", ""]
     for c in d.get("claims") or []:
-        ids = " ".join("[F-%s]" % f.lstrip("F-").strip("[]") for f in c.get("fact_ids") or [])
+        fids = [f.lstrip("F-").strip("[]") for f in c.get("fact_ids") or []]
+        ids = " ".join("[F-%s]" % f for f in fids)
         L.append("## %s %s%s" % (c["id"], c["name"], "  (CONTESTED)" if c.get("contested") else ""))
         L.append("")
         L.append(c["statement"])
@@ -309,6 +325,9 @@ def render_claims(d):
         L.append("")
         L.append("*Evidence:* %s" % ids)
         L.append("")
+        if fids:
+            L.append("provenance: [%s]" % ", ".join("F-%s" % f for f in fids))
+            L.append("")
     return chr(10).join(L)
 
 

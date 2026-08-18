@@ -132,6 +132,45 @@ def _get_layer_text(layer_name):
     return content
 
 
+# Citation short-id convention: the distillation path cites a fact by the FIRST
+# 8 HEX CHARS of its UUID (the same form the rendered [F-xxxxxxxx] tags use).
+_HEX8_RE = re.compile(r'^[0-9a-fA-F]{8}$')
+
+
+def _resolve_citation_ids(conn, fact_ids):
+    """Expand 8-hex citation prefixes to full memory_facts ids.
+
+    Two citation vocabularies ship in this repo: the static path cites full fact
+    UUIDs; the distillation path cites the first 8 hex chars. Every check in this
+    module compares ids with `=`, so an 8-hex citation against a 36-char UUID
+    resolved to nothing and each check failed as "not found" -- the same defect
+    shape the governance eval logged (an 8-hex citation compared against a
+    36-char UUID reads as 0% resolvable).
+
+    An id is expanded only when it is exactly 8 hex chars, is not itself a fact
+    id, and matches exactly one fact by prefix. Anything else passes through
+    unchanged, so a genuinely unknown id still fails the existence check loudly
+    instead of being silently dropped, and an ambiguous prefix (astronomically
+    rare, but possible at scale) is reported rather than guessed.
+    """
+    out = []
+    for fid in fact_ids:
+        if _HEX8_RE.match(fid):
+            exact = conn.execute(
+                "SELECT id FROM memory_facts WHERE id = ?", (fid,)
+            ).fetchone()
+            if exact is None:
+                rows = conn.execute(
+                    "SELECT id FROM memory_facts WHERE substr(id, 1, 8) = ?",
+                    (fid.lower(),),
+                ).fetchall()
+                if len(rows) == 1:
+                    out.append(rows[0][0])
+                    continue
+        out.append(fid)
+    return out
+
+
 # C14: Module-level cache for ChromaDB client and collection (singleton pattern)
 _chroma_client = None
 _chroma_facts_collection = None
@@ -242,6 +281,12 @@ def vector_audit(layer_name: str, top_n: int | None = None,
     if not provenance_entries:
         print(f"  No provenance citations found in {layer_name} layer")
         return []
+
+    # Distillation citations are 8-hex prefixes; the vector store and the fact
+    # table key by full UUID. Resolve before comparing, or overlap is always 0.
+    with contextlib.closing(get_db()) as conn:
+        for e in provenance_entries:
+            e["fact_ids"] = _resolve_citation_ids(conn, e["fact_ids"])
 
     # S6: Filter to specific claim if requested
     if claim_id_filter:
@@ -699,6 +744,13 @@ def generate_verification_questions(layer_name: str) -> list[dict]:
     provenance_entries = parse_provenance_from_layer(layer_name, layer_text)
     if not provenance_entries:
         return []
+
+    # Distillation citations are 8-hex prefixes of the fact UUID. The checks
+    # below compare with `=`, so resolve to full ids first; an id that resolves
+    # to nothing is kept so the existence check fails loudly on it.
+    with contextlib.closing(get_db()) as conn:
+        for entry in provenance_entries:
+            entry["fact_ids"] = _resolve_citation_ids(conn, entry["fact_ids"])
 
     questions = []
 
@@ -1403,6 +1455,12 @@ def run_nli_verification(layer_name: str,
             provenance_entries = parse_provenance_from_layer(lname, layer_text)
             if not provenance_entries:
                 continue
+
+            # 8-hex distillation citations -> full ids (same as the other two
+            # parse sites; a fix that lands on one path and not its siblings is
+            # this project's most-logged defect shape).
+            for entry in provenance_entries:
+                entry["fact_ids"] = _resolve_citation_ids(conn, entry["fact_ids"])
 
             # Filter to specific claim if requested
             if claim_id_filter:
