@@ -314,22 +314,49 @@ EMBEDDING_BATCH_SIZE = 100             # Messages per batch when embedding
 MESSAGES_COLLECTION_NAME = "messages"  # ChromaDB collection for message embeddings
 
 
-def chromadb_dist_to_similarity(dist):
-    """Convert ChromaDB distance to cosine similarity (0-1).
+def collection_space(collection):
+    """Read the distance space off a Chroma collection. Never assume it.
 
-    ChromaDB collections may use L2 distance (default) or cosine distance.
-    For L2 on normalized vectors (MiniLM): cos_sim = 1 - dist²/2.
-    For cosine distance: cos_sim = 1 - dist.
-
-    L2 distances are always >= 0. For normalized vectors, L2 <= 2.
-    When dist <= 2, we use the L2 formula. This also works acceptably
-    for cosine-distance collections since the difference is small for
-    the values we care about.
+    Chroma stores it in collection metadata as `hnsw:space`. When unset, Chroma's
+    default is l2. Collections in this project are NOT uniform: `memory_facts` is
+    created cosine (embed.py, extract_facts.py, batch_extract.py), while `messages`,
+    `turn_pairs` and `conversation_summaries` are left at the l2 default.
     """
+    md = getattr(collection, "metadata", None) or {}
+    return md.get("hnsw:space", "l2")
+
+
+def chromadb_dist_to_similarity(dist, space):
+    """Convert a Chroma distance to cosine similarity (0-1). `space` is required.
+
+    THE OLD VERSION APPLIED THE L2 FORMULA TO EVERY COLLECTION and its docstring said
+    the difference was "small for the values we care about". Measured against a real
+    cosine collection, the error is +0.46 to +0.47 across the returned range, and it
+    inverts the threshold decision: a distance of 0.5477 was reported as 0.8500 and
+    passed a 0.85 gate whose true similarity is 0.4523.
+
+    Three of five call sites queried `memory_facts`, which is cosine, so `verify`,
+    `provenance` and `trace_claim` were all reading inflated similarity. Those are the
+    surfaces the project sells as its auditability story.
+
+    `space` has no default on purpose. A default is what produced the bug: the wrong
+    formula applied silently to the collection that mattered most.
+    """
+    if space not in ("cosine", "l2", "ip"):
+        raise ValueError(
+            "unknown Chroma space %r. Read it off the collection with collection_space(); "
+            "do not guess. Guessing is what made every memory_facts similarity wrong." % (space,))
     if dist <= 0:
         return 1.0
-    # L2 formula for normalized vectors: cos_sim = 1 - L2²/2
-    sim = 1.0 - (dist ** 2) / 2.0
+    if space == "cosine":
+        # Chroma cosine distance is 1 - cos_sim.
+        sim = 1.0 - dist
+    elif space == "l2":
+        # Squared L2 on normalized vectors: cos_sim = 1 - d/2.
+        # For unnormalized L2 this is an approximation; embeddings here are normalized.
+        sim = 1.0 - (dist ** 2) / 2.0
+    else:  # ip
+        sim = dist
     return round(max(0.0, min(1.0, sim)), 4)
 
 

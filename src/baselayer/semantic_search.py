@@ -186,7 +186,7 @@ def print_results(matches: list[dict], show_full: bool = False):
         date = format_timestamp(match.get("created_at"))
         from baselayer.config import chromadb_dist_to_similarity
         distance = match.get("distance", 0)
-        similarity = chromadb_dist_to_similarity(distance) * 100
+        similarity = chromadb_dist_to_similarity(distance, "l2") * 100
 
         print(f"\n{i+1}. [{role}] {title}")
         print(f"   Date: {date} | Similarity: {similarity:.1f}%")

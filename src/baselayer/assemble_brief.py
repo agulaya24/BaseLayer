@@ -787,7 +787,7 @@ def get_theme_block(conn, user_message, embed_model, chroma_client):
     fact_distances = fact_results["distances"][0]
 
     from baselayer.config import chromadb_dist_to_similarity
-    fact_similarities = [chromadb_dist_to_similarity(d) for d in fact_distances]
+    fact_similarities = [chromadb_dist_to_similarity(d, "cosine") for d in fact_distances]
 
     # Fetch full fact data from SQLite
     placeholders = ",".join(["?"] * len(fact_ids))
@@ -1015,7 +1015,7 @@ def get_episode_block(conn, user_message, embed_model, chroma_client):
     summary_metas = summary_results["metadatas"][0] if summary_results.get("metadatas") else [{}] * len(summary_ids)
 
     from baselayer.config import chromadb_dist_to_similarity
-    similarities = [chromadb_dist_to_similarity(d) for d in summary_distances]
+    similarities = [chromadb_dist_to_similarity(d, "l2") for d in summary_distances]
 
     # Get conversation details
     scored_episodes = []

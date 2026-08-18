@@ -576,33 +576,36 @@ class TestVerifyBriefFaithfulness:
 # ============================================================
 
 class TestChromaDBDistToSimilarity:
+    """These cover the l2 space only. The space argument is now required, because the
+    old single-formula version was applying l2 maths to the cosine memory_facts
+    collection. Cosine behaviour is covered in tests/test_similarity_space.py."""
     """Test the L2 distance → cosine similarity conversion."""
 
     def test_zero_distance(self):
         from baselayer.config import chromadb_dist_to_similarity
-        assert chromadb_dist_to_similarity(0) == 1.0
+        assert chromadb_dist_to_similarity(0, "l2") == 1.0
 
     def test_typical_l2_distance(self):
         from baselayer.config import chromadb_dist_to_similarity
         # L2 = 1.0 on normalized vectors → cos_sim = 1 - 0.5 = 0.5
-        sim = chromadb_dist_to_similarity(1.0)
+        sim = chromadb_dist_to_similarity(1.0, "l2")
         assert abs(sim - 0.5) < 0.01
 
     def test_high_l2_distance(self):
         from baselayer.config import chromadb_dist_to_similarity
         # L2 = sqrt(2) → cos_sim = 1 - 1 = 0 (orthogonal)
-        sim = chromadb_dist_to_similarity(1.414)
+        sim = chromadb_dist_to_similarity(1.414, "l2")
         assert sim < 0.01
 
     def test_very_high_distance_clamps_to_zero(self):
         from baselayer.config import chromadb_dist_to_similarity
-        sim = chromadb_dist_to_similarity(2.0)
+        sim = chromadb_dist_to_similarity(2.0, "l2")
         assert sim == 0.0
 
     def test_small_l2_distance(self):
         from baselayer.config import chromadb_dist_to_similarity
         # L2 = 0.5 → cos_sim = 1 - 0.125 = 0.875
-        sim = chromadb_dist_to_similarity(0.5)
+        sim = chromadb_dist_to_similarity(0.5, "l2")
         assert abs(sim - 0.875) < 0.01
 
 

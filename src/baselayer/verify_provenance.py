@@ -333,7 +333,7 @@ def vector_audit(layer_name: str, top_n: int | None = None,
 
         # Build provenance entries for vector-linked facts
         for rank, (fid, dist) in enumerate(zip(query_results["ids"][0], distances), 1):
-            similarity = chromadb_dist_to_similarity(dist)
+            similarity = chromadb_dist_to_similarity(dist, "cosine")
             vector_provenance_entries.append({
                 "claim_id": claim_id,
                 "claim_text": claim_text,
@@ -628,7 +628,7 @@ def generate_vector_provenance(layer_name, top_n=None, min_similarity=0.0):
         fact_ids = []
         similarities = []
         for fid, dist in zip(query_results["ids"][0], query_results["distances"][0]):
-            sim = chromadb_dist_to_similarity(dist)
+            sim = chromadb_dist_to_similarity(dist, "cosine")
             if sim >= min_similarity:
                 fact_ids.append(fid)
                 similarities.append(round(sim, 4))

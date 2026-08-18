@@ -139,7 +139,7 @@ Each message or text chunk is processed through the AUDN lifecycle:
 
 Generates vector embeddings of extracted facts using MiniLM-L6-v2 (384 dimensions, runs locally). Stored in ChromaDB. Used for semantic search, verification, and provenance fallback when authored text does not contain explicit citations.
 
-**ChromaDB uses L2 distance** (not cosine). Similarity calculation: `1 - dist^2/2`.
+**Collections do not share a distance space, so read it before converting a distance.** `memory_facts` is created with `hnsw:space=cosine`, where similarity is `1 - dist`. `messages`, `turn_pairs` and `conversation_summaries` are left at Chroma's l2 default, where similarity is `1 - dist^2/2`. Use `collection_space()` and pass the result to `chromadb_dist_to_similarity()`, which requires it. Applying one formula to both was a live defect: on a cosine collection it inflated similarity by about 0.47 and passed a 0.85 gate whose true value was 0.45.
 
 **Script:** `src/baselayer/embed.py`
 
@@ -455,7 +455,7 @@ Journal input produces higher-quality behavioral facts per entry than conversati
 | Component | Technology | Purpose |
 |-----------|-----------|---------|
 | Ground truth DB | SQLite | Conversation and fact storage |
-| Vector store | ChromaDB (L2 distance) | Semantic search, verification, provenance fallback |
+| Vector store | ChromaDB (cosine for facts, l2 for messages) | Semantic search, verification, provenance fallback |
 | Embedding model | all-MiniLM-L6-v2 | 384-dim local embeddings |
 | Extraction | Haiku API (default) or Ollama | Structured fact extraction |
 | Layer generation | Sonnet API | Three-layer authoring (shipped pipeline) |
