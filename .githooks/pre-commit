@@ -39,7 +39,26 @@ if [ -n "$LARGE_FILES" ]; then
 fi
 
 # Check for identity model content in test files
-IDENTITY_IN_TESTS=$(git diff --cached --diff-filter=ACM -S "mother-in-law\|married\|wife.*support\|SAFA.*collapse" -- tests/ 2>/dev/null)
+# The pattern list lives OUTSIDE this repository, in .git/info/pii-patterns, one regex per
+# line. Enumerating the terms here published the exact categories the hook exists to catch,
+# in a public file, which defeats the point of having it.
+#
+# Also: this used `git diff -S`, which takes a FIXED STRING unless --pickaxe-regex is passed.
+# It therefore searched for the literal escaped-alternation text and matched nothing, ever,
+# across 133 commits. A hook that has never rejected anything is not evidence of clean commits.
+# --git-common-dir, not --git-dir. In a worktree the latter returns the worktree's own
+# directory, so the patterns written to the shared info/ would never be found and the hook
+# would silently pass. Found by testing the hook against a known-bad input.
+PII_PATTERNS_FILE="$(git rev-parse --git-common-dir)/info/pii-patterns"
+IDENTITY_IN_TESTS=""
+if [ -f "$PII_PATTERNS_FILE" ]; then
+  while IFS= read -r pat; do
+    [ -z "$pat" ] && continue
+    case "$pat" in \#*) continue ;; esac
+    HIT=$(git diff --cached --diff-filter=ACM --pickaxe-regex -S "$pat" -- tests/ 2>/dev/null)
+    [ -n "$HIT" ] && IDENTITY_IN_TESTS="$IDENTITY_IN_TESTS$HIT"
+  done < "$PII_PATTERNS_FILE"
+fi
 if [ -n "$IDENTITY_IN_TESTS" ]; then
     echo "BLOCKED: Personal identity content found in test files"
     BLOCKED=1

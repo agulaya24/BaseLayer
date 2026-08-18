@@ -113,7 +113,6 @@ gtm/archive/outreach/
 gtm/archive/completed/
 
 # Personal case study data
-gtm/research/BAVANI_CASE_STUDY*.md
 
 # Corpora raw data (may contain personal text)
 data/corpora/
@@ -193,7 +192,6 @@ data/kevin_roose_source/
 data/*_source/
 
 # Personal/private subject data (NEVER commit)
-bavani_memory/
 roman_memory/
 aarik*/
 memory_system_v4/
@@ -201,7 +199,6 @@ memory_system_v4/
 # Personal eval data (contains subject name references)
 docs/eval/temporal_stability_aarik/
 docs/eval/*_aarik*
-docs/eval/*_bavani*
 scripts/experiments/temporal_stability_aarik.py
 src/baselayer/experiments/temporal_stability_aarik.py
 
@@ -285,3 +282,7 @@ scripts/push_gmail_drafts.py
 scripts/update_followup_drafts.py
 scripts/collective_*.py
 scripts/extract_voice_bank.py
+
+# Per-subject ignore rules that would name an individual live in .git/info/exclude,
+# which is local and never pushed. Naming them here published the name and disclosed
+# that the material exists, which is what the rule was meant to prevent.

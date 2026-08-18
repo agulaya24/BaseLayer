@@ -70,7 +70,7 @@ Need to verify conversation date distribution first:
 ### What Changes Between 2024 and 2025/2026
 
 Known life changes (these are the stress test):
-- 2024: SAFA still active/collapsing, heavy trading, job search active
+- 2024: prior venture winding down, high trading activity, active job search
 - 2025: Base Layer project begins, shifts from job-seeker to builder
 - 2026: Base Layer public, outreach, research publication, identity as founder re-emerges
 
