@@ -17,6 +17,8 @@ A pipeline plus a serving surface. The pipeline takes text (conversations, journ
 
 The specification is not a profile, a memory store, or a fact database. It is a set of behavioral patterns extracted from the source text and compressed into a form an AI can consume as context. It composes with retrieval rather than replacing it: retrieval supplies the relevant facts for a question, the specification supplies how the specific person would interpret those facts.
 
+1. **Ingestion:** Multi-source import (ChatGPT and Claude exports, journals, plain text, directories) normalised into conversations and messages in SQLite.
+
 2. **Fact Extraction:** Structured fact extraction with 46 constrained predicates (45 behavioral plus an `unknown` fallback). Produces `{subject, predicate, object, qualifier}` triples from any text source.
 
 3. **Specification Authoring:** Facts compressed into a three-layer specification using H3 prompts (Session 99 ablation — domain-agnostic guard eliminates topic skew):
@@ -208,22 +210,21 @@ The specification is plain structured text. Pasted into Claude custom instructio
 
 Every claim in a generated specification cites the facts used to author it. Every fact cites the source passage it was extracted from. Together these form a citation graph from any sentence in the specification back to the conversation or document line it ultimately came from.
 
-`baselayer verify` runs four checks against that graph:
+`baselayer verify` runs three checks against that graph by default, and a fourth on request:
 
-| Check | What it measures |
-|---|---|
-| Total subjects on dashboard | 92+ |
-| Subjects H3-authored | 44 |
-| Thinkers pages live (base-layer.ai) | 29 (17 Wave 4/5 ready to seed) |
-| Pipeline refactor | COMPLETE (S98-S99). H3 prompts adopted. |
-| Wave 4/5 subjects seeded | 17 (ready for outreach) |
-| Anthropic targets scraped | 3 subjects |
-| Active facts (User A — primary test user, 1,892 ChatGPT conversations) | 4,610 |
-| Identity-tier facts (User A) | 2,684 |
-| Conversations imported | 1,892 (primary test user, multi-source) |
-| Messages | 40,997 |
-| Epistemic axioms (User A) | 11 |
-| Design decisions logged | 93 |
+| Check | What it measures | Default |
+|---|---|---|
+| Vector proximity | Does the claim sit near the facts it cites in embedding space | yes |
+| Recurrence gating | No claim rests on a single one-off mention | yes |
+| Cross-domain span | No claim is an overfit to one topic area | yes |
+| NLI entailment | A local DeBERTa model scores whether the cited facts support the claim | `--nli` only, downloads ~700MB |
+
+This is a data-quality audit, not a causal-traceability guarantee. A resolving citation proves
+the reference is real. It does not prove the fact drove the claim, and only ablation tests that.
+
+NOTE: this section previously carried an internal status dashboard under the heading above,
+listing subject counts, seeding progress and outreach targets, while never naming the four
+checks it promised. It was published for months in a public repository.
 | Design principles | 14 |
 | Classification accuracy | 91.2% type, 93.8% depth |
 | Brief assembly time | ~100ms |

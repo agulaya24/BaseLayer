@@ -91,7 +91,7 @@ Per the current naming canon (Phase A, 2026-05-06): the canonical artifact is th
 | D-061 | Provider-Agnostic Pipeline | Candidate | Internally optimize provider per step — user doesn't choose. Tier 3 retains user choice. |
 | D-062 | Preferences Workflow as Primary Onboarding | Candidate | Paste-into-provider preferences as free entry point and acquisition funnel |
 | D-063 | Extraction Chunking for Long Texts | Active | Auto-chunk on paragraph boundaries, dual-tier caps, 500-char overlap |
-| D-064 | Rule-Based Behavioral Classification Correction | Active | checkpoint --fix auto-corrects practices/avoids predicates |
+| D-064 | Rule-Based Behavioral Classification Correction | Active | checkpoint --fix (NOTE: not reachable through the CLI; the argument is parsed in checkpoint.py but no subparser exposes it) auto-corrects practices/avoids predicates |
 | D-065 | Website Data Auto-Generation | Active | generate_website_data.py parses layers + queries provenance DB |
 | D-066 | CORE Behavioral Specificity Restoration | Active | "Could this appear in ANY person's CORE?" test |
 | D-067 | Document Mode Extraction | Active | --document-mode reframes predicates for document corpus worldview |
@@ -2045,7 +2045,7 @@ Anchoring destroys this signal by making v2 artificially similar to v1. Blind ge
 | D-061 | Provider-agnostic pipeline — internal optimization per step, user doesn't choose (Tier 1-2) | Architecture | Candidate |
 | D-062 | Preferences workflow as primary onboarding — paste-into-provider as free entry point | Product | Candidate |
 | D-063 | Extraction chunking for long texts — auto-chunk on paragraph boundaries, dual-tier caps, 500-char overlap, per-chunk 15-fact cap | Architecture | Active |
-| D-064 | Rule-based behavioral classification correction — checkpoint --fix auto-corrects practices/avoids predicates, PREDICTIONS retrieval falls back to positional facts when behavioral < 5 | Quality | Active |
+| D-064 | Rule-based behavioral classification correction — checkpoint --fix (NOTE: not reachable through the CLI; the argument is parsed in checkpoint.py but no subparser exposes it) auto-corrects practices/avoids predicates, PREDICTIONS retrieval falls back to positional facts when behavioral < 5 | Quality | Active |
 | D-065 | Website data auto-generation — generate_website_data.py parses layers + queries provenance DB + generates TypeScript data files | Tooling | Active |
 | D-066 | CORE behavioral specificity restoration — BEHAVIORAL SPECIFICITY test ("could this appear in ANY person's CORE?"), mode detection, conditional AI usage (historical figures excluded), anti-anachronism at prompt level; multi-domain PREDICTIONS false positive warning added; composition prompt gets anti-redundancy + source-type awareness + provenance line stripping | Quality | Active |
 | D-067 | Document mode extraction — `--document-mode` flag reframes predicates for document corpus worldview (believes=assumptions, values=optimizes for, practices=methodologies, struggles_with=tensions, avoids=guards against). Automated noise stripping for genome sequences, hex, chemical notation, numeric data. | Architecture | Active |
