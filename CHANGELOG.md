@@ -6,6 +6,14 @@ All notable changes to Base Layer are documented here.
 
 ## 0.5.0 - 2026-08-18
 
+### Added (interpretive distillation ships in this repository)
+- New subpackage `baselayer.distillation`: `distill.py`, `assemble.py`, `author_from_package.py`, plus the script-only study harnesses `convergence.py` and `distill_batch.py`. Previously a separate repository, available on request; that caveat is now gone from the docs because it is no longer true.
+- New CLI subcommands `distill`, `assemble`, and `author-from-package`. All are marked EXPERIMENTAL in their help text and module docstrings. `baselayer author` is unchanged and remains the shipped default; removing it is a separate decision that has not been made.
+- Honest coverage statement, carried in code as well as docs: the suite covering distillation is 10 mutation tests over the citation audit (`tests/test_distillation_metrics_can_fail.py`); no test exercises `assemble.py`, `author_from_package.py`, `convergence.py` or `distill_batch.py`; most measurements behind the design come from a single 407-fact corpus; `distill_batch.py` and `convergence.py` do not call `validate()`, so their output is unstripped.
+- Reference run records at `data/distillation_reference/` (`distill_runs.jsonl`, `convergence_30run.json`). Named `_reference` because a run archives its own ledger next to the corpus it reads, and the shipped records must not sit where a quickstart run from a clone would append rows.
+- `pyproject.toml`: `baselayer.distillation` added to `packages`; new optional extra `semantic` (scikit-learn) for `distill --partition semantic`.
+- Detail doc at `docs/core/DISTILLATION.md`; README and `docs/core/ARCHITECTURE.md` updated to describe one pipeline that ships whole.
+
 ### Changed (BREAKING: Chroma distance conversion requires the distance space)
 - `config.chromadb_dist_to_similarity(dist, space)` now takes the collection's distance space as a required second argument, and raises `ValueError` on any value outside `cosine`, `l2`, `ip`. `config.collection_space(collection)` reads it off the collection's `hnsw:space` metadata.
 - Collections in this project are not uniform. `memory_facts` is created cosine; `messages`, `turn_pairs` and `conversation_summaries` are left at Chroma's l2 default. The previous version applied the l2 formula to all of them.

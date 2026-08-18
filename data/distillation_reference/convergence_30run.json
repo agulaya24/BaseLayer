@@ -1,0 +1,70 @@
+{
+ "model": "claude-haiku-4-5",
+ "layer": "anchors",
+ "partition": "predicate",
+ "runs_ok": 30,
+ "errors": 0,
+ "cost_usd_batch": 1.25,
+ "in": 324390,
+ "out": 434285,
+ "disposition_mean": 407.0,
+ "verbatim_exact_pct": 99.8,
+ "curve": [
+  {
+   "n_runs": 10,
+   "mean_per_run": 42.6,
+   "union": 139,
+   "invariant": 2,
+   "in_at_least_half": 31,
+   "exactly_once": 57
+  },
+  {
+   "n_runs": 20,
+   "mean_per_run": 43.9,
+   "union": 167,
+   "invariant": 2,
+   "in_at_least_half": 33,
+   "exactly_once": 44
+  },
+  {
+   "n_runs": 30,
+   "mean_per_run": 43.7,
+   "union": 186,
+   "invariant": 0,
+   "in_at_least_half": 28,
+   "exactly_once": 39
+  }
+ ],
+ "nlb_counts": [
+  107,
+  95,
+  92,
+  108,
+  87,
+  104,
+  101,
+  102,
+  95,
+  85,
+  94,
+  103,
+  96,
+  98,
+  88,
+  84,
+  80,
+  83,
+  87,
+  99,
+  103,
+  97,
+  87,
+  87,
+  99,
+  93,
+  95,
+  88,
+  94,
+  104
+ ]
+}

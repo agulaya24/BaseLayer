@@ -166,11 +166,14 @@ Interpretive Distillation replaces the monolithic authoring pass with three stag
 Why this replaced the old author step:
 - The shipped author reads a SQL selection capped at 15 facts per category (`MAX_FACTS_PER_CATEGORY`, `author_layers.py:307`). Measured, that discards about 65% of the CORE layer's corpus, and it cuts by sort position rather than importance. This cap appears in none of the recorded decisions. Distillation gives every fact a recorded verdict instead.
 
+Where it lives:
+- In this repository, as the subpackage `src/baselayer/distillation/`: `distill.py`, `assemble.py`, `author_from_package.py`, plus the script-only study harnesses `convergence.py` and `distill_batch.py`. CLI: `baselayer distill`, `baselayer assemble`, `baselayer author-from-package`. Detail doc: `docs/core/DISTILLATION.md`. Reference run records: `data/distillation_reference/`.
+
 Data access:
-- Distillation reads this project's database directly. It requires `memory_facts` with the fields `id`, `fact_text`, `predicate`, `category`, and `superseded_by`. No adapter is needed.
+- Distillation reads this project's database directly (opened read-only). It requires `memory_facts` with the fields `id`, `fact_text`, `predicate`, `category`, and `superseded_by`. No adapter is needed.
 
 Status:
-- Distillation is an experimental release in a separate repository. It is not heavily tested: its suite is 10 mutation tests over one audit and does not exercise its other modules, and most of its measurements were taken on a single 407-fact corpus. Access is by request. No URL is included here.
+- Experimental. It is not heavily tested: its suite is 10 mutation tests over the citation audit in `distill.py` (`tests/test_distillation_metrics_can_fail.py`) and does not exercise the other modules, and most of its measurements were taken on a single 407-fact corpus. `distill_batch.py` and `convergence.py` do not call `validate()`, so their output is unstripped: fabricated fact ids are not removed from it.
 
 Compatibility:
 - The 5-step pipeline remains what `baselayer author` runs today. Steps 1, 2, 3 and 5 are unchanged. Step 4 here is the shipped path and remains documented for operational continuity.
@@ -373,7 +376,7 @@ The shipped audit is a strong data-quality check, not a causal-traceability guar
 | **Opus** (API) | Compose | Compress 3 layers into specification | ~$0.05-0.15 |
 | **Pure code** | Serve | Load and serve final specification via MCP | $0 |
 
-Total cost per subject includes only the shipped 5-step pipeline. The current authoring architecture, Interpretive Distillation, runs in a separate repository and is experimental.
+Total cost per subject includes only the shipped 5-step pipeline. The current authoring architecture, Interpretive Distillation, ships in this repository as `baselayer.distillation` and is experimental; its cost scales with call count and is documented in `distill.py`'s cost notes (a large corpus is hours and tens of dollars per layer).
 
 **Total cost per subject:** ~$0.30 to $2.00 depending on corpus size. `baselayer estimate` previews exact cost before spending anything.
 
@@ -489,6 +492,12 @@ memory_system/
 |   +-- llm_provider.py                # Multi-provider LLM abstraction
 |   +-- init_database.py               # Initialize databases for new users
 |   +-- semantic_search.py             # Meaning-based search interface
+|   +-- distillation/                  # EXPERIMENTAL: interpretive distillation (successor authoring path)
+|   |   +-- distill.py                 #   every fact -> tree, four channels, per-fact disposition
+|   |   +-- assemble.py                #   trees -> stratified handoff package
+|   |   +-- author_from_package.py     #   package -> layers + brief, citations required by schema
+|   |   +-- convergence.py             #   study harness, script-only, output unstripped
+|   |   +-- distill_batch.py           #   study harness, script-only, output unstripped
 +-- data/
 |   +-- raw/                           # Source text (ChatGPT exports, etc.)
 |   +-- database/memory.db             # SQLite (conversations + facts)
