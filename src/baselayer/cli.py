@@ -50,10 +50,21 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
 
 
 
+def _consent_record(via):
+    """Explicit record of the data-processing acknowledgement, written to
+    entity_map.json. Extraction-side consumers skip underscore-prefixed keys."""
+    from datetime import datetime, timezone
+    return {
+        "acknowledged": True,
+        "via": via,
+        "at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    }
+
+
 def cmd_init(args):
     """Initialize a fresh Base Layer database."""
     import json
-    from baselayer.config import PROJECT_ROOT, DATABASE_FILE
+    from baselayer.config import PROJECT_ROOT, DATABASE_FILE, database_initialized
 
     # Create directory structure
     dirs = [
@@ -66,7 +77,16 @@ def cmd_init(args):
     for d in dirs:
         d.mkdir(parents=True, exist_ok=True)
 
-    if DATABASE_FILE.exists() and not args.force:
+    # database_initialized(), not DATABASE_FILE.exists(): sqlite3.connect() creates
+    # the file before the first query, so a failed first `import` leaves a zero-table
+    # memory.db behind. Refusing to init over that file strands the user (import
+    # cannot run, init will not run, and nothing says --force). A database with no
+    # tables holds no data, so re-initialising it is safe and is what the user meant.
+    if DATABASE_FILE.exists() and not database_initialized():
+        print(f"Found a database file with no tables at {DATABASE_FILE}")
+        print("(this is what a failed import leaves behind). Initializing it.")
+        print()
+    if database_initialized() and not getattr(args, "force", False):
         print(f"Database already exists at {DATABASE_FILE}")
         # THE THIRD SURFACE FOR THIS CLAIM, AND THE SECOND TO BE WRONG. The argparse help
         # said --force deletes data; it was corrected. This print said the same thing and was
@@ -89,46 +109,68 @@ def cmd_init(args):
     print("    change — see https://www.anthropic.com/policies/privacy).")
     print()
     print("    By continuing, you acknowledge this data processing.")
-    try:
-        consent = input("    Continue? [Y/n]: ").strip().lower()
-    except (EOFError, KeyboardInterrupt):
-        consent = "n"
-    if consent == "n":
-        print("  Setup cancelled.")
-        return
+    if getattr(args, "accept_data_processing", False):
+        # Non-interactive path. The flag is the acknowledgement: it names the
+        # disclosure it accepts, and it is recorded in entity_map.json below.
+        # A generic --yes would silently default a privacy disclosure; this does not.
+        consent_via = "--accept-data-processing flag"
+        print("    Acknowledged via --accept-data-processing.")
+    else:
+        try:
+            consent = input("    Continue? [Y/n]: ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            # No terminal to answer the prompt (CI, piped stdin). Exit non-zero:
+            # a cancelled setup that exits 0 reads as success, and every later
+            # stage then fails against the empty database for unrelated-looking
+            # reasons.
+            print()
+            print("  Setup cancelled: no interactive input available to acknowledge")
+            print("  the privacy notice. For non-interactive use, run:")
+            print("    baselayer init --accept-data-processing [--name NAME] [--pronouns PRONOUNS]")
+            sys.exit(1)
+        if consent in ("n", "no"):
+            print("  Setup cancelled.")
+            sys.exit(1)
+        consent_via = "interactive prompt"
     print()
 
     # --- User name prompt ---
-    try:
-        name_input = input("  What name should the system use for you? ").strip()
-    except (EOFError, KeyboardInterrupt):
-        name_input = ""
+    if getattr(args, "name", None):
+        name_input = args.name.strip()
+    else:
+        try:
+            name_input = input("  What name should the system use for you? ").strip()
+        except (EOFError, KeyboardInterrupt):
+            name_input = ""
     user_names = [name_input] if name_input else []
 
     # --- Pronoun prompt ---
     print()
-    print("  Pronouns for the specification layers (used in third-person descriptions):")
-    print("    1. he/him")
-    print("    2. she/her")
-    print("    3. they/them")
-    print("    4. Custom")
-    try:
-        pronoun_choice = input("  Select [1-4] (default: 3): ").strip()
-    except (EOFError, KeyboardInterrupt):
-        pronoun_choice = ""
-
-    pronoun_map = {"1": "he/him", "2": "she/her", "3": "they/them"}
-    if pronoun_choice in pronoun_map:
-        user_pronouns = pronoun_map[pronoun_choice]
-    elif pronoun_choice == "4":
-        try:
-            user_pronouns = input("  Enter custom pronouns: ").strip()
-        except (EOFError, KeyboardInterrupt):
-            user_pronouns = ""
-        if not user_pronouns:
-            user_pronouns = "they/them"
+    if getattr(args, "pronouns", None):
+        user_pronouns = args.pronouns.strip()
     else:
-        user_pronouns = "they/them"
+        print("  Pronouns for the specification layers (used in third-person descriptions):")
+        print("    1. he/him")
+        print("    2. she/her")
+        print("    3. they/them")
+        print("    4. Custom")
+        try:
+            pronoun_choice = input("  Select [1-4] (default: 3): ").strip()
+        except (EOFError, KeyboardInterrupt):
+            pronoun_choice = ""
+
+        pronoun_map = {"1": "he/him", "2": "she/her", "3": "they/them"}
+        if pronoun_choice in pronoun_map:
+            user_pronouns = pronoun_map[pronoun_choice]
+        elif pronoun_choice == "4":
+            try:
+                user_pronouns = input("  Enter custom pronouns: ").strip()
+            except (EOFError, KeyboardInterrupt):
+                user_pronouns = ""
+            if not user_pronouns:
+                user_pronouns = "they/them"
+        else:
+            user_pronouns = "they/them"
     print()
 
     # --- Write entity_map.json ---
@@ -138,10 +180,12 @@ def cmd_init(args):
             entity_map = json.load(f)
         entity_map["_user_names"] = user_names
         entity_map["_user_pronouns"] = user_pronouns
+        entity_map["_data_processing_consent"] = _consent_record(consent_via)
     else:
         entity_map = {
             "_user_names": user_names,
             "_user_pronouns": user_pronouns,
+            "_data_processing_consent": _consent_record(consent_via),
         }
     with open(entity_map_path, "w", encoding="utf-8") as f:
         json.dump(entity_map, f, indent=4)
@@ -1466,7 +1510,7 @@ def cmd_run(args):
     tiering and verification) for efficiency. Step-by-step usage runs the logical
     order directly. See docs/core/ARCHITECTURE.md.
     """
-    from baselayer.config import DATABASE_FILE
+    from baselayer.config import DATABASE_FILE, database_initialized
 
     file_path = args.file
     if not Path(file_path).exists():
@@ -1475,15 +1519,18 @@ def cmd_run(args):
 
     _check_api_key()
 
-    # Step 0: Init (if needed)
-    if not DATABASE_FILE.exists():
+    # Step 0: Init (if needed). database_initialized(), not DATABASE_FILE.exists():
+    # a failed import leaves a zero-table memory.db, and skipping init over it would
+    # crash the conversation count below with "no such table".
+    if not database_initialized():
         print(f"\n{'='*60}")
         print(f"  Initializing Base Layer")
         print(f"{'='*60}\n")
         cmd_init(args)
-        if not DATABASE_FILE.exists():
-            print("Initialization cancelled.")
-            return
+        if not database_initialized():
+            # cmd_init exits non-zero on cancellation itself; this is a backstop.
+            print("Initialization did not complete.")
+            sys.exit(1)
     else:
         print(f"\n  Database exists. Skipping init.")
 
@@ -1980,6 +2027,16 @@ def main():
                         help="Re-run initialization. NOT destructive: no tables are dropped and "
                              "no rows deleted. For a real reset use `forget --all` and delete "
                              "data/vectors/.")
+    p_init.add_argument("--accept-data-processing", action="store_true",
+                        help="Non-interactive acknowledgement of the privacy notice "
+                             "(conversation text is sent to the Anthropic API during "
+                             "extraction). Recorded in entity_map.json. Without this "
+                             "flag, init prompts and exits non-zero if it cannot.")
+    p_init.add_argument("--name", type=str, default=None,
+                        help="Name the system should use for you (skips the prompt)")
+    p_init.add_argument("--pronouns", type=str, default=None,
+                        help='Pronouns for the specification layers, e.g. "they/them" '
+                             "(skips the prompt)")
     p_init.set_defaults(func=cmd_init)
 
     # import
@@ -2200,6 +2257,11 @@ def main():
     p_run.add_argument("--limit", type=int, default=None, help=argparse.SUPPRESS)
     p_run.add_argument("--backend", default=None, help=argparse.SUPPRESS)
     p_run.add_argument("--identity-only", action="store_true", help=argparse.SUPPRESS)
+    p_run.add_argument("--accept-data-processing", action="store_true",
+                        help="Non-interactive acknowledgement of the privacy notice "
+                             "for the init step (see `baselayer init --help`)")
+    p_run.add_argument("--name", type=str, default=None, help=argparse.SUPPRESS)
+    p_run.add_argument("--pronouns", type=str, default=None, help=argparse.SUPPRESS)
     p_run.set_defaults(func=cmd_run)
 
     args = parser.parse_args()

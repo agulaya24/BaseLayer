@@ -34,7 +34,7 @@ from typing import Generator
 # to avoid corrupting pytest's capture mechanism on import.
 
 # Shared config — single source of truth (config.py)
-from baselayer.config import PROJECT_ROOT, DATABASE_FILE, get_db
+from baselayer.config import PROJECT_ROOT, DATABASE_FILE, get_db, database_initialized
 
 # Claude Code default location (Windows)
 CLAUDE_DIR = Path.home() / ".claude"
@@ -933,6 +933,15 @@ def main():
     parser.add_argument("--all", action="store_true",
                         help="Import from all available sources")
     args = parser.parse_args()
+
+    # Guard BEFORE the first connect: sqlite3.connect() creates the database file,
+    # so importing against an uninitialised root used to die on "no such table:
+    # conversations" AND leave an empty memory.db behind, which then made `init`
+    # refuse to run. Fail with the exact command to run instead.
+    if not database_initialized():
+        print("Database not initialized. Run this first:")
+        print("  baselayer init")
+        sys.exit(1)
 
     with contextlib.closing(get_db_connection()) as conn:
         if args.stats:

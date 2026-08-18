@@ -81,6 +81,33 @@ def get_db(db_path=None):
     return conn
 
 
+def database_initialized(db_path=None):
+    """True if the database file exists AND carries the core schema.
+
+    File existence alone is the wrong test: sqlite3.connect() creates an empty
+    file before the first query runs, so a failed first `import` leaves a
+    zero-table memory.db behind. Checking only the file misreads that wreckage
+    as an initialised database (import then dies on "no such table" while init
+    refuses to run). The `conversations` table is created unconditionally by
+    init_database.py, so its presence is the marker for "init has run".
+    """
+    path = Path(db_path or DATABASE_FILE)
+    if not path.exists():
+        return False
+    try:
+        # Read-only URI open: this check must never be the thing that creates the file.
+        with contextlib.closing(
+            sqlite3.connect(f"file:{path.as_posix()}?mode=ro", uri=True)
+        ) as conn:
+            row = conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='conversations'"
+            ).fetchone()
+        return row is not None
+    except sqlite3.Error:
+        # Unreadable or corrupt file: not a usable initialised database.
+        return False
+
+
 # ChromaDB persistent vector storage directory
 VECTORS_DIR = PROJECT_ROOT / "data" / "vectors"
 
