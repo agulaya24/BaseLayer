@@ -22,6 +22,8 @@ A model fine-tuned on someone's behaviour cannot be inspected, disputed, or corr
 
 ## How
 
+Two authoring paths exist. This repository ships the first. The second is where the work is.
+
 ```
 IMPORT   ChatGPT, Claude, journals, text            -> SQLite
 EXTRACT  Haiku, 46 constrained predicates           -> structured facts
@@ -29,11 +31,50 @@ AUTHOR   Sonnet, three layers, blind to each other  -> anchors / core / predicti
 COMPOSE  Opus, three layers into one brief          -> ~3K brief (full spec ~7K)
 
 EMBED    MiniLM-L6-v2, runs locally                 -> ChromaDB (local vector store)
-         side branch: powers retrieval, verification and vector provenance.
-         The author does NOT read from it.
+         side branch. Powers search, verify, and vector provenance.
+         The author does not read from it.
 ```
 
-Two caveats. The author does not receive the whole fact base: each layer runs a SQL selection capped at 15 facts per category (see the cap note below). And embedding is a side branch. It powers search, `verify`, and the provenance fallback described next. The author does not read from ChromaDB.
+The author does not receive the whole fact base. Each layer runs a SQL selection capped at 15
+facts per category, so the specification is written from a slice chosen by sort order. That cap
+is the reason the second path exists.
+
+### Interpretive distillation, the current architecture
+
+Distillation replaces AUTHOR with three steps that read every fact instead of a selection:
+
+```
+DISTILL   every fact -> a tree of leaves, four channels per chunk
+ASSEMBLE  one or more trees -> a stratified package
+AUTHOR    package -> layers, citations mandatory by schema
+```
+
+Each chunk of facts produces four things that do not compete for space:
+
+```
+THEMES          what recurs, each naming the fact ids it drew on
+SINGULARITIES   facts that appear once and would change the model of the person,
+                carried verbatim, never paraphrased, never merged
+CONTRADICTIONS  where the evidence disagrees with itself, carried, never resolved
+DISPOSITIONS    every fact id gets exactly one verdict: theme, singular, or
+                not_load_bearing. Omitting an id is not permitted.
+```
+
+The singularity lane exists because a summariser is a frequency amplifier. A recurring theme
+enters every round with many tickets; a fact that appeared once has to survive elimination.
+Significance is not frequency, and a plain summariser does not merely fail to encode that, it
+inverts it.
+
+Dispositions are what make "every fact was considered" checkable rather than asserted. There is
+no sampling and no stopping rule: coverage is a property of the control flow.
+
+Distillation reads this repository's database directly. It needs `memory_facts` with `id`,
+`fact_text`, `predicate`, `category` and `superseded_by`, all of which `baselayer init` creates,
+so the two compose without an adapter.
+
+It lives in a separate repository and is an experimental release, not a tested pipeline. Its own
+README states what has and has not been verified about it. Nothing below in "Where this is
+headed" is speculative; it describes what distillation already does.
 
 ```
 ANCHORS      Axioms the person reasons from.
@@ -41,7 +82,8 @@ CORE         Communication patterns and context modes.
 PREDICTIONS  Behavioral triggers with detection cues and directives.
 ```
 
-The three layers are authored blind to each other. Agreement is corroboration. Contradiction is a finding and is kept.
+The three layers are authored blind to each other. Agreement is corroboration. Contradiction is a
+finding and is kept.
 
 ## What it looks like
 
@@ -97,10 +139,18 @@ Citation coverage is not enforced here. The authoring prompt does not compel a c
 
 ## Where this is headed
 
-- Citation mandatory by schema, so omission is impossible rather than discouraged.
-- Exhaustive coverage instead of capped selection. Every fact receives a recorded disposition, so "everything was considered" is checkable rather than asserted.
-- Contradictions carried to the end. Measured on a sibling branch, they survive into the layers and are lost at composition. Carrying them through is the intent here.
-- Governance. The same call shape applied to decisions made on someone's behalf, where the warrant cites the specification claims it rested on.
+Mandatory citation, exhaustive coverage and carried contradictions are done. They are described
+above under distillation, not here. What is actually open:
+
+- **Contradictions surviving composition.** The layers carry contested claims. The brief carries
+  none of them, so a reader of the brief sees a settled claim where the layers record a dispute.
+  This is the honest property that does not survive the last hop.
+- **Testing distillation.** It is an experimental release. The suite is 10 mutation tests over one
+  audit, and most measurements were taken on a 407-fact corpus.
+- **Faithfulness.** No member check has run. Everything below in "What is unknown" stays unknown
+  until someone reads their own specification and says where it is wrong.
+- **Governance.** The same call shape applied to decisions made on someone's behalf, where the
+  warrant cites the specification claims it rested on.
 
 ## Quick start
 
