@@ -2230,7 +2230,15 @@ def main():
         help="Launch local web UI for drag-and-drop pipeline")
     p_ui.add_argument("--port", type=int, default=3141, help="Port (default: 3141)")
     p_ui.add_argument("--no-browser", action="store_true", help="Don't auto-open browser")
-    p_ui.set_defaults(func=lambda args: __import__('ui').main())
+    #  resolved to a top-level module that does not exist, so
+    #  died with ModuleNotFoundError on every invocation and all of ui.py was
+    # unreachable. The module is baselayer.ui. Found by running all 25 subcommands; nothing
+    # imports this lambda, so no test and no reader ever exercised it.
+    def _launch_ui(args):
+        from baselayer import ui
+        return ui.main()
+
+    p_ui.set_defaults(func=_launch_ui)
 
     # pipeline (S98 Phase 4 — unified command with gates)
     p_pipeline = subparsers.add_parser("pipeline",
