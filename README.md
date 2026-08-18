@@ -112,7 +112,7 @@ Specifications change how decisions are argued in every situation tested, and ch
 
 - Not a memory system. Memory systems retrieve facts. This supplies the lens those facts are read through. It composes above them rather than replacing them.
 - Not a competitor on recall benchmarks. Recall is close to saturated and this does not target it.
-- Not "an AI that knows you" in the sense the phrase usually carries: "i feel like saying knowing someone is such an overused and incorrectly used term in the industry, ai that knows you, yes that, but the way it's been built is not that"
+- Not "an AI that knows you" in the sense that phrase usually carries. It models how someone reasons, not facts about them.
 - Not useful on subjects the model already knows. On a well-known public figure it adds close to nothing. It helps most where the model knows the person least.
 - Not a final implementation. This is one implementation of an interpretive layer. Others are welcome and expected.
 
