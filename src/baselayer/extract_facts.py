@@ -1580,8 +1580,16 @@ def find_similar_facts(fact_text: str, collection, embed_model, top_k: int = 5) 
                 results["metadatas"][0],
                 results["distances"][0],
             ):
-                # Convert L2 distance to similarity (for normalized vectors)
-                similarity = max(0, 1 - (distance ** 2) / 2)
+                # A SIXTH CONVERSION SITE, INLINE, MISSED BY THE 8/18 SWEEP because it does
+                # not call chromadb_dist_to_similarity and so did not appear in a search for
+                # that name. It ran the L2 formula against the facts collection, which current
+                # code creates as cosine, inflating similarity by up to 0.47 and making AUDN
+                # dedup over-aggressive: new facts get treated as already-known. That is the
+                # exact failure the low-yield extraction guard exists to catch.
+                from baselayer.config import (chromadb_dist_to_similarity,
+                                               collection_space)
+                similarity = chromadb_dist_to_similarity(distance,
+                                                         collection_space(collection))
                 similar.append({
                     "fact_text": doc,
                     "fact_id": meta.get("fact_id", ""),
