@@ -4,6 +4,29 @@ All notable changes to Base Layer are documented here.
 
 ---
 
+## 0.5.0 - 2026-08-18
+
+### Changed (BREAKING: Chroma distance conversion requires the distance space)
+- `config.chromadb_dist_to_similarity(dist, space)` now takes the collection's distance space as a required second argument, and raises `ValueError` on any value outside `cosine`, `l2`, `ip`. `config.collection_space(collection)` reads it off the collection's `hnsw:space` metadata.
+- Collections in this project are not uniform. `memory_facts` is created cosine; `messages`, `turn_pairs` and `conversation_summaries` are left at Chroma's l2 default. The previous version applied the l2 formula to all of them.
+- Measured against the live cosine `memory_facts` collection, the single formula inflated similarity by about 0.46 to 0.47 across the returned range, and it inverted the threshold decision: a distance of 0.5477 was reported as 0.8500 and passed a 0.85 gate whose true similarity is 0.4523.
+- Three of five call sites query `memory_facts` and were wrong: `assemble_brief.py`, and two in `verify_provenance.py`. Those feed `verify`, `provenance` and `trace_claim`. An inflated similarity makes an unrelated fact look like supporting evidence, which is the failure this project's auditability claim cannot absorb.
+- `space` has no default, on purpose. A default is what produced the defect: the wrong formula applied silently to the collection that mattered most.
+
+### Migration notes
+- Every caller of `chromadb_dist_to_similarity` must pass a space. Read it from the collection rather than assuming: `chromadb_dist_to_similarity(d, collection_space(coll))`. There is no compatibility shim; a missing argument is a `TypeError` and a guessed one is a `ValueError`.
+- New tests at `tests/test_similarity_space.py`. Five tests in `test_unified_brief.py` changed to name the l2 behaviour they actually assert.
+
+### Changed (CLI accuracy)
+- `init --force` help no longer claims to delete data. It drops nothing; the schema is `CREATE TABLE IF NOT EXISTS` throughout. A real reset is `forget --all` plus deleting the vector store.
+- `run` is documented as the entry point. `pipeline` takes a registry `subject_id` and is the lower-level surface.
+
+### Changed (documentation)
+- README and `docs/core/ARCHITECTURE.md` rewritten around interpretive distillation as the authoring architecture.
+- Personal material and third-party names removed from the public documentation tree.
+
+---
+
 ## 0.4.0 - 2026-05-07
 
 ### Changed (resource simplification: inline structural layers)
