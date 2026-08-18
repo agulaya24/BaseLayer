@@ -30,6 +30,8 @@ Output is locally owned, provenance-traced to source text, and provider-agnostic
 
 Pipeline ablation (Session 79, 14 conditions) confirmed that 10 of the original 14 processing steps were ceremonial. The simplified pipeline scores higher (87/100 vs 83/100). The three-layer architecture is load-bearing; the intermediate processing steps (scoring, classification, tiering, contradiction detection) are not. Cut. See `docs/eval/ablation/`.
 
+Authoring supersession: Step 4 in the 5-step pipeline is superseded by Interpretive Distillation. The 5-step pipeline below remains what `baselayer author` runs today and must stay documented. Steps 1, 2, 3 and 5 are unchanged in function. Step 4 is marked as superseded, with the current authoring architecture defined in Step 4 details.
+
 ```
                     BASE LAYER PIPELINE
  +--------------------------------------------------------------+
@@ -50,8 +52,8 @@ Pipeline ablation (Session 79, 14 conditions) confirmed that 10 of the original 
  |   STEP 3: EMBED             v                                |
  |   +--------------------------------------------------------+ |
  |   | MiniLM-L6-v2 -- local vector embeddings                | |
- |   | ChromaDB storage for provenance tracing                | |
- |   | Required for fact->claim linking                       | |
+ |   | ChromaDB storage for semantic search, verify,          | |
+ |   | and provenance fallback                                | |
  |   +-------------------------+------------------------------+ |
  |                             |                                |
  |   STEP 4: AUTHOR            v                                |
@@ -61,6 +63,7 @@ Pipeline ablation (Session 79, 14 conditions) confirmed that 10 of the original 
  |   | ANCHORS | Epistemic axioms                             | |
  |   | CORE    | Operational constraints                      | |
  |   | PREDICT | Situation -> pattern -> directive            | |
+ |   | [Superseded by Interpretive Distillation]              | |
  |   +-------------------------+------------------------------+ |
  |                             |                                |
  |   STEP 5: COMPOSE           v                                |
@@ -84,7 +87,7 @@ Pipeline ablation (Session 79, 14 conditions) confirmed that 10 of the original 
 
 **One command:** `baselayer run <file>` runs steps 1 through 5 with a cost estimate gate before spending anything.
 
-**Runner note.** The 5-step sequence above is the logical order the rest of the system assumes: embeddings must exist before provenance tracing can link cited facts to authored claims. The `baselayer run` one-command path currently reorders this for efficiency. It runs Import, Extract, Author, Compose, then bundles Embed together with tiering and verification into a post-compose traceability phase. Step-by-step usage (`baselayer embed` between `extract` and `author`) runs the logical order directly. Both produce the same final artifacts. The logical order is canonical for documentation and for any external code that depends on pipeline stage semantics.
+**Runner note.** Embeddings are not read by the authoring step. Authoring reads facts from SQLite via SQL. ChromaDB serves semantic search, `verify`, and provenance fallback only. The `baselayer run` one-command path runs Import, Extract, Author, Compose, then performs Embed together with tiering and verification in a post-compose traceability phase. Step-by-step usage can still run `baselayer embed` at any time, but it is not semantically between `extract` and `author`. Both paths produce the same final artifacts. The logical stage semantics treat Embed as independent of Author for generation, and as a dependency only for verification and vector-provenance fallback.
 
 ---
 
@@ -134,7 +137,7 @@ Each message or text chunk is processed through the AUDN lifecycle:
 
 ## Step 3: Embed
 
-Generates vector embeddings of extracted facts using MiniLM-L6-v2 (384 dimensions, runs locally). Stored in ChromaDB. Required for provenance tracing: linking authored claims back to source facts via vector similarity.
+Generates vector embeddings of extracted facts using MiniLM-L6-v2 (384 dimensions, runs locally). Stored in ChromaDB. Used for semantic search, verification, and provenance fallback when authored text does not contain explicit citations.
 
 **ChromaDB uses L2 distance** (not cosine). Similarity calculation: `1 - dist^2/2`.
 
@@ -144,7 +147,33 @@ Generates vector embeddings of extracted facts using MiniLM-L6-v2 (384 dimension
 
 ## Step 4: Author
 
-Generates the three specification layers from extracted facts using Sonnet API. Each layer is authored independently from different fact subsets with different prompts.
+The shipped Step 4 generates the three specification layers from extracted facts. This shipped step remains in `baselayer author` and is documented below, but it is superseded at the architecture level by Interpretive Distillation, which is the current authoring architecture.
+
+### Current Authoring Architecture: Interpretive Distillation
+
+Interpretive Distillation replaces the monolithic authoring pass with three stages that record a verdict for every fact.
+
+- DISTILL: Every fact -> a tree of leaves, four channels per chunk.
+  - THEMES: What recurs, each theme names the fact IDs it drew on.
+  - SINGULARITIES: Facts that appear once and would change the model of the person. Carried verbatim, never paraphrased or merged.
+  - CONTRADICTIONS: Kept, never resolved.
+  - DISPOSITIONS: Every fact ID receives exactly one verdict: theme, singular, or not_load_bearing. Omitting an ID is not permitted.
+
+- ASSEMBLE: One or more trees -> a stratified package.
+
+- AUTHOR: Package -> the three layers, with citations mandatory by schema.
+
+Why this replaced the old author step:
+- The shipped author reads a SQL selection capped at 15 facts per category (`MAX_FACTS_PER_CATEGORY`, `author_layers.py:307`). Measured, that discards about 65% of the CORE layer's corpus, and it cuts by sort position rather than importance. This cap appears in none of the recorded decisions. Distillation gives every fact a recorded verdict instead.
+
+Data access:
+- Distillation reads this project's database directly. It requires `memory_facts` with the fields `id`, `fact_text`, `predicate`, `category`, and `superseded_by`. No adapter is needed.
+
+Status:
+- Distillation is an experimental release in a separate repository. It is not heavily tested: its suite is 10 mutation tests over one audit and does not exercise its other modules, and most of its measurements were taken on a single 407-fact corpus. Access is by request. No URL is included here.
+
+Compatibility:
+- The 5-step pipeline remains what `baselayer author` runs today. Steps 1, 2, 3 and 5 are unchanged. Step 4 here is the shipped path and remains documented for operational continuity.
 
 ### Three-Layer Specification Architecture (D-043)
 
@@ -299,11 +328,29 @@ CREATE TABLE memory_facts (
 
 ## Provenance
 
-Every claim in a specification layer traces to source facts. Provenance is captured at authoring time: fact IDs (`[F-xxx]`) are embedded in generation prompts, and `parse_provenance_from_layer()` extracts citations from generated markdown. The `layer_claim_provenance` table stores these links.
+Every claim in a specification layer is traceable to source facts. Provenance is captured at or after authoring time by two distinct methods. These methods must not be conflated.
 
-**Verification operates in two modes:**
-- **Vector audit:** Embeds each claim, computes similarity against all facts, reports which claims have weak support.
-- **Claim verification:** Generates binary yes/no questions per claim (existence, recurrence, cross-domain, temporal consistency), executable against the database.
+### Citation-first provenance
+
+- During authoring, fact IDs (`[F-xxx]`) are embedded in generation prompts.
+- If authored text includes citations, `parse_provenance_from_layer()` extracts them from the generated markdown.
+- The `layer_claim_provenance` table stores these links, including per-link similarity scores when computed and the recorded method when present.
+
+This is a direct link asserted by the model through explicit citation.
+
+### Synthesis layers and vector fallback
+
+- ANCHORS and PREDICTIONS synthesise rather than quote. The citation pass often returns nothing for these layers.
+- In that case, `author_layers.py:2073` falls back to `generate_vector_provenance`, which embeds the claim and links nearest facts with `link_method='vector'`.
+- This is embedding proximity, not a link the model asserted. The `trace_claim` tool prints the method per row so consumers can distinguish citation from vector fallback.
+
+ChromaDB and embeddings exist for this fallback, for `verify`, and for semantic search. The author does not read from ChromaDB.
+
+### Verification
+
+Verification operates in two modes:
+- Vector audit: Embeds each claim, computes similarity against all facts, reports which claims have weak support.
+- Claim verification: Generates binary yes or no questions per claim (existence, recurrence, cross-domain, temporal consistency), executable against the database.
 
 **Access points:**
 - `baselayer provenance`: summary plus `--claim ID` trace
@@ -321,10 +368,12 @@ The shipped audit is a strong data-quality check, not a causal-traceability guar
 | Model | Step | Role | Typical Cost |
 |-------|------|------|-------------|
 | **Haiku** (API) | Extract | Structured fact extraction, 46 constrained predicates | ~$0.10-0.50/corpus |
-| **MiniLM-L6-v2** (local) | Embed | 384-dim vectors for provenance | $0 |
+| **MiniLM-L6-v2** (local) | Embed | 384-dim vectors for search, verify, and vector provenance fallback | $0 |
 | **Sonnet** (API) | Author | Three-layer generation | ~$0.05-0.15 |
 | **Opus** (API) | Compose | Compress 3 layers into specification | ~$0.05-0.15 |
 | **Pure code** | Serve | Load and serve final specification via MCP | $0 |
+
+Total cost per subject includes only the shipped 5-step pipeline. The current authoring architecture, Interpretive Distillation, runs in a separate repository and is experimental.
 
 **Total cost per subject:** ~$0.30 to $2.00 depending on corpus size. `baselayer estimate` previews exact cost before spending anything.
 
@@ -406,10 +455,10 @@ Journal input produces higher-quality behavioral facts per entry than conversati
 | Component | Technology | Purpose |
 |-----------|-----------|---------|
 | Ground truth DB | SQLite | Conversation and fact storage |
-| Vector store | ChromaDB (L2 distance) | Provenance tracing, semantic search |
+| Vector store | ChromaDB (L2 distance) | Semantic search, verification, provenance fallback |
 | Embedding model | all-MiniLM-L6-v2 | 384-dim local embeddings |
 | Extraction | Haiku API (default) or Ollama | Structured fact extraction |
-| Layer generation | Sonnet API | Three-layer authoring |
+| Layer generation | Sonnet API | Three-layer authoring (shipped pipeline) |
 | Specification composition | Opus API | Three-layer compression |
 | Serving | MCP (Model Context Protocol) | Specification injection at runtime |
 | Language | Python 3.10+ | All scripts and pipelines |
@@ -481,11 +530,11 @@ A serving system that routes between retrieval and interpretation by question ty
 
 **Three patterns of interaction:**
 
-1. **Retrieval-only questions.** The user asks something whose answer is a stored fact. ("What time is my flight on Friday?", "What did I say about the Q3 plan last week?") A memory system supplies the answer directly. The specification adds nothing useful and should be omitted from context. Use retrieval alone.
+1. Retrieval-only questions. The user asks something whose answer is a stored fact. ("What time is my flight on Friday?", "What did I say about the Q3 plan last week?") A memory system supplies the answer directly. The specification adds nothing useful and should be omitted from context. Use retrieval alone.
 
-2. **Interpretation-heavy questions.** The user asks something whose answer requires applying a pattern to a new situation. ("Should I take the offer?", "Draft a response to this in my voice.", "Is this consistent with what I would actually do?") Retrieved facts underdetermine the answer. The specification supplies the pattern that has to transfer. Layer the specification on top of retrieval.
+2. Interpretation-heavy questions. The user asks something whose answer requires applying a pattern to a new situation. ("Should I take the offer?", "Draft a response to this in my voice.", "Is this consistent with what I would actually do?") Retrieved facts underdetermine the answer. The specification supplies the pattern that has to transfer. Layer the specification on top of retrieval.
 
-3. **Refusal-triggering questions.** The user asks something the specification supports principled refusal on. ("What is my opinion on X topic I have never engaged with?") A naive retrieval system produces hedging or confabulation. The specification produces honest abstention grounded in the person's documented patterns of engagement.
+3. Refusal-triggering questions. The user asks something the specification supports principled refusal on. ("What is my opinion on X topic I have never engaged with?") A naive retrieval system produces hedging or confabulation. The specification produces honest abstention grounded in the person's documented patterns of engagement.
 
 **Empirical note on retrieval divergence.** Given identical input, the four leading memory systems return substantially non-overlapping top-10 facts (mean pairwise overlap 8.3% across ten system pairs). Providers converge on recall scores. They do not converge on which facts matter. Interpretation is a different problem from retrieval, and providers have not yet committed to either.
 
