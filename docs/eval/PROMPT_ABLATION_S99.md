@@ -147,7 +147,7 @@ H3 = H base (C structure + D interaction failure modes + E psychological depth +
 - **All 28 Wave 1/2/3 subjects** reverted to V1. Version history cleared.
 - **15 Wave 4/5 subjects** live with flawed prompts. Version history cleared.
 - **Paul Graham** — V1, never upgraded.
-- **6 subjects** not yet seeded (Ryan Holiday, Adam Mastroianni, Spencer Greenberg, Sasha Chapin, Alexey Guzey, Tyler Cowen).
+- **6 subjects** not yet seeded.
 - **43 total subjects need H3 re-run** before V2 push.
 - H3 prompts NOT YET adopted in `author_layers.py` — pending this review.
 
