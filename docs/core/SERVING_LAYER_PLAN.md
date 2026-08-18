@@ -24,7 +24,7 @@ The metric is not "did the AI remember the right fact." The metric is "did the b
 
 Initial assumption: the serving layer needs an activation gate — decide when to use the spec and when not to. Identity-heavy questions activate it, identity-light questions don't.
 
-**Rejected.** Aarik's insight: every conversation requires personalization. When you ask what to cook, the AI needs to know your preferences. When you ask about your car, it needs to know the insecurity underneath. The spec isn't a gate — it's a lens the model sees through on every interaction.
+**Rejected.** Every conversation requires personalization. When you ask what to cook, the AI needs to know your preferences. When you ask about a purchase, it needs to know what the purchase is standing in for. The spec isn't a gate, it's a lens the model sees through on every interaction.
 
 ### Step 2: Always on, but modulated
 

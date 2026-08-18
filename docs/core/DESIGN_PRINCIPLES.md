@@ -557,11 +557,11 @@ This has design implications:
 
 **The deepest truths about a person come out unprompted, in fragments, during natural conversation, not in response to direct probing.**
 
-Identity review v2 proved this empirically. "She is the love of my life, I care about her more than anything" — the strongest relationship sentiment captured in the entire system, came out during a correction, not during probing. A pet's name surfaced the same way. Meanwhile, "describe your relationship with your spouse" was characterized as "too big an ask."
+Identity review v2 proved this empirically. The strongest relationship sentiment captured in the entire system came out during a correction rather than during probing. A pet's name surfaced the same way. Meanwhile, a direct question about the same relationship was characterized as "too big an ask."
 
 This shapes active probing design (D-020):
 - **Organic > formal.** Don't ask 10 questions at session start. Weave questions naturally into conversation.
-- **Big asks fail.** "How would you describe your relationship?" produces resistance. But corrections like "she is the love of my life" produce the richest data.
+- **Big asks fail.** A direct question about a relationship produces resistance. A correction to something the system got wrong produces the richest data.
 - **Fragments > summaries.** People reveal themselves in asides, corrections, and reactions, not in structured self-reports.
 - **Setup sessions feel like interrogations.** Even well-intentioned probing at scale feels like a survey, not a conversation.
 

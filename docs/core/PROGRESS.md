@@ -330,8 +330,8 @@ Title: **"Mem0, Zep, Letta, Supermemory: State of the Art Is Missing the Art"**
 1. Blog post + interactive data explorer on base-layer.ai
 2. Public study repo (all scripts, data, results) — NOT YET CREATED
 3. ArXiv preprint same week
-4. Email founders: Taranjeet (Mem0), Charles Packer (Letta), Dhravya Shah (Supermemory)
-5. Email investors: a16z, Felicis
+4. Email founders at comparable projects
+5. Email investors
 6. Social: X, HN, r/LocalLLaMA, LinkedIn
 7. Franklin replication to follow (known-figure test)
 
@@ -425,9 +425,8 @@ Longest session in project history (~16 hours). Serving layer designed, built, a
 ### Outreach
 - 25 agentic infrastructure targets identified with platform-specific demos
 - CRM updated with "Agentic Infrastructure" category (blue highlighted)
-- Wave 9 scraped (7/10): Cal Newport 500, Nir Eyal 389, Sahil Bloom 242
-- Wave 10 scraped (3/5): Harrison Chase 388, Joao Moura 31, Flo Crivello 25
-- Engagement: Byrne Hobart (viewed+unlocked), Derek Sivers (viewed+unlocked), Visakan Veerasamy (viewed)
+- Wave 9 scraped (7/10) and Wave 10 scraped (3/5)
+- Engagement tracked for seeded subjects
 
 ### Infrastructure
 - `baselayer export` command added — self-contained HTML of spec, opens in browser

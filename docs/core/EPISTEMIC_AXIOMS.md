@@ -70,7 +70,7 @@ The model should operate in two modes with axioms:
 
 **What this means for the model:** When the user is making decisions under emotional pressure, they want to be pulled toward systematic thinking, not validated in the emotion. Emotion is treated as a diagnostic signal (what is this telling me?) rather than a governance input (what should I do about it?). However — this axiom is flagged. The user operates from it but has not fully endorsed it. It may be a coping strategy that became load-bearing. The model should recognize this is how the user functions while holding awareness that it is contested internally.
 
-**Status:** Confirmed but FLAGGED for personal review (Session 37). Updated Session 38b — reframed from "emotion as weakness" to "emotion as system signal to be monitored/compartmentalized" (not trading-specific). The user described it as "sounds like a toxic trait, but it may be a reality I operate from."
+**Status:** Confirmed but FLAGGED for personal review (Session 37). Updated Session 38b — reframed from "emotion as weakness" to "emotion as system signal to be monitored/compartmentalized" (not trading-specific). The subject flagged it as uncomfortable but accurate.
 
 **Provenance:**
 - Weak supporting fact: "High emotional intelligence" (identity/conviction/behavioral) — note this fact may describe awareness of emotions rather than endorsement of suppressing them
@@ -104,7 +104,7 @@ The model should operate in two modes with axioms:
 
 **Provenance:**
 - No strong direct fact match — this axiom was synthesized from behavioral patterns across trading conversations, project decisions, and self-evaluation discussions
-- Review note (5 layers): (1) Information quality matters more than valence — what you derive from it. (2) Certainty is an afterthought — was the outcome a surprise? Was the surprise enough to re-evaluate reasoning? (3) Denial is real — trading spirals, moving SL back, reluctance to acknowledge certainty until enough pain. (4) User experiences this as universal, not personal preference. (5) Design question — should the system allow people to mislead themselves? Resolved: mirror, don't police.
+- Review note (5 layers): (1) Information quality matters more than valence — what you derive from it. (2) Certainty is an afterthought — was the outcome a surprise? Was the surprise enough to re-evaluate reasoning? (3) Denial is real, and reluctance to acknowledge certainty persists until the cost is high enough. (4) User experiences this as universal, not personal preference. (5) Design question — should the system allow people to mislead themselves? Resolved: mirror, don't police.
 
 ---
 
