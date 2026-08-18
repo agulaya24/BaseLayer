@@ -68,7 +68,15 @@ def cmd_init(args):
 
     if DATABASE_FILE.exists() and not args.force:
         print(f"Database already exists at {DATABASE_FILE}")
-        print("Use --force to reinitialize (WARNING: deletes all data)")
+        # THE THIRD SURFACE FOR THIS CLAIM, AND THE SECOND TO BE WRONG. The argparse help
+        # said --force deletes data; it was corrected. This print said the same thing and was
+        # missed in that pass, so the CLI contradicted its own help text for one commit.
+        # init_database.py has zero DROP and zero DELETE: --force re-runs CREATE TABLE IF NOT
+        # EXISTS and removes nothing.
+        print("Use --force to re-run initialization. It does NOT delete anything.")
+        print("For a real reset: `baselayer forget --all` AND delete data/vectors/.")
+        print("Clearing only SQLite leaves stale vectors, which make deduplication treat new")
+        print("facts as already-known: tens of facts where a clean run yields hundreds.")
         return
 
     # --- Privacy disclosure ---
