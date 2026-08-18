@@ -1983,15 +1983,37 @@ def _should_warn_stale_vectors(vector_count: int, log_count: int) -> bool:
     return vector_count > 0 and log_count == 0
 
 
-def _should_warn_low_fact_count(total_facts: int, errors: int, *, limit,
-                                conv_id, retry_errors: bool,
+# Low-yield warning threshold, in facts per 10,000 characters of extracted message
+# text. Derived 2026-08-18 from a survey of every extraction database on disk
+# (186 DBs under corpora/ and subjects/; 29 were person-mode full extractions with
+# intact message text. Document-mode corpora are excluded because this guard never
+# runs in document mode, and DBs with purged message text are excluded as
+# unmeasurable). Healthy person-mode yields span 2.33-68.9 facts/10K chars; the
+# floor is wollstonecraft_memory at 111 facts / 476,118 chars = 2.33/10K. The
+# failure this guard exists to catch, stale ChromaDB vectors making AUDN NOOP every
+# new fact (D-022), measured 12-42 facts where a clean run on the same 197,791-char
+# corpus (zitkala) yields 150+, i.e. 0.61-2.12/10K. 2.2 is the midpoint of the
+# [2.12, 2.33] gap between the worst measured collapse and the lowest measured
+# healthy corpus. The previous absolute threshold (< 50 facts) fired on any corpus
+# under ~60K chars regardless of rate: 12,000 chars correctly yielding 10 facts
+# (8.3/10K, above the 7.58/10K zitkala reference rate) was warned at as a silent
+# failure.
+LOW_YIELD_WARN_PER_10K = 2.2
+
+
+def _should_warn_low_fact_count(total_facts: int, errors: int, *, total_chars: int,
+                                limit, conv_id, retry_errors: bool,
                                 identity_only: bool, document_mode: bool) -> bool:
     """Stability guard predicate: a full extraction run (not limited, single-conversation,
-    retry, identity, or document mode) that completes with no errors but very few facts is
-    the signature of a silent failure. Pure function so it can be unit-tested."""
+    retry, identity, or document mode) that completes with no errors but yields facts at a
+    rate below every healthy full extraction measured is the signature of a silent failure.
+    total_chars is the character count of message text handed to the extractor, so the
+    threshold scales with input instead of firing on an absolute count. Pure function so
+    it can be unit-tested."""
     full_run = (limit is None and conv_id is None and not retry_errors
                 and not identity_only and not document_mode)
-    return full_run and errors == 0 and total_facts < 50
+    return (full_run and errors == 0
+            and total_facts < LOW_YIELD_WARN_PER_10K * total_chars / 10_000)
 
 
 def run_extraction(limit: int = None, conv_id: str = None,
@@ -2102,10 +2124,22 @@ def run_extraction(limit: int = None, conv_id: str = None,
         # Process
         start_time = time.time()
         total_facts = 0
+        total_chars = 0
         errors = 0
 
         for i, conv in enumerate(conversations):
             try:
+                # Input size for the low-yield guard. Must stay in sync with the
+                # filter in get_conversation_messages(), so it counts exactly the
+                # text the extractor is handed.
+                total_chars += conn.execute("""
+                    SELECT COALESCE(SUM(LENGTH(content_text)), 0)
+                    FROM messages
+                    WHERE conversation_id = ?
+                      AND role IN ('user', 'assistant')
+                      AND content_text IS NOT NULL
+                      AND LENGTH(content_text) > 5
+                """, (conv["id"],)).fetchone()[0]
                 facts_stored = process_conversation(conv, conn, fact_collection, embed_model,
                                                     corrections=corrections,
                                                     identity_only=identity_only,
@@ -2160,11 +2194,14 @@ def run_extraction(limit: int = None, conv_id: str = None,
         # causing AUDN NOOP, or input text flattened so the corpus collapsed to one
         # chunk). Only flag full runs — limited/single-conversation runs are
         # legitimately small.
-        if _should_warn_low_fact_count(total_facts, errors, limit=limit, conv_id=conv_id,
+        if _should_warn_low_fact_count(total_facts, errors, total_chars=total_chars,
+                                       limit=limit, conv_id=conv_id,
                                        retry_errors=retry_errors, identity_only=identity_only,
                                        document_mode=document_mode):
             print("\n" + "!" * 60)
-            print(f"  WARNING: only {total_facts} facts from a full extraction of {total} conversations.")
+            print(f"  WARNING: only {total_facts} facts from a full extraction of {total} conversations")
+            print(f"  ({total_chars:,} chars of message text = {total_facts / total_chars * 10000:.1f} facts/10K chars;")
+            print(f"  every healthy extraction measured yields {LOW_YIELD_WARN_PER_10K}+/10K).")
             print("  This is the signature of a silent failure. Likely causes:")
             print("    - stale ChromaDB vectors making AUDN NOOP new facts (run --reset)")
             print("    - input text flattened (lost paragraph breaks), collapsing to one chunk")
