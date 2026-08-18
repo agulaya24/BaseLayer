@@ -8,22 +8,32 @@
 
 ## What it does
 
-Extracts interpretive patterns from a person's own writing: how they weigh evidence, what they treat as settled, where they refuse to trade one thing for another. Outputs a ~7,000 token document an AI agent reads before responding.
+Extracts interpretive patterns from a person's writing: how they weigh evidence, what they treat as settled, where they refuse tradeoffs. Outputs a ~7,000 token document an AI agent reads before responding.
 
-- **Reasoning is auditable.** `trace_claim` walks a claim back to the facts behind it, and each fact back to the conversation it was extracted from. The source passage itself is not stored, so the second hop lands on a conversation rather than a sentence.
-- **The representation is editable.** The layers are markdown on your disk. Delete an axiom, rewrite one, and the next session serves your version. No retraining.
+- Reasoning is auditable. `trace_claim` walks a claim back to the facts behind it, and each fact back to the conversation it was extracted from. The source passage itself is not stored, so the second hop lands on a conversation rather than a sentence.
+- The representation is editable. The layers are markdown on your disk. Delete an axiom, rewrite one, and the next session serves your version. No retraining.
 
 A model fine-tuned on someone's behaviour cannot be inspected, disputed, or corrected. A specification can. That is the trade this makes.
+
+> "memory is really about how the facts are used. Why leave that to a pure inference machine, you must tell it"
+>
+> "we arent trying to create a copy of a person or how they think, we are trying to model an understanding of them for the language model"
+
 
 ## How
 
 ```
 IMPORT   ChatGPT, Claude, journals, text            -> SQLite
 EXTRACT  Haiku, 46 constrained predicates           -> structured facts
-EMBED    MiniLM-L6-v2, runs locally                 -> ChromaDB (local vector store)
 AUTHOR   Sonnet, three layers, blind to each other  -> anchors / core / predictions
 COMPOSE  Opus, three layers into one brief          -> ~3K brief (full spec ~7K)
+
+EMBED    MiniLM-L6-v2, runs locally                 -> ChromaDB (local vector store)
+         side branch: powers retrieval, verification and vector provenance.
+         The author does NOT read from it.
 ```
+
+Two caveats. The author does not receive the whole fact base: each layer runs a SQL selection capped at 15 facts per category (see the cap note below). And embedding is a side branch. It powers search, `verify`, and the provenance fallback described next. The author does not read from ChromaDB.
 
 ```
 ANCHORS      Axioms the person reasons from.
@@ -31,11 +41,11 @@ CORE         Communication patterns and context modes.
 PREDICTIONS  Behavioral triggers with detection cues and directives.
 ```
 
-The three layers are authored blind to each other. Agreement between them is independent corroboration. Contradiction is a finding, and it is kept rather than smoothed away.
+The three layers are authored blind to each other. Agreement is corroboration. Contradiction is a finding and is kept.
 
 ## What it looks like
 
-First paragraph of a real specification, from ~1,900 conversations:
+First paragraph of a real specification, authored by this pipeline from ~1,900 conversations:
 
 > He operates from an uncompromising need for logical coherence that manifests as immediate challenge to any inconsistency, in systems, arguments, or his own positions. When he encounters a gap between stated beliefs and actual behavior, he treats it as personal failure requiring accountability rather than understanding, taking extreme ownership of every outcome while maintaining clear causal links between actions and results. This isn't philosophical posturing but lived practice: in trading, he waits for multiple confirming signals before entries, implements overlapping safety mechanisms through fixed dollar loss limits and systematic stop losses, yet struggles with the gap between knowing these rules and executing them consistently during early morning sessions when his energy is highest but discipline most vulnerable.
 
@@ -51,7 +61,9 @@ No questionnaires, no forms. [More examples](https://base-layer.ai/examples/fran
 
 `baselayer verify` runs three checks against the citation graph: vector proximity (does the claim sit near its cited facts), recurrence gating (no claim rests on a one-off mention), and cross-domain span (no single-domain overfit). A fourth, NLI entailment (a local model scores whether the cited facts support the claim), is opt-in via `baselayer verify --nli` and downloads ~700MB on first use. This is a data-quality audit. It does not guarantee causal traceability. A resolving citation proves the reference is real; it does not show the fact drove the claim.
 
-**Two things that will otherwise surprise you:**
+Not all provenance is a citation. ANCHORS and PREDICTIONS synthesise across facts rather than quoting them, so the citation pass returns nothing for those layers and the pipeline falls back to `generate_vector_provenance`: it embeds the claim and links the nearest facts, stored with `link_method='vector'`. That link is embedding proximity, not something the model asserted. `trace_claim` prints the method for every row, so you can tell the two apart, and you should: a vector link means "this fact is nearby", not "this fact was used".
+
+Two things that will otherwise surprise you:
 
 Citation coverage is not enforced here. The authoring prompt does not compel a citation per claim, so some claims carry them and some do not. Read "auditable" as "what is cited can be checked". It does not mean everything is cited.
 
@@ -67,20 +79,28 @@ Citation coverage is not enforced here. The authoring prompt does not compel a c
 
 **Specifications change how decisions are argued in every situation tested, and change the decision itself in some.**
 
+## What it is not
+
+- Not a memory system. Memory systems retrieve facts. This supplies the lens those facts are read through. It composes above them rather than replacing them.
+- Not a competitor on recall benchmarks. Recall is close to saturated and this does not target it.
+- Not "an AI that knows you" in the sense the phrase usually carries: "i feel like saying knowing someone is such an overused and incorrectly used term in the industry, ai that knows you, yes that, but the way it's been built is not that"
+- Not useful on subjects the model already knows. On a well-known public figure it adds close to nothing. It helps most where the model knows the person least.
+- Not a final implementation. One implementation of an interpretive layer. Others are welcome and expected.
+
 ## What is unknown
 
-- **Faithfulness.** A specification that serves cheaply and scores well on a held-out battery does not entail it structurally matches a person's reasoning. This is the central open question. (Paper §5.6.)
-- **Distinguishable is not faithful.** An audit shows the specifications are tellable apart. Only asking the person settles whether one is right about them.
-- **Self-report all the way down.** The corpus is what someone wrote about themselves. No third-party observation enters, and the documents do not mark that boundary.
-- **Snapshot, not longitudinal.** No time axis. Nothing records a belief that changed.
-- **Text-only.** Tone, body language, and physical habit are invisible to the extractor.
+- Faithfulness. A specification that serves cheaply and scores well on a held-out battery does not entail it structurally matches a person's reasoning. This is the central open question. (Paper §5.6.)
+- Distinguishable is not faithful. An audit shows the specifications are tellable apart. Only asking the person settles whether one is right about them.
+- Self-report all the way down. The corpus is what someone wrote about themselves. No third-party observation enters, and the documents do not mark that boundary.
+- Snapshot, not longitudinal. No time axis. Nothing records a belief that changed.
+- Text-only. Tone, body language, and physical habit are invisible to the extractor.
 
 ## Where this is headed
 
-- **Citation mandatory by schema**, so omission is impossible rather than discouraged.
-- **Exhaustive coverage instead of capped selection.** Every fact receives a recorded disposition, so "everything was considered" is checkable rather than asserted.
-- **Contradictions carried to the end.** Measured on a sibling branch, they survive into the layers and are lost at composition. Carrying them through is the intent here.
-- **Governance.** The same call shape applied to decisions made on someone's behalf, where the warrant cites the specification claims it rested on.
+- Citation mandatory by schema, so omission is impossible rather than discouraged.
+- Exhaustive coverage instead of capped selection. Every fact receives a recorded disposition, so "everything was considered" is checkable rather than asserted.
+- Contradictions carried to the end. Measured on a sibling branch, they survive into the layers and are lost at composition. Carrying them through is the intent here.
+- Governance. The same call shape applied to decisions made on someone's behalf, where the warrant cites the specification claims it rested on.
 
 ## Quick start
 
@@ -106,15 +126,15 @@ baselayer extract && baselayer embed
 baselayer author && baselayer compose
 ```
 
-**Re-extracting:** clear both stores. `forget --all` **and** delete `data/vectors/`. Stale vectors make deduplication treat new facts as already-known, yielding tens of facts where a clean run yields hundreds. `init --force` is not that reset; it drops nothing.
+Re-extracting: clear both stores. `forget --all` and delete `data/vectors/`. Stale vectors make deduplication treat new facts as already-known, yielding tens of facts where a clean run yields hundreds. `init --force` is not that reset; it drops nothing.
 
-**Document mode:** `baselayer extract --document-mode` asserts the subject *is* the document. Never use it for a person. On identical text it produced 11 distinct predicates against 59 in default mode.
+Document mode: `baselayer extract --document-mode` asserts the subject is the document. Never use it for a person. On identical text it produced 11 distinct predicates against 59 in default mode.
 
-**No conversation history?** `baselayer journal` runs guided prompts that bootstrap a starter specification.
+No conversation history? `baselayer journal` runs guided prompts that bootstrap a starter specification.
 
-**Windows:** use `$env:ANTHROPIC_API_KEY = "sk-ant-..."` instead of `export`. Note `init` is interactive (consent, name, pronouns), so it needs a terminal and will fail if piped. First `embed` downloads the embedding model, ~90MB.
+Windows: use `$env:ANTHROPIC_API_KEY = "sk-ant-..."` instead of `export`. Note `init` is interactive (consent, name, pronouns), so it needs a terminal and will fail if piped. First `embed` downloads the embedding model, ~90MB.
 
-**Cloud:** extraction, authoring, composition call the [Anthropic API](https://www.anthropic.com/policies/privacy) (zero-retention by default). Extraction can run local via Ollama.
+Cloud: extraction, authoring, composition call the [Anthropic API](https://www.anthropic.com/policies/privacy) (zero-retention by default). Extraction can run local via Ollama.
 
 ## Use it
 
@@ -143,11 +163,13 @@ Or paste the layers plus brief into any system prompt; you lose retrieval.
 
 The layers are markdown in `data/identity_layers/`. Open them, delete what is wrong, rewrite what is close, add what your writing never said. The MCP server reads from disk.
 
-Facts do not carry their own significance. An extractor can find that you rewrote a plan three times; it cannot tell you whether that was diligence or avoidance. Editing is where that judgment enters, and it is why the artifact is text rather than weights.
+Facts do not carry their own significance. An extractor can find that you rewrote a plan three times; it cannot tell you whether that was diligence or avoidance. Editing is where that judgment enters. The artifact is text rather than weights so you can apply it.
 
 ## Privacy
 
 Database, vectors, facts, and specification live on your machine. No cloud sync, no accounts, no telemetry. A representation that is opaque to the person it represents is built for someone else.
+
+> "everyone should own their identity. It's architectural, not philosophical, local-first, model-agnostic, portable"
 
 ## Reference
 
