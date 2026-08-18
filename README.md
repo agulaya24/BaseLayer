@@ -8,12 +8,12 @@
 
 ## What it does
 
-This extracts interpretive patterns from a person's writing: how they weigh evidence, what they treat as settled, and where they refuse tradeoffs. It produces a ~7,000 token document an AI agent reads before responding.
+This pulls out patterns in how a person weighs and uses information: what they count as evidence, what they treat as settled, and where they refuse tradeoffs. That is what we mean by interpretive patterns. The output is a ~7,000 token document an AI agent reads before responding.
 
-- Reasoning is auditable. `trace_claim` walks a claim back to the facts behind it, and each fact back to the conversation it was extracted from. The source passage itself is not stored, so the second hop lands on a conversation rather than a sentence.
-- The representation is editable. The layers are markdown on your disk. You can delete an axiom or rewrite one, and the next session serves your version with no retraining.
+- Reasoning is auditable. `trace_claim` lets you follow a claim back to the facts it cites, and then follow each fact back to the conversation it was taken from. The exact source passage is not stored, so that second step lands on a conversation rather than the sentence itself.
+- The representation is editable. The layers are markdown files on your disk. If you delete or rewrite an axiom, the next session serves your version with no retraining.
 
-A model fine-tuned on someone's behaviour cannot be inspected, disputed, or corrected. A specification can, which is the trade this project makes.
+A model fine-tuned on someone's behaviour cannot be inspected, disputed, or corrected. A written specification can, which is the trade this project makes.
 
 > "memory is really about how the facts are used. Why leave that to a pure inference machine, you must tell it"
 >
@@ -21,6 +21,15 @@ A model fine-tuned on someone's behaviour cannot be inspected, disputed, or corr
 
 
 ## How
+
+Terms used below, in plain words:
+
+- predicates: fixed labels for the kind of fact an extractor writes down, such as preference, rule, goal.
+- constrained predicates: the extractor can only choose from that fixed list.
+- blind to each other: each layer is written without seeing the other layers.
+- corroboration: independent agreement; two layers saying the same thing count as support.
+- vector store: a database that holds vector embeddings of texts so you can find nearest matches by meaning.
+- provenance: the record of where a claim came from and how it was linked to sources.
 
 Interpretive distillation is the current architecture and the pipeline to use going forward. The repository still ships the older authoring path shown below because it runs today. You will encounter it when you run `baselayer author`. It is superseded.
 
@@ -38,6 +47,13 @@ EMBED    MiniLM-L6-v2, runs locally                 -> ChromaDB (local vector st
 The shipped authoring path does not receive the whole fact base. Each layer runs a SQL selection capped at 15 facts per category, so the specification is written from a slice chosen by sort order. That cap is the reason distillation exists.
 
 ### Interpretive distillation, the current architecture
+
+Before the steps, a few terms in simple language:
+
+- leaves: the small end items on a tree of reasoning, each tied to specific fact ids.
+- chunk: a manageable group of facts processed together at one time.
+- stratified package: a bundle grouped by role and priority so each kind of content travels in its own lane.
+- dispositions: a per-fact verdict that says how this fact should be handled by the author.
 
 Distillation replaces AUTHOR with three steps that read every fact instead of a selection:
 
@@ -60,7 +76,7 @@ DISPOSITIONS    every fact id gets exactly one verdict: theme, singular, or
 
 When you summarise again and again, the parts that show up many times keep getting picked, while a one-off detail is likely to be dropped, even if it matters more than the repeated parts. How often something is said is not the same as how important it is. A plain summariser gets this backwards and treats count as importance, which is why we keep a separate lane that carries one-off facts through untouched.
 
-Dispositions make the claim that every fact was considered checkable. There is no sampling and no stopping rule, so coverage becomes a property of the control flow.
+Dispositions let you check that every fact was seen and assigned a role. There is no sampling and no stopping rule, so coverage is part of the control flow rather than a side effect.
 
 Distillation reads this repository's database directly. It needs `memory_facts` with `id`, `fact_text`, `predicate`, `category` and `superseded_by`, all of which `baselayer init` creates, so the two compose without an adapter.
 
@@ -84,13 +100,24 @@ There are no questionnaires or forms. [More examples](https://base-layer.ai/exam
 
 ## What you can check
 
+Checks use three levels:
+
+- syntactic: does a claim include any citation entries at all.
+- referential: do the citation ids resolve to facts the run actually read.
+- causal: if you remove a cited fact, does the claim change.
+
 | level | question | status |
 |---|---|---|
 | syntactic | does the claim carry citations? | **not guaranteed on this branch** |
 | referential | do the ids resolve to facts the run read? | checkable against the database |
 | causal | does removing the cited fact change the claim? | sampled, never exhaustive |
 
-`baselayer verify` runs three checks against the citation graph: vector proximity (does the claim sit near its cited facts), recurrence gating (no claim rests on a one-off mention), and cross-domain span (no single-domain overfit). A fourth, NLI entailment (a local model scores whether the cited facts support the claim), is opt-in via `baselayer verify --nli` and downloads ~700MB on first use. This is a data-quality audit. It does not guarantee causal traceability. A resolving citation proves the reference is real; it does not show the fact drove the claim.
+`baselayer verify` runs three checks against the citation graph:
+- vector proximity: are the words in the claim close in embedding space to the words in its cited facts.
+- recurrence gating: the claim should not rest on a single one-off mention if the theme needs repetition.
+- cross-domain span: the support should not come only from one narrow source type or topic.
+
+A fourth, NLI entailment (a local natural language inference model scores whether the cited facts support the claim), is opt-in via `baselayer verify --nli` and downloads ~700MB on first use. This is a data-quality audit. It does not guarantee that a cited fact caused the claim to be written. A resolving citation proves the reference is real; it does not show the fact drove the claim.
 
 Not all provenance is a citation. ANCHORS and PREDICTIONS synthesise across facts rather than quoting them, so the citation pass returns nothing for those layers and the pipeline falls back to `generate_vector_provenance`: it embeds the claim and links the nearest facts, stored with `link_method='vector'`. That link is embedding proximity, not something the model asserted. `trace_claim` prints the method for every row, so you can tell the two apart, and you should: a vector link means "this fact is nearby", not "this fact was used".
 
@@ -120,7 +147,7 @@ We evaluated on 14 historical subjects with public-domain autobiographies, with 
 
 ## What is unknown
 
-- Faithfulness. A specification that serves cheaply and scores well on a held-out battery does not entail it structurally matches a person's reasoning. This is the central open question. (Paper §5.6.)
+- Faithfulness. A specification that serves cheaply and scores well on a held-out battery (a set of questions kept aside from building and tuning the system) does not entail it structurally matches a person's reasoning. This is the central open question. (Paper §5.6.)
 - Distinguishable is not faithful. An audit shows the specifications are tellable apart. Only asking the person settles whether one is right about them.
 - Self-report all the way down. The corpus is what someone wrote about themselves. No third-party observation enters, and the documents do not mark that boundary.
 - Snapshot, not longitudinal. No time axis. Nothing records a belief that changed.
@@ -196,7 +223,7 @@ You can also paste the layers plus brief into any system prompt. You will lose r
 
 The layers are markdown in `data/identity_layers/`. Open them, delete what is wrong, rewrite what is close, and add what your writing never said. The MCP server reads directly from disk.
 
-Facts do not carry their own significance. An extractor can find that you rewrote a plan three times, but it cannot tell you whether that was diligence or avoidance. Editing is where that judgment enters. The artifact is text rather than weights so you can apply it.
+Facts do not carry their own significance. An extractor can find that you rewrote a plan three times, but it cannot tell you whether that was diligence or avoidance. Editing is where that judgement enters. The artefact is text rather than weights so you can apply it.
 
 ## Privacy
 
