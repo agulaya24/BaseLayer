@@ -1962,7 +1962,16 @@ def main():
 
     # init
     p_init = subparsers.add_parser("init", help="Initialize a fresh database")
-    p_init.add_argument("--force", action="store_true", help="Reinitialize (deletes data)")
+    # THIS FLAG DOES NOT DELETE ANYTHING AND THE OLD HELP SAID IT DID.
+    # init_database.py is CREATE TABLE IF NOT EXISTS throughout: zero DROP, zero DELETE.
+    # A user reaching for --force wants a clean rebuild; what they get is a no-op, and the
+    # re-extraction behind it then reports "all already done", which reads as success. A real
+    # reset is `forget --all` PLUS deleting data/vectors/, because stale vectors make AUDN
+    # return NOOP and yield 12-42 facts where a clean run yields 200+.
+    p_init.add_argument("--force", action="store_true",
+                        help="Re-run initialization. NOT destructive: no tables are dropped and "
+                             "no rows deleted. For a real reset use `forget --all` and delete "
+                             "data/vectors/.")
     p_init.set_defaults(func=cmd_init)
 
     # import

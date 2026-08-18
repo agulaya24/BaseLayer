@@ -413,7 +413,7 @@ Journal input produces higher-quality behavioral facts per entry than conversati
 | Specification composition | Opus API | Three-layer compression |
 | Serving | MCP (Model Context Protocol) | Specification injection at runtime |
 | Language | Python 3.10+ | All scripts and pipelines |
-| Package | `pip install git+https://github.com/agulaya24/BaseLayer.git` | CLI with 27 subcommands. Not on PyPI. |
+| Package | `pip install git+https://github.com/agulaya24/BaseLayer.git` | CLI with 25 subcommands. Not on PyPI. |
 
 ---
 
@@ -424,7 +424,7 @@ memory_system/
 +-- pyproject.toml                     # Package config (install via git URL; not on PyPI)
 +-- README.md                          # Quick-start guide
 +-- src/baselayer/                     # Canonical source location
-|   +-- cli.py                         # CLI entry (baselayer command, 27 subcommands)
+|   +-- cli.py                         # CLI entry (baselayer command, 25 subcommands)
 |   +-- config.py                      # Shared constants (single source of truth)
 |   +-- import_conversations.py        # Step 1: Multi-source importer
 |   +-- extract_facts.py               # Step 2: AUDN fact extraction (Haiku/Ollama)
