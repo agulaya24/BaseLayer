@@ -2156,7 +2156,8 @@ def main():
 
     # pipeline (S98 Phase 4 — unified command with gates)
     p_pipeline = subparsers.add_parser("pipeline",
-        help="Unified pipeline: import > extract > author > compose (with all gates)")
+        help="Multi-subject pipeline for a subject already in the registry. Needs a "
+             "subject_id, not a file. For your own export, use `run`.")
     p_pipeline.add_argument("subject_id", help="Subject ID from registry (e.g., kevin_kelly)")
     p_pipeline.add_argument("--v2", action="store_true",
         help="V2 mode: snapshot, clear, re-extract with expanded corpus")
@@ -2164,9 +2165,19 @@ def main():
         help="Skip confirmation prompts")
     p_pipeline.set_defaults(func=cmd_pipeline)
 
-    # run (legacy — kept for backward compat, use 'pipeline' for new work)
+    # run: THE ENTRY POINT FOR A NEW USER, and NOT legacy.
+    #
+    # This comment previously read "legacy - kept for backward compat, use 'pipeline' for new
+    # work". That is backwards for anyone outside this project. `pipeline` takes a subject_id
+    # that must already exist in the registry; `run` takes a FILE. Someone arriving with a
+    # ChatGPT export has no registry entry, so `run` is the only command they can use, and it
+    # is what all six documents and the README correctly teach.
+    #
+    # The two are not versions of each other: `pipeline` is the internal multi-subject driver,
+    # `run` is the single-corpus entry point. Neither replaces the other.
     p_run = subparsers.add_parser("run",
-        help="One-command pipeline: import > extract > author > compose")
+        help="One-command pipeline from a FILE: import > extract > author > compose. "
+             "Start here if you have an export to process.")
     p_run.add_argument("file", help="Path to export file (.zip, .json) or text file/directory")
     p_run.add_argument("--source", choices=["chatgpt", "claude_web", "claude_code", "journal", "text"],
                         help="Source type (auto-detected if omitted)")
