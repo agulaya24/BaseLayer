@@ -94,6 +94,10 @@ class TestVectorProximity:
         if distances is None:
             distances = [0.1] * len(vector_ids)
         coll = MagicMock()
+        # A real Chroma collection always has metadata. Without this the mock returns a
+        # MagicMock from metadata.get(), which is not a distance space and is correctly
+        # rejected. memory_facts is created cosine by embed.py:76.
+        coll.metadata = {"hnsw:space": "cosine"}
         coll.query.return_value = {
             "ids": [vector_ids],
             "distances": [distances],
@@ -333,6 +337,10 @@ class TestFourCheckSmoke:
 
         # Mock the vector retrieval: A1 cited facts appear in top-N; A2 cited fact also appears.
         coll = MagicMock()
+        # A real Chroma collection always has metadata. Without this the mock returns a
+        # MagicMock from metadata.get(), which is not a distance space and is correctly
+        # rejected. memory_facts is created cosine by embed.py:76.
+        coll.metadata = {"hnsw:space": "cosine"}
         coll.query.return_value = {
             "ids": [[
                 "f-recurring-bio", "f-recurring-value", "f-recurring-style",

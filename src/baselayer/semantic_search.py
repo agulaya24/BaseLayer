@@ -184,9 +184,12 @@ def print_results(matches: list[dict], show_full: bool = False):
         title = match.get("conversation_title", "")[:40]
         role = match.get("role", "?")
         date = format_timestamp(match.get("created_at"))
-        from baselayer.config import chromadb_dist_to_similarity
+        from baselayer.config import chromadb_dist_to_similarity, collection_space
         distance = match.get("distance", 0)
-        similarity = chromadb_dist_to_similarity(distance, "l2") * 100
+        # Read the space off the collection rather than hardcoding it. The message collection
+        # is cosine when built by current code (embed.py:76) and l2 on stores created before
+        # that metadata was set, so a literal is right for one vintage and wrong for the other.
+        similarity = chromadb_dist_to_similarity(distance, collection_space(get_collection())) * 100
 
         print(f"\n{i+1}. [{role}] {title}")
         print(f"   Date: {date} | Similarity: {similarity:.1f}%")
