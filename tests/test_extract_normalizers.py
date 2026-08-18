@@ -33,20 +33,47 @@ class TestStaleVectorGuard:
 
 
 class TestLowFactCountGuard:
-    """_should_warn_low_fact_count: fires only on a clean full run that yields <50 facts."""
+    """_should_warn_low_fact_count: fires only on a clean full run whose yield RATE
+    (facts per character of extracted message text) falls below every healthy full
+    extraction measured. See LOW_YIELD_WARN_PER_10K in extract_facts.py for the
+    derivation of the threshold."""
 
     def _call(self, **kw):
         from baselayer.extract_facts import _should_warn_low_fact_count
-        base = dict(total_facts=12, errors=0, limit=None, conv_id=None,
-                    retry_errors=False, identity_only=False, document_mode=False)
+        base = dict(total_facts=12, errors=0, total_chars=197_791, limit=None,
+                    conv_id=None, retry_errors=False, identity_only=False,
+                    document_mode=False)
         base.update(kw)
         return _should_warn_low_fact_count(base.pop("total_facts"), base.pop("errors"), **base)
 
-    def test_fires_on_clean_full_run_with_few_facts(self):
-        assert self._call(total_facts=12) is True
+    # -- Direction 1: a genuine collapse still fires. The D-022 stale-vector
+    #    incident yielded 12-42 facts where a clean run on the same 197,791-char
+    #    corpus (zitkala) yields 150+; both ends of that measured band must warn. --
+
+    def test_fires_on_stale_vector_collapse_low_end(self):
+        assert self._call(total_facts=12, total_chars=197_791) is True
+
+    def test_fires_on_stale_vector_collapse_high_end(self):
+        assert self._call(total_facts=42, total_chars=197_791) is True
+
+    # -- Direction 2: the false positive is gone. Measured misfire: 12,000 chars
+    #    of dense narrative correctly produced 10 facts (8.3/10K, above the 7.58/10K
+    #    zitkala reference rate) and the old absolute <50 threshold warned anyway. --
+
+    def test_silent_on_small_corpus_at_healthy_rate(self):
+        assert self._call(total_facts=10, total_chars=12_000) is False
+
+    def test_silent_at_lowest_measured_healthy_rate(self):
+        # wollstonecraft_memory: 111 facts / 476,118 chars = 2.33/10K, the lowest
+        # yield in the 29-corpus person-mode survey. Must not warn.
+        assert self._call(total_facts=111, total_chars=476_118) is False
 
     def test_silent_when_facts_sufficient(self):
-        assert self._call(total_facts=200) is False
+        assert self._call(total_facts=200, total_chars=197_791) is False
+
+    def test_silent_on_zero_input(self):
+        # No text reached the extractor: nothing from nothing is not a collapse.
+        assert self._call(total_facts=0, total_chars=0) is False
 
     def test_silent_on_limited_run(self):
         assert self._call(limit=5) is False
