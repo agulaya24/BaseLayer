@@ -332,7 +332,14 @@ def cmd_extract(args):
     if args.identity_only:
         argv.append("--identity-only")
     if args.source:
-        argv.extend(["--source", args.source])
+        # THE TWO --source VOCABULARIES ARE NOT THE SAME. `import --source` names an INPUT
+        # FORMAT (text, chatgpt, claude_web, claude_code, journal); `extract --source` filters
+        # on the value stored in conversations.source, which for text files is 'text_file'
+        # (import_conversations.py:912). Forwarding the user's literal value made
+        # `run <file> --source text` match zero conversations, so extraction reported
+        # "No conversations to process" and the authoring gate aborted the run. The same file
+        # through bare `extract` yields facts. Found by running it, not by reading it.
+        argv.extend(["--source", _IMPORT_TO_STORED_SOURCE.get(args.source, args.source)])
     if getattr(args, 'document_mode', False):
         argv.append("--document-mode")
     sys.argv = argv
@@ -1500,6 +1507,12 @@ def cmd_pipeline(args):
     print(f"  Pipeline complete — {name}")
     print(f"  Facts: {fact_count} | Version: {new_version}")
     print(f"{'='*60}\n")
+
+
+# import --source values -> the value import actually writes to conversations.source.
+# Only text differs today; the map exists so the next divergence is a one-line change here
+# rather than another silent zero-fact run.
+_IMPORT_TO_STORED_SOURCE = {"text": "text_file"}
 
 
 def cmd_run(args):
