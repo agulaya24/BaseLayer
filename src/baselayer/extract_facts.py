@@ -2179,6 +2179,28 @@ def run_extraction(limit: int = None, conv_id: str = None,
                 """, (conv["id"], time.time()))
                 conn.commit()
 
+        # Rule-based tiering, on the sequential path too.
+        #
+        # tier_facts_by_predicate had exactly two call sites: batch_extract.run_process
+        # and _run_traceability, which runs AFTER compose. Sequential extraction never
+        # called it, so a corpus extracted with `baselayer extract` reached authoring
+        # with knowledge_tier='untiered' on every row. The author fact-floor gate counts
+        # knowledge_tier='identity' and therefore read 0 and refused to run, on a corpus
+        # whose other quality signals were fine.
+        #
+        # The gate had already been moved off `fact_type` for this exact reason in
+        # 2026-05-19 (see the docstring on _check_fact_floor): that field was unpopulated
+        # too. Switching the field did not fix it, because the new field was written on
+        # two of the three extraction paths. Tiering here closes the third.
+        #
+        # Idempotent by construction: only rows still NULL or 'untiered' are touched, so
+        # the later traceability call remains a safe no-op.
+        if total_facts:
+            _id, _ctx = tier_facts_by_predicate(conn)
+            conn.commit()
+            if _id or _ctx:
+                print(f"Tiering facts by predicate: {_id} identity, {_ctx} contextual")
+
         # Database maintenance before final stats
         print("Running database maintenance...")
         conn.execute("ANALYZE")
