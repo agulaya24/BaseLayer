@@ -59,7 +59,7 @@ baselayer stats
 baselayer checkpoint extraction
 ```
 
-`stats` shows conversation, message, and fact counts. `checkpoint extraction` flags quality issues. Add `--fix` to apply rule-based corrections.
+`stats` shows conversation, message, and fact counts. `checkpoint extraction` flags quality issues. It reports only; there is no `--fix` flag.
 
 ### 5. Embed for provenance
 
@@ -83,7 +83,7 @@ Generates anchors, core, and predictions via Sonnet. Writes to `data/identity_la
 baselayer compose
 ```
 
-Opus composes the three layers into a unified specification at `data/identity_layers/brief_v4.md`.
+Opus composes the three layers into a unified specification at `data/identity_layers/brief_v5_clean.md`.
 
 ## Shortcut: full pipeline in one command
 
@@ -97,7 +97,7 @@ baselayer run /path/to/chatgpt-export.zip
 
 | Path | Contents |
 |---|---|
-| `data/identity_layers/brief_v4.md` | Unified behavioral specification. Primary artifact. 5,000 to 10,000 tokens. |
+| `data/identity_layers/brief_v5_clean.md` | Unified behavioral specification. Primary artifact. 5,000 to 10,000 tokens. |
 | `data/identity_layers/anchors_v4.md` | Anchors layer. Decision foundations. |
 | `data/identity_layers/core_v4.md` | Core layer. Operational constraints. |
 | `data/identity_layers/predictions_v4.md` | Predictions layer. Behavioral triggers. |

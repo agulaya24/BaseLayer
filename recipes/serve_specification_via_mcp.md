@@ -5,7 +5,7 @@
 ## Prerequisites
 
 - Base Layer installed: `pip install git+https://github.com/agulaya24/BaseLayer.git` (or `pip install -e .` from a source checkout). Base Layer is not currently on PyPI; install from GitHub. The `baselayer-mcp` entrypoint must resolve in your shell.
-- An existing specification at `data/identity_layers/brief_v4.md` in the subject directory you intend to serve from. If you do not have one, run `recipes/run_pipeline_on_chatgpt_export.md` first.
+- An existing specification at `data/identity_layers/brief_v5_clean.md` in the subject directory you intend to serve from. If you do not have one, run `recipes/run_pipeline_on_chatgpt_export.md` first.
 - Claude Code or Claude Desktop installed.
 
 ## Step 1. Register the MCP server

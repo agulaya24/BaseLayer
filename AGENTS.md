@@ -85,13 +85,13 @@ baselayer embed && baselayer checkpoint classification
 baselayer author && baselayer compose
 ```
 
-Add `--fix` to apply rule-based corrections: `baselayer checkpoint classification --fix`.
+There is no `--fix` flag; `checkpoint` takes only a stage name. `scoring` and `classification` are legacy pre-S79 stages.
 
 ## Output
 
 After the pipeline:
 
-1. **Specification** at `data/identity_layers/brief_v4.md` (relative to the subject directory). Primary artifact, 5,000 to 10,000 tokens.
+1. **Specification** at `data/identity_layers/brief_v5_clean.md` (relative to the subject directory). Primary artifact, 5,000 to 10,000 tokens.
 2. **Three layers** (anchors, core, predictions). Intermediate structured artifacts.
 3. **Fact database** with tier, type, and confidence metadata.
 4. **Vector store** for semantic search over facts and source text.
@@ -175,7 +175,7 @@ BASELAYER_SKIP_FACT_FLOOR=1            # Skip minimum fact check
 pytest tests/
 ```
 
-451 tests. GitHub Actions CI on Python 3.10, 3.11, 3.12.
+490 tests. GitHub Actions CI on Python 3.10, 3.11, 3.12.
 
 ## Live examples
 
@@ -187,7 +187,7 @@ pytest tests/
 
 - **"No API key"**: `export ANTHROPIC_API_KEY=sk-ant-...`
 - **"No facts extracted"**: Check `baselayer stats`. May need more source data.
-- **"0 identity-tier facts"**: Run `baselayer checkpoint classification --fix`.
+- **"0 identity-tier facts"**: Run `baselayer checkpoint classification` to inspect. It reports; it does not repair, and there is no `--fix` flag.
 - **Thin predictions**: Normal for short texts. Anchors and core are often sufficient.
 - **Re-extraction needed**: clear facts with `baselayer forget --all`, then delete `data/vectors/` to clear ChromaDB, then re-extract.
 

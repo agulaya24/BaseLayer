@@ -153,7 +153,7 @@ The original pipeline classified facts across 5 dimensions. Ablation testing (Se
 |---|---|---|---|
 | **Tier 1: Preferences** | Structured preferences for paste-in | Free | Minimal pipeline (extract + classify). Exports formatted preferences for Claude/ChatGPT/Gemini native preference UI. Primary onboarding path. |
 | **Tier 2: Core + Anchors** | Full specification layers | $3-5 per run | Full pipeline through layer authoring. ANCHORS + CORE + PREDICTIONS as injectable markdown. Delivered via MCP or manual paste. |
-| **Tier 3: Full Pipeline** | Open-source self-hosted | Free (BYOS) | Complete pipeline, installed from the git URL, 25 CLI subcommands. User provider choice, full data control. |
+| **Tier 3: Full Pipeline** | Open-source self-hosted | Free (BYOS) | Complete pipeline, installed from the git URL, 28 CLI subcommands. User provider choice, full data control. |
 
 Each layer carries its own guarantees. Anchors are stable across sessions; the model treats them as given. Core is consulted whenever the person is being addressed; it shapes tone and approach. Predictions activate when a situation matches a trigger; they inform what to do, not what to say.
 
@@ -280,7 +280,7 @@ Pre-1.0. The pipeline runs end to end, the MCP server is live, and example speci
 |---|---|
 | License | Apache 2.0 |
 | Tests | 470 passed, 6 skipped (2026-08-18) |
-| CLI | `baselayer` with 25 subcommands, including the one-command `baselayer run` pipeline |
+| CLI | `baselayer` with 28 subcommands, including the one-command `baselayer run` pipeline |
 | MCP | 2 resources plus 8 tools over stdio (one resource a deprecated alias) |
 | Storage | SQLite + ChromaDB, all local |
 | Extraction | Haiku via Anthropic API; Ollama for fully local extraction |

@@ -372,8 +372,8 @@ Longest session in project history (~16 hours). Serving layer designed, built, a
 
 ### Serving Layer — DESIGNED AND BUILT
 - **Architecture:** Behavioral spec always-on. The diff between with-spec and without-spec IS the identity signal.
-- **Engine:** `runners/serving_engine.py` — diff cascade with Mem0-faithful baseline (Chhikara et al., 2025)
-- **TUI:** `runners/serving_tui.py` — 7-panel visual debugger with live cascade updates. Non-blocking startup, error logging, embedding cache.
+- **Engine:** `runners/serving_engine.py` (REMOVED 2026-08-18, in git history) - diff cascade with Mem0-faithful baseline (Chhikara et al., 2025)
+- **TUI:** `runners/serving_tui.py` (REMOVED 2026-08-18, in git history) - 7-panel visual debugger with live cascade updates. Non-blocking startup, error logging, embedding cache.
 - **Key finding:** 18/19 retrieval divergence between Mem0 and Base Layer on same fact store. Mem0 retrieved cake recipes and mattress preferences for "what makes base layer special?" Base Layer retrieved agency, resilience, sovereignty.
 - **Killed:** Embedding-based routing (15-35% similarity range too narrow). Replaced with model-routed activation (C6).
 - **Multi-subject support:** `--subject buffett`, `--subject <subject>`

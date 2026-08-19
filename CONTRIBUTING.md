@@ -12,7 +12,7 @@ pytest tests/ -x
 ## Running Tests
 
 ```bash
-# Full suite (451 tests, ~30 seconds, no API calls)
+# Full suite (490 tests, ~30 seconds, no API calls)
 pytest tests/
 
 # Specific module
@@ -29,14 +29,14 @@ All tests run offline. No API key needed for testing.
 ```
 src/baselayer/          # Core package
   config.py             # Constants, paths, predicates (start here)
-  cli.py                # CLI entry point (27 subcommands)
+  cli.py                # CLI entry point (28 subcommands)
   extract_facts.py      # Step 2: Fact extraction (Haiku API or Ollama)
   author_layers.py      # Step 4: Three-layer specification authoring
   agent_pipeline.py     # Step 5: Specification composition
   import_conversations.py  # Step 1: Multi-source importer
   mcp_server.py         # MCP server for Claude Desktop/Code
   verify_provenance.py  # Claim-to-source tracing
-tests/                  # 451 tests, all offline
+tests/                  # 490 tests, all offline
 docs/                   # Architecture, decisions, evaluation
 examples/               # Sample specifications for 7 subjects
 ```

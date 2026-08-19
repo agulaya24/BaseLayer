@@ -48,7 +48,7 @@ All commands invoked as `baselayer <subcommand>`. Source of truth: [`src/baselay
 | `baselayer search "<query>"` | FTS keyword search across active facts. |
 | `baselayer provenance --claim A1` | Trace a specification claim back to its supporting facts. |
 | `baselayer verify --layer all` | Run the four-check provenance audit on authored claims. |
-| `baselayer checkpoint extraction` | Quality gate after extraction. Add `--fix` to apply corrections. |
+| `baselayer checkpoint extraction` | Quality gate after extraction. Reports only; no `--fix` flag exists. |
 | `baselayer forget --all` | Soft-delete all active facts. Confirm before running. |
 | `baselayer journal` | Guided prompts when the user has no conversation history. |
 
@@ -99,7 +99,7 @@ Once registered, the next Claude Code session loads two resources and seven tool
 | `src/baselayer/config.py` | Constants, paths, database singletons. Also the extraction predicate vocabulary: `CONSTRAINED_PREDICATES`, 46 constrained predicates (45 behavioral plus an `unknown` fallback). |
 | `src/baselayer/verify_provenance.py` | The four-check verifier. |
 | `lexicon_schema.yaml` | Element-type schema for authored specification containers (axiom, prediction, context_mode, meta_section) plus provenance syntax. Not the predicate vocabulary; that lives in `config.py`. |
-| `tests/` | 451 tests. `pytest tests/` runs them all. |
+| `tests/` | 490 tests. `pytest tests/` runs them all. |
 | `docs/core/` | Architecture, decisions, design principles. Read on demand, not at session start. |
 | `docs/internal/` | Internal plans (refactor plans, agent-facing reviews, runbooks). Exists only in the private working copy; not tracked in this repo. |
 | `examples/` | Live example specifications (Franklin, Buffett, Douglass, Roosevelt, Wollstonecraft, Marks, patents). |

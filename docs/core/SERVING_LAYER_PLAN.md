@@ -1,4 +1,4 @@
-> **STATUS: SUPERSEDED (2026-05-07).** Captures the Session 102 (2026-04-07) thesis ("not recall, influence") and the diff-cascade evaluation protocol. Was not formally deployed. The diff thesis is load-bearing and continues as a live always-on daemon (the dogfood logger). The activation-matching architecture sketched here was killed in Step 5 (embedding routing failed) and made obsolete by v0.4.0 inlining. `runners/serving_layer_v2.py` (on-demand CLI) and `runners/serving_tui.py` remain working and reusable for ad-hoc inspection. Safe to archive.
+> **STATUS: SUPERSEDED (2026-05-07).** Captures the Session 102 (2026-04-07) thesis ("not recall, influence") and the diff-cascade evaluation protocol. Was not formally deployed. The diff thesis is load-bearing and continues as a live always-on daemon (the dogfood logger). The activation-matching architecture sketched here was killed in Step 5 (embedding routing failed) and made obsolete by v0.4.0 inlining. The `runners/` tree was DELETED on 2026-08-18: nothing in `src/`, `tests/` or `pyproject.toml` imported it, and the table below listed three files as WORKING of which two did not exist. Recover from git history if ever needed.
 
 # Serving Layer Plan — The Interpretive Layer Above Memory
 
@@ -181,9 +181,9 @@ Five steps, each adding one variable and measuring the delta:
 
 | Component | Status | File |
 |---|---|---|
-| Serving layer v2 (CLI) | WORKING | `runners/serving_layer_v2.py` |
-| Serving TUI (visual) | WORKING | `runners/serving_tui.py` |
-| Routing experiment (embedding) | COMPLETE | `runners/routing_experiment.py` |
+| Serving layer v2 (CLI) | REMOVED 2026-08-18, and the file it named never existed | - |
+| Serving TUI (visual) | REMOVED 2026-08-18 (in git history) | - |
+| Routing experiment (embedding) | REMOVED 2026-08-18, and the file it named never existed | - |
 | Mem0 comparison | WORKING | Integrated into serving_layer_v2.py step 5 |
 | Daemon (diff accumulation) | NOT STARTED | — |
 | Spec health report | NOT STARTED | — |

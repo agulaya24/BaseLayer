@@ -1,6 +1,13 @@
-# Example Identity Layers & Briefs
+# Example specifications
 
-Each directory contains the pipeline output for a public subject:
+Each directory contains the pipeline output for a public subject.
+
+**Read `zitkala_sa/` first if you care about provenance.** It is the only example built on the
+current pipeline and the only one whose claims carry fact ids you can check. The other seven were
+generated on 2026-03-09, before citations were enforced, and contain **zero fact ids**. They show
+what the writing looks like; they cannot be used to verify the auditability claim.
+
+The older seven use `*_v4.md` filenames:
 
 ```
 anchors_v4.md      — ANCHORS layer (core beliefs, epistemic axioms)
@@ -20,6 +27,12 @@ brief_v4.md        — Unified brief (compressed from all three layers)
 | `patents/` | 30 US Patent filings across 10 domains | 500K | 670 |
 | `buffett/` | Berkshire Hathaway Shareholder Letters (48) | 350K | 602 |
 | `marks/` | Oaktree Capital Investment Memos (74) | 600K | 784 |
+
+Built on the current pipeline, with citations:
+
+| Directory | Source | Facts | Cited fact ids | Resolve |
+|---|---|---|---|---|
+| `zitkala_sa/` | American Indian Stories (1921), public domain | 407 | 407 | 406 (one compose fabrication, kept and documented) |
 
 ## How to read these
 

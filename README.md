@@ -175,7 +175,7 @@ Docs:
 - ROADMAP.md
 - docs/eval: evaluation frameworks and results
 
-Pre-1.0, 451 tests.
+Pre-1.0, 490 tests.
 
 ## Reproducibility
 

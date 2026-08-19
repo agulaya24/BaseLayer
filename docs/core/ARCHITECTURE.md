@@ -242,7 +242,7 @@ Compresses the three authored layers into a single specification (5,000 to 10,00
 
 **Script:** `src/baselayer/agent_pipeline.py`
 
-**Output:** `data/identity_layers/brief_v4.md` is the specification file. This is the artifact that gets served. The filename uses the legacy `brief_v4.md` name; the artifact itself is the specification.
+**Output:** `data/identity_layers/brief_v5_clean.md` is the specification file. This is the artifact that gets served. The filename uses the legacy `brief_v4.md` name; the artifact itself is the specification.
 
 ---
 
@@ -270,7 +270,7 @@ The specification is served via Model Context Protocol (MCP) as an always-on spe
 User message arrives
     |
     v
-MCP server loads specification from brief_v4.md (~0ms, file read)
+MCP server loads specification from brief_v5_clean.md (~0ms, file read)
     |
     v
 Claude API receives: system prompt with specification + user message
@@ -380,7 +380,7 @@ Total cost per subject includes only the shipped 5-step pipeline. The current au
 
 **Total cost per subject:** ~$0.30 to $2.00 depending on corpus size. `baselayer estimate` previews exact cost before spending anything.
 
-**Local extraction option:** Set `BASELAYER_EXTRACTION_BACKEND=ollama` to run extraction through a local model (Mistral 7B tested best for extraction quality). Authoring and composition still require Claude API.
+**Local extraction option:** Set `BASELAYER_EXTRACTION_BACKEND=ollama` to run extraction through a local model (`config.py` sets `LLM_MODEL = "qwen2.5:14b"`; an earlier note here named Mistral 7B and did not match the code). Authoring and composition still require Claude API.
 
 ---
 
@@ -465,7 +465,7 @@ Journal input produces higher-quality behavioral facts per entry than conversati
 | Specification composition | Opus API | Three-layer compression |
 | Serving | MCP (Model Context Protocol) | Specification injection at runtime |
 | Language | Python 3.10+ | All scripts and pipelines |
-| Package | `pip install git+https://github.com/agulaya24/BaseLayer.git` | CLI with 25 subcommands. Not on PyPI. |
+| Package | `pip install git+https://github.com/agulaya24/BaseLayer.git` | CLI with 28 subcommands. Not on PyPI. |
 
 ---
 
@@ -476,7 +476,7 @@ memory_system/
 +-- pyproject.toml                     # Package config (install via git URL; not on PyPI)
 +-- README.md                          # Quick-start guide
 +-- src/baselayer/                     # Canonical source location
-|   +-- cli.py                         # CLI entry (baselayer command, 25 subcommands)
+|   +-- cli.py                         # CLI entry (baselayer command, 28 subcommands)
 |   +-- config.py                      # Shared constants (single source of truth)
 |   +-- import_conversations.py        # Step 1: Multi-source importer
 |   +-- extract_facts.py               # Step 2: AUDN fact extraction (Haiku/Ollama)
@@ -506,8 +506,8 @@ memory_system/
 |       +-- anchors_v4.md
 |       +-- core_v4.md
 |       +-- predictions_v4.md
-|       +-- brief_v4.md                # The specification (primary artifact)
-+-- tests/                             # 451 tests
+|       +-- brief_v5_clean.md         # The specification (primary artifact)
++-- tests/                             # 490 tests
 +-- docs/
 |   +-- core/                          # Architecture, decisions, principles
 |   +-- eval/                          # Benchmarks, ablation studies, eval frameworks
