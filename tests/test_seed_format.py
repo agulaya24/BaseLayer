@@ -30,24 +30,41 @@ REQUIRED_LAYER_ITEM_FIELDS = {"id", "name", "description"}
 REQUIRED_BRIEF_PARAGRAPH_FIELDS = {"text", "sources"}
 
 
+# The subject used for these tests is resolved at runtime, never named in source.
+# A hardcoded name and an absolute home-directory path used to sit here, which published a
+# roster subject from a file that ships on public main and pinned the suite to one machine.
+def _sample_subject():
+    """Return (key, config, subject_dir) for any locally available subject, else None."""
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+    from baselayer.seed_industry import resolve_subject_dir, SUBJECTS
+    for key in SUBJECTS:
+        try:
+            d = resolve_subject_dir(key)
+        except Exception:
+            continue
+        if d and Path(d).exists():
+            return key, SUBJECTS[key], d
+    return None
+
+
+_SAMPLE = _sample_subject()
+_NO_SUBJECT = pytest.mark.skipif(
+    _SAMPLE is None, reason="no local subject data available"
+)
+
+
 class TestSeedPayloadSchema:
     """Validate build_payload() output structure."""
 
-    @pytest.mark.skipif(
-        not Path("C:/Users/user/Anthropic/subjects/kevin_kelly_memory").exists(),
-        reason="Kevin Kelly subject data not available"
-    )
+    @_NO_SUBJECT
     def test_build_payload_has_required_fields(self):
         """Payload must include all fields the seed endpoint expects."""
         import sys
         sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
         from baselayer.seed_industry import build_payload, resolve_subject_dir, SUBJECTS
 
-        if "kevin_kelly" not in SUBJECTS:
-            pytest.skip("Kevin Kelly not in SUBJECTS dict")
-
-        config = SUBJECTS["kevin_kelly"]
-        subject_dir = resolve_subject_dir("kevin_kelly")
+        _key, config, subject_dir = _SAMPLE
         payload = build_payload(
             subject_dir, config["name"], config["slug"],
             config["password"], config.get("source", "")
@@ -56,21 +73,14 @@ class TestSeedPayloadSchema:
         for field in REQUIRED_PAYLOAD_FIELDS:
             assert field in payload, f"Missing required field: {field}"
 
-    @pytest.mark.skipif(
-        not Path("C:/Users/user/Anthropic/subjects/kevin_kelly_memory").exists(),
-        reason="Kevin Kelly subject data not available"
-    )
+    @_NO_SUBJECT
     def test_layer_items_have_required_fields(self):
         """Each anchor/core/prediction item must have id, name, description."""
         import sys
         sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
         from baselayer.seed_industry import build_payload, resolve_subject_dir, SUBJECTS
 
-        if "kevin_kelly" not in SUBJECTS:
-            pytest.skip("Kevin Kelly not in SUBJECTS dict")
-
-        config = SUBJECTS["kevin_kelly"]
-        subject_dir = resolve_subject_dir("kevin_kelly")
+        _key, config, subject_dir = _SAMPLE
         payload = build_payload(
             subject_dir, config["name"], config["slug"],
             config["password"], config.get("source", "")
@@ -83,21 +93,14 @@ class TestSeedPayloadSchema:
                 for field in REQUIRED_LAYER_ITEM_FIELDS:
                     assert field in item, f"{layer_name} item missing '{field}': {item.get('id', '?')}"
 
-    @pytest.mark.skipif(
-        not Path("C:/Users/user/Anthropic/subjects/kevin_kelly_memory").exists(),
-        reason="Kevin Kelly subject data not available"
-    )
+    @_NO_SUBJECT
     def test_brief_is_structured(self):
         """Brief should be a list of paragraphs, not a raw string."""
         import sys
         sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
         from baselayer.seed_industry import build_payload, resolve_subject_dir, SUBJECTS
 
-        if "kevin_kelly" not in SUBJECTS:
-            pytest.skip("Kevin Kelly not in SUBJECTS dict")
-
-        config = SUBJECTS["kevin_kelly"]
-        subject_dir = resolve_subject_dir("kevin_kelly")
+        _key, config, subject_dir = _SAMPLE
         payload = build_payload(
             subject_dir, config["name"], config["slug"],
             config["password"], config.get("source", "")
