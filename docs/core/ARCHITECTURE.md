@@ -343,7 +343,7 @@ This is a direct link asserted by the model through explicit citation.
 
 ### Synthesis layers and vector fallback
 
-- ANCHORS and PREDICTIONS synthesise rather than quote. The citation pass often returns nothing for these layers.
+- ANCHORS and PREDICTIONS synthesize rather than quote. The citation pass often returns nothing for these layers.
 - In that case, `author_layers.py:2073` falls back to `generate_vector_provenance`, which embeds the claim and links nearest facts with `link_method='vector'`.
 - This is embedding proximity, not a link the model asserted. The `trace_claim` tool prints the method per row so consumers can distinguish citation from vector fallback.
 

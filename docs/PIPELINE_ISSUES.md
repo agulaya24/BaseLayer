@@ -31,7 +31,7 @@ runs later in the pipeline.
 populates; it was moved to `knowledge_tier` in 2026-05-19 for exactly that reason. The move
 corrected the field and not the coverage, so the same symptom returned on the one path that
 still did not write it. `tests/test_tiering_call_sites.py` now asserts on **call sites** rather
-than behaviour, because a unit test of the function passes in both the broken and fixed states.
+than behavior, because a unit test of the function passes in both the broken and fixed states.
 
 ---
 

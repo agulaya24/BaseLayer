@@ -122,7 +122,7 @@ partition would vary size and composition together and no difference could be at
 `predicate` (default) · `category` · `predcat` · `semantic` · `time` · `random`
 
 **The partition is not neutral, and that is the point.** Selection happens competitively *within* a
-chunk: two facts that would synthesise into one theme can both die separately if split, and a
+chunk: two facts that would synthesize into one theme can both die separately if split, and a
 contradiction is only visible to a chunk holding both sides. **`random` is the null arm.** If
 survival under a content-based partition does not beat random packing, the partition is doing
 nothing.

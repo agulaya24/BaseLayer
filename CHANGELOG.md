@@ -23,7 +23,7 @@ All notable changes to Base Layer are documented here.
 
 ### Migration notes
 - Every caller of `chromadb_dist_to_similarity` must pass a space. Read it from the collection rather than assuming: `chromadb_dist_to_similarity(d, collection_space(coll))`. There is no compatibility shim; a missing argument is a `TypeError` and a guessed one is a `ValueError`.
-- New tests at `tests/test_similarity_space.py`. Five tests in `test_unified_brief.py` changed to name the l2 behaviour they actually assert.
+- New tests at `tests/test_similarity_space.py`. Five tests in `test_unified_brief.py` changed to name the l2 behavior they actually assert.
 
 ### Changed (CLI accuracy)
 - `init --force` help no longer claims to delete data. It drops nothing; the schema is `CREATE TABLE IF NOT EXISTS` throughout. A real reset is `forget --all` plus deleting the vector store.

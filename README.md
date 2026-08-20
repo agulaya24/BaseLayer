@@ -33,7 +33,7 @@ Layers:
 
 - ANCHORS: Axioms the person reasons from.
 - CORE: Communication patterns and context modes.
-- PREDICTIONS: Behavioural triggers with detection cues and directives.
+- PREDICTIONS: Behavioral triggers with detection cues and directives.
 
 Distillation yields four channels that do not compete for space:
 - Themes: what recurs, each naming the fact ids it drew on.
@@ -82,7 +82,7 @@ baselayer author-from-package --outdir spec_out/
   - Cross-domain span: support should not come only from one narrow source type or topic.
   - Optional NLI: a local entailment model can score whether cited facts support the claim. This audits data quality. It does not prove causation.
 
-Not all provenance is a citation. ANCHORS and PREDICTIONS often synthesise across facts. When a claim carries no inline citations, the system links nearest facts by embedding as vector provenance. That link shows proximity, not that the model asserted the link. `trace_claim` prints the link method for each row.
+Not all provenance is a citation. ANCHORS and PREDICTIONS often synthesize across facts. When a claim carries no inline citations, the system links nearest facts by embedding as vector provenance. That link shows proximity, not that the model asserted the link. `trace_claim` prints the link method for each row.
 
 Read auditable as: what is cited can be checked. It does not mean everything is cited.
 
