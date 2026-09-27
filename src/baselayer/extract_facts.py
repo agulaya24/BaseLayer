@@ -2101,8 +2101,9 @@ def run_extraction(limit: int = None, conv_id: str = None,
                 print("\n" + "!" * 60)
                 print(f"  WARNING: {_stale_vectors} fact vectors present but extraction_log is empty.")
                 print("  AUDN will likely dedup new facts against these stale vectors (NOOP),")
-                print("  producing far fewer facts than expected. Run `baselayer extract --reset`")
-                print("  (clears SQLite + ChromaDB) before re-extracting.")
+                print("  producing far fewer facts than expected. Run")
+                print("  `python -m baselayer.extract_facts --reset` (clears extracted facts, the")
+                print("  extraction log and the fact vectors; irreversible) before re-extracting.")
                 print("!" * 60)
 
         # Get conversations to process
@@ -2233,7 +2234,8 @@ def run_extraction(limit: int = None, conv_id: str = None,
             print(f"  ({total_chars:,} chars of message text = {total_facts / total_chars * 10000:.1f} facts/10K chars;")
             print(f"  every healthy extraction measured yields {LOW_YIELD_WARN_PER_10K}+/10K).")
             print("  This is the signature of a silent failure. Likely causes:")
-            print("    - stale ChromaDB vectors making AUDN NOOP new facts (run --reset)")
+            print("    - stale ChromaDB vectors making AUDN NOOP new facts")
+            print("      (run `python -m baselayer.extract_facts --reset`)")
             print("    - input text flattened (lost paragraph breaks), collapsing to one chunk")
             print("  Verify the fact count before running author/compose on this data.")
             print("!" * 60)
@@ -2411,7 +2413,11 @@ def main():
     parser.add_argument("--conversation", type=str, help="Process a single conversation by ID")
     parser.add_argument("--stats", action="store_true", help="Show extraction statistics")
     parser.add_argument("--reset", action="store_true",
-                        help="Reset extraction log (reprocess all conversations)")
+                        help="Irreversible, no confirmation prompt: delete extracted facts, "
+                             "fact relationships, the extraction log and the memory_facts "
+                             "vector collection so every conversation is reprocessed. Keeps "
+                             "imported conversations and user-corrected facts. Does not touch "
+                             "specification layers already written.")
     parser.add_argument("--identity-only", action="store_true",
                         help="D-048: Extract only identity-relevant facts from project conversations "
                              "(strips code/tools, keeps user directives and behavioral patterns)")

@@ -94,7 +94,7 @@ Run in order and report what you find:
 
 | Command                        | Purpose                                                                                  |
 |--------------------------------|------------------------------------------------------------------------------------------|
-| `baselayer init`               | Create database + vector store in current subject directory.                             |
+| `baselayer init`               | Create database + vector store under the data root (`MEMORY_SYSTEM_ROOT`).               |
 | `baselayer import <file>`      | Import ChatGPT/Claude export, journal directory, or text file.                           |
 | `baselayer estimate`           | Preview API cost before extraction.                                                      |
 | `baselayer extract`            | Extract structured behavioral facts via Haiku (46 constrained predicates, AUDN lifecycle). |
@@ -106,8 +106,8 @@ Run in order and report what you find:
 | `baselayer search "<query>"`   | FTS keyword search across active facts.                                                  |
 | `baselayer provenance --claim` | Trace a specification claim back to its supporting facts.                                |
 | `baselayer verify --layer all` | Run the four-check provenance audit on authored claims.                                  |
-| `baselayer checkpoint <stage>` | Quality gate after a pipeline stage. `--fix` applies corrections.                        |
-| `baselayer forget --all`       | Soft-delete all active facts. Confirm before running.                                    |
+| `baselayer checkpoint <stage>` | Quality gate after a pipeline stage. Reports only; there is no `--fix` flag.             |
+| `baselayer forget --all`       | Hide (soft-delete) all active facts. Layers are not regenerated. Not a reset. Confirm.   |
 | `baselayer serve enable`       | Resume MCP spec serving (writes `~/.baselayer/serving_enabled = 1`).                     |
 | `baselayer serve disable`      | Pause MCP spec serving without restart (writes 0). Mid-session safe.                     |
 | `baselayer serve status`       | Print whether spec serving is currently enabled.                                         |

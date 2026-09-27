@@ -29,9 +29,9 @@ Usage:
     baselayer stats                         Show database statistics
     baselayer search <query>                Search facts by keyword or semantics
     baselayer review                        Review and correct facts interactively
-    baselayer forget --fact ID              Soft-delete a specific fact by ID
-    baselayer forget --conversation ID      Soft-delete all facts from a conversation
-    baselayer forget --all                  Soft-delete ALL facts (requires confirmation)
+    baselayer forget --fact ID              Hide (soft-delete) a specific fact by ID
+    baselayer forget --conversation ID      Hide (soft-delete) all facts from a conversation
+    baselayer forget --all                  Hide (soft-delete) ALL facts (requires confirmation)
     baselayer estimate                      Estimate API cost for extraction
     baselayer rebuild-fts                    Rebuild FTS5 full-text search index
 """
@@ -94,9 +94,11 @@ def cmd_init(args):
         # init_database.py has zero DROP and zero DELETE: --force re-runs CREATE TABLE IF NOT
         # EXISTS and removes nothing.
         print("Use --force to re-run initialization. It does NOT delete anything.")
-        print("For a real reset: `baselayer forget --all` AND delete data/vectors/.")
-        print("Clearing only SQLite leaves stale vectors, which make deduplication treat new")
-        print("facts as already-known: tens of facts where a clean run yields hundreds.")
+        print("For a clean re-extraction: `python -m baselayer.extract_facts --reset`")
+        print("(irreversible: deletes extracted facts, the extraction log and the fact vectors;")
+        print("keeps conversations and user corrections). Safest: point MEMORY_SYSTEM_ROOT at")
+        print("an empty directory. `forget --all` plus deleting data/vectors/ is NOT a reset:")
+        print("the extraction log still marks every conversation as done.")
         return
 
     # --- Privacy disclosure ---
@@ -2077,12 +2079,16 @@ def main():
     # init_database.py is CREATE TABLE IF NOT EXISTS throughout: zero DROP, zero DELETE.
     # A user reaching for --force wants a clean rebuild; what they get is a no-op, and the
     # re-extraction behind it then reports "all already done", which reads as success. A real
-    # reset is `forget --all` PLUS deleting data/vectors/, because stale vectors make AUDN
-    # return NOOP and yield 12-42 facts where a clean run yields 200+.
+    # reset is `python -m baselayer.extract_facts --reset`, which deletes extracted facts, the
+    # extraction log and the memory_facts vector collection. `forget --all` plus deleting
+    # data/vectors/ is NOT a reset: forget only hides facts and leaves extraction_log intact,
+    # so the next extract reports "all already done" and processes nothing (reproduced
+    # 2026-09-27 on a scratch corpus).
     p_init.add_argument("--force", action="store_true",
                         help="Re-run initialization. NOT destructive: no tables are dropped and "
-                             "no rows deleted. For a real reset use `forget --all` and delete "
-                             "data/vectors/.")
+                             "no rows deleted. For a clean re-extraction use "
+                             "`python -m baselayer.extract_facts --reset` (irreversible), or "
+                             "point MEMORY_SYSTEM_ROOT at an empty directory.")
     p_init.add_argument("--accept-data-processing", action="store_true",
                         help="Non-interactive acknowledgement of the privacy notice "
                              "(conversation text is sent to the Anthropic API during "
@@ -2250,13 +2256,23 @@ def main():
     p_search.set_defaults(func=cmd_search)
 
     # forget
-    p_forget = subparsers.add_parser("forget", help="Soft-delete facts (by ID, conversation, or all)")
+    p_forget = subparsers.add_parser(
+        "forget",
+        help="Hide facts (soft delete, by ID, conversation, or all). Raw text stays; "
+             "specification layers already written are not regenerated or invalidated.",
+        description="Hide facts by marking them superseded and removing their vectors. "
+                    "This is a soft delete: facts stay in the database and can be restored. "
+                    "Imported conversation text is not removed. Specification layers already "
+                    "written are not regenerated or invalidated, so a served specification can "
+                    "still carry claims built from hidden facts until you re-run author and "
+                    "compose. To remove everything, delete the data directory.")
     p_forget.add_argument("--fact", type=str, metavar="ID",
-                          help="Delete a specific fact by its ID")
+                          help="Hide a specific fact by its ID")
     p_forget.add_argument("--conversation", type=str, metavar="ID",
-                          help="Delete all facts from a conversation ID")
+                          help="Hide all facts from a conversation ID")
     p_forget.add_argument("--all", action="store_true",
-                          help="Delete ALL active facts (requires confirmation)")
+                          help="Hide ALL active facts (requires confirmation). Not a reset: "
+                               "re-extraction still skips conversations already processed.")
     p_forget.set_defaults(func=cmd_forget)
 
     # provenance (S56 — trace layer claims to source facts)
