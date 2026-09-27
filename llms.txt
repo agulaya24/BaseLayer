@@ -90,7 +90,7 @@ Full vocabulary: `CONSTRAINED_PREDICATES` in `src/baselayer/config.py` in the so
 ## For builders
 
 - Source: https://github.com/agulaya24/BaseLayer (Apache 2.0)
-- The pipeline runs locally. Extraction and authoring send text to the configured model API (Anthropic by default; provider retention policies apply). The first embedding run downloads the embedding model from Hugging Face. Base Layer does not collect usage data. Its vector store dependency, ChromaDB, has its own anonymized telemetry setting, on by default, which Base Layer does not change; set `ANONYMIZED_TELEMETRY=False` to turn it off.
+- The pipeline runs locally. Extraction and authoring send text to the configured model API (Anthropic by default; provider retention policies apply). The first embedding run downloads the embedding model from Hugging Face. Base Layer does not collect usage data. Its vector store dependency, ChromaDB, has its own anonymized telemetry setting, on by default; Base Layer turns it off on every ChromaDB client it creates.
 - The Specification format is provider-agnostic. It works with Claude, GPT, Gemini, Grok, or any model that accepts a system prompt.
 - MCP server for Claude integration is documented in the repo.
 

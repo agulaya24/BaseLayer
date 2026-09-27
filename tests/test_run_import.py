@@ -69,7 +69,17 @@ _be.run_submit = _fake_batch_submit
 
 cli.cmd_estimate = _record("estimate")
 cli.cmd_extract = _fake_extract
-cli.cmd_author = _record("author")
+def _fake_author(args):
+    # The real stage leaves the three layers and the served brief behind; `run` reads
+    # their presence to tell a finished specification from an interrupted one.
+    _record("author")()
+    import baselayer.config as cfg
+    for f in (cfg.ANCHORS_LAYER_FILE, cfg.CORE_LAYER_FILE, cfg.PREDICTIONS_LAYER_FILE,
+              cfg.UNIFIED_BRIEF_FILE):
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text("## Injectable Block" + chr(10) + chr(10) + "stub" + chr(10), encoding="utf-8")
+
+cli.cmd_author = _fake_author
 cli._run_traceability = _record("traceability")
 sys.argv = ["baselayer"] + json.loads(os.environ["BL_ARGV"])
 cli.main()
@@ -230,6 +240,8 @@ def test_pipeline_imports_new_source_files_and_stops_on_unchanged(tmp_path):
     _assert_ok(r)
     assert _conversation_count(subj_root) == 1, r.stdout
     assert _calls(log) == ["extract"], r.stdout
+    # The stub stops the process at extraction; stand in for the authored specification.
+    _write_spec(subj_root)
 
     log.unlink()
     r = _run(["pipeline", "test_subject", "--yes"], main_root, tmp_path, log, env)
@@ -244,3 +256,33 @@ def test_pipeline_imports_new_source_files_and_stops_on_unchanged(tmp_path):
     _assert_ok(r)
     assert _conversation_count(subj_root) == 2, r.stdout
     assert _calls(log) == ["extract"], r.stdout
+
+
+def test_rerun_after_a_failure_between_extraction_and_authoring_authors(workspace):
+    """Extraction finished but no specification was written (author failed or was
+    interrupted). Nothing is new and nothing is pending, yet the run must still author."""
+    root, inputs, log, _ = workspace
+    _assert_ok(_run(["run", "first.txt", "--yes"], root, inputs, log))
+    for f in (root / "data" / "identity_layers").glob("*.md"):
+        f.unlink()
+    log.unlink()
+    r = _run(["run", "first.txt", "--yes"], root, inputs, log)
+    _assert_ok(r)
+    assert "author" in _calls(log), r.stdout
+
+
+def test_first_run_that_imports_nothing_says_so_accurately(workspace):
+    root, inputs, log, _ = workspace
+    (inputs / "short.txt").write_text("too short", encoding="utf-8")
+    r = _run(["run", "short.txt", "--yes"], root, inputs, log)
+    _assert_ok(r)
+    assert _calls(log) == [], r.stdout
+    assert "already in the database" not in r.stdout
+    assert "no conversations" in r.stdout
+
+
+def _write_spec(root):
+    d = Path(root) / "data" / "identity_layers"
+    d.mkdir(parents=True, exist_ok=True)
+    for name in ("anchors_v4.md", "core_v4.md", "predictions_v4.md", "brief_v5_clean.md"):
+        (d / name).write_text("## Injectable Block\n\nstub\n", encoding="utf-8")

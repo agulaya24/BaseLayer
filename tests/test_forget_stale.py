@@ -77,8 +77,8 @@ def root_with_fact(tmp_path):
     return root
 
 
-def test_help_says_hide_not_delete_and_names_what_stays():
-    r = run_cli(["forget", "--help"], Path.cwd())
+def test_help_says_hide_not_delete_and_names_what_stays(tmp_path):
+    r = run_cli(["forget", "--help"], tmp_path)
     text = " ".join(r.stdout.lower().split())
     assert "hide" in text
     assert "raw conversation text" in text
@@ -151,3 +151,21 @@ def test_mcp_served_text_carries_the_stale_notice(tmp_path):
     finally:
         for p in patches:
             p.stop()
+
+
+def test_forget_count_restarts_after_regeneration(tmp_path):
+    """forget(10) -> regenerate -> forget(1) must report 1 fact hidden since the files
+    were written, not 11."""
+    from baselayer.spec_staleness import record_forget, read_marker
+    d = tmp_path / "layers"
+    d.mkdir()
+    files = [d / "core_v4.md"]
+    files[0].write_text("x", encoding="utf-8")
+    os.utime(files[0], (1000, 1000))
+    record_forget(d, 10, "all", now=2000, files=files)
+    assert read_marker(d)["facts_forgotten"] == 10
+    record_forget(d, 2, "fact", now=2500, files=files)  # still unaddressed: accumulates
+    assert read_marker(d)["facts_forgotten"] == 12
+    os.utime(files[0], (3000, 3000))  # regenerated
+    record_forget(d, 1, "fact", now=4000, files=files)
+    assert read_marker(d)["facts_forgotten"] == 1

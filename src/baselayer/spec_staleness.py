@@ -9,6 +9,11 @@ specification file is STALE when its modification time is older than that record
 staleness from file times, rather than clearing the marker from one command, means that
 regenerating the layers through any entry point (`author`, `run`, `pipeline`, or the
 authoring module directly) clears the warning with no cleanup step to miss.
+
+Consequences of using file times, accepted deliberately: hand-editing a layer after a
+forget also clears that file's flag (the edit is taken as the user's review); restoring
+older layers with a time-preserving copy reads as stale; and on filesystems with coarse
+timestamps (FAT, exFAT) a regeneration in the same second as the forget can read as stale.
 """
 
 import json
@@ -23,8 +28,14 @@ def marker_path(layers_dir):
     return Path(layers_dir) / MARKER_NAME
 
 
-def record_forget(layers_dir, facts_forgotten, mode, now=None):
-    """Record that `facts_forgotten` facts were hidden now. Cumulative across forgets.
+def record_forget(layers_dir, facts_forgotten, mode, now=None, files=None):
+    """Record that `facts_forgotten` facts were hidden now.
+
+    `facts_forgotten` counts the facts hidden since the specification was last written:
+    it accumulates across forgets only while an earlier forget is still unaddressed (some
+    file in `files` predates it). After a regeneration the count starts again, so
+    "N facts were hidden after these files were written" stays true. Without `files` the
+    count accumulates unconditionally.
 
     Written to a temp file and moved into place, so a failure cannot leave a truncated
     marker behind.
@@ -33,9 +44,12 @@ def record_forget(layers_dir, facts_forgotten, mode, now=None):
     layers_dir.mkdir(parents=True, exist_ok=True)
     path = marker_path(layers_dir)
     previous = read_marker(layers_dir) or {}
+    carried = previous.get("facts_forgotten") or 0
+    if files is not None and not stale_files(files, layers_dir):
+        carried = 0
     data = {
         "forgotten_at": now if now is not None else time.time(),
-        "facts_forgotten": int(previous.get("facts_forgotten", 0)) + int(facts_forgotten),
+        "facts_forgotten": int(carried) + int(facts_forgotten),
         "last_mode": mode,
         "note": ("Facts were hidden with `baselayer forget` after the specification files "
                  "older than forgotten_at were written. Those files may still carry claims "

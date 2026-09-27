@@ -29,44 +29,70 @@ CLIENT_CONSTRUCTORS = {"PersistentClient", "Client", "EphemeralClient", "HttpCli
                        "AsyncHttpClient", "CloudClient"}
 
 
+def _sites_in(source, label, allow_helper=False):
+    """Client-constructor calls in one module's source. See _client_construction_sites."""
+    tree = ast.parse(source, filename=label)
+    aliases = set()
+    module_names = {"chromadb"}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom) and node.module and node.module.startswith("chromadb"):
+            for a in node.names:
+                if a.name in CLIENT_CONSTRUCTORS:
+                    aliases.add(a.asname or a.name)
+        elif isinstance(node, ast.Import):
+            for a in node.names:
+                if a.name == "chromadb" and a.asname:
+                    module_names.add(a.asname)
+    helper_ranges = []
+    if allow_helper:
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef) and node.name == HELPER_NAME:
+                helper_ranges.append((node.lineno, node.end_lineno))
+    sites = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        f = node.func
+        name = None
+        if isinstance(f, ast.Attribute) and f.attr in CLIENT_CONSTRUCTORS:
+            base = f.value
+            if isinstance(base, ast.Name) and base.id in module_names:
+                name = f"{base.id}.{f.attr}"
+        elif isinstance(f, ast.Name) and f.id in aliases:
+            name = f.id
+        if name is None:
+            continue
+        if any(lo <= node.lineno <= hi for lo, hi in helper_ranges):
+            continue
+        sites.append(f"{label}:{node.lineno} {name}")
+    return sites
+
+
 def _client_construction_sites():
     """Every call to a chromadb client constructor anywhere under src/, by AST.
 
-    Catches `chromadb.PersistentClient(...)`, `chromadb.Client(...)` and names bound by
-    `from chromadb import PersistentClient [as X]`. The one permitted site is inside the
-    helper itself. The archive directory is scanned too: it is shipped in the package,
-    so a client built there would be built without the flag.
+    Catches `chromadb.PersistentClient(...)`, the same through `import chromadb as X`,
+    and names bound by `from chromadb import PersistentClient [as X]`. The one permitted
+    site is inside the helper itself. The archive directory is scanned too: it is shipped
+    in the package, so a client built there would be built without the flag.
     """
     sites = []
     for py in SRC_DIR.rglob("*.py"):
-        tree = ast.parse(py.read_text(encoding="utf-8"), filename=str(py))
-        aliases = set()
-        for node in ast.walk(tree):
-            if isinstance(node, ast.ImportFrom) and node.module and node.module.startswith("chromadb"):
-                for a in node.names:
-                    if a.name in CLIENT_CONSTRUCTORS:
-                        aliases.add(a.asname or a.name)
-        helper_ranges = []
-        for node in ast.walk(tree):
-            if isinstance(node, ast.FunctionDef) and node.name == HELPER_NAME and py == HELPER_FILE:
-                helper_ranges.append((node.lineno, node.end_lineno))
-        for node in ast.walk(tree):
-            if not isinstance(node, ast.Call):
-                continue
-            f = node.func
-            name = None
-            if isinstance(f, ast.Attribute) and f.attr in CLIENT_CONSTRUCTORS:
-                base = f.value
-                if isinstance(base, ast.Name) and base.id == "chromadb":
-                    name = f"chromadb.{f.attr}"
-            elif isinstance(f, ast.Name) and f.id in aliases:
-                name = f.id
-            if name is None:
-                continue
-            if any(lo <= node.lineno <= hi for lo, hi in helper_ranges):
-                continue
-            sites.append(f"{py.relative_to(SRC_DIR)}:{node.lineno} {name}")
+        sites += _sites_in(py.read_text(encoding="utf-8"), str(py.relative_to(SRC_DIR)),
+                           allow_helper=(py == HELPER_FILE))
     return sites
+
+
+def test_scanner_catches_every_spelling_of_a_client():
+    """The guard is only as good as its scanner: show it fails on each bypass form."""
+    forms = [
+        "import chromadb" + chr(10) + "chromadb.PersistentClient(path='x')",
+        "import chromadb as cdb" + chr(10) + "cdb.PersistentClient(path='x')",
+        "from chromadb import PersistentClient" + chr(10) + "PersistentClient(path='x')",
+        "from chromadb import Client as C" + chr(10) + "C()",
+    ]
+    for src in forms:
+        assert _sites_in(src, "probe.py"), src
 
 
 def test_no_chroma_client_is_built_outside_the_helper():

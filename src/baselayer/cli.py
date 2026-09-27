@@ -826,12 +826,14 @@ def _mark_spec_stale_after_forget(hidden, mode):
     from baselayer.config import IDENTITY_LAYERS_DIR
     from baselayer.spec_staleness import record_forget, stale_files, default_spec_files
 
-    record_forget(IDENTITY_LAYERS_DIR, hidden, mode)
+    record_forget(IDENTITY_LAYERS_DIR, hidden, mode, files=default_spec_files())
     stale = stale_files(default_spec_files(), IDENTITY_LAYERS_DIR)
     if stale:
         print(f"\n  WARNING: your specification is now stale. It was authored before this")
         print(f"  forget and was not regenerated, so it may still contain claims drawn from")
-        print(f"  the hidden facts, and the MCP server keeps serving it (with a stale notice).")
+        print(f"  the hidden facts. The MCP server keeps serving it; the specification")
+        print(f"  resource and any server started from now on carry a stale notice (a server")
+        print(f"  already running built its instructions at startup, so restart it).")
         print(f"  Stale: {', '.join(f.name for f in stale)}")
         print(f"  Regenerate it with: baselayer author --compose")
     else:
@@ -1623,21 +1625,38 @@ def _conversation_counts(db_path):
     return total, pending
 
 
+def _specification_complete():
+    """True when the three layers and the served brief all exist (config read at call time)."""
+    import baselayer.config as cfg
+    return all(f.exists() for f in (cfg.ANCHORS_LAYER_FILE, cfg.CORE_LAYER_FILE,
+                                    cfg.PREDICTIONS_LAYER_FILE, cfg.UNIFIED_BRIEF_FILE))
+
+
 def _should_continue_after_import(new, pending, total, source_label, reauthor, rerun_hint):
     """Decide whether a one-command run proceeds past import, and say why either way.
 
     Proceeds when the import added conversations, when earlier conversations are still
-    waiting for extraction (for example a run cancelled at the cost prompt), or when the
-    caller asked for --reauthor. Otherwise nothing has changed since the last
-    specification was built, so extraction would do nothing and authoring would spend
-    API budget to regenerate the same inputs. Stop, and say so, before the cost estimate.
+    waiting for extraction (for example a run cancelled at the cost prompt), when no
+    complete specification exists yet (a previous run was interrupted or failed after
+    extraction), or when the caller asked for --reauthor. Otherwise nothing has changed
+    since the last specification was built, so extraction would do nothing and authoring
+    would spend API budget to regenerate the same inputs. Stop, and say so, before the
+    cost estimate.
     """
+    if total == 0:
+        print(f"\n  Nothing was imported from {source_label}, and the database has no"
+              f" conversations. Stopping before extraction; no API budget was spent.")
+        return False
     if new > 0:
         print(f"\n  Imported {new} new conversation(s) from {source_label} ({total} total).")
         return True
     if pending > 0:
         print(f"\n  Nothing new imported from {source_label}. {pending} conversation(s)"
               f" imported earlier have not been extracted yet; continuing with those.")
+        return True
+    if not _specification_complete():
+        print(f"\n  Nothing new imported from {source_label}, but no complete specification"
+              f" exists yet (an earlier run stopped after extraction); authoring it now.")
         return True
     if reauthor:
         print(f"\n  Nothing new imported from {source_label}. --reauthor given;"
