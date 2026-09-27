@@ -506,15 +506,15 @@ Per the current naming canon (Phase A, 2026-05-06): the canonical artifact is th
 **Why:**
 - No synthetic benchmark can evaluate whether a personal memory system "knows" someone correctly — only the person themselves can judge
 - This review surfaced 8 wrong facts, 3 overstated items, 8 missing elements, and 2 outdated facts
-- Revealed systemic extraction problems: attribution errors (spouse's health → user), role confusion (board members → investors), missing sentiment, no frequency weighting, no temporal tracking
+- Revealed systemic extraction problems: attribution errors (a family member's health fact → user), role confusion (board members → investors), missing sentiment, no frequency weighting, no temporal tracking
 
 **Key findings from review:**
-1. **Attribution problem** — facts about the user's spouse (health conditions) were attributed to the user. System can't distinguish "user asks about X" from "X is true of user"
+1. **Attribution problem** — facts about another person in the user's life (a health fact) were attributed to the user. System can't distinguish "user asks about X" from "X is true of user"
 2. **Relationship roles not captured** — board members, co-founders, colleagues, and investors all get generic "relationship" tag
 3. **Sentiment missing entirely** — a negative sentiment about a former colleague → extracted as neutral professional contact
-4. **Single mentions weighted same as 200+ mentions** — Excel 7/10 from one conversation treated equally to trading skills from 264+ conversations
-5. **No temporal awareness** — S.T.A.L.K.E.R. 2 (months ago) presented as current; Deadlock (current game) underrepresented
-6. **Negatives not surfaced** — overtrading, impulsiveness, anxiety, "never doing enough" exist in data but weren't organized into profile
+4. **Single mentions weighted same as 200+ mentions** — a self-rating from one conversation treated equally to a skill discussed across 264+ conversations
+5. **No temporal awareness** — an interest from months ago presented as current; a current interest underrepresented
+6. **Negatives not surfaced** — negative traits exist in data but weren't organized into profile
 7. **Correction propagation required** — the user's key insight: "if I bring it up once that something is wrong, that should be rectified for all future conversations"
 
 **What this means for the improvement re-run:**
@@ -538,7 +538,7 @@ Per the current naming canon (Phase A, 2026-05-06): the canonical artifact is th
 **Decision:** Add an "Active Probing" capability where the system detects gaps, contradictions, shallow coverage, and missing details in its model of the user, then generates targeted questions to fill them. Inspired by how therapists and biographers work — they don't just listen, they notice what's missing and probe.
 
 **Why:**
-- Identity review v1 revealed 8 missing items (wife's name, second cat, negatives, sentiment, etc.) that the system could have *asked about* rather than waiting to stumble across
+- Identity review v1 revealed 8 missing items (family details, household details, negatives, sentiment, etc.) that the system could have *asked about* rather than waiting to stumble across
 - Passive extraction only captures what the user happens to mention — active probing captures what the user *would* share if asked
 - Many of the most important facts (sentiment about relationships, negative traits, the "why" behind interests) are things people don't volunteer but will happily share when asked
 - This is the difference between a filing cabinet and a relationship — relationships involve mutual curiosity
@@ -578,8 +578,8 @@ Per the current naming canon (Phase A, 2026-05-06): the canonical artifact is th
 
 **First application (corrections_v1.json):**
 - Applied 14 corrections from Identity Review v1 (D-019)
-- Superseded 23 wrong facts (a misattributed citizenship, a misattributed health fact, a vehicle-ownership error, several misattributed roles, etc.)
-- Added 10 corrected facts (citizenship, spouse, reattributed health/vehicle facts, board member roles, negative traits)
+- Superseded 23 wrong facts (misattributed personal facts, a possession attributed to the wrong person, several misattributed roles, etc.)
+- Added 10 corrected facts (personal details, facts reattributed to the correct person, board member roles, negative traits)
 - All 14 corrections stored as permanent guard patterns
 
 **Key design choices:**
@@ -607,8 +607,8 @@ Per the current naming canon (Phase A, 2026-05-06): the canonical artifact is th
 **Decision:** Apply all 9 extraction improvements in a single clean re-run rather than incremental patches. The changes address every systemic issue found in the identity review (D-019).
 
 **What changed in `extract_facts.py`:**
-1. **Entity resolution** — new `subject` field + `normalize_subject()`. Facts tagged with who they're about (user, spouse, friend, colleague, named person). Fixes: health condition attributed to user instead of spouse, vehicle attributed to user instead of friend.
-2. **Intent detection** — new `intent` field + `normalize_intent()`. Facts tagged as does/learning/curious/historical. Fixes: "asked about iron condors" no longer becomes "uses iron condor strategies."
+1. **Entity resolution** — new `subject` field + `normalize_subject()`. Facts tagged with who they're about (user, spouse, friend, colleague, named person). Fixes: facts about other people (a health fact, a possession) attributed to the user.
+2. **Intent detection** — new `intent` field + `normalize_intent()`. Facts tagged as does/learning/curious/historical. Fixes: "asked about a strategy" no longer becomes "uses that strategy."
 3. **Temporal tracking** — new `temporal` field + `normalize_temporal()`. Facts tagged current/past/unknown. Fixes: "was CEO" no longer treated same as "is CEO."
 4. **Confidence redesign** — computed from objective signals (20% LLM + 30% intent + 25% subject + 25% depth) instead of Qwen's self-assessment (which was 81% at 1.0). Raw LLM confidence preserved in `raw_llm_confidence` column.
 5. **Negative trait category** — added `negative_trait` to valid categories. Prompt now explicitly asks for negatives.
@@ -660,11 +660,11 @@ This isn't a caveat or a disclaimer. It's an epistemological reality that should
 
 1. **The data is inherently incomplete.** The system only knows what was said in 1,821 ChatGPT conversations. Entire domains of a person's life — things they never asked an AI about — are invisible. A person's relationship with their parents, their childhood, their private fears, their physical health, things they consider too mundane to mention — none of these exist in the data unless they happened to come up.
 
-2. **The data is inherently unreliable.** People talk to AI assistants differently than they talk to friends. They ask about things they're curious about, not just things they do. They exaggerate, simplify, play devil's advocate, and explore hypotheticals. The system already saw this: iron condor strategies were "extracted as identity" from a curiosity question. A health condition was attributed to the user instead of their spouse. Every fact in the system is an inference from conversational behavior, not a verified truth.
+2. **The data is inherently unreliable.** People talk to AI assistants differently than they talk to friends. They ask about things they're curious about, not just things they do. They exaggerate, simplify, play devil's advocate, and explore hypotheticals. The system already saw this: a strategy was "extracted as identity" from a curiosity question. A health fact about another person was attributed to the user. Every fact in the system is an inference from conversational behavior, not a verified truth.
 
 3. **The model is always an approximation.** Even with perfect data, a 500-token identity profile cannot capture a human being. It is a lossy compression of a lossy signal. The person it describes is a sketch, not a photograph — and the person themselves would disagree with parts of it on any given day.
 
-4. **This constraint applies at every scale.** From trivial gaps (doesn't know your favorite color) to serious misattributions (wrong citizenship, wrong medical condition) to things the system could never know (what you're thinking right now, what you'd do in a crisis, who you are when no one is watching). The system should never present its model of a person as though it *is* that person.
+4. **This constraint applies at every scale.** From trivial gaps (doesn't know your favorite color) to serious misattributions (a wrong personal status, a health fact about someone else) to things the system could never know (what you're thinking right now, what you'd do in a crisis, who you are when no one is watching). The system should never present its model of a person as though it *is* that person.
 
 **Level 2 — The depth that words cannot carry:**
 
@@ -848,10 +848,10 @@ Result: Identity block #2 ranked a low-signal personal detail as the #1 fact abo
 The user reviewed the full CHARACTER_OVERVIEW.md document section by section. Identified 10 factual errors, multiple framing issues, and 6 architectural insights. The Collective reviewed the feedback and provided pushback on 4 points.
 
 **Corrections applied (`data/corrections_v2.json`):**
-- **10 DELETEs:** Pinecone AE (never hired), house purchase (friend's situation), unemployed friend (doesn't exist), Cellular Enigma x3 (joke among friends), PhD student (hallucination), conflicting Pati fact
-- **6 REPLACEs:** Ayahuasca friend→cousin, Pati→FIL's mother, medication delegation softened, PhD research→collaborated with PhDs, iron condor x2→studied not traded, weight comment→specific cousin incident
-- **1 ANNOTATE:** Wake time marked as outdated
-- **3 GUARDS:** Toddler, child socks, South Indian heritage (v2 corrections missing from `user_corrections`)
+- **10 DELETEs:** a job that never happened, a purchase that was a friend's situation, a person who doesn't exist, 3 facts built on a joke among friends, a hallucinated role, a conflicting fact about a relative
+- **6 REPLACEs:** a relationship misidentified (friend vs family member), a relative's identity misidentified, a health-related fact softened, research role overstated→corrected to collaboration, a strategy studied but recorded as practiced (x2), a remark reattributed to a specific incident
+- **1 ANNOTATE:** a routine fact marked as outdated
+- **3 GUARDS:** 3 wrong personal facts (family and background) (v2 corrections missing from `user_corrections`)
 
 **Key meta-findings from the review:**
 1. Relevance filtering needed — most corrections were "accurate but doesn't belong in identity"

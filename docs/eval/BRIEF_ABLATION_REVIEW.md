@@ -397,12 +397,12 @@ After the rubric-based evaluation, we ran a 10-question blind A/B test on Aarik 
 
 | Q | Context | Winner | Signal |
 |---|---|---|---|
-| Q1 | Red trading day | V4 | Specific details (2-5 contracts, MACD cross, FVG fill) made it land |
-| Q2 | Vague job pitch | V5 (slight) | Both good, but V4's personal detail (NASA, B2B SaaS) gave it edge even in loss |
-| Q3 | SPY setup, no MACD cross | V5 | Technical specificity (FVG fill, structure break, range window, 2 contracts) |
+| Q1 | Red trading day | V4 | Specific details (position size, indicator signals) made it land |
+| Q2 | Vague job pitch | V5 (slight) | Both good, but V4's career-history detail gave it edge even in loss |
+| Q3 | Trading setup, signal absent | V5 | Technical specificity (indicator and structure details, position size) |
 | Q4 | No traction on launch | Tie | Both nailed "diagnose, don't comfort" — no domain detail needed |
 | Q5 | "It's basically RAG" | V5 (slight) | More decisive framing of pushback |
-| Q6 | Spouse asks if you're okay | V4 | Vivid behavioral description ("exhausting experience of watching yourself...") |
+| Q6 | Family member asks if you're okay | V4 | Vivid description of an emotional state |
 | Q7 | Trading vs job search | V5 (edge) | Concrete resolution, despite axiom label friction |
 | Q8 | Competitor built similar tool | V5 | "First instinct is to audit" — behavioral prediction, not emotional label |
 | Q9 | Senior overrides your rec | V5 | Brevity, asks the right question, doesn't over-predict from one event |
@@ -420,13 +420,13 @@ After the rubric-based evaluation, we ran a 10-question blind A/B test on Aarik 
 
 **4. Opening lines matter disproportionately.** Q8: "Your first instinct is to audit" (V5, behavioral prediction, chosen) vs "This triggers defensibility anxiety" (V4, emotional label, rejected). The first sentence determines whether the response feels like it "gets" you.
 
-**5. Don't over-predict from single events.** Q9: V4 predicted emotional disengagement from one meeting override. Aarik's response: "one instance would not cause this to happen." The brief must respect tier awareness — situational patterns aren't identity-level.
+**5. Don't over-predict from single events.** Q9: V4 predicted emotional disengagement from one meeting override. The subject rejected it: a single instance would not produce that pattern. The brief must respect tier awareness — situational patterns aren't identity-level.
 
 **6. Don't prescribe what the person needs.** Q9: "What you need from an ally" (V4, rejected) vs asking "is this about the specific decision or the pattern?" (V5, chosen). Collaborative questioning beats directive framing.
 
 ### The Diagnosis: Compression Fidelity, Not Format
 
-V5 is the better brief. The only thing it's missing are the concrete facts that got abstracted away during compose. The authored layers (Core, Predictions) preserve all the detail — MACD (6,18,4), FVG confluence, position sizing limits, NASA contracts, execution gap specifics. The compose step compressed them out.
+V5 is the better brief. The only thing it's missing are the concrete facts that got abstracted away during compose. The authored layers (Core, Predictions) preserve all the detail — indicator settings, position sizing limits, career-history details, execution gap specifics. The compose step compressed them out.
 
 **The fix is not a new brief version. It's a serving architecture change.**
 
@@ -440,7 +440,7 @@ V5 Brief (4K, behavioral steering)
     ↓ e.g., "trading execution gap" mentioned
     ↓
 MCP recall pulls relevant facts
-    ↓ e.g., MACD (6,18,4), FVG, 2-5 contracts, position sizing rules
+    ↓ e.g., indicator settings, position sizing rules
     ↓
 Effective context = Brief + Retrieved Facts
 ```

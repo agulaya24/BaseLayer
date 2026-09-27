@@ -355,7 +355,7 @@ Every time complexity has been added to the extraction prompt, results got worse
 
 Don't check the code. Check whether the result makes sense to the person it's about.
 
-"I've never used an iron condor" is a better test than any unit test. A single "that's about someone else in my life, not me" catches a class of misattribution bugs that no automated evaluation would find. The person is the test suite.
+"I've never used that strategy" is a better test than any unit test. A single "that's about someone else in my life, not me" catches a class of misattribution bugs that no automated evaluation would find. The person is the test suite.
 
 ### Corrections Are Data, Not Failures (D-021)
 
@@ -507,7 +507,7 @@ These principles emerged from testing real fact pairs against human judgment. Th
 
 2. **Temporal Order Dependence.** Ordering is required input to judgment, not optional metadata. "Wakes at 5:30am" followed by "Wakes at 7am" is a state change. Without knowing which came first, the system cannot determine which is current. Temporal order is a prerequisite for contradiction detection, not a supplementary signal.
 
-3. **Scope Resolution.** Confirm same entity/scope before comparing content. "Manager prefers Slack" and "User prefers email" are not contradictions; they describe different people. "Trades SPY options" and "Trades futures" may not contradict if the user trades both. The system must verify that two facts refer to the same entity, the same scope, and the same dimension before evaluating contradiction.
+3. **Scope Resolution.** Confirm same entity/scope before comparing content. "Manager prefers Slack" and "User prefers email" are not contradictions; they describe different people. "Trades options" and "Trades futures" may not contradict if the user trades both. The system must verify that two facts refer to the same entity, the same scope, and the same dimension before evaluating contradiction.
 
 4. **Context-Bound Truth.** Some fact pairs are indeterminate in isolation and require external knowledge to judge. "Lives in Dubai" and "Lives in Toronto" could be a contradiction (moved) or coexistence (dual residence). The system cannot resolve this without additional context. When context is insufficient, the correct output is "indeterminate," not a forced judgment.
 
@@ -572,8 +572,8 @@ This shapes active probing design (D-020):
 **The system should be aware of its own knowledge gaps and use conversation to fill them organically.**
 
 Three types of probes were identified (Session 19):
-1. **Knowledge gap probes:** clusters with few facts or low recurrence. "You've mentioned trading a lot but I don't actually know what you primarily trade — is it mostly SPY?"
-2. **Staleness probes:** facts flagged as outdated. "You used to wake up at 5:30 for pre-market — is that still your routine?"
+1. **Knowledge gap probes:** clusters with few facts or low recurrence. "You've mentioned trading a lot but I don't actually know what you primarily trade — which instruments?"
+2. **Staleness probes:** facts flagged as outdated. "You used to follow an early-morning routine — is that still the case?"
 3. **Depth probes:** surface facts exist but motivations/feelings are missing. "You've talked about what happened with your previous startup — how do you think about that experience now?"
 
 Implementation guidance from the Collective (Cognitive Scientist):
