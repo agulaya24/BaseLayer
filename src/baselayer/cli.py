@@ -1447,14 +1447,11 @@ def cmd_pipeline(args):
         from baselayer.init_database import init_database
         init_database(SUBJ_DB_FILE)
 
-    # Step 1: Import
-    _conn = _sql.connect(str(SUBJ_DB_FILE))
-    _existing = _conn.execute("SELECT COUNT(*) FROM conversations").fetchone()[0]
-    _conn.close()
-
-    if _existing > 0 and not v2_mode:
-        print(f"  {_existing} conversations already imported. Skipping import.")
-    elif source_dir and source_dir.exists():
+    # Step 1: Import, always, through the importer's dedup. This used to skip import
+    # whenever any conversation existed (outside --v2), so files added to the source
+    # directory were never imported while the run still re-extracted and re-authored.
+    total_before, _ = _conversation_counts(SUBJ_DB_FILE)
+    if source_dir and source_dir.exists():
         print(f"\n  Step 1: Importing from {source_dir.name}...")
         # Create a minimal args object for cmd_import
         class _ImportArgs:
@@ -1466,6 +1463,15 @@ def cmd_pipeline(args):
         cmd_import(_ImportArgs())
     else:
         print(f"  No source directory — skipping import.")
+
+    total_after, pending = _conversation_counts(SUBJ_DB_FILE)
+    # --v2 clears extraction first, so everything is pending and the run always proceeds.
+    if not _should_continue_after_import(
+            total_after - total_before, pending, total_after,
+            source_dir.name if source_dir else subject_id,
+            getattr(args, "reauthor", False),
+            rerun_hint=f"baselayer pipeline {subject_id} --reauthor"):
+        return
 
     # Step 2: Extract (batch API — 50% cheaper, ~1hr turnaround)
     print(f"\n  Step 2: Extracting facts (batch API)...")
@@ -1562,6 +1568,46 @@ def cmd_pipeline(args):
 _IMPORT_TO_STORED_SOURCE = {"text": "text_file"}
 
 
+def _conversation_counts(db_path):
+    """(total conversations, conversations not yet extracted) in one database."""
+    import sqlite3 as _sql
+    with contextlib.closing(_sql.connect(str(db_path))) as conn:
+        total = conn.execute("SELECT COUNT(*) FROM conversations").fetchone()[0]
+        pending = conn.execute(
+            "SELECT COUNT(*) FROM conversations"
+            " WHERE id NOT IN (SELECT conversation_id FROM extraction_log)"
+        ).fetchone()[0]
+    return total, pending
+
+
+def _should_continue_after_import(new, pending, total, source_label, reauthor, rerun_hint):
+    """Decide whether a one-command run proceeds past import, and say why either way.
+
+    Proceeds when the import added conversations, when earlier conversations are still
+    waiting for extraction (for example a run cancelled at the cost prompt), or when the
+    caller asked for --reauthor. Otherwise nothing has changed since the last
+    specification was built, so extraction would do nothing and authoring would spend
+    API budget to regenerate the same inputs. Stop, and say so, before the cost estimate.
+    """
+    if new > 0:
+        print(f"\n  Imported {new} new conversation(s) from {source_label} ({total} total).")
+        return True
+    if pending > 0:
+        print(f"\n  Nothing new imported from {source_label}. {pending} conversation(s)"
+              f" imported earlier have not been extracted yet; continuing with those.")
+        return True
+    if reauthor:
+        print(f"\n  Nothing new imported from {source_label}. --reauthor given;"
+              f" regenerating the specification from the existing {total} conversation(s).")
+        return True
+    print(f"\n  Nothing new imported from {source_label}: its content is already in the"
+          f" database ({total} conversation(s), all extracted).")
+    print(f"  Stopping before extraction and authoring, so no API budget was spent.")
+    print(f"  To regenerate the specification from the existing data anyway:")
+    print(f"    {rerun_hint}")
+    return False
+
+
 def cmd_run(args):
     """One-command pipeline (5 steps): import -> extract -> author -> compose -> traceability.
 
@@ -1594,18 +1640,23 @@ def cmd_run(args):
     else:
         print(f"\n  Database exists. Skipping init.")
 
-    # Step 1: Import (skip if conversations already exist — prevents duplication on re-run)
-    import sqlite3 as _sql
-    _conn = _sql.connect(str(DATABASE_FILE))
-    _existing = _conn.execute("SELECT COUNT(*) FROM conversations").fetchone()[0]
-    _conn.close()
-    if _existing > 0:
-        print(f"\n  {_existing} conversations already imported. Skipping import.")
-    else:
-        print(f"\n{'='*60}")
-        print(f"  Step 1/5: Importing data")
-        print(f"{'='*60}\n")
-        cmd_import(args)
+    # Step 1: Import, ALWAYS, through the importer's own dedup (conversation id, plus
+    # content for text and JSON files). This used to skip import whenever any
+    # conversation existed, so a second `run` with a new file never imported it, then
+    # re-authored (API spend) and printed "Done" over a specification that excluded the
+    # file the user named. Re-running on an unchanged file is safe: nothing is inserted.
+    print(f"\n{'='*60}")
+    print(f"  Step 1/5: Importing data")
+    print(f"{'='*60}\n")
+    total_before, _ = _conversation_counts(DATABASE_FILE)
+    cmd_import(args)
+    total_after, pending = _conversation_counts(DATABASE_FILE)
+    new = total_after - total_before
+
+    if not _should_continue_after_import(new, pending, total_after, file_path,
+                                         getattr(args, "reauthor", False),
+                                         rerun_hint=f"baselayer run {file_path} --reauthor"):
+        return
 
     # Cost estimate + confirm
     print(f"\n{'='*60}")
@@ -1678,7 +1729,6 @@ def cmd_run(args):
         print(f"\n  Next steps:")
         print(f"    View full brief:  cat {brief_path}")
         print(f"    Add to Claude:    claude mcp add --transport stdio base-layer -- baselayer-mcp")
-        print(f"    Interactive chat:  baselayer chat")
         print(f"    Review facts:     baselayer review")
     else:
         print(f"\n  Pipeline complete but no brief was generated.")
@@ -2367,6 +2417,8 @@ def main():
         help="V2 mode: snapshot, clear, re-extract with expanded corpus")
     p_pipeline.add_argument("--yes", "-y", action="store_true",
         help="Skip confirmation prompts")
+    p_pipeline.add_argument("--reauthor", action="store_true",
+        help="Regenerate the specification even when the source adds nothing new")
     p_pipeline.set_defaults(func=cmd_pipeline)
 
     # run: THE ENTRY POINT FOR A NEW USER, and NOT legacy.
@@ -2391,6 +2443,10 @@ def main():
                         help="Use document extraction mode (for papers, books, patents)")
     p_run.add_argument("--subject", type=str,
                         help="Subject name for document mode tiering")
+    p_run.add_argument("--reauthor", action="store_true",
+                        help="Regenerate the specification even when the file adds nothing new. "
+                             "Without it, a run that imports nothing new and has nothing waiting "
+                             "for extraction stops before any API spend.")
     # Needed by sub-commands but not directly used
     p_run.add_argument("--force", action="store_true", help=argparse.SUPPRESS)
     p_run.add_argument("--limit", type=int, default=None, help=argparse.SUPPRESS)

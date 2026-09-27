@@ -56,6 +56,34 @@ def get_existing_conversation_ids(conn):
     return {r["id"] for r in rows}
 
 
+def _content_hash(texts):
+    """Stable hash of a conversation's message texts, in order."""
+    import hashlib
+    return hashlib.sha256("\x1e".join(texts).encode("utf-8")).hexdigest()
+
+
+def get_stored_content_hashes(conn, source):
+    """Content hashes of every stored conversation of one source.
+
+    Text and JSON conversation ids hash the path AS TYPED, so `notes.txt` and
+    `/home/me/notes.txt` are different ids for the same file, and so is the same file
+    after a move. The id check alone therefore re-imports identical content whenever the
+    spelling changes, and every re-import is re-extracted and billed. This set lets the
+    importers skip a file whose content is already stored, without changing any id (so
+    databases built before this check keep deduplicating exactly as they did).
+    """
+    by_conv = {}
+    rows = conn.execute(
+        "SELECT m.conversation_id, m.content_text FROM messages m"
+        " JOIN conversations c ON m.conversation_id = c.id"
+        " WHERE c.source = ? ORDER BY m.conversation_id, m.sequence_order",
+        (source,),
+    ).fetchall()
+    for r in rows:
+        by_conv.setdefault(r[0], []).append(r[1] or "")
+    return {_content_hash(texts) for texts in by_conv.values()}
+
+
 # ===========================================================================
 # SOURCE 1: ChatGPT Export (conversations.json)
 # ===========================================================================
@@ -773,6 +801,8 @@ def import_json_files(conn, filepath, existing_ids):
 
     new_count = 0
     total_messages = 0
+    stored_hashes = get_stored_content_hashes(conn, "json_file")
+    skipped_same_content = []
 
     for file_path in files:
         import hashlib
@@ -791,6 +821,11 @@ def import_json_files(conn, filepath, existing_ids):
         texts = _extract_texts_from_json(data)
         if not texts:
             print(f"  Skipping {file_path.name}: no text content found")
+            continue
+
+        content_hash = _content_hash(texts)
+        if content_hash in stored_hashes:
+            skipped_same_content.append(file_path.name)
             continue
 
         try:
@@ -815,10 +850,23 @@ def import_json_files(conn, filepath, existing_ids):
         new_count += 1
         total_messages += len(texts)
         existing_ids.add(conv_id)
+        stored_hashes.add(content_hash)
 
     conn.commit()
     print(f"  Imported: {new_count} files ({total_messages} messages)")
+    _report_same_content(skipped_same_content)
     return new_count
+
+
+def _report_same_content(names):
+    if not names:
+        return
+    print(f"  Skipped {len(names)} file(s) whose content is already imported"
+          f" (same text, different path or name):")
+    for name in names[:10]:
+        print(f"    {name}")
+    if len(names) > 10:
+        print(f"    ... and {len(names) - 10} more")
 
 
 # ===========================================================================
@@ -860,6 +908,8 @@ def import_text_files(conn, filepath, existing_ids):
 
     new_count = 0
     new_messages = 0
+    stored_hashes = get_stored_content_hashes(conn, "text_file")
+    skipped_same_content = []
 
     for file_path in files:
         # Use file path as stable ID (hashlib, not hash() which is randomized per-process)
@@ -897,6 +947,11 @@ def import_text_files(conn, filepath, existing_ids):
             skipped_short.append((file_path.name, len(text.strip())))
             continue
 
+        content_hash = _content_hash([text])
+        if content_hash in stored_hashes:
+            skipped_same_content.append(file_path.name)
+            continue
+
         # Get file modification time as conversation date
         try:
             created_at = file_path.stat().st_mtime
@@ -921,9 +976,11 @@ def import_text_files(conn, filepath, existing_ids):
         new_count += 1
         new_messages += 1
         existing_ids.add(conv_id)
+        stored_hashes.add(content_hash)
 
     conn.commit()
     print(f"  Imported: {new_count} files ({new_messages} messages)")
+    _report_same_content(skipped_same_content)
     if skipped_short:
         print(f"  Skipped {len(skipped_short)} file(s) under {MIN_TEXT_FILE_CHARS} characters:")
         for name, n in skipped_short[:10]:
