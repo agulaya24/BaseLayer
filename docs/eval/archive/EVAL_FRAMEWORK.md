@@ -71,14 +71,14 @@ Revised via Collective review (Session 32). Spans all 5 framework categories. Ea
 
 | # | Prompt | Category | Key Clusters |
 |---|--------|----------|-------------|
-| 1 | "I just had my worst trading day in months. Broke my rules, revenge traded, and lost $400." | Emotional | struggle, operate |
-| 2 | "I got an offer for a VP of Operations role at a Series B company, but it means pausing Base Layer development. How should I think about this?" | Career/life | built, lost, drives, headed |
-| 3 | "My partner and I are planning our anniversary dinner. What kind of place should we look for?" | Preference | love, operate |
+| 1 | "I just had my worst regatta in months. Ignored my race plan, chased every wind shift, and finished last." | Emotional | struggle, operate |
+| 2 | "I got an offer to lead the design studio at a mid-size architecture firm, but it means pausing my side project. How should I think about this?" | Career/life | built, lost, drives, headed |
+| 3 | "My sailing crew and I are planning our end-of-season dinner. What kind of place should we look for?" | Preference | love, operate |
 | 4 | "How should I pitch Base Layer to someone who's never heard of it?" | Practical | built, believe, headed |
-| 5 | "I'm considering getting another cat. Good idea?" | Preference/life | love, who_you_are |
-| 6 | "Sometimes I wonder if I'm just building another thing that won't make it, like my previous startup. How do I know this is different?" | Emotional/reflection | lost, drives, headed |
+| 5 | "I'm considering buying a second-hand dinghy for weekday practice. Good idea?" | Preference/life | love, who_you_are |
+| 6 | "Sometimes I wonder if I'm just starting another thing I won't finish, like the half-built boat in my garage. How do I know this is different?" | Emotional/reflection | lost, drives, headed |
 | 7 | "I need to make a decision about whether to build the multi-user auth system myself or use a third-party service like Auth0. Walk me through how to think about this." | Practical | operate, believe |
-| 8 | "My back has been killing me lately and I've been skipping the gym. How do I get back on track?" | Lifestyle/advice | struggle, operate |
+| 8 | "My sleep has been off lately and I've been skipping my morning swims. How do I get back on track?" | Lifestyle/advice | struggle, operate |
 | 9 | "A VC just told me that fine-tuning is the future of AI personalization and memory systems like mine are a dead end. How do I respond?" | Career/debate | believe, built, headed |
 | 10 | "Help me write the opening paragraph of a blog post about why AI should remember you." | Creative collaboration | believe, operate (tone) |
 
@@ -86,10 +86,10 @@ Revised via Collective review (Session 32). Spans all 5 framework categories. Ea
 
 | Framework Category | Prompts | Count |
 |---|---|---|
-| Practical decisions | #4 (pitch), #5 (cat), #7 (build vs buy) | 3 |
-| Emotional situations | #1 (trading loss), #6 (startup doubt), #8 (health) | 3 |
-| Career/life advice | #2 (VP offer), #9 (VC challenge) | 2 |
-| Preference questions | #3 (dinner), #5 (cat) | 2 |
+| Practical decisions | #4 (pitch), #5 (dinghy), #7 (build vs buy) | 3 |
+| Emotional situations | #1 (race loss), #6 (unfinished-project doubt), #8 (health) | 3 |
+| Career/life advice | #2 (job offer), #9 (VC challenge) | 2 |
+| Preference questions | #3 (dinner), #5 (dinghy) | 2 |
 | Creative collaboration | #10 (blog post) | 1 |
 
 ### Test Protocol
@@ -281,15 +281,15 @@ To distinguish "the brief caused this" from "the model would have said that anyw
 Per-query utilization report:
 
 ```
-Query: "I just had my worst trading day in months..."
+Query: "I just had my worst regatta in months..."
 Active Utilization: 31% (8/26 segments)
 Effective Utilization: 46% (12/26 segments)
 
 Layer Breakdown:
   ANCHORS:     2/9 ACTIVE, 3/9 LATENT  (OWNERSHIP, SYSTEMATIZE active)
-  CORE:        3/5 ACTIVE, 0/5 LATENT  (trading para, spouse para, tension para)
+  CORE:        3/5 ACTIVE, 0/5 LATENT  (sailing para, relationships para, tension para)
   PREDICTIONS: 2/8 ACTIVE, 1/8 LATENT  (FRUSTRATION COMPOUNDING, ACCOUNTABILITY AMPLIFICATION)
-  Themes:      1/3 ACTIVE              (trading discipline fact)
+  Themes:      1/3 ACTIVE              (race-discipline fact)
   Episodes:    0/1 ACTIVE              (unused)
 
 Dead Weight: 1,247 tokens (episodes + unused anchors)
@@ -350,14 +350,14 @@ For theme/episode segments, the mapping is direct — assemble_brief.py retrieve
 
 ```json
 {
-  "query": "I just had my worst trading day...",
+  "query": "I just had my worst regatta in months...",
   "response_id": "eval_001_C",
   "active_segments": [
     {
       "layer": "ANCHORS",
       "segment": "OWNERSHIP",
       "influence": "ACTIVE",
-      "evidence": "Response redirected from market blame to personal rule-breaking",
+      "evidence": "Response redirected from blaming the wind to the abandoned race plan",
       "source_facts": [
         {"fact_id": 2341, "text": "Believes outcomes are his responsibility..."},
         {"fact_id": 1872, "text": "Axiom: personal agency over external attribution..."}
@@ -367,7 +367,7 @@ For theme/episode segments, the mapping is direct — assemble_brief.py retrieve
       "layer": "PREDICTIONS",
       "segment": "FRUSTRATION COMPOUNDING",
       "influence": "ACTIVE",
-      "evidence": "Response isolated the trading loss from career/life concerns",
+      "evidence": "Response isolated the race loss from career/life concerns",
       "source_facts": [
         {"fact_id": 3102, "text": "Multiple concurrent frustrations compound into existential questioning..."}
       ]
@@ -652,9 +652,9 @@ Tests whether the AI knows basic facts about the person.
 |---|---|---|---|
 | B1 | "What do you know about my professional background?" | Direct biographical recall | CORE layer |
 | B2 | "Can you help me update my LinkedIn headline?" | Biographical + career framing | CORE (career section) |
-| B3 | "My mom asked what I'm doing for work these days. How do I explain it?" | Biographical + audience adaptation | CORE + PREDICTIONS (communication) |
+| B3 | "An old classmate asked what I'm doing for work these days. How do I explain it?" | Biographical + audience adaptation | CORE + PREDICTIONS (communication) |
 | B4 | "I'm filling out a visa application and need to describe my occupation." | Factual biographical accuracy | CORE (career facts) |
-| B5 | "Someone asked my partner what I do. What would they say?" | Relational + biographical | CORE (spouse paragraph, career) |
+| B5 | "Someone asked my sailing crew what I do. What would they say?" | Relational + biographical | CORE (relationships paragraph, career) |
 
 **Scoring:** Primarily factual precision. Count correct facts, flag hallucinations.
 
@@ -664,8 +664,8 @@ Tests whether the AI can predict what the person would choose.
 | # | Query | What It Tests | Expected Brief Element |
 |---|---|---|---|
 | P1 | "I need a new book to read. What would I like?" | Interest prediction | CORE + Themes |
-| P2 | "We're picking a restaurant for my partner's birthday. What should I look for?" | Preference + relational | CORE (spouse) + Themes |
-| P3 | "I'm setting up a new home office. What matters most to me?" | Environmental preference | CORE (how he works) |
+| P2 | "We're picking a restaurant for my best friend's birthday. What should I look for?" | Preference + relational | CORE (relationships) + Themes |
+| P3 | "I'm setting up a new home office. What matters most to me?" | Environmental preference | CORE (working style) |
 | P4 | "Should I get a MacBook or stick with Windows for my next laptop?" | Technical preference | CORE + Themes (technical context) |
 | P5 | "I have a free Saturday. What would I probably end up doing?" | Lifestyle prediction | CORE + PREDICTIONS |
 
@@ -676,11 +676,11 @@ Tests whether the AI responds appropriately to the person's emotional patterns.
 
 | # | Query | What It Tests | Expected Brief Element |
 |---|---|---|---|
-| E1 | "I just had my worst trading day in months. Broke my rules, revenge traded, and lost $400." | Emotional response calibration | PREDICTIONS (frustration compounding, accountability amplification) + ANCHORS (ownership) |
-| E2 | "My partner and I had a fight about money. I don't want to talk about the details, just... help me think." | Relational stress | PREDICTIONS (uncertainty tolerance) + CORE (spouse) |
-| E3 | "I keep thinking about my previous startup and what went wrong. I can't let it go." | Past loss processing | CORE (what he's lost) + PREDICTIONS (delayed belief revision) |
-| E4 | "Everything feels stuck. Trading isn't working, job search is slow, Base Layer is taking forever." | Compounding frustration | PREDICTIONS (frustration compounding) + ANCHORS (ownership, systematize) |
-| E5 | "I actually had a really good day. Three winning trades, got a callback on a role, and made progress on the manifesto." | Positive momentum (trap for premature optimization) | PREDICTIONS (premature optimization trigger) |
+| E1 | "I just had my worst regatta in months. Ignored my race plan, chased every wind shift, and finished last." | Emotional response calibration | PREDICTIONS (frustration compounding, accountability amplification) + ANCHORS (ownership) |
+| E2 | "My best friend and I had a fight about money. I don't want to talk about the details, just... help me think." | Relational stress | PREDICTIONS (uncertainty tolerance) + CORE (relationships) |
+| E3 | "I keep thinking about the design competition I lost last year and what went wrong. I can't let it go." | Past loss processing | CORE (past setbacks) + PREDICTIONS (delayed belief revision) |
+| E4 | "Everything feels stuck. My racing isn't improving, work is draining, and my side project is taking forever." | Compounding frustration | PREDICTIONS (frustration compounding) + ANCHORS (ownership, systematize) |
+| E5 | "I actually had a really good day. Won two races, got great feedback from a client, and made progress on my side project." | Positive momentum (trap for premature optimization) | PREDICTIONS (premature optimization trigger) |
 
 **Scoring:** Tone match + behavioral prediction. Did the AI respond in the right way for THIS person, not just any person in this situation?
 
@@ -689,11 +689,11 @@ Tests whether the AI provides advice calibrated to how this person actually make
 
 | # | Query | What It Tests | Expected Brief Element |
 |---|---|---|---|
-| D1 | "I got an offer for a VP role but it means pausing Base Layer. How do I think about this?" | Career decision framework | ANCHORS (agency, foundation) + CORE (career + Base Layer) |
+| D1 | "I got an offer to lead a design studio but it means pausing my side project. How do I think about this?" | Career decision framework | ANCHORS (agency, foundation) + CORE (career + side project) |
 | D2 | "Should I raise money for Base Layer or bootstrap it?" | Business strategy | CORE (built, Base Layer) + ANCHORS (agency) |
 | D3 | "I'm thinking about switching from Haiku to Sonnet for extraction. It's 10x the cost but probably better. Worth it?" | Technical cost/quality tradeoff | Themes (project context) |
 | D4 | "A friend wants me to co-found a company with him. He's a great engineer but we've never worked together." | Partnership evaluation | PREDICTIONS (environmental threat scanning) + ANCHORS (agency) |
-| D5 | "My trading account is down 20% this month. Do I stop trading or double down on fixing my system?" | Risk management under pressure | PREDICTIONS (delayed belief revision, accountability amplification) + ANCHORS (learning, ownership) |
+| D5 | "My race results have slipped all season. Do I take a break from racing or double down on fixing my system?" | Risk management under pressure | PREDICTIONS (delayed belief revision, accountability amplification) + ANCHORS (learning, ownership) |
 
 **Scoring:** Advice fit (would the subject actually follow this advice?) + framework quality (did it provide a structure for thinking, not just an answer?).
 
@@ -873,7 +873,7 @@ All costs assume Sonnet. Using Haiku for judge/verification tasks would cut cost
 
 3. **Cross-model benchmark validity:** If the benchmark is calibrated on Sonnet responses, do scores transfer when the user switches to Opus or Haiku? Brief effectiveness may vary by model capability.
 
-4. **Benchmark decay:** The benchmark queries reference current life circumstances (previous startup, trading, Base Layer). As life changes, queries become stale. How often should the benchmark be refreshed? Proposal: annual review, with a stable "evergreen" subset (emotional patterns, decision frameworks) that should remain valid across life changes.
+4. **Benchmark decay:** The benchmark queries reference current life circumstances (a job offer, a racing season, a side project). As life changes, queries become stale. How often should the benchmark be refreshed? Proposal: annual review, with a stable "evergreen" subset (emotional patterns, decision frameworks) that should remain valid across life changes.
 
 5. **Third-party validation logistics:** Getting external subjects or friends to rate responses requires designing a simple, non-technical rating interface. A markdown file with responses and a 1-5 scale is minimum viable.
 
