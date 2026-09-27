@@ -63,7 +63,7 @@ Each step uses the cheapest model that can do the job. Scoring, classification, 
 
 ### Data architecture
 
-- **Data sovereignty:** All conversations, facts, embeddings, and specification layers are stored on the user's machine. No cloud database, no sync. Base Layer collects no usage data; ChromaDB, a dependency, has its own anonymized telemetry setting, on by default and unchanged by Base Layer (set `ANONYMIZED_TELEMETRY=False` to turn it off).
+- **Data sovereignty:** All conversations, facts, embeddings, and specification layers are stored on the user's machine. No cloud database, no sync. Base Layer collects no usage data; ChromaDB, a dependency, has its own anonymized telemetry setting, on by default; Base Layer turns it off on every ChromaDB client it creates.
 - **API processing (default):** Conversation text is sent to the API for extraction and authoring. Nothing is stored remotely; the API processes and returns results.
 - **Local processing (exploring):** The architecture is designed for cloud removal as local models improve. Local extraction is available today via Ollama for users with a GPU. A fully local pipeline is on the roadmap.
 - **Brief delivery:** Only the assembled brief, a few thousand tokens, reaches the reasoning model. No raw conversations, no embeddings, no personal database.

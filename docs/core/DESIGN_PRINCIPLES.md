@@ -105,7 +105,7 @@ The full conversation history, extracted facts, embeddings, and specification la
 
 Brief assembly is **pure code** with no LLM in the critical path. When the system injects memory into a conversation, it sends only the assembled brief (~2,500 tokens). No raw data, no conversation transcripts, no embeddings.
 
-**Why this matters:** Your data directory is yours. No cloud sync, no accounts, and Base Layer collects no usage data. Its vector store dependency, ChromaDB, has its own anonymized telemetry setting, on by default, which Base Layer does not change; set `ANONYMIZED_TELEMETRY=False` to turn it off. `baselayer estimate` shows how much text is pending extraction before anything is sent to a model API. A behavioral specification system should not require trusting a third party with your life history, and Base Layer doesn't.
+**Why this matters:** Your data directory is yours. No cloud sync, no accounts, and Base Layer collects no usage data. Its vector store dependency, ChromaDB, has its own anonymized telemetry setting, on by default; Base Layer turns it off on every ChromaDB client it creates. `baselayer estimate` shows how much text is pending extraction before anything is sent to a model API. A behavioral specification system should not require trusting a third party with your life history, and Base Layer doesn't.
 
 ---
 

@@ -6,12 +6,17 @@ All notable changes to Base Layer are documented here.
 
 ## Unreleased
 
+### Behavior changes
+- ChromaDB telemetry is off. Every ChromaDB client is now built through `config.get_chroma_client()`, which passes `Settings(anonymized_telemetry=False)`. Previously all thirteen call sites used ChromaDB's default, which is on. A test fails if any source file builds a client another way.
+- `baselayer run <file>` and `baselayer pipeline <subject>` now import the named source every time, through the importer's dedup. Previously both skipped import whenever any conversation already existed, then re-extracted, re-authored and reported success over a specification that excluded the new file. When nothing new is imported and nothing is waiting for extraction, they stop before the cost estimate and say so; `--reauthor` regenerates anyway. The text and JSON importers also skip a file whose content is already stored, so the same file spelled by a different path is not imported twice. The completion message no longer points at the archived `chat` command.
+- `forget` marks the specification stale. It writes `data/identity_layers/stale_after_forget.json`; any layer or brief file older than it is reported stale by `baselayer stats`, the MCP server log and `get_stats`, and a short notice in the served specification. Regenerating (`baselayer author --compose`) clears it. The help says forget hides facts, keeps raw conversation text, and does not regenerate layers.
+
 ### Documentation corrections (no behavior change)
 - Reset advice corrected. The 0.5.0 entry below says a real reset is `forget --all` plus deleting the vector store. That is wrong: `forget` only hides facts and leaves the extraction log in place, so the next `extract` reports every conversation as already done and processes nothing (reproduced on a scratch corpus). The reset is `python -m baselayer.extract_facts --reset`, which deletes extracted facts, the extraction log, and the fact vectors, and keeps imported conversations and user corrections. It is irreversible and has no confirmation prompt. The safest clean start is pointing `MEMORY_SYSTEM_ROOT` at an empty directory. Help strings in `init --force`, the `init` notice, and the two stale-vector warnings in `extract_facts.py` (which named a nonexistent `baselayer extract --reset`) now say this.
-- `forget` help and docs say it hides facts (soft delete). Raw conversation text stays, and specification layers already written are not regenerated or invalidated.
+- `forget` help and docs say it hides facts (soft delete). Raw conversation text stays, and specification layers already written are not regenerated (see Behavior changes: they are now marked stale).
 - README evaluation note: the analysis plan was locked partway through the study, after most data had been collected. It is not a preregistration of the full study, and it specifies a seven-judge panel; the five-judge primary panel is not in it.
 - README experimental quickstart now shows the arguments `distill`, `assemble`, and `author-from-package` require (`--out`, tree files, `--package`).
-- Telemetry wording: Base Layer collects no usage data. ChromaDB, a dependency, has its own anonymized telemetry setting, on by default, which Base Layer does not change; `ANONYMIZED_TELEMETRY=False` turns it off. Earlier text said there was no telemetry.
+- Telemetry wording: Base Layer collects no usage data. ChromaDB, a dependency, has its own anonymized telemetry setting, on by default; earlier text said there was no telemetry while Base Layer left that setting on. Base Layer now turns it off (see Behavior changes).
 - Removed test counts and estimated cost figures from prose. Cost depends on text volume and provider pricing.
 - The data root is `MEMORY_SYSTEM_ROOT` (default `~/.baselayer` for an installed package), not the current directory; the run and serve recipes and AGENTS.md said otherwise.
 

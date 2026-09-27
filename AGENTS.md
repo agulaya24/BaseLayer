@@ -167,7 +167,7 @@ ANTHROPIC_API_KEY=...                  # Required for extraction/authoring/compo
 MEMORY_SYSTEM_ROOT=...                 # Data root. Default: ~/.baselayer for an installed package; a source checkout uses its own root. Not the current directory.
 BASELAYER_EXTRACTION_BACKEND=ollama    # Optional: local extraction via Ollama
 BASELAYER_SKIP_FACT_FLOOR=1            # Skip minimum fact check
-ANONYMIZED_TELEMETRY=False             # Optional: turns off ChromaDB's own anonymized telemetry, which ChromaDB enables by default. Base Layer does not change that setting and sends no usage data itself.
+ANONYMIZED_TELEMETRY=False             # Optional belt: Base Layer already builds every ChromaDB client with anonymized telemetry off (ChromaDB's default is on). This also covers clients you create yourself. Base Layer sends no usage data itself.
 ```
 
 ## Testing
@@ -191,7 +191,7 @@ GitHub Actions CI runs the suite on Python 3.10, 3.11, 3.12.
 - **"0 identity-tier facts"**: Run `baselayer checkpoint classification` to inspect. It reports; it does not repair, and there is no `--fix` flag.
 - **Thin predictions**: Normal for short texts. Anchors and core are often sufficient.
 - **Re-extraction needed**: `python -m baselayer.extract_facts --reset` deletes extracted facts, the extraction log, and the fact vectors so every conversation is reprocessed. It is irreversible and has no confirmation prompt; confirm with the user first. It keeps imported conversations and user-corrected facts and does not touch layers already written under `data/identity_layers/`. The safest clean start is a fresh data root: point `MEMORY_SYSTEM_ROOT` at an empty directory. `baselayer forget --all` plus deleting `data/vectors/` is not a reset: the extraction log still marks every conversation as done, so re-extraction processes nothing.
-- **Removing facts**: `baselayer forget` hides facts (soft delete: rows marked superseded and restorable; their vectors are removed and not restored). Imported conversation text stays. Specification layers already written are not regenerated or invalidated; re-run `author` and `compose` to rebuild them without the hidden facts. To remove everything, delete the data directory and the MCP session logs under `~/.baselayer/sessions/`, which record tool queries.
+- **Removing facts**: `baselayer forget` hides facts (soft delete: rows marked superseded and restorable; their vectors are removed and not restored). Imported conversation text stays. Specification layers already written are not regenerated; they are marked stale (`baselayer stats`, the MCP server log and the served specification say so) until `baselayer author --compose` rebuilds them without the hidden facts. To remove everything, delete the data directory and the MCP session logs under `~/.baselayer/sessions/`, which record tool queries.
 
 ## License
 

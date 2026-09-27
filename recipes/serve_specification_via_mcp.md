@@ -108,5 +108,5 @@ The `/mcp` dialog itself is for managing Anthropic-hosted cloud connectors (Goog
 
 - The MCP server runs over stdio. No accounts. Base Layer sends no usage data.
 - The specification stays on the user's machine. Base Layer uploads nothing.
-- Retrieval tools open a local ChromaDB store. ChromaDB has its own anonymized telemetry setting, on by default, which Base Layer does not change. Set `ANONYMIZED_TELEMETRY=False` in the server's environment to turn it off.
+- Retrieval tools open a local ChromaDB store. ChromaDB has its own anonymized telemetry setting, on by default; Base Layer opens the store with that setting off.
 - For non-MCP integrations (paste into ChatGPT custom instructions, Cursor, etc.), use `baselayer brief "<message>"` to print a context-tailored specification to stdout.

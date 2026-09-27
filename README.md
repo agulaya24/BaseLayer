@@ -138,7 +138,7 @@ You can also paste the layers and brief into any system prompt. You will lose re
 
 The layers are markdown files on disk. Open them. Delete what is wrong. Rewrite what is close. Add what your writing never said. The MCP server reads them from disk on each run.
 
-`baselayer forget` hides facts: it marks them superseded and removes their vectors. It is a soft delete: the fact rows stay in the database and can be restored; the removed vectors are not. Imported conversation text is not removed. Specification layers already written are not regenerated or invalidated, so they can still carry claims built from hidden facts until you re-run `author` and `compose`. To remove everything, delete the data directory and the MCP session logs under `~/.baselayer/sessions/`, which record tool queries.
+`baselayer forget` hides facts: it marks them superseded and removes their vectors. It is a soft delete: the fact rows stay in the database and can be restored; the removed vectors are not. Imported conversation text is not removed. Specification layers already written are not regenerated, so they can still carry claims built from hidden facts until you run `baselayer author --compose`. Until then they are marked stale: `baselayer stats`, the MCP server log and the served specification say so. To remove everything, delete the data directory and the MCP session logs under `~/.baselayer/sessions/`, which record tool queries.
 
 Facts do not carry their own significance. Editing is where judgement enters. The artefact is text so you can apply it.
 
@@ -165,7 +165,7 @@ Specifications change how decisions are argued in every situation tested. They c
 
 Database, vectors, facts, and the specification live on your machine. There is no cloud sync and there are no accounts. Extraction and authoring can call a model API if you configure one. Provider retention policies apply. Anthropic’s policy is here: https://www.anthropic.com/policies/privacy. The first embedding run downloads the embedding model from Hugging Face.
 
-Base Layer does not collect usage data or send any to the project. Its vector store dependency, ChromaDB, has its own anonymized product telemetry setting, and Base Layer does not change it. ChromaDB's default for that setting is on. To turn it off, set `ANONYMIZED_TELEMETRY=False` in the environment before running Base Layer, or pass `Settings(anonymized_telemetry=False)` if you create ChromaDB clients in your own code.
+Base Layer does not collect usage data or send any to the project. Its vector store dependency, ChromaDB, has its own anonymized product telemetry setting, on by default. Base Layer builds every ChromaDB client with `Settings(anonymized_telemetry=False)`, so it is off for everything Base Layer runs. If you create ChromaDB clients in your own code, pass the same setting or set `ANONYMIZED_TELEMETRY=False` in the environment.
 
 The artefact is local-first, model-agnostic, and portable.
 
