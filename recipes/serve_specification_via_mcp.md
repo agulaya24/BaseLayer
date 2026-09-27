@@ -16,7 +16,7 @@
 claude mcp add --transport stdio base-layer -- baselayer-mcp
 ```
 
-Run this from the subject directory whose specification you want served. The server reads from the cwd at launch.
+The server reads the data root from `MEMORY_SYSTEM_ROOT` (default `~/.baselayer` for an installed package), not from the current directory. Set that variable in the server's environment to serve a specific subject.
 
 ### Claude Desktop
 
@@ -106,6 +106,7 @@ The `/mcp` dialog itself is for managing Anthropic-hosted cloud connectors (Goog
 
 ## Notes
 
-- The MCP server runs over stdio. No network. No accounts. No telemetry.
-- The specification stays on the user's machine. Nothing is uploaded.
+- The MCP server runs over stdio. No accounts. Base Layer sends no usage data.
+- The specification stays on the user's machine. Base Layer uploads nothing.
+- Retrieval tools open a local ChromaDB store. ChromaDB has its own anonymized telemetry setting, on by default, which Base Layer does not change. Set `ANONYMIZED_TELEMETRY=False` in the server's environment to turn it off.
 - For non-MCP integrations (paste into ChatGPT custom instructions, Cursor, etc.), use `baselayer brief "<message>"` to print a context-tailored specification to stdout.

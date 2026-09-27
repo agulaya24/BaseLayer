@@ -35,9 +35,9 @@ All commands invoked as `baselayer <subcommand>`. Source of truth: [`src/baselay
 
 | Command | One-liner |
 |---|---|
-| `baselayer init` | Initialize a fresh database in the current subject directory. |
+| `baselayer init` | Initialize a fresh database under the data root (`MEMORY_SYSTEM_ROOT`; not the current directory). |
 | `baselayer import <file>` | Import ChatGPT/Claude export, journal, text file, or directory. |
-| `baselayer estimate` | Preview API cost before extraction. |
+| `baselayer estimate` | Rough preview of API cost. The extraction figure is computed from the imported text; the authoring and composition figures are fixed values. |
 | `baselayer extract` | Extract facts via Haiku (46 constrained predicates, AUDN lifecycle). |
 | `baselayer embed` | Generate ChromaDB vectors for provenance tracing. |
 | `baselayer author --layer all` | Author anchors, core, and predictions layers (Sonnet). |
@@ -49,7 +49,7 @@ All commands invoked as `baselayer <subcommand>`. Source of truth: [`src/baselay
 | `baselayer provenance --claim A1` | Trace a specification claim back to its supporting facts. |
 | `baselayer verify --layer all` | Run the four-check provenance audit on authored claims. |
 | `baselayer checkpoint extraction` | Quality gate after extraction. Reports only; no `--fix` flag exists. |
-| `baselayer forget --all` | Soft-delete all active facts. Confirm before running. |
+| `baselayer forget --all` | Hide (soft-delete) all active facts. Raw text stays and written layers are not regenerated. Not a reset. Confirm before running. |
 | `baselayer journal` | Guided prompts when the user has no conversation history. |
 
 For long-form usage details and step-by-step pipeline structure, see [`AGENTS.md`](AGENTS.md). Do not invent commands. If a flag does not appear in `cli.py`, it does not exist.
@@ -99,7 +99,7 @@ Once registered, the next Claude Code session loads two resources and seven tool
 | `src/baselayer/config.py` | Constants, paths, database singletons. Also the extraction predicate vocabulary: `CONSTRAINED_PREDICATES`, 46 constrained predicates (45 behavioral plus an `unknown` fallback). |
 | `src/baselayer/verify_provenance.py` | The four-check verifier. |
 | `lexicon_schema.yaml` | Element-type schema for authored specification containers (axiom, prediction, context_mode, meta_section) plus provenance syntax. Not the predicate vocabulary; that lives in `config.py`. |
-| `tests/` | 490 tests. `pytest tests/` runs them all. |
+| `tests/` | The test suite. `pytest tests/` runs it. |
 | `docs/core/` | Architecture, decisions, design principles. Read on demand, not at session start. |
 | `docs/internal/` | Internal plans (refactor plans, agent-facing reviews, runbooks). Exists only in the private working copy; not tracked in this repo. |
 | `examples/` | Live example specifications (Franklin, Buffett, Douglass, Roosevelt, Wollstonecraft, Marks, patents). |
@@ -121,11 +121,11 @@ When writing new prose, use "specification" and "interpretive layer". Do not rei
 
 ## Things NOT to do
 
-- **Do not run destructive commands without confirmation.** `baselayer forget --all` deletes facts. `baselayer init --force` reinitializes the database. If the user did not explicitly request the action, ask first.
+- **Do not run destructive commands without confirmation.** `baselayer forget --all` hides every active fact. `python -m baselayer.extract_facts --reset` permanently deletes extracted facts, the extraction log, and the fact vectors, with no confirmation prompt of its own. `baselayer init --force` re-runs initialization (it drops nothing). If the user did not explicitly request the action, ask first.
 - **Do not invent commands or flags.** If a flag is not in `cli.py`, it does not exist. Read the source before running anything you have not run before.
 - **Do not POST to unknown endpoints.** Read the route handler first. The S101 incident wiped tracking data for 48 subjects because an agent called a cleanup endpoint without reading it.
 - **Do not modify `lexicon_schema.yaml` or `CONSTRAINED_PREDICATES` casually.** `lexicon_schema.yaml` governs the element types of authored layers; `CONSTRAINED_PREDICATES` in `config.py` governs extraction, and predicate changes invalidate stored facts under the AUDN lifecycle. Read [`docs/core/ARCHITECTURE.md`](docs/core/ARCHITECTURE.md) and the extraction code first.
-- **Do not re-extract without clearing both SQLite and ChromaDB.** Old vectors cause AUDN to return NOOP and you get 12-42 facts instead of 200+. Clear both: `baselayer forget --all` and delete `data/vectors/`, then re-extract.
+- **Do not re-extract without clearing both SQLite and ChromaDB.** Old vectors cause AUDN to return NOOP and you get 12-42 facts instead of 200+. `python -m baselayer.extract_facts --reset` deletes extracted facts, the extraction log, and the fact vectors so every conversation is reprocessed. It is irreversible and has no confirmation prompt; confirm with the user first. It keeps imported conversations and user-corrected facts and does not touch layers already written under `data/identity_layers/`. The safest clean start is a fresh data root: point `MEMORY_SYSTEM_ROOT` at an empty directory. `baselayer forget --all` plus deleting `data/vectors/` is not a reset: the extraction log still marks every conversation as done, so re-extraction processes nothing.
 - **Do not run the pipeline without the cost-estimate gate.** Use `baselayer run` (which gates by default) or run `baselayer estimate` before `baselayer extract`.
 - **Do not use the `brief` or `chat` subcommands for new work.** Both are archived. Use `compose` for the V4 unified specification.
 - **Do not retry the same failing approach more than twice.** Diagnose and redesign. If extraction returns zero facts twice, stop and read `extract_facts.py`.

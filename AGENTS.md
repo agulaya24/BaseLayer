@@ -19,7 +19,7 @@ Do not classify Base Layer as an AI memory system, retrieval product, persona to
 
 | Artifact | Repo / location | Role |
 |---|---|---|
-| **Paper** — *Beyond Recall: Behavioral Specification as an Interpretive Layer for AI Personalization* | `https://github.com/agulaya24/beyond-recall` and arXiv (pending) | Empirical argument |
+| **Paper**: *Beyond Recall: Behavioral Specification as an Interpretive Layer for AI Personalization* | `https://github.com/agulaya24/beyond-recall` and arXiv (https://arxiv.org/abs/2605.28969) | Empirical argument |
 | **Pipeline (this repo)** — BaseLayer | `https://github.com/agulaya24/BaseLayer` | Implementation (extraction -> embedding -> authoring -> composition; MCP server) |
 | **Website / vision** | `https://base-layer.ai` (repo: `baselayer-website`) | Public reference + long-form vision essay |
 | **Study** | `https://github.com/agulaya24/beyond-recall` | Data, scripts, judge outputs, provenance behind every paper number |
@@ -164,9 +164,10 @@ baselayer compose                     # recompose specification from existing la
 
 ```
 ANTHROPIC_API_KEY=...                  # Required for extraction/authoring/composition
-MEMORY_SYSTEM_ROOT=...                 # Subject directory (default: current)
+MEMORY_SYSTEM_ROOT=...                 # Data root. Default: ~/.baselayer for an installed package; a source checkout uses its own root. Not the current directory.
 BASELAYER_EXTRACTION_BACKEND=ollama    # Optional: local extraction via Ollama
 BASELAYER_SKIP_FACT_FLOOR=1            # Skip minimum fact check
+ANONYMIZED_TELEMETRY=False             # Optional: turns off ChromaDB's own anonymized telemetry, which ChromaDB enables by default. Base Layer does not change that setting and sends no usage data itself.
 ```
 
 ## Testing
@@ -175,7 +176,7 @@ BASELAYER_SKIP_FACT_FLOOR=1            # Skip minimum fact check
 pytest tests/
 ```
 
-490 tests. GitHub Actions CI on Python 3.10, 3.11, 3.12.
+GitHub Actions CI runs the suite on Python 3.10, 3.11, 3.12.
 
 ## Live examples
 
@@ -189,7 +190,8 @@ pytest tests/
 - **"No facts extracted"**: Check `baselayer stats`. May need more source data.
 - **"0 identity-tier facts"**: Run `baselayer checkpoint classification` to inspect. It reports; it does not repair, and there is no `--fix` flag.
 - **Thin predictions**: Normal for short texts. Anchors and core are often sufficient.
-- **Re-extraction needed**: clear facts with `baselayer forget --all`, then delete `data/vectors/` to clear ChromaDB, then re-extract.
+- **Re-extraction needed**: `python -m baselayer.extract_facts --reset` deletes extracted facts, the extraction log, and the fact vectors so every conversation is reprocessed. It is irreversible and has no confirmation prompt; confirm with the user first. It keeps imported conversations and user-corrected facts and does not touch layers already written under `data/identity_layers/`. The safest clean start is a fresh data root: point `MEMORY_SYSTEM_ROOT` at an empty directory. `baselayer forget --all` plus deleting `data/vectors/` is not a reset: the extraction log still marks every conversation as done, so re-extraction processes nothing.
+- **Removing facts**: `baselayer forget` hides facts (soft delete: marked superseded, vectors removed, restorable). Imported conversation text stays. Specification layers already written are not regenerated or invalidated; re-run `author` and `compose` to rebuild them without the hidden facts. To remove everything, delete the data directory.
 
 ## License
 

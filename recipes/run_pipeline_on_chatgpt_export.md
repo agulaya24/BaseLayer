@@ -11,11 +11,11 @@
 
 ## Working directory
 
-Run all commands from a dedicated subject directory. The pipeline writes to `./data/` relative to the cwd. Example:
+Give each subject its own data root. The pipeline writes to `data/` under `MEMORY_SYSTEM_ROOT`, not under the current directory. When the variable is unset, an installed package uses `~/.baselayer`. Example:
 
 ```bash
 mkdir -p ~/baselayer_subjects/me
-cd ~/baselayer_subjects/me
+export MEMORY_SYSTEM_ROOT=~/baselayer_subjects/me
 ```
 
 ## Steps
@@ -42,7 +42,7 @@ The source type is auto-detected. To be explicit: `--source chatgpt`.
 baselayer estimate
 ```
 
-Prints the estimated API spend for extraction. **Stop here and surface the estimate to the user. Wait for explicit confirmation before proceeding.** Roughly $0.50 to $2.00 for ~1,000 conversations.
+Prints the estimated API spend for extraction. **Stop here and surface the estimate to the user. Wait for explicit confirmation before proceeding.** `baselayer estimate` computes its extraction figure from your imported text; the authoring and composition figures it prints are fixed values that do not scale with the corpus. Actual cost depends on text volume and provider pricing, so treat the estimate as a rough guide, not a budget.
 
 ### 4. Extract facts
 
@@ -106,12 +106,12 @@ baselayer run /path/to/chatgpt-export.zip
 
 ## Failure handling
 
-- **Extraction returns zero facts.** Run `baselayer stats`. If conversation count is zero, the import did not work; check the file path and `--source` flag. If conversations exist but no facts, the corpus may be too short or noisy. Inspect a sample: `sqlite3 data/database/memory.db "SELECT title FROM conversations LIMIT 10"`.
-- **Extraction returns far fewer facts than expected (e.g. 12-42 instead of 200+).** Stale ChromaDB vectors cause AUDN to NOOP. Fix: `baselayer forget --all`, then delete `data/vectors/`, then re-extract.
+- **Extraction returns zero facts.** Run `baselayer stats`. If conversation count is zero, the import did not work; check the file path and `--source` flag. If conversations exist but no facts, the corpus may be too short or noisy. Inspect a sample: `sqlite3 "$MEMORY_SYSTEM_ROOT/data/database/memory.db" "SELECT title FROM conversations LIMIT 10"`.
+- **Extraction returns far fewer facts than expected (e.g. 12-42 instead of 200+).** Stale ChromaDB vectors cause AUDN to NOOP. Fix: run `python -m baselayer.extract_facts --reset`, then re-extract. The reset deletes extracted facts, the extraction log, and the fact vectors so every conversation is reprocessed. It is irreversible and has no confirmation prompt; confirm with the user first. It keeps imported conversations and user-corrected facts and does not touch layers already written under `data/identity_layers/`. The safest clean start is a fresh data root: point `MEMORY_SYSTEM_ROOT` at an empty directory. `baselayer forget --all` plus deleting `data/vectors/` is not a reset: the extraction log still marks every conversation as done, so re-extraction processes nothing.
 - **`No API key` error.** `export ANTHROPIC_API_KEY=sk-ant-...`.
 - **Authoring produces thin predictions.** Normal for short corpora. Anchors and core are usually sufficient. Do not regenerate without diagnosing.
 - **Compose fails with missing layer files.** Re-run `baselayer author --layer all`.
 
 ## Voice when reporting back to the user
 
-State what was produced. Cite paths. Do not editorialize. If the cost estimate was $1.40 and extracted 312 facts, say so.
+State what was produced. Cite paths. Do not editorialize. Report the cost estimate `baselayer estimate` printed and the number of facts extracted, as numbers.

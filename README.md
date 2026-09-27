@@ -63,15 +63,19 @@ baselayer extract && baselayer embed
 baselayer author && baselayer compose
 ```
 
-Experimental distillation path:
+Experimental distillation path. `distill` requires `--out`, `assemble` takes the tree files for one layer plus `--out`, and `author-from-package` requires one `--package` per layer:
 
 ```
-baselayer distill --layer anchors
-baselayer distill --layer core
-baselayer distill --layer predictions
-baselayer assemble
-baselayer author-from-package --outdir spec_out/
+baselayer distill --layer anchors --out tree_anchors.json
+baselayer distill --layer core --out tree_core.json
+baselayer distill --layer predictions --out tree_predictions.json
+baselayer assemble tree_anchors.json --out pkg_anchors.json
+baselayer assemble tree_core.json --out pkg_core.json
+baselayer assemble tree_predictions.json --out pkg_predictions.json
+baselayer author-from-package --package pkg_anchors.json --package pkg_core.json --package pkg_predictions.json --outdir spec_out/
 ```
+
+Run `baselayer <command> --help` for the remaining options.
 
 ## Auditability / what you can verify
 
@@ -88,7 +92,7 @@ Read auditable as: what is cited can be checked. It does not mean everything is 
 
 ## Status and limits
 
-- Experimental components: Distillation, assembly, and the package-based author are experimental in this repository. The distillation test suite is 10 mutation tests over the citation audit and exercises none of the other modules. Most measurements behind the distillation design come from a single 407-fact corpus. Study harnesses that ship here may emit unstripped outputs. Use with care and inspect outputs.
+- Experimental components: Distillation, assembly, and the package-based author are experimental in this repository. The distillation tests are mutation tests over the citation audit and exercise none of the other modules. Most measurements behind the distillation design come from a single 407-fact corpus. Study harnesses that ship here may emit unstripped outputs. Use with care and inspect outputs.
 - Two authoring paths: The legacy authoring path still ships. It does not guarantee inline citations, so verification that depends on parsing citations may produce no checks. The package-based author requires a citation field by schema. Required does not mean accurate. A resolving citation proves the reference is real, not that the fact caused the claim.
 - Provenance scope: `trace_claim` lands on the source conversation, not the exact sentence. The source passage is not stored.
 - Vector provenance: When a claim has no inline citations the system may attach vector links. Treat these as nearby, not used.
@@ -96,7 +100,7 @@ Read auditable as: what is cited can be checked. It does not mean everything is 
 - Corpus limits: The corpus is self-report. No third-party observation enters. There is no time axis. Changes over time are not recorded. The extractor only sees text. Tone, body language, and physical habit are absent.
 - Scope of effect: It helps most where the model knows the person least. On a well-known public figure it often adds little.
 - Operational notes:
-  - Re-extracting from the same files without clearing prior state can leave stale vectors that cause over-deduplication. Clear both the fact store and vector store before a clean run.
+  - Re-extracting from the same files without clearing prior state can leave stale vectors that cause over-deduplication. For a clean re-extraction run `python -m baselayer.extract_facts --reset`. It is irreversible and asks no confirmation: it deletes extracted facts, the extraction log, and the fact vectors, and keeps imported conversations and user-corrected facts. The safest clean start is a fresh data root: point `MEMORY_SYSTEM_ROOT` at an empty directory. `baselayer forget --all` plus deleting `data/vectors/` is not a reset, because the extraction log still marks every conversation as done.
   - Document mode asserts the subject is the document. Use it for documents only, not people.
   - Not on PyPI. Install from source.
   - Costs and run times vary with API pricing and corpus size.
@@ -134,11 +138,13 @@ You can also paste the layers and brief into any system prompt. You will lose re
 
 The layers are markdown files on disk. Open them. Delete what is wrong. Rewrite what is close. Add what your writing never said. The MCP server reads them from disk on each run.
 
+`baselayer forget` hides facts: it marks them superseded and removes their vectors. It is a soft delete, so the facts stay in the database and can be restored. Imported conversation text is not removed. Specification layers already written are not regenerated or invalidated, so they can still carry claims built from hidden facts until you re-run `author` and `compose`. To remove everything, delete the data directory.
+
 Facts do not carry their own significance. Editing is where judgement enters. The artefact is text so you can apply it.
 
 ## What we tested
 
-We evaluated on 14 historical subjects with public-domain autobiographies. A five-judge primary panel and a seven-judge sensitivity panel scored responses under a pre-registered plan. Full results are on the site and in the Beyond Recall paper (https://arxiv.org/abs/2605.28969).
+We evaluated on 14 historical subjects with public-domain autobiographies. A five-judge primary panel and a seven-judge sensitivity panel scored responses. An analysis plan was locked partway through the study, after most data had been collected (https://github.com/agulaya24/beyond-recall/blob/master/docs/ANALYSIS_PLAN_LOCK.md). It fixes the aggregation rule and the primary tests; it is not a preregistration of the full study. The lock specifies a seven-judge panel; the five-judge primary panel is not in it. Full results are on the site and in the Beyond Recall paper (https://arxiv.org/abs/2605.28969).
 
 - Direction reproduces across response models and battery-generation models. Absolute magnitudes are panel-dependent.
 - Given a response, a judge can tell which specification produced it 51.6% of the time from the reasoning, and 13.4% from the decision alone. Chance is 11.1%. The reasoning carries the signal.
@@ -157,7 +163,9 @@ Specifications change how decisions are argued in every situation tested. They c
 
 ## Privacy
 
-Database, vectors, facts, and the specification live on your machine. There is no cloud sync, no accounts, and no telemetry. Extraction and authoring can call a model API if you configure one. Provider retention policies apply. Anthropic’s policy is here: https://www.anthropic.com/policies/privacy.
+Database, vectors, facts, and the specification live on your machine. There is no cloud sync and there are no accounts. Extraction and authoring can call a model API if you configure one. Provider retention policies apply. Anthropic’s policy is here: https://www.anthropic.com/policies/privacy. The first embedding run downloads the embedding model from Hugging Face.
+
+Base Layer does not collect usage data or send any to the project. Its vector store dependency, ChromaDB, has its own anonymized product telemetry setting, and Base Layer does not change it. ChromaDB's default for that setting is on. To turn it off, set `ANONYMIZED_TELEMETRY=False` in the environment before running Base Layer, or pass `Settings(anonymized_telemetry=False)` if you create ChromaDB clients in your own code.
 
 The artefact is local-first, model-agnostic, and portable.
 
@@ -175,7 +183,7 @@ Docs:
 - ROADMAP.md
 - docs/eval: evaluation frameworks and results
 
-Pre-1.0, 490 tests.
+Pre-1.0.
 
 ## Reproducibility
 
