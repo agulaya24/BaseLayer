@@ -683,6 +683,8 @@ def cmd_stats(args):
 
         print()
 
+    _print_stale_spec_warning()
+
 
 def cmd_search(args):
     """Search facts by keyword or semantic similarity."""
@@ -795,21 +797,62 @@ def cmd_forget(args):
 
         # Soft-delete in SQLite
         now = time.time()
+        hidden = 0
         with conn:
             for fid in fact_ids:
-                conn.execute(
+                cur = conn.execute(
                     "UPDATE memory_facts SET superseded_by = 'user_forget', updated_at = ?"
                     " WHERE id = ? AND superseded_by IS NULL",
                     (now, fid),
                 )
+                hidden += cur.rowcount
 
         # Delete vectors from ChromaDB
         vectors_removed = _delete_vectors(fact_ids)
 
-        print(f"\n  Soft-deleted {len(fact_ids)} fact(s).")
+        print(f"\n  Hid {hidden} fact(s) (soft-delete).")
         print(f"  Removed {vectors_removed} vector(s) from ChromaDB.")
-        print(f"  Facts are hidden but not permanently deleted.")
-        print(f"  They can be recovered by clearing the superseded_by field.")
+        print(f"  Facts are hidden, not permanently deleted. The fact rows can be recovered")
+        print(f"  by clearing the superseded_by field; the removed vectors are not restored.")
+        print(f"  Raw conversation text is NOT removed: the messages these facts were")
+        print(f"  extracted from remain in the database.")
+
+    if hidden:
+        _mark_spec_stale_after_forget(hidden, mode)
+
+
+def _mark_spec_stale_after_forget(hidden, mode):
+    """Record the forget and tell the user which specification files it leaves stale."""
+    from baselayer.config import IDENTITY_LAYERS_DIR
+    from baselayer.spec_staleness import record_forget, stale_files, default_spec_files
+
+    record_forget(IDENTITY_LAYERS_DIR, hidden, mode)
+    stale = stale_files(default_spec_files(), IDENTITY_LAYERS_DIR)
+    if stale:
+        print(f"\n  WARNING: your specification is now stale. It was authored before this")
+        print(f"  forget and was not regenerated, so it may still contain claims drawn from")
+        print(f"  the hidden facts, and the MCP server keeps serving it (with a stale notice).")
+        print(f"  Stale: {', '.join(f.name for f in stale)}")
+        print(f"  Regenerate it with: baselayer author --compose")
+    else:
+        print(f"\n  No authored specification exists yet, so none is stale.")
+
+
+def _print_stale_spec_warning():
+    from baselayer.config import IDENTITY_LAYERS_DIR
+    from baselayer.spec_staleness import stale_files, default_spec_files, read_marker
+
+    stale = stale_files(default_spec_files(), IDENTITY_LAYERS_DIR)
+    if not stale:
+        return
+    marker = read_marker(IDENTITY_LAYERS_DIR) or {}
+    n = marker.get("facts_forgotten")
+    count = f"{n} fact(s)" if n else "Facts"
+    print(f"  WARNING: specification is stale. {count} were hidden with `baselayer forget`")
+    print(f"  after these files were written: {', '.join(f.name for f in stale)}.")
+    print(f"  They may still carry claims drawn from the hidden facts. Regenerate with:")
+    print(f"    baselayer author --compose")
+    print()
 
 
 def cmd_provenance(args):
@@ -2310,20 +2353,23 @@ def main():
     # forget
     p_forget = subparsers.add_parser(
         "forget",
-        help="Hide facts (soft delete, by ID, conversation, or all). Raw text stays; "
-             "specification layers already written are not regenerated or invalidated.",
+        help="Hide facts (soft delete, by ID, conversation, or all). Raw conversation text "
+             "stays; specification layers already written are not regenerated (they are "
+             "marked stale).",
         description="Hide facts by marking them superseded and removing their vectors. "
                     "This is a soft delete: the fact rows stay in the database and can be "
-                    "restored; the removed vectors are not. Imported conversation text is not "
-                    "removed. Specification layers already written are not regenerated or "
-                    "invalidated, so a served specification can still carry claims built from "
-                    "hidden facts until you re-run author and compose. To remove everything, "
+                    "restored; the removed vectors are not. Raw conversation text is not "
+                    "removed: the imported messages the facts came from stay in the database. "
+                    "Specification layers already written are not regenerated, so a served "
+                    "specification can still carry claims built from hidden facts until you "
+                    "run `baselayer author --compose`. After a forget they are marked stale, "
+                    "and `baselayer stats` and the MCP server say so. To remove everything, "
                     "delete the data directory and the MCP session logs under "
                     "~/.baselayer/sessions/, which record tool queries.")
     p_forget.add_argument("--fact", type=str, metavar="ID",
                           help="Hide a specific fact by its ID")
     p_forget.add_argument("--conversation", type=str, metavar="ID",
-                          help="Hide all facts from a conversation ID")
+                          help="Hide all facts extracted from a conversation ID (its raw text stays)")
     p_forget.add_argument("--all", action="store_true",
                           help="Hide ALL active facts (requires confirmation). Not a reset: "
                                "re-extraction still skips conversations already processed.")

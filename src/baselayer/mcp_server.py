@@ -83,6 +83,33 @@ def _escape_like(s):
     return s.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
+def _stale_spec_files():
+    """Specification files written before the last `baselayer forget`, else [].
+
+    `forget` hides facts but does not regenerate the layers, so the served text can still
+    carry claims drawn from facts the user asked to forget. See spec_staleness.py.
+    """
+    from baselayer.spec_staleness import stale_files
+    try:
+        return stale_files(
+            [ANCHORS_LAYER_FILE, CORE_LAYER_FILE, PREDICTIONS_LAYER_FILE,
+             UNIFIED_BRIEF_FILE, UNIFIED_BRIEF_CITED_FILE],
+            CORE_LAYER_FILE.parent,
+        )
+    except OSError:
+        return []
+
+
+# Kept short and placed directly after the preamble: MCP clients may cut the
+# instructions field at about 2,048 characters, and this notice must survive that.
+_STALE_NOTICE = (
+    "**Stale specification.** The user hid some facts with `baselayer forget` after "
+    "the layers below were written, and they have not been regenerated. Claims below "
+    "may rest on facts the user asked to forget: do not volunteer those specifics, and "
+    "prefer what the user says now."
+)
+
+
 def _extract_layer_block(path):
     """Read a layer file and return its Injectable Block content.
 
@@ -298,6 +325,8 @@ def _build_specification_text() -> str:
         )
 
     sections = [usage_preamble]
+    if _stale_spec_files():
+        sections.append(_STALE_NOTICE)
     if core_block:
         sections.append(f"## Communication & Context (CORE)\n\n{core_block}")
     if anchors_block:
@@ -677,6 +706,14 @@ def get_stats() -> str:
         for s in sources:
             lines.append(f"    {s['source']:15s} {s['cnt']:,}")
 
+    stale = _stale_spec_files()
+    if stale:
+        lines.append(
+            "\n  WARNING: specification is stale. Facts were hidden with `baselayer forget` "
+            f"after these files were written: {', '.join(f.name for f in stale)}. "
+            "Regenerate with `baselayer author --compose`."
+        )
+
     return "\n".join(lines)
 
 
@@ -851,6 +888,12 @@ def main():
     logger.info(f"Starting Base Layer MCP server...")
     logger.info(f"Database: {DATABASE_FILE}")
     logger.info(f"Vectors: {VECTORS_DIR}")
+    stale = _stale_spec_files()
+    if stale:
+        logger.warning(
+            "Serving a STALE specification: facts were hidden with `baselayer forget` after "
+            f"{', '.join(f.name for f in stale)} were written. The served text carries a "
+            "stale notice. Regenerate with `baselayer author --compose`.")
     mcp.run(transport="stdio")
 
 
