@@ -111,6 +111,33 @@ def database_initialized(db_path=None):
 # ChromaDB persistent vector storage directory
 VECTORS_DIR = PROJECT_ROOT / "data" / "vectors"
 
+
+def get_chroma_client(path=None):
+    """Build a ChromaDB PersistentClient with anonymized telemetry OFF. The only way to build one.
+
+    ChromaDB's `Settings().anonymized_telemetry` defaults to True, and its product-telemetry
+    client sends usage events unless the flag is off. Every client in this package used to be
+    built with default settings, at a dozen call sites, while the README says the tool sends
+    no telemetry. Routing every client through this one function makes the setting a property
+    of the package rather than of whichever call site remembered it;
+    tests/test_chroma_telemetry.py fails if any source file builds a client another way.
+
+    `path` defaults to VECTORS_DIR as it is at call time. Call sites pass their own
+    module-level VECTORS_DIR explicitly, so behaviour under MEMORY_SYSTEM_ROOT reloads is
+    unchanged. chromadb is imported here, not at module load, so importing config stays cheap
+    (the MCP server's startup depends on that). All clients for one path must share settings:
+    Chroma caches one system per path and refuses a second client with different settings,
+    which is another reason there is exactly one constructor.
+    """
+    import chromadb
+    from chromadb.config import Settings
+
+    if path is None:
+        path = VECTORS_DIR
+    return chromadb.PersistentClient(
+        path=str(path), settings=Settings(anonymized_telemetry=False)
+    )
+
 # Raw ChatGPT export (used by import_conversations.py)
 CONVERSATIONS_FILE = PROJECT_ROOT / "data" / "raw" / "conversations.json"
 

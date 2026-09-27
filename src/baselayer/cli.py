@@ -705,7 +705,8 @@ def _delete_vectors(fact_ids):
         return 0
 
     try:
-        client = chromadb.PersistentClient(path=str(VECTORS_DIR))
+        from baselayer.config import get_chroma_client as _chroma_client_for
+        client = _chroma_client_for(VECTORS_DIR)
         collection = client.get_collection("memory_facts")
     except Exception as e:
         # Collection doesn't exist — nothing to delete
@@ -1262,7 +1263,8 @@ def _run_traceability():
     print("  5b. Checking embeddings...")
     try:
         import chromadb
-        client = chromadb.PersistentClient(path=str(VECTORS_DIR))
+        from baselayer.config import get_chroma_client as _chroma_client_for
+        client = _chroma_client_for(VECTORS_DIR)
         try:
             collection = client.get_collection("memory_facts")
             db_count = conn.execute("SELECT COUNT(*) FROM memory_facts").fetchone()[0]

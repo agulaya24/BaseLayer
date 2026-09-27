@@ -68,7 +68,8 @@ def create_chroma_collection():
     print(f"\nInitializing ChromaDB at {VECTORS_DIR}")
 
     # Create persistent client
-    client = chromadb.PersistentClient(path=str(VECTORS_DIR))
+    from baselayer.config import get_chroma_client as _chroma_client_for
+    client = _chroma_client_for(VECTORS_DIR)
 
     # Get or create collection (cosine distance for native similarity scores)
     collection = client.get_or_create_collection(

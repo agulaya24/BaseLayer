@@ -188,7 +188,8 @@ def get_chroma_client():
     """Get ChromaDB client (cached)."""
     if not hasattr(get_chroma_client, "_client"):
         import chromadb
-        get_chroma_client._client = chromadb.PersistentClient(path=str(VECTORS_DIR))
+        from baselayer.config import get_chroma_client as _chroma_client_for
+        get_chroma_client._client = _chroma_client_for(VECTORS_DIR)
     return get_chroma_client._client
 
 
@@ -1764,7 +1765,8 @@ def main():
         if embed_model is None:
             print("ERROR: Could not load embedding model. Run: pip install sentence-transformers")
             return
-        chroma_client = chromadb.PersistentClient(path=str(VECTORS_DIR))
+        from baselayer.config import get_chroma_client as _chroma_client_for
+        chroma_client = _chroma_client_for(VECTORS_DIR)
         print("  Ready.\n")
 
         if args.assemble or args.show_brief:

@@ -550,7 +550,8 @@ def run_process(resume=False):
         # Clear ChromaDB on fresh run
         try:
             import chromadb
-            chroma_client = chromadb.PersistentClient(path=str(VECTORS_DIR))
+            from baselayer.config import get_chroma_client as _chroma_client_for
+            chroma_client = _chroma_client_for(VECTORS_DIR)
             try:
                 chroma_client.delete_collection("memory_facts")
                 print("  ChromaDB memory_facts collection cleared.")
@@ -561,7 +562,8 @@ def run_process(resume=False):
     else:
         try:
             import chromadb
-            chroma_client = chromadb.PersistentClient(path=str(VECTORS_DIR))
+            from baselayer.config import get_chroma_client as _chroma_client_for
+            chroma_client = _chroma_client_for(VECTORS_DIR)
         except ImportError:
             print("  ChromaDB not available — skipping vector operations.")
 

@@ -2068,7 +2068,8 @@ def run_extraction(limit: int = None, conv_id: str = None,
             from sentence_transformers import SentenceTransformer
 
             embed_model = SentenceTransformer(EMBEDDING_MODEL)
-            client = chromadb.PersistentClient(path=str(VECTORS_DIR))
+            from baselayer.config import get_chroma_client as _chroma_client_for
+            client = _chroma_client_for(VECTORS_DIR)
 
             # Create or get facts collection
             try:
@@ -2452,7 +2453,8 @@ def main():
         # D-022: Also clear ChromaDB memory_facts collection (prevent ghost embeddings)
         try:
             import chromadb
-            client = chromadb.PersistentClient(path=str(VECTORS_DIR))
+            from baselayer.config import get_chroma_client as _chroma_client_for
+            client = _chroma_client_for(VECTORS_DIR)
             try:
                 client.delete_collection("memory_facts")
                 print("ChromaDB memory_facts collection cleared.")

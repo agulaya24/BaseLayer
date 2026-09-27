@@ -88,7 +88,8 @@ def load_state_facts(fact_class_filter='state'):
             }
 
     # Get embeddings from ChromaDB
-    client = chromadb.PersistentClient(path=str(VECTORS_DIR))
+    from baselayer.config import get_chroma_client as _chroma_client_for
+    client = _chroma_client_for(VECTORS_DIR)
     try:
         collection = client.get_collection("memory_facts")
     except (ValueError, RuntimeError):

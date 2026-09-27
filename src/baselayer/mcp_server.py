@@ -405,7 +405,8 @@ def _get_chroma_client():
         with _init_lock:
             if _chroma_client is None:  # Double-check after acquiring lock
                 import chromadb
-                _chroma_client = chromadb.PersistentClient(path=str(VECTORS_DIR))
+                from baselayer.config import get_chroma_client as _chroma_client_for
+                _chroma_client = _chroma_client_for(VECTORS_DIR)
                 logger.info("ChromaDB connected.")
     return _chroma_client
 

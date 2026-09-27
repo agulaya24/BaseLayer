@@ -26,7 +26,8 @@ def get_collection():
 
     if _collection is None:
         import chromadb
-        _client = chromadb.PersistentClient(path=str(VECTORS_DIR))
+        from baselayer.config import get_chroma_client as _chroma_client_for
+        _client = _chroma_client_for(VECTORS_DIR)
         _collection = _client.get_collection(name=COLLECTION_NAME)
 
     return _collection
