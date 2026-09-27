@@ -173,7 +173,7 @@ Data access:
 - Distillation reads this project's database directly (opened read-only). It requires `memory_facts` with the fields `id`, `fact_text`, `predicate`, `category`, and `superseded_by`. No adapter is needed.
 
 Status:
-- Experimental. It is not heavily tested: its suite is 10 mutation tests over the citation audit in `distill.py` (`tests/test_distillation_metrics_can_fail.py`) and does not exercise the other modules, and most of its measurements were taken on a single 407-fact corpus. `distill_batch.py` and `convergence.py` do not call `validate()`, so their output is unstripped: fabricated fact ids are not removed from it.
+- Experimental. It is not heavily tested: its suite is mutation tests over the citation audit in `distill.py` (`tests/test_distillation_metrics_can_fail.py`) and does not exercise the other modules, and most of its measurements were taken on a single 407-fact corpus. `distill_batch.py` and `convergence.py` do not call `validate()`, so their output is unstripped: fabricated fact ids are not removed from it.
 
 Compatibility:
 - The 5-step pipeline remains what `baselayer author` runs today. Steps 1, 2, 3 and 5 are unchanged. Step 4 here is the shipped path and remains documented for operational continuity.
@@ -368,17 +368,15 @@ The shipped audit is a strong data-quality check, not a causal-traceability guar
 
 ## Model Roles
 
-| Model | Step | Role | Typical Cost |
-|-------|------|------|-------------|
-| **Haiku** (API) | Extract | Structured fact extraction, 46 constrained predicates | ~$0.10-0.50/corpus |
-| **MiniLM-L6-v2** (local) | Embed | 384-dim vectors for search, verify, and vector provenance fallback | $0 |
-| **Sonnet** (API) | Author | Three-layer generation | ~$0.05-0.15 |
-| **Opus** (API) | Compose | Compress 3 layers into specification | ~$0.05-0.15 |
-| **Pure code** | Serve | Load and serve final specification via MCP | $0 |
+| Model | Step | Role | Runs |
+|-------|------|------|------|
+| **Haiku** (API) | Extract | Structured fact extraction, 46 constrained predicates | Model API |
+| **MiniLM-L6-v2** (local) | Embed | 384-dim vectors for search, verify, and vector provenance fallback | Local |
+| **Sonnet** (API) | Author | Three-layer generation | Model API |
+| **Opus** (API) | Compose | Compress 3 layers into specification | Model API |
+| **Pure code** | Serve | Load and serve final specification via MCP | Local |
 
-Total cost per subject includes only the shipped 5-step pipeline. The current authoring architecture, Interpretive Distillation, ships in this repository as `baselayer.distillation` and is experimental; its cost scales with call count and is documented in `distill.py`'s cost notes (a large corpus is hours and tens of dollars per layer).
-
-**Total cost per subject:** ~$0.30 to $2.00 depending on corpus size. `baselayer estimate` previews exact cost before spending anything.
+**Cost:** `baselayer estimate` computes its extraction figure from your imported text; the authoring and composition figures it prints are fixed values that do not scale with the corpus. Actual cost depends on text volume and provider pricing, so treat the estimate as a rough guide, not a budget. Interpretive Distillation, the experimental authoring path in `baselayer.distillation`, makes many more model calls than the shipped author; its cost scales with call count, so read `distill.py`'s cost notes before running it.
 
 **Local extraction option:** Set `BASELAYER_EXTRACTION_BACKEND=ollama` to run extraction through a local model (`config.py` sets `LLM_MODEL = "qwen2.5:14b"`; an earlier note here named Mistral 7B and did not match the code). Authoring and composition still require Claude API.
 
@@ -507,7 +505,7 @@ memory_system/
 |       +-- core_v4.md
 |       +-- predictions_v4.md
 |       +-- brief_v5_clean.md         # The specification (primary artifact)
-+-- tests/                             # 490 tests
++-- tests/                             # test suite
 +-- docs/
 |   +-- core/                          # Architecture, decisions, principles
 |   +-- eval/                          # Benchmarks, ablation studies, eval frameworks

@@ -99,13 +99,13 @@ The full conversation history, extracted facts, embeddings, and specification la
 
 **How we got here:** The project started with a local-first philosophy, extraction via Qwen 2.5 14B, everything on-device. But local models couldn't match API quality for the nuanced work of behavioral extraction and identity authoring (D-030: Qwen failed 12 times at narrative generation). The architecture evolved to API-default processing with local data storage. The privacy commitment remains: your data directory is yours. The processing model is honest about the tradeoff.
 
-**Default pipeline (API):** Extraction sends conversation text to Anthropic's Haiku API. Layer authoring uses Sonnet. Brief composition uses Opus. This is the quality path, ~$0.50-2.00 total for ~1,000 conversations. Nothing persists remotely beyond Anthropic's standard API retention.
+**Default pipeline (API):** Extraction sends conversation text to Anthropic's Haiku API. Layer authoring uses Sonnet. Brief composition uses Opus. This is the quality path; cost depends on text volume and provider pricing. Nothing persists remotely beyond Anthropic's standard API retention.
 
 **Optional local extraction:** Set `BASELAYER_EXTRACTION_BACKEND=ollama` to run extraction via Qwen 2.5 14B locally. Requires GPU. Quality is lower than API extraction. Authoring and composition still require API access, as local models can't yet produce the synthesis quality needed for specification layers. Full local pipeline remains a goal as open models improve.
 
 Brief assembly is **pure code** with no LLM in the critical path. When the system injects memory into a conversation, it sends only the assembled brief (~2,500 tokens). No raw data, no conversation transcripts, no embeddings.
 
-**Why this matters:** Your data directory is yours. No telemetry, no cloud sync, no accounts. The system's processing model is transparent: you can see exactly what gets sent to APIs via `baselayer estimate`. A behavioral specification system should not require trusting a third party with your life history, and Base Layer doesn't.
+**Why this matters:** Your data directory is yours. No cloud sync, no accounts, and Base Layer collects no usage data. Its vector store dependency, ChromaDB, has its own anonymized telemetry setting, on by default, which Base Layer does not change; set `ANONYMIZED_TELEMETRY=False` to turn it off. `baselayer estimate` shows how much text is pending extraction before anything is sent to a model API. A behavioral specification system should not require trusting a third party with your life history, and Base Layer doesn't.
 
 ---
 

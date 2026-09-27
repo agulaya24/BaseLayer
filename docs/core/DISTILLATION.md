@@ -12,7 +12,7 @@ the reference copy must not sit where a quickstart run from a clone would append
 > It is published because the design is worth arguing with, not because it is ready to depend on.
 > What that means concretely:
 >
-> - The test suite is 10 mutation tests over the citation audit. It is not integration coverage,
+> - The test suite is mutation tests over the citation audit. It is not integration coverage,
 >   and it does not exercise `assemble.py`, `author_from_package.py`, `convergence.py`, or
 >   `distill_batch.py` at all.
 > - Most measurements behind the design were taken on one 407-fact corpus. Two defects that only
@@ -23,8 +23,8 @@ the reference copy must not sit where a quickstart run from a clone would append
 >   that shape remains.
 > - `distill_batch.py` and `convergence.py` do not call `validate()`, so their output is
 >   unstripped. That is documented, not fixed.
-> - Cost is real. A large corpus is hours and tens of dollars per layer. Read the cost notes
->   before running anything you have not budgeted.
+> - Cost is real and scales with the number of model calls, which grows with corpus size. Read
+>   the cost notes before running anything you have not budgeted.
 >
 > Use it to read the architecture, reproduce a measurement, or disagree with a choice. Do not put
 > it in front of anything that matters yet.

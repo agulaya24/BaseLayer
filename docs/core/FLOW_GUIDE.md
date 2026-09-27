@@ -40,14 +40,7 @@ Personal notes and journals tend to produce the highest quality identity data be
 ```
 baselayer estimate
 ```
-Shows how much the pipeline will cost before you spend anything:
-```
-  Pending extraction:     827
-  Estimated cost by model:
-    Haiku 4.5    $   1.53 <-- default
-    Sonnet 4     $   5.74
-  Post-extraction pipeline: ~$0.60
-```
+Prints pending conversation counts, estimated tokens, and an estimated extraction cost per model. `baselayer estimate` computes its extraction figure from your imported text; the authoring and composition figures it prints are fixed values that do not scale with the corpus. Actual cost depends on text volume and provider pricing, so treat the estimate as a rough guide, not a budget.
 
 ### Step 6: Extract Facts
 ```
@@ -142,13 +135,14 @@ Your Data ------> Import ------> Extract ------> Author Layers
 ```
 
 ## Cost Summary
-| Step | Model | Estimated Cost |
-|------|-------|---------------|
-| Extract | Haiku (default) | ~$0.002/conversation |
-| Author layers | Sonnet | ~$0.10-0.50 |
-| Compose brief | Opus | ~$0.10-0.50 |
-| Brief assembly | None (local) | Free |
-| **Total (1,000 conversations)** | | **~$0.50-2.00** |
+| Step | Model | Runs |
+|------|-------|------|
+| Extract | Haiku (default) | Model API |
+| Author layers | Sonnet | Model API |
+| Compose brief | Opus | Model API |
+| Brief assembly | None (local) | Local |
+
+Cost depends on text volume and provider pricing. Run `baselayer estimate` before extracting and treat it as a rough guide.
 
 ## Time Estimates
 | Step | First Run | Subsequent |

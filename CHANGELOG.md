@@ -4,6 +4,17 @@ All notable changes to Base Layer are documented here.
 
 ---
 
+## Unreleased
+
+### Documentation corrections (no behavior change)
+- Reset advice corrected. The 0.5.0 entry below says a real reset is `forget --all` plus deleting the vector store. That is wrong: `forget` only hides facts and leaves the extraction log in place, so the next `extract` reports every conversation as already done and processes nothing (reproduced on a scratch corpus). The reset is `python -m baselayer.extract_facts --reset`, which deletes extracted facts, the extraction log, and the fact vectors, and keeps imported conversations and user corrections. It is irreversible and has no confirmation prompt. The safest clean start is pointing `MEMORY_SYSTEM_ROOT` at an empty directory. Help strings in `init --force`, the `init` notice, and the two stale-vector warnings in `extract_facts.py` (which named a nonexistent `baselayer extract --reset`) now say this.
+- `forget` help and docs say it hides facts (soft delete). Raw conversation text stays, and specification layers already written are not regenerated or invalidated.
+- README evaluation note: the analysis plan was locked partway through the study, after most data had been collected. It is not a preregistration of the full study, and it specifies a seven-judge panel; the five-judge primary panel is not in it.
+- README experimental quickstart now shows the arguments `distill`, `assemble`, and `author-from-package` require (`--out`, tree files, `--package`).
+- Telemetry wording: Base Layer collects no usage data. ChromaDB, a dependency, has its own anonymized telemetry setting, on by default, which Base Layer does not change; `ANONYMIZED_TELEMETRY=False` turns it off. Earlier text said there was no telemetry.
+- Removed test counts and estimated cost figures from prose. Cost depends on text volume and provider pricing.
+- The data root is `MEMORY_SYSTEM_ROOT` (default `~/.baselayer` for an installed package), not the current directory; the run and serve recipes and AGENTS.md said otherwise.
+
 ## 0.5.0 - 2026-08-18
 
 ### Added (interpretive distillation ships in this repository)

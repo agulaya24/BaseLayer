@@ -60,7 +60,7 @@ Pre-1.0. Pipeline is functional end-to-end (one-command `baselayer run`); MCP se
 Items deliberately not on the roadmap:
 
 - **Hosted SaaS.** Base Layer is a local-first tool plus the served examples on `base-layer.ai`. No hosted multi-tenant deployment is planned.
-- **Account systems.** No user accounts, no authentication for personal use, no telemetry. Specifications stay local.
+- **Account systems.** No user accounts, no authentication for personal use, and no usage data collected by Base Layer. Specifications stay local. (ChromaDB, a dependency, has its own anonymized telemetry setting; see the README's Privacy section.)
 - **Cross-user behavioral aggregation.** The project is per-user calibration. Aggregate cohort modeling is not the design target.
 
 ## How to suggest additions
