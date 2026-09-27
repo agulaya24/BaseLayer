@@ -138,7 +138,7 @@ You can also paste the layers and brief into any system prompt. You will lose re
 
 The layers are markdown files on disk. Open them. Delete what is wrong. Rewrite what is close. Add what your writing never said. The MCP server reads them from disk on each run.
 
-`baselayer forget` hides facts: it marks them superseded and removes their vectors. It is a soft delete, so the facts stay in the database and can be restored. Imported conversation text is not removed. Specification layers already written are not regenerated or invalidated, so they can still carry claims built from hidden facts until you re-run `author` and `compose`. To remove everything, delete the data directory.
+`baselayer forget` hides facts: it marks them superseded and removes their vectors. It is a soft delete: the fact rows stay in the database and can be restored; the removed vectors are not. Imported conversation text is not removed. Specification layers already written are not regenerated or invalidated, so they can still carry claims built from hidden facts until you re-run `author` and `compose`. To remove everything, delete the data directory and the MCP session logs under `~/.baselayer/sessions/`, which record tool queries.
 
 Facts do not carry their own significance. Editing is where judgement enters. The artefact is text so you can apply it.
 

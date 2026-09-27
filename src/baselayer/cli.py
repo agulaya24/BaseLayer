@@ -2261,11 +2261,13 @@ def main():
         help="Hide facts (soft delete, by ID, conversation, or all). Raw text stays; "
              "specification layers already written are not regenerated or invalidated.",
         description="Hide facts by marking them superseded and removing their vectors. "
-                    "This is a soft delete: facts stay in the database and can be restored. "
-                    "Imported conversation text is not removed. Specification layers already "
-                    "written are not regenerated or invalidated, so a served specification can "
-                    "still carry claims built from hidden facts until you re-run author and "
-                    "compose. To remove everything, delete the data directory.")
+                    "This is a soft delete: the fact rows stay in the database and can be "
+                    "restored; the removed vectors are not. Imported conversation text is not "
+                    "removed. Specification layers already written are not regenerated or "
+                    "invalidated, so a served specification can still carry claims built from "
+                    "hidden facts until you re-run author and compose. To remove everything, "
+                    "delete the data directory and the MCP session logs under "
+                    "~/.baselayer/sessions/, which record tool queries.")
     p_forget.add_argument("--fact", type=str, metavar="ID",
                           help="Hide a specific fact by its ID")
     p_forget.add_argument("--conversation", type=str, metavar="ID",

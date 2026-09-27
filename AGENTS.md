@@ -191,7 +191,7 @@ GitHub Actions CI runs the suite on Python 3.10, 3.11, 3.12.
 - **"0 identity-tier facts"**: Run `baselayer checkpoint classification` to inspect. It reports; it does not repair, and there is no `--fix` flag.
 - **Thin predictions**: Normal for short texts. Anchors and core are often sufficient.
 - **Re-extraction needed**: `python -m baselayer.extract_facts --reset` deletes extracted facts, the extraction log, and the fact vectors so every conversation is reprocessed. It is irreversible and has no confirmation prompt; confirm with the user first. It keeps imported conversations and user-corrected facts and does not touch layers already written under `data/identity_layers/`. The safest clean start is a fresh data root: point `MEMORY_SYSTEM_ROOT` at an empty directory. `baselayer forget --all` plus deleting `data/vectors/` is not a reset: the extraction log still marks every conversation as done, so re-extraction processes nothing.
-- **Removing facts**: `baselayer forget` hides facts (soft delete: marked superseded, vectors removed, restorable). Imported conversation text stays. Specification layers already written are not regenerated or invalidated; re-run `author` and `compose` to rebuild them without the hidden facts. To remove everything, delete the data directory.
+- **Removing facts**: `baselayer forget` hides facts (soft delete: rows marked superseded and restorable; their vectors are removed and not restored). Imported conversation text stays. Specification layers already written are not regenerated or invalidated; re-run `author` and `compose` to rebuild them without the hidden facts. To remove everything, delete the data directory and the MCP session logs under `~/.baselayer/sessions/`, which record tool queries.
 
 ## License
 
