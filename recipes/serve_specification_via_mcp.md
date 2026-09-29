@@ -53,6 +53,8 @@ If only one resolves: the server is running an older build. Reinstall: `pip inst
 
 The server exposes eight tools beyond the specification resource (`get_brief`, `recall_memories`, `search_facts`, `trace_claim`, `verify_claims`, `get_stats`, `get_call_log`, `get_help`). Worth a quick smoke test on first connect.
 
+`trace_claim` and `verify_claims` read provenance tables keyed by the served claim ids. If the served layers were authored somewhere else (for example by `author-from-package`), those tables may not hold the served ids, and both tools return nothing useful. For a specification built from packages, `baselayer verify-spec` checks citations against the corpus directly and read-only.
+
 ```
 Call get_stats()
 ```

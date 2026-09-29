@@ -69,11 +69,49 @@ baselayer run <file>              # full pipeline
 Step-by-step:
 
 ```bash
-baselayer extract                 # Haiku, 46 constrained predicates, AUDN lifecycle
+baselayer extract                 # Haiku 4.5, 46 constrained predicates, AUDN lifecycle
 baselayer embed                   # MiniLM-L6-v2 -> ChromaDB
-baselayer author --layer all      # Sonnet, three-layer authoring
-baselayer compose                 # Opus, unified specification
+baselayer author --layer all      # Sonnet 4.6, three-layer authoring (static path)
+baselayer compose                 # Opus 4.6, unified specification (static path)
 ```
+
+Model ids live in `config.py` (static path) and in the argparse defaults of the experimental
+distillation commands (`distill`: Sonnet 5; `author-from-package`: Opus 5, Opus 5.5 via
+`--model`). Read them there rather than from this file.
+
+### The turn contract (opt-in extraction mode)
+
+`docs/core/TURN_CONTRACT.md` (decision D-108) keeps a specification to the person's own words:
+
+- **Import** writes a `turns` table. Every row records the speaker, taken from the source's own role
+  field, and a voice class. Only `own_typed` and `own_dictated` can be cited. These classes are
+  context only:
+  - `assistant`
+  - `other_person`
+  - `pasted`
+  - `compaction_summary`
+  - `tool_result`
+  - `harness_prompt`
+  - `queued_command`
+
+  Pasted text is excluded by default and can be allowlisted by turn id. Subject-specific signals
+  (names, meeting speaker labels, exclusions, injection canaries) live in a local import config,
+  never in the repo.
+- **`baselayer extract --turn-contract`** (or `BASELAYER_TURN_CONTRACT=1`):
+  - chunks by whole turns, with read-only preceding context;
+  - offers only own-voice turns as citable;
+  - runs a gate in code that stores a fact only if every evidence span names an own-voice turn,
+    matches its text verbatim, and is within the length bounds.
+- **Rejections** are counted by reason (`no_grounding`, `no_turn`, `not_own_voice`,
+  `span_not_found`, `span_length`) in `<corpus>/data/database/extraction_runs/<run_id>.json`. Read
+  that record after every run: a gate that rejected nothing or everything is flagged `suspect`.
+- **Stamps.** Every fact carries the extraction model, prompt hash, git commit and repo-relative
+  code path. Gated facts also carry the contract version, `source_turn_id` and `evidence_spans`.
+- **`baselayer verify-spec <spec_dir> --label L --corpus C --out O`** checks a finished
+  specification read-only. It is a dry run by default and calls no model. It re-gates every span of
+  every gated fact and checks legacy facts at conversation level (`docs/core/VERIFY_SPEC.md`).
+- **Build into a fresh corpus directory** (point `MEMORY_SYSTEM_ROOT` at a new directory). Turn
+  mode refuses a database holding facts not stamped with its version.
 
 ## Checkpoints
 
@@ -175,7 +213,7 @@ BASELAYER_SKIP_FACT_FLOOR=1            # Skip minimum fact check
 pytest tests/
 ```
 
-490 tests. GitHub Actions CI on Python 3.10, 3.11, 3.12.
+Offline, no API key needed. GitHub Actions CI on Python 3.10, 3.11, 3.12.
 
 ## Live examples
 
@@ -189,7 +227,7 @@ pytest tests/
 - **"No facts extracted"**: Check `baselayer stats`. May need more source data.
 - **"0 identity-tier facts"**: Run `baselayer checkpoint classification` to inspect. It reports; it does not repair, and there is no `--fix` flag.
 - **Thin predictions**: Normal for short texts. Anchors and core are often sufficient.
-- **Re-extraction needed**: clear facts with `baselayer forget --all`, then delete `data/vectors/` to clear ChromaDB, then re-extract.
+- **Re-extraction needed**: build into a fresh corpus directory (set `MEMORY_SYSTEM_ROOT` to a new directory and import again). Do not rely on `baselayer forget --all`: it soft-deletes facts and their vectors but keeps the extraction log, so a later extract finds nothing to do. `init --force` deletes nothing. The full extraction reset, if you must clear a corpus in place, is `python -m baselayer.extract_facts --reset`.
 
 ## License
 

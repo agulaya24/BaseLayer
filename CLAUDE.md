@@ -38,21 +38,23 @@ All commands invoked as `baselayer <subcommand>`. Source of truth: [`src/baselay
 | `baselayer init` | Initialize a fresh database in the current subject directory. |
 | `baselayer import <file>` | Import ChatGPT/Claude export, journal, text file, or directory. |
 | `baselayer estimate` | Preview API cost before extraction. |
-| `baselayer extract` | Extract facts via Haiku (46 constrained predicates, AUDN lifecycle). |
+| `baselayer extract` | Extract facts via Haiku 4.5 (46 constrained predicates, AUDN lifecycle). Add `--turn-contract` to ground every fact in the subject's own turns (see below). |
 | `baselayer embed` | Generate ChromaDB vectors for provenance tracing. |
-| `baselayer author --layer all` | Author anchors, core, and predictions layers (Sonnet). |
-| `baselayer compose` | Compose unified specification from the three layers (Opus). |
-| `baselayer run <file>` | Full pipeline with cost-gate. Runs `import` -> `extract` -> `embed` -> `author` -> `compose`. |
-| `baselayer brief "<message>"` | Print a context-tailored specification to stdout. |
+| `baselayer author --layer all` | Author anchors, core, and predictions layers (Sonnet 4.6). |
+| `baselayer compose` | Compose unified specification from the three layers (Opus 4.6). |
+| `baselayer run <file>` | Full pipeline with cost-gate. Runs `import` -> `extract` -> `author` -> `compose`, then embeds in a post-compose traceability phase. |
 | `baselayer stats` | Database stats: conversations, facts, tier breakdown. |
 | `baselayer search "<query>"` | FTS keyword search across active facts. |
 | `baselayer provenance --claim A1` | Trace a specification claim back to its supporting facts. |
 | `baselayer verify --layer all` | Run the four-check provenance audit on authored claims. |
+| `baselayer verify-spec <spec_dir> --label L --corpus C --out O` | Read-only post-specification verification: citation resolution, per-fact voice, re-gating of every evidence span. Dry run by default; no model is called unless `--run-model`. |
 | `baselayer checkpoint extraction` | Quality gate after extraction. Reports only; no `--fix` flag exists. |
-| `baselayer forget --all` | Soft-delete all active facts. Confirm before running. |
+| `baselayer forget --all` | Soft-delete all active facts. Confirm before running. Not a reset: the extraction log is kept. |
 | `baselayer journal` | Guided prompts when the user has no conversation history. |
 
 For long-form usage details and step-by-step pipeline structure, see [`AGENTS.md`](AGENTS.md). Do not invent commands. If a flag does not appear in `cli.py`, it does not exist.
+
+**Turn contract.** `docs/core/TURN_CONTRACT.md`, decision D-108. Import records each turn's speaker and voice class; only the subject's typed or spoken turns can be cited. `extract --turn-contract` gates every fact on verbatim own-voice spans in code, and writes rejection counts by reason (`no_grounding`, `no_turn`, `not_own_voice`, `span_not_found`, `span_length`, `self_object`) to `<corpus>/data/database/extraction_runs/`. Read that record after every run. Facts carry stamps (model, prompt hash, git commit, repo-relative code path, contract version). Build into a fresh corpus directory.
 
 ## MCP server quick-connect
 
@@ -99,7 +101,10 @@ Once registered, the next Claude Code session loads two resources and seven tool
 | `src/baselayer/config.py` | Constants, paths, database singletons. Also the extraction predicate vocabulary: `CONSTRAINED_PREDICATES`, 46 constrained predicates (45 behavioral plus an `unknown` fallback). |
 | `src/baselayer/verify_provenance.py` | The four-check verifier. |
 | `lexicon_schema.yaml` | Element-type schema for authored specification containers (axiom, prediction, context_mode, meta_section) plus provenance syntax. Not the predicate vocabulary; that lives in `config.py`. |
-| `tests/` | 490 tests. `pytest tests/` runs them all. |
+| `tests/` | Offline test suite. `pytest tests -q` runs it all; no API key needed. |
+| `src/baselayer/voice.py`, `turns.py`, `turn_import.py`, `import_config.py` | Turn-contract import: detectors, the turn table, per-source builders, the local config loader. |
+| `src/baselayer/turn_contract.py` | Turn-contract extraction: chunking, rendering, the gate, the run record. |
+| `src/baselayer/verification/` | `verify-spec`, read-only post-specification verification. |
 | `docs/core/` | Architecture, decisions, design principles. Read on demand, not at session start. |
 | `docs/internal/` | Internal plans (refactor plans, agent-facing reviews, runbooks). Exists only in the private working copy; not tracked in this repo. |
 | `examples/` | Live example specifications (Franklin, Buffett, Douglass, Roosevelt, Wollstonecraft, Marks, patents). |
@@ -121,11 +126,11 @@ When writing new prose, use "specification" and "interpretive layer". Do not rei
 
 ## Things NOT to do
 
-- **Do not run destructive commands without confirmation.** `baselayer forget --all` deletes facts. `baselayer init --force` reinitializes the database. If the user did not explicitly request the action, ask first.
+- **Do not run destructive commands without confirmation.** `baselayer forget --all` soft-deletes facts. `python -m baselayer.extract_facts --reset` deletes extracted facts, the extraction log and the fact vectors. (`baselayer init --force` re-runs initialization and deletes nothing; it is not a reset.) If the user did not explicitly request the action, ask first.
 - **Do not invent commands or flags.** If a flag is not in `cli.py`, it does not exist. Read the source before running anything you have not run before.
 - **Do not POST to unknown endpoints.** Read the route handler first. The S101 incident wiped tracking data for 48 subjects because an agent called a cleanup endpoint without reading it.
 - **Do not modify `lexicon_schema.yaml` or `CONSTRAINED_PREDICATES` casually.** `lexicon_schema.yaml` governs the element types of authored layers; `CONSTRAINED_PREDICATES` in `config.py` governs extraction, and predicate changes invalidate stored facts under the AUDN lifecycle. Read [`docs/core/ARCHITECTURE.md`](docs/core/ARCHITECTURE.md) and the extraction code first.
-- **Do not re-extract without clearing both SQLite and ChromaDB.** Old vectors cause AUDN to return NOOP and you get 12-42 facts instead of 200+. Clear both: `baselayer forget --all` and delete `data/vectors/`, then re-extract.
+- **Do not re-extract into a used corpus directory.** Build into a fresh one (set `MEMORY_SYSTEM_ROOT` to a new directory). Old vectors cause AUDN to return NOOP, and `baselayer forget --all` does not clear the extraction log, so a later extract finds nothing to do. `init --force` deletes nothing. If a corpus must be cleared in place, the full extraction reset is `python -m baselayer.extract_facts --reset`, which is destructive: confirm first.
 - **Do not run the pipeline without the cost-estimate gate.** Use `baselayer run` (which gates by default) or run `baselayer estimate` before `baselayer extract`.
 - **Do not use the `brief` or `chat` subcommands for new work.** Both are archived. Use `compose` for the V4 unified specification.
 - **Do not retry the same failing approach more than twice.** Diagnose and redesign. If extraction returns zero facts twice, stop and read `extract_facts.py`.

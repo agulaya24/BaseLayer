@@ -1,6 +1,6 @@
 # System Architecture
 ## Base Layer: An Interpretive Layer Above Memory
-**Updated 2026-05-06**
+**Updated 2026-09-24** (turn contract, D-108)
 
 ---
 
@@ -105,6 +105,22 @@ Ingests text from multiple source formats into a normalized SQLite schema. Incre
 |-------|---------|---------|
 | `conversations` | id, title, created_at, updated_at, message_count, source | One row per conversation or document |
 | `messages` | id, conversation_id, parent_id, role, content_text, created_at, sequence_order | One row per message or text chunk |
+| `turns` | turn_id, conversation_id, ordinal, segment, speaker, voice_class, text, detector, basis, source, duplicate_of, allowlisted, turn_contract_version | One row per turn, or per segment when a subject turn contains pasted material (turn contract, D-108) |
+| `import_state` | conversation_id, content_hash, revision, status, needs_extraction, imported_at | One row per imported conversation: detects a source that grew (re-imported and re-marked for extraction) or was rewritten (flagged, not renumbered) |
+| `conversation_flags`, `import_exclusions` | | Conversation-level observations (for example an injection canary) and what the local exclusion config kept out |
+
+**Speaker and voice class (turn contract).** `docs/core/TURN_CONTRACT.md` defines this. Each turn records a `speaker` taken from the source's own role or speaker field, never inferred by a model, and a `voice_class`. Only `own_typed` and `own_dictated` can be cited. These classes are context only:
+- `assistant`
+- `other_person`
+- `pasted`
+- `compaction_summary`
+- `tool_result`
+- `harness_prompt`
+- `queued_command`
+
+Each non-own row names the deterministic `detector` that classed it. Pasted segments are excluded by default and can be allowlisted by turn id. Subject-specific signals (names, habitual misspellings, meeting speaker labels, exclusions, injection canaries) live in a local import config outside the repository (`BASELAYER_IMPORT_CONFIG`, else `<corpus>/data/import_config.json`). The legacy `messages` table is still written, from citable subject text and assistant text only, so the legacy extractor keeps working and no longer reads summaries, tool output, harness prompts or pastes as the subject's words.
+
+Sources with speaker information: ChatGPT export, Claude Code sessions, Claude Code `history.jsonl` (prompts only), meeting transcripts (the subject's speaker label comes from the config), Claude.ai export. Plain text files are imported as `own_typed` by assertion (basis `source:text_file_assertion`); exclude them in the config when they were not written by the subject. The generic `--json` importer writes legacy messages only, with no turns, so its conversations cannot be extracted under the turn contract. Transcripts must be imported before `history.jsonl`, because history prompts are deduplicated against transcript text.
 
 For non-conversation text (autobiographies, patents, essays), use `--document-mode`. The importer treats the entire document as a single conversation with the text as one message.
 
@@ -125,13 +141,32 @@ Each message or text chunk is processed through the AUDN lifecycle:
 
 **Output format:** `{subject, predicate, object, qualifier}` triples. The 46 constrained predicates, 45 behavioral plus an `unknown` fallback (owns, values, practices, fears, excels_at, relates_to, collaborates_with, and others; see `CONSTRAINED_PREDICATES` in `config.py`), enforce keyword-rich, structured output. `normalize_predicate()` maps LLM variants to canonical forms. This structured format replaced free-text extraction after discovering that generic language ("The user is interested in X") inflated recurrence counts by 30x (D-056).
 
-**Text chunking:** Long texts exceeding `input_char_budget` are auto-chunked on paragraph boundaries with 500-char overlap. Character tiers: 0-12K chars yields 10 facts max, 12K-30K yields 20, 30K-60K yields 35, 60K+ yields 50. Per-chunk cap: 15 facts. AUDN dedup handles cross-chunk duplication.
+**Text chunking (legacy path, the default):** Long texts exceeding `input_char_budget` are auto-chunked on paragraph boundaries with 500-char overlap (none for Claude Code sessions). Character tiers: 0-12K chars yields 10 facts max, 12K-30K yields 20, 30K-60K yields 35, 60K+ yields 50. Per-chunk cap: 15 facts. AUDN dedup handles cross-chunk duplication.
+
+**Turn-contract path (opt-in: `BASELAYER_TURN_CONTRACT=1` or `extract --turn-contract`):**
+- **Chunking.** Chunks are built from whole turns, never by cutting text. A turn longer than the budget is split into segments that keep their `turn_id`.
+- **Context.** Each chunk carries up to `TURN_CONTEXT_MAX_TURNS` preceding turns, capped at `TURN_CONTEXT_CHAR_BUDGET` characters, as read-only CONTEXT with no citable id. This is what lets a short reply such as "yes, do that" be read against the turn it answers.
+- **Aliases.** Only own-voice turns carry a citable alias (`S1..Sk`) in the prompt.
+- **Defaults.** In this mode:
+  - the D-048 contamination filter is off;
+  - the dynamic fact cap defaults on;
+  - `MIN_MESSAGES_FOR_EXTRACTION` does not apply;
+  - conversations the importer re-marked after growing are extracted again.
+
+**The span gate (turn-contract path).** Each fact must carry `evidence_spans`, one or more verbatim excerpts, each tagged with a turn. After the model phase, and outside every exception handler, a fact is stored only if every span meets all of these:
+- it names an own-voice turn in the chunk;
+- it is a substring of that turn after whitespace and quote-mark normalisation;
+- it is within the length bounds (`TURN_EVIDENCE_SPAN_MIN_WORDS` / `TURN_EVIDENCE_SPAN_MAX_CHARS`).
+
+Rejections are counted per reason: `no_grounding`, `no_turn`, `not_own_voice`, `span_not_found`, `span_length`. The counts go into a per-run record at `<corpus>/data/database/extraction_runs/<run_id>.json` and in the `extraction_runs` table, together with every cap, the drops after the gate, AUDN actions and unusable responses. A gate that rejected nothing or everything is flagged `suspect`. The gate proves grounding. It does not prove that a fact is a correct reading of its spans; verification samples that (see Provenance).
+
+**Fact stamps.** Every fact records `extraction_model`, `extraction_prompt_hash`, `git_commit` and a repo-relative `code_path`. Gated facts also record `turn_contract_version`, `source_turn_id`, `evidence_spans`, `inferred` and `voice_class`. A fact is gated if and only if `turn_contract_version` is set. The columns exist in every database, so their presence proves nothing.
 
 **Anonymization:** `author_layers.py` replaces subject names with "this person" before any model sees data. All extraction prompts include a "DERIVE ONLY FROM INPUT" constraint.
 
 **Script:** `src/baselayer/extract_facts.py`
 
-**Re-extraction requirement:** Clearing extraction data requires deleting BOTH SQLite rows (`memory_facts` plus `extraction_log`) AND the ChromaDB collection. Without clearing ChromaDB, old vectors cause AUDN to NOOP on legitimate new facts.
+**Rebuilding: use a fresh corpus directory, never a reset.** Point `MEMORY_SYSTEM_ROOT` at a new directory and import into it. Turn-contract extraction refuses a database or vector store that holds any fact not stamped with its version. If an existing corpus must be cleared, the full extraction reset is `python -m baselayer.extract_facts --reset`. It deletes extraction-sourced facts, `extraction_log` and `fact_relationships`, and drops the `memory_facts` vector collection; user corrections survive. `baselayer forget --all` is not a reset: it soft-deletes facts and their vectors but keeps `extraction_log`, so a later extract finds every conversation already done. `baselayer init --force` deletes nothing.
 
 ---
 
@@ -167,13 +202,13 @@ Why this replaced the old author step:
 - The shipped author reads a SQL selection capped at 15 facts per category (`MAX_FACTS_PER_CATEGORY`, `author_layers.py:307`). Measured, that discards about 65% of the CORE layer's corpus, and it cuts by sort position rather than importance. This cap appears in none of the recorded decisions. Distillation gives every fact a recorded verdict instead.
 
 Where it lives:
-- In this repository, as the subpackage `src/baselayer/distillation/`: `distill.py`, `assemble.py`, `author_from_package.py`, plus the script-only study harnesses `convergence.py` and `distill_batch.py`. CLI: `baselayer distill`, `baselayer assemble`, `baselayer author-from-package`. Detail doc: `docs/core/DISTILLATION.md`. Reference run records: `data/distillation_reference/`.
+- In this repository, as the subpackage `src/baselayer/distillation/`: `distill.py`, `assemble.py`, `author_from_package.py`, plus `distill_batch.py` (all layers' leaves in one batch submission, module-only), `quote_gate.py` (optional check of quoted phrases at the author), `spend.py` (rate table, estimates, spend ceiling), the design test `situation_first.py` (module-only) and the study harness `convergence.py`. Post-authoring consolidation of near-duplicate claims is not in the package; it exists only as a prototype outside this repository. CLI: `baselayer distill`, `baselayer assemble`, `baselayer author-from-package`. Detail doc: `docs/core/DISTILLATION.md`. Reference run records: `data/distillation_reference/`.
 
 Data access:
 - Distillation reads this project's database directly (opened read-only). It requires `memory_facts` with the fields `id`, `fact_text`, `predicate`, `category`, and `superseded_by`. No adapter is needed.
 
 Status:
-- Experimental. It is not heavily tested: its suite is 10 mutation tests over the citation audit in `distill.py` (`tests/test_distillation_metrics_can_fail.py`) and does not exercise the other modules, and most of its measurements were taken on a single 407-fact corpus. `distill_batch.py` and `convergence.py` do not call `validate()`, so their output is unstripped: fabricated fact ids are not removed from it.
+- Experimental. It is not heavily tested: its tests are mutation tests over the citation audit and ledger metrics in `distill.py` plus call-shape tests of `author_from_package.py`'s request, plus end-to-end runs of `distill.py`, `distill_batch.py` and `author_from_package.py` against fake clients; they do not exercise `convergence.py` beyond dry runs, and most of its measurements were taken on a single 407-fact corpus. `convergence.py` does not call `validate()`, so its output is unstripped: fabricated fact ids are not removed from it.
 
 Compatibility:
 - The 5-step pipeline remains what `baselayer author` runs today. Steps 1, 2, 3 and 5 are unchanged. Step 4 here is the shipped path and remains documented for operational continuity.
@@ -305,7 +340,18 @@ CREATE TABLE memory_facts (
     commitment_depth TEXT,           -- 'factual', 'preference', 'position', 'conviction'
     predicate TEXT,                  -- constrained verb from the 46 CONSTRAINED_PREDICATES
     object_text TEXT,                -- structured object field
-    qualifier TEXT                   -- temporal/conditional context
+    qualifier TEXT,                  -- temporal/conditional context
+    -- stamps, on every fact
+    extraction_model TEXT,
+    extraction_prompt_hash TEXT,
+    git_commit TEXT,
+    code_path TEXT,                  -- repo-relative, never absolute
+    -- turn contract (D-108), set only on gated facts
+    turn_contract_version TEXT,      -- a fact is gated iff this is set
+    source_turn_id TEXT,             -- the first span's turn
+    evidence_spans TEXT,             -- JSON [{"turn_id": ..., "span": ...}, ...]
+    inferred INTEGER,                -- declared by the extractor
+    voice_class TEXT                 -- of the first span's turn
 );
 ```
 
@@ -362,6 +408,13 @@ Verification operates in two modes:
 
 **Script:** `src/baselayer/verify_provenance.py`
 
+**Post-specification verification (`baselayer verify-spec`, `src/baselayer/verification/`, `docs/core/VERIFY_SPEC.md`).**
+- **When and what it writes.** It is a separate module, run once after a specification is authored, and it never feeds back into authoring. It opens every database read-only and writes only to its `--out` directory. The existing verifier above writes `claim_verification`; this module does not call it.
+- **Deterministic checks.** Citation resolution, duplicate claims, trigger groups, and voice. Voice is decided per fact. A gated fact has every one of its evidence spans re-gated against the turn table. A legacy fact is checked only as far as the conversation record proves.
+- **Model-judged checks.** Support, voice, fidelity (turn-contract facts only: is the fact a faithful reading of its spans in context), cross-claim relations, and contradiction adjudication. These run behind a rater interface and are dry-run and priced by default.
+
+**`trace_claim` on a turn-contract corpus.** Cited facts carry `source_turn_id` and verbatim `evidence_spans`, so a claim traces past the conversation to the turn and the exact words. On a legacy corpus it still lands on the conversation only.
+
 The shipped audit is a strong data-quality check, not a causal-traceability guarantee. Vector proximity, recurrence gating, cross-domain span, and NLI entailment together flag unsupported or single-domain claims. Cross-domain synthesis claims can score lower than they should because no single fact contains the synthesis. This limitation is documented in `verify_provenance.py`.
 
 ---
@@ -370,10 +423,14 @@ The shipped audit is a strong data-quality check, not a causal-traceability guar
 
 | Model | Step | Role | Typical Cost |
 |-------|------|------|-------------|
-| **Haiku** (API) | Extract | Structured fact extraction, 46 constrained predicates | ~$0.10-0.50/corpus |
+| **Haiku 4.5** (API) | Extract | Structured fact extraction, 46 constrained predicates | ~$0.10-0.50/corpus |
 | **MiniLM-L6-v2** (local) | Embed | 384-dim vectors for search, verify, and vector provenance fallback | $0 |
-| **Sonnet** (API) | Author | Three-layer generation | ~$0.05-0.15 |
-| **Opus** (API) | Compose | Compress 3 layers into specification | ~$0.05-0.15 |
+| **Sonnet 4.6** (API) | Author (static path, `baselayer author`) | Three-layer generation | ~$0.05-0.15 |
+| **Opus 4.6** (API) | Compose / review (static path) | Compress 3 layers into specification | ~$0.05-0.15 |
+| **Sonnet 5** (API) | Distill (`baselayer distill` default) | Leaves per chunk of facts | scales with call count |
+| **Opus 5** (API; Opus 5.5 via `--model`) | Author from package (`author-from-package` default) | Layers and brief from handoff packages, mandatory citations | per layer |
+
+Model ids are set in `config.py` for the static path and as argparse defaults for the distillation path. Read them there; this table is a summary and can drift.
 | **Pure code** | Serve | Load and serve final specification via MCP | $0 |
 
 Total cost per subject includes only the shipped 5-step pipeline. The current authoring architecture, Interpretive Distillation, ships in this repository as `baselayer.distillation` and is experimental; its cost scales with call count and is documented in `distill.py`'s cost notes (a large corpus is hours and tens of dollars per layer).
@@ -465,7 +522,7 @@ Journal input produces higher-quality behavioral facts per entry than conversati
 | Specification composition | Opus API | Three-layer compression |
 | Serving | MCP (Model Context Protocol) | Specification injection at runtime |
 | Language | Python 3.10+ | All scripts and pipelines |
-| Package | `pip install git+https://github.com/agulaya24/BaseLayer.git` | CLI with 28 subcommands. Not on PyPI. |
+| Package | `pip install git+https://github.com/agulaya24/BaseLayer.git` | `baselayer` CLI. Not on PyPI. |
 
 ---
 
@@ -476,7 +533,7 @@ memory_system/
 +-- pyproject.toml                     # Package config (install via git URL; not on PyPI)
 +-- README.md                          # Quick-start guide
 +-- src/baselayer/                     # Canonical source location
-|   +-- cli.py                         # CLI entry (baselayer command, 28 subcommands)
+|   +-- cli.py                         # CLI entry (baselayer command)
 |   +-- config.py                      # Shared constants (single source of truth)
 |   +-- import_conversations.py        # Step 1: Multi-source importer
 |   +-- extract_facts.py               # Step 2: AUDN fact extraction (Haiku/Ollama)
@@ -497,7 +554,7 @@ memory_system/
 |   |   +-- assemble.py                #   trees -> stratified handoff package
 |   |   +-- author_from_package.py     #   package -> layers + brief, citations required by schema
 |   |   +-- convergence.py             #   study harness, script-only, output unstripped
-|   |   +-- distill_batch.py           #   study harness, script-only, output unstripped
+|   |   +-- distill_batch.py           #   batch leaf path, all layers in one submission
 +-- data/
 |   +-- raw/                           # Source text (ChatGPT exports, etc.)
 |   +-- database/memory.db             # SQLite (conversations + facts)
@@ -507,7 +564,7 @@ memory_system/
 |       +-- core_v4.md
 |       +-- predictions_v4.md
 |       +-- brief_v5_clean.md         # The specification (primary artifact)
-+-- tests/                             # 490 tests
++-- tests/                             # offline test suite: `pytest tests -q`
 +-- docs/
 |   +-- core/                          # Architecture, decisions, principles
 |   +-- eval/                          # Benchmarks, ablation studies, eval frameworks

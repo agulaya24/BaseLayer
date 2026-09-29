@@ -69,6 +69,29 @@ populates.
 
 **Candidate fix:** drop them, or populate them, but do not leave them as available footguns.
 
+### P-05 `forget --all` plus deleting the vector store is not a reset
+Found by reading the code, not by a run. `forget --all` soft-deletes facts and their vectors. It
+never touches `extraction_log`. Extraction selects pending conversations with a `LEFT JOIN` on
+`extraction_log`, so after `forget --all` and deleting `data/vectors/`, a re-extract finds every
+conversation already logged. It prints "No conversations to process (all already done...)".
+This is the same failure shape as `init --force`: a documented reset that is a no-op and reads
+as success.
+
+**Status:** the docs and CLI help no longer give this advice. They point to building into a fresh
+corpus directory, which the turn contract requires anyway (D-108). The one command that is a
+full extraction reset is `python -m baselayer.extract_facts --reset`. It deletes
+extraction-sourced facts, `extraction_log` and `fact_relationships`, and drops the fact vector
+collection; user corrections survive. `baselayer` has no subcommand for it.
+
+### P-06 The distillation tree stamp writes an absolute `code_path`
+`distill.py` stamps `code_path` as `os.path.abspath(__file__)`, so every tree records the
+operator's home directory. That leaks a username the first time a tree is shared or lands in a
+public example. Extraction stamps are already repo-relative (TURN_CONTRACT.md §7).
+
+**Status: fixed.** The tree stamp uses `turn_contract.code_path_of` and carries `git_commit`. The
+run ledger's `tree_path` is a file name, no longer an absolute path. The leaves, package, layers
+and brief now carry stamps too (TURN_CONTRACT.md §7).
+
 ---
 
 ## How to add an entry

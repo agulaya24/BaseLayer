@@ -19,15 +19,43 @@ A fine-tuned model cannot be inspected or corrected. A written specification can
 Unified pipeline:
 
 ```
-IMPORT     Your text into a local database
+IMPORT     Your text into a local database, one row per turn, recording who said it
 EXTRACT    Pull candidate facts about preferences, rules, habits
+           (turn-contract mode: only the subject's own turns can be cited, and every fact
+           must quote them verbatim; a gate in code enforces it)
 DISTILL    Sort facts into recurring themes, one-offs, and not load-bearing
+           (optional: show each fact's verbatim own-word spans to the summariser; all three
+           layers can run in one batch submission; a reviewed exclusion list can leave facts out)
 ASSEMBLE   Package each layer so writing can respect those groups
+           (a package too large for one request is split into shards; nothing is dropped)
 AUTHOR     Write the layers as readable text with citations where required
+           (optional quote gate: quoted phrases must be the person's own words from cited facts)
 COMPOSE    Merge layers into one brief
 
 EMBED      Side branch. Build a vector index for search and verification. The writer does not read it.
+VERIFY     After authoring, a separate read-only check of the specification against its evidence.
 ```
+
+Models by stage, as the code defaults them: extraction on Claude Haiku 4.5, distillation leaves on
+Claude Sonnet 5, layers and brief on Claude Opus 5 (Opus 5.5 is supported with `--model
+claude-opus-5-5`). The static `baselayer author` path is separate and configured in `config.py`.
+Every billed distillation or authoring run prints an estimate first and refuses to start without a
+spend ceiling at or above it. Detail and the full option list: `docs/core/DISTILLATION.md`.
+
+Not in this package: merging near-duplicate claims after authoring (consolidation) exists only as a
+prototype outside this repository. A sharded layer can therefore repeat a pattern once per shard.
+
+**The turn contract** (`docs/core/TURN_CONTRACT.md`, opt-in with `BASELAYER_TURN_CONTRACT=1` or
+`baselayer extract --turn-contract`) is how a specification is kept to the person's own words.
+- **Import** labels every turn with its speaker, taken from the source, and a voice class. Only
+  text the person typed or spoke can be cited. Assistant turns, other people, pasted material,
+  tool output, harness prompts and compaction summaries are context only. Pasted text is excluded
+  by default and can be allowlisted.
+- **Extraction** reads whole turns plus preceding context. It must ground each fact in verbatim
+  spans of the person's own turns.
+- **The gate** is code, not the prompt. It rejects any fact whose spans are missing, name a
+  non-own turn, do not match the turn's text, or are too short or too long. Every rejection is
+  counted by reason in a per-run record.
 
 Layers:
 
@@ -63,19 +91,28 @@ baselayer extract && baselayer embed
 baselayer author && baselayer compose
 ```
 
-Experimental distillation path:
+Experimental distillation path (billed runs need the rate table confirmed and a spend ceiling;
+`<table date>` is `RATES_AS_OF` in `src/baselayer/distillation/spend.py`):
 
 ```
-baselayer distill --layer anchors
-baselayer distill --layer core
-baselayer distill --layer predictions
-baselayer assemble
-baselayer author-from-package --outdir spec_out/
+baselayer distill --layer anchors --max-facts 50 --out trees/anchors.json \
+    --rates-confirmed <table date> --confirm-spend <usd>
+# repeat for --layer core and --layer predictions
+baselayer assemble trees/anchors.json --out packages/anchors.json
+# repeat for core and predictions
+baselayer author-from-package --package packages/anchors.json --package packages/core.json \
+    --package packages/predictions.json --outdir spec_out/ \
+    --rates-confirmed <table date> --confirm-spend <usd>
 ```
+
+The batch leaf path, own-word spans at the leaves, the quote gate and resuming a batch run through
+`python -m baselayer.distillation.<module>`; the commands are in `docs/core/DISTILLATION.md`.
 
 ## Auditability / what you can verify
 
-- You can trace a written claim back to its cited facts. You can then jump from each fact to the conversation it was taken from. The second step lands on the conversation, not the exact sentence, because the source passage is not stored.
+- You can trace a written claim back to its cited facts. On a corpus extracted under the turn contract, each fact then leads to the turn it rests on and the verbatim words it quotes. On a legacy corpus the second step lands on the conversation, not the exact sentence, because the source passage is not stored.
+- Every fact is stamped with the extraction model, prompt hash, git commit and a repo-relative code path. Gated facts also carry the contract version.
+- `baselayer verify-spec` checks a finished specification. It resolves every citation and re-gates every evidence span. It can also run model-judged checks of support, voice and fidelity, which are dry-run and priced by default. It reads the corpus read-only and writes only to its output directory.
 - Checks run over the citation graph:
   - Vector proximity: the words in the claim should be close to the words in its cited facts.
   - Recurrence gating: a theme should not rest on a single one-off mention.
@@ -88,15 +125,17 @@ Read auditable as: what is cited can be checked. It does not mean everything is 
 
 ## Status and limits
 
-- Experimental components: Distillation, assembly, and the package-based author are experimental in this repository. The distillation test suite is 10 mutation tests over the citation audit and exercises none of the other modules. Most measurements behind the distillation design come from a single 407-fact corpus. Study harnesses that ship here may emit unstripped outputs. Use with care and inspect outputs.
+- Experimental components: Distillation, assembly, and the package-based author are experimental in this repository. The distillation tests are mutation tests over the citation audit, call-shape tests of the author's request, and end-to-end runs against fake clients; they do not call a model. Most measurements behind the distillation design come from a single 407-fact corpus. The full path (batch leaves with own-word spans, sharded packages, authoring with the quote gate) has run end to end on one large corpus, once. Study harnesses that ship here may emit unstripped outputs. Use with care and inspect outputs.
 - Two authoring paths: The legacy authoring path still ships. It does not guarantee inline citations, so verification that depends on parsing citations may produce no checks. The package-based author requires a citation field by schema. Required does not mean accurate. A resolving citation proves the reference is real, not that the fact caused the claim.
-- Provenance scope: `trace_claim` lands on the source conversation, not the exact sentence. The source passage is not stored.
+- Provenance scope: on a legacy corpus `trace_claim` lands on the source conversation, not the exact sentence. Under the turn contract it lands on the turn and the quoted span.
+- What the gate proves: every stored fact rests on words that exist in the source and that the person typed or spoke. It does not prove the fact is a correct reading of those words. That is a judgement, so verification samples it.
+- Pasted text: pasted material can be the person's own writing (a draft, a note). The importer cannot tell, so it excludes pasted segments, counts them, and leaves an allowlist by turn id.
 - Vector provenance: When a claim has no inline citations the system may attach vector links. Treat these as nearby, not used.
 - Faithfulness: A specification that serves cheaply and scores well on a held-out battery does not establish that it structurally matches a person’s reasoning. Distinguishable is not faithful. Only the subject can say where it is wrong.
 - Corpus limits: The corpus is self-report. No third-party observation enters. There is no time axis. Changes over time are not recorded. The extractor only sees text. Tone, body language, and physical habit are absent.
 - Scope of effect: It helps most where the model knows the person least. On a well-known public figure it often adds little.
 - Operational notes:
-  - Re-extracting from the same files without clearing prior state can leave stale vectors that cause over-deduplication. Clear both the fact store and vector store before a clean run.
+  - Rebuild into a fresh corpus directory, never a reset one. `baselayer forget --all` keeps the extraction log, so a later extract finds nothing to do, and `init --force` deletes nothing. If an existing corpus must be cleared, the full extraction reset is `python -m baselayer.extract_facts --reset`. Stale vectors left behind by a partial clear cause over-deduplication.
   - Document mode asserts the subject is the document. Use it for documents only, not people.
   - Not on PyPI. Install from source.
   - Costs and run times vary with API pricing and corpus size.
@@ -175,7 +214,7 @@ Docs:
 - ROADMAP.md
 - docs/eval: evaluation frameworks and results
 
-Pre-1.0, 490 tests.
+Pre-1.0. The offline test suite runs with `pytest tests -q`.
 
 ## Reproducibility
 

@@ -4,6 +4,62 @@ All notable changes to Base Layer are documented here.
 
 ---
 
+## Unreleased (branch `feat/respec-run`, which includes `feat/respec-hardening` and `feat/respec-design`)
+
+### Added (turn contract, D-108)
+- `docs/core/TURN_CONTRACT.md` (`turn-contract/1`): the interface for grounding every fact in the subject's own typed or spoken words.
+- Import writes a `turns` table:
+  - each turn records its speaker, taken from the source, and a voice class, assigned by deterministic detectors (`voice.py`, `turns.py`, `turn_import.py`);
+  - pasted segments are excluded by default, with an allowlist by turn id;
+  - new sources: Claude Code `history.jsonl` (prompts only) and meeting transcripts (the subject's speaker label comes from config);
+  - grown sessions are re-imported and re-marked for extraction, and a rewritten source is flagged, not renumbered;
+  - subject-specific signals, including injection canaries, live in a local import config (`import_config.py`), never in the package.
+- Extraction under the turn contract (`extract --turn-contract` / `batch-extract --turn-contract`, or `BASELAYER_TURN_CONTRACT=1`):
+  - chunks by whole turns with read-only preceding context, and only own-voice turns are citable;
+  - a gate outside every exception handler stores a fact only if every evidence span names an own-voice turn, matches it verbatim, and is within length bounds;
+  - rejections are counted by reason in a per-run record under `data/database/extraction_runs/`;
+  - turn-mode defaults: the D-048 contamination filter off, no minimum message count, and grown conversations re-extracted. The fact count is set by `fact_count_mode` (below); the dynamic fact cap applies only in `capped` mode.
+- Fact stamps on every fact: extraction model, prompt hash, git commit, repo-relative code path, plus the contract version on gated facts.
+- `baselayer verify-spec` (`src/baselayer/verification/`, `docs/core/VERIFY_SPEC.md`):
+  - post-specification verification that is read-only on the corpus;
+  - deterministic checks, with voice mode decided per fact and every evidence span re-gated;
+  - model-judged checks that are dry-run and priced by default.
+- `author-from-package` supports Opus 5.5 through `--model`, with `--effort` and `--max-tokens`.
+
+### Added (turn contract, later additions)
+- Referent and subject handling at the gate: `subject_names` in the import config is required in turn mode; a gated fact whose other-person subject is not named in its spans is reassigned to the subject; a fact whose object is the subject's own configured name is rejected (`self_object`). All counted in the run record.
+- Evidence kind per span (`prose` or `record`, by shape, never by a model). A fact whose every span is a record is stored with grounding `record_only`, kept for verification, and excluded from distillation by default (`--include-record-only` admits it).
+- A practice tag on pasted own writing re-classed under the own-writing rule, carried onto facts; verification reports claims bounded to one practice.
+- On a NOOP, the duplicate's evidence spans are appended to the surviving fact.
+- `fact_count_mode` (`capped`, `none`, `coverage`, `coverage_fragments`; default `coverage`): whether the extraction prompt carries a fact count and whether facts past a per-chunk cap are truncated. The uncounted modes size each chunk's output budget from its citable characters.
+- A chunk that stops on `max_tokens` is re-chunked at half the budget and retried once instead of being lost.
+- The turn-path fact-count halt is replaced by a density report in the run record and a run-wide spend ceiling (`BASELAYER_SPEND_CEILING_USD`) checked before every sequential call.
+- Measured API usage (input, output, cache tokens) is recorded per billed call and in totals, on the sequential and batch paths, the moment each response exists.
+- Import: secrets are masked in every turn and title before comparison or storage (counts per kind, never the secret); pasted terminal sessions, pasted documents inside long turns, and code or machine output inside typed turns are classed as pasted, line by line where possible; pasted documents that carry typing traits can be re-classed as own writing (off by default); queued prompts are recovered as the subject's words; queued prompts an older client wrote with no origin can be imported inline behind an off-by-default switch, or as their own conversation (`import_originless_queued`), which moves no turn id that a stored fact cites; importers for recovered Claude Code sources (database copies of sessions, desktop agent sessions).
+- `docs/core/DATA_TREATMENT_POLICY.md`: every assumption about what counts as the subject's own words, with its default and the switch that changes it.
+- `python -m baselayer.pilot`: a stratified sample of not-yet-extracted conversations, priced before any call, run only with `--confirm-spend` and confirmed rates; planted known-bad sessions (`baselayer.turn_contract_fixtures`) check the import and the gate. Distillation and assembly refuse a fact base or tree holding planted facts unless `--allow-planted` is given.
+
+### Added (distillation)
+- Stamps on every leaf, tree, package, authored layer and brief: contract version, model, prompt hash, git commit, repo-relative code path, and an input hash over fact ids and fact text. Model and prompt hash are null on the package, which runs no model.
+- One dated rate table (`distillation/spend.py`). A billed run refuses to start until the table's date is confirmed (`--rates-confirmed`) or rates are supplied (`--rate-in`, `--rate-out`), prints an estimate, and needs a spend ceiling at or above it (`BASELAYER_SPEND_CEILING_USD` or `--confirm-spend`). The ceiling is checked before every call, repairs and re-asks included.
+- Distillation reads only facts about the person (`subject = 'user'`) by default; `--include-other-subjects` admits the rest, labelled as being about someone else.
+- `distill_batch.py`: every layer's leaves in one Message Batches submission, validated, stripped and repaired with the same code as `distill.py`. The batch id is on disk before any waiting; a second submit from the same directory is refused; `--resume` collects the recorded batch, skips finished trees, and refuses a changed request count, model or exclusion list. It does not compare the design flags, so resume with the flags that submitted.
+- Payload sharding: `distill.py` projects the leaf payload before the first leaf instead of stopping over the ceiling, and `assemble.py --shard-token-budget` splits an oversized package into shards along leaf ranges (nothing dropped); `author_from_package.py` authors each shard and concatenates the claims.
+- `--exclude-ids FILE` on `distill`, `distill_batch` and `convergence`: removes listed fact ids from the population without touching the fact base. The file's sha256 and counts are stamped.
+- Design options, all off by default, with prompts and prompt hashes byte-identical when unset: `--leaf-spans` shows each fact's verbatim own-word spans to the leaf and allows a checked `own_words` excerpt on singularities; `--partition episode` chunks by episode; `situation_first.py` authors predictions from named situations with code-routed evidence.
+- Author quote gate (`author_from_package --quote-gate --db`, off by default): every quoted phrase in a claim must be in an own-voice span of a fact the claim cites. A quote of 3 or more words held by at most 5 other supplied facts has them auto-cited and recorded in `gate_added_citations`; any other failing quote loses its quote marks. There is no re-ask for quotes. Each quote's action and both bounds are stamped on the layer.
+- Consolidation of near-duplicate claims after authoring is NOT part of this release. It exists only as a prototype outside the repository.
+
+### Fixed (extraction)
+- AUDN no longer compares against superseded facts and never overwrites an existing `superseded_by`.
+
+### Fixed
+- Seven live call sites read `response.content[0].text`, which breaks when a model returns a thinking block first. They now read text blocks by type through `api_client.response_text`.
+
+### Changed (documentation)
+- Reset advice corrected everywhere. `forget --all` plus deleting the vector store is not a reset, because the extraction log survives (see P-05 in `docs/PIPELINE_ISSUES.md`). Build into a fresh corpus directory. The full extraction reset is `python -m baselayer.extract_facts --reset`.
+- Test counts removed from prose; run `pytest tests -q`.
+
 ## 0.5.0 - 2026-08-18
 
 ### Added (interpretive distillation ships in this repository)
@@ -26,7 +82,7 @@ All notable changes to Base Layer are documented here.
 - New tests at `tests/test_similarity_space.py`. Five tests in `test_unified_brief.py` changed to name the l2 behavior they actually assert.
 
 ### Changed (CLI accuracy)
-- `init --force` help no longer claims to delete data. It drops nothing; the schema is `CREATE TABLE IF NOT EXISTS` throughout. A real reset is `forget --all` plus deleting the vector store.
+- `init --force` help no longer claims to delete data. It drops nothing; the schema is `CREATE TABLE IF NOT EXISTS` throughout. (Corrected later: `forget --all` plus deleting the vector store is not a reset either, because the extraction log survives. See the Unreleased entry and P-05.)
 - `run` is documented as the entry point. `pipeline` takes a registry `subject_id` and is the lower-level surface.
 
 ### Changed (documentation)

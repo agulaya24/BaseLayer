@@ -61,6 +61,16 @@ baselayer checkpoint extraction
 
 `stats` shows conversation, message, and fact counts. `checkpoint extraction` flags quality issues. It reports only; there is no `--fix` flag.
 
+**Under the turn contract** (`baselayer extract --turn-contract`, into a fresh corpus directory; see `docs/core/TURN_CONTRACT.md`):
+- **Import.** It writes a `turns` table with each turn's speaker and voice class. Check the class distribution before extracting:
+
+  ```bash
+  sqlite3 data/database/memory.db "SELECT voice_class, COUNT(*) FROM turns WHERE duplicate_of IS NULL GROUP BY voice_class"
+  ```
+
+  Pasted segments are excluded by default. What the local import config kept out is listed in `import_exclusions`.
+- **Extraction.** Each run writes a record to `data/database/extraction_runs/<run_id>.json`. Read its `gate_rejections` (`no_grounding`, `no_turn`, `not_own_voice`, `span_not_found`, `span_length`), `post_gate_drops` and `suspect` fields and report them to the user. A gate that rejected nothing or everything is flagged `suspect` and needs a look before anything is authored from the facts.
+
 ### 5. Embed for provenance
 
 ```bash
@@ -107,7 +117,7 @@ baselayer run /path/to/chatgpt-export.zip
 ## Failure handling
 
 - **Extraction returns zero facts.** Run `baselayer stats`. If conversation count is zero, the import did not work; check the file path and `--source` flag. If conversations exist but no facts, the corpus may be too short or noisy. Inspect a sample: `sqlite3 data/database/memory.db "SELECT title FROM conversations LIMIT 10"`.
-- **Extraction returns far fewer facts than expected (e.g. 12-42 instead of 200+).** Stale ChromaDB vectors cause AUDN to NOOP. Fix: `baselayer forget --all`, then delete `data/vectors/`, then re-extract.
+- **Extraction returns far fewer facts than expected (e.g. 12-42 instead of 200+).** Stale ChromaDB vectors cause AUDN to NOOP. Fix: rebuild into a fresh corpus directory (set `MEMORY_SYSTEM_ROOT` to a new directory, then import and extract again). `baselayer forget --all` is not a reset: it keeps the extraction log, so a later extract finds nothing to do. If a corpus must be cleared in place, `python -m baselayer.extract_facts --reset` removes extracted facts, the extraction log and the fact vectors. It is destructive, so confirm with the user first.
 - **`No API key` error.** `export ANTHROPIC_API_KEY=sk-ant-...`.
 - **Authoring produces thin predictions.** Normal for short corpora. Anchors and core are usually sufficient. Do not regenerate without diagnosing.
 - **Compose fails with missing layer files.** Re-run `baselayer author --layer all`.

@@ -113,6 +113,7 @@ Per the current naming canon (Phase A, 2026-05-06): the canonical artifact is th
 | D-084 | Textual TUI Dashboard | Active | dashboard_textual.py replaces Rich dashboard.py. Sortable, scrollable, tier display, auto-refresh |
 | D-085 | Magic Link Authentication | Deployed | Single-use 64-char hex tokens, 7-day expiry, Redis-backed. Auto-auth on first click, password fallback |
 | D-086 | Percepta Computational Testing | In Progress (S97) | Overnight GPU benchmark testing Percepta paper claims across 10 local models, 20 tasks |
+| D-108 | Turn Contract: Facts Grounded in the Subject's Own Words | Built (not yet run on a real corpus) | Speaker and voice class at import, turn-bounded extraction with a code gate on verbatim own-voice spans, per-fact stamps, verification as its own read-only module, fresh corpus directory per build. See docs/core/TURN_CONTRACT.md |
 
 ---
 
@@ -2059,6 +2060,7 @@ Anchoring destroys this signal by making v2 artificially similar to v1. Blind ge
 | D-075 | Brief structure: WHO + HOW + WHERE IT BREAKS — Current brief describes WHO (behavioral patterns) but lacks HOW (reasoning model with hierarchy/priority) and WHERE IT BREAKS (failure modes, blind spots). Three-layer structure proposed for composition step. | Architecture | Candidate |
 | D-076 | Dissenting opinion benchmark — Build brief from judge's prior opinions, predict held-out dissent reasoning, compare to actual text. Natural ground truth, novel situations guaranteed. Tests reasoning prediction (not outcome prediction). Novel contribution — no published work predicts HOW someone argues. | Evaluation | Candidate |
 | D-077 | Provenance-informed review + regeneration — Two prongs: (1) Feed citation provenance (claim → source fact mapping) into Collective review prompt so all 4 personas can verify faithfulness at claim level. (2) Feed fact usage statistics (cited vs uncited count) into regeneration prompts — D-053 safe because no prior output text is shown. Closes the gap where provenance was generated but never consumed downstream. | Quality | Active |
+| D-108 | Turn contract: every fact grounded in verbatim spans of the subject's own typed or spoken turns, enforced by a gate in code at extraction; speaker and voice class recorded at import; per-fact stamps; verification as a separate read-only module; builds into a fresh corpus directory. See docs/core/TURN_CONTRACT.md. | Architecture | Built, not yet run on a real corpus |
 
 ---
 
@@ -2357,3 +2359,39 @@ Anchoring destroys this signal by making v2 artificially similar to v1. Blind ge
 **Decision:** Any study comparing behavioral spec performance must include a wrong-spec condition (C2c) — a different subject's spec applied to the target's questions. This controls for "any framework helps" vs "the right framework helps." The model cannot be told whose spec it is — prompt says "your user" for both correct and wrong spec.
 **Evidence:** S104 — C2c (Franklin's spec on Hamerton's questions) scored 2.21 vs C2a (correct spec) 2.77 vs C5 (baseline) 1.41. Wrong spec > no spec, but correct spec > wrong spec. All three are publishable findings.
 **Status:** Active. Required in Franklin replication and SCOTUS study.
+
+### D-108: Turn Contract: Facts Grounded in the Subject's Own Words (2026-09-24)
+
+**Status:** Built on `feat/respec-hardening`, not yet run on a real corpus. Turn mode is opt-in (`BASELAYER_TURN_CONTRACT=1` or `extract --turn-contract`); the legacy path is unchanged and remains the default.
+**Category:** Architecture
+**Numbering:** D-097 to D-107 exist on unmerged experimental branches. This entry starts at D-108 so the numbers cannot collide if those ever merge.
+
+**Decision:** A person's specification rests only on words that person typed or spoke. The rule is enforced by code at extraction, not by the prompt. The interface is `docs/core/TURN_CONTRACT.md` (`turn-contract/1`):
+
+1. **Import writes a turn table.** One row per turn, or per segment when a subject turn contains pasted material. Each row carries a `speaker` taken from the source's own role or speaker field and a `voice_class`. Only `own_typed` and `own_dictated` can be cited. `assistant`, `other_person`, `pasted`, `compaction_summary`, `tool_result`, `harness_prompt` and `queued_command` are context. Every non-own class names the deterministic `detector` that assigned it. Pasted segments are excluded by default and can be allowlisted by turn id. Fork and resume copies are kept as context and marked `duplicate_of` their owner session.
+2. **Extraction reads whole turns.** Chunks are built from whole turns, with preceding turns attached as read-only context. Only own-voice turns carry a citable alias in the prompt.
+3. **A gate outside every exception handler** stores a fact only if every evidence span meets all of these conditions:
+   - it names an own-voice turn in the chunk;
+   - it is a verbatim substring of that turn after whitespace and quote normalisation;
+   - it is within length bounds (default 3 words to 400 characters).
+   Rejections are counted per reason (`no_grounding`, `no_turn`, `not_own_voice`, `span_not_found`, `span_length`). They are written to a per-run record, which flags a gate that rejected nothing or everything.
+4. **Every fact is stamped** with the contract version, extraction model, prompt hash, git commit and a repo-relative code path. A fact is gated if and only if its contract version is set, so mode is a property of the row, not of the database schema.
+5. **Verification is its own read-only module** (`baselayer verify-spec`, `docs/core/VERIFY_SPEC.md`). It runs once after authoring and never feeds back into it. It re-gates every span of every gated fact and verifies legacy facts at conversation level.
+6. **Every build goes into a fresh corpus directory.** Turn-mode extraction refuses a database or vector store holding any fact not stamped with its version. The reset commands are not the supported path. `forget --all` keeps the extraction log, so a later extract finds nothing to do; the full extraction reset is `python -m baselayer.extract_facts --reset`.
+
+**Turn-mode defaults.** Each applies in turn mode only:
+- the D-048 contamination filter is off, because the span gate replaces it;
+- the dynamic fact cap defaults on;
+- `MIN_MESSAGES_FOR_EXTRACTION` does not apply;
+- conversations the importer re-marked after growing are extracted again.
+
+**Why:** Before this, a fact record kept only a conversation id. Once extraction had run, nothing could tell whether a fact came from the subject or from the assistant's side of the conversation. Hand audits of extracted facts found assistant-sourced and pasted material among them, and the specification's cited evidence inherited it. A prompt instruction cannot enforce provenance, and a gate in code can.
+
+**What the gate does not prove:** that a fact is a correct reading of its spans. That is a judgement, so verification samples it and does not gate it. It is the same split as the authoring citation gate: mandatory is not the same as accurate.
+
+**Amendment note:** the span-length condition and the row-value mode rule were added to `turn-contract/1` in place, before any fact had been extracted under that version. No stored artifact carries the earlier reading.
+
+**Alternatives considered:**
+- Prompt-only grounding. Rejected: it cannot be verified after the fact.
+- A model-judged speaker filter at extraction time. Rejected: it adds a billed, probabilistic step where the source already records the speaker.
+- Resetting an existing corpus. Rejected: every reset command found leaves some state behind. A fresh directory has none.
