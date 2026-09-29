@@ -18,6 +18,7 @@ Usage:
 """
 
 import contextlib
+import hashlib
 import json
 import sqlite3
 import sys
@@ -35,6 +36,11 @@ from typing import Generator
 
 # Shared config — single source of truth (config.py)
 from baselayer.config import PROJECT_ROOT, DATABASE_FILE, get_db, database_initialized
+from baselayer import turn_import as TI
+from baselayer.import_config import load_import_config
+from baselayer.redaction import redact, redact_rows
+from baselayer.turns import (TurnRow, ensure_turn_tables, legacy_messages, record_exclusion,
+                             set_flag, write_conversation)
 
 # Claude Code default location (Windows)
 CLAUDE_DIR = Path.home() / ".claude"
@@ -149,94 +155,38 @@ def import_chatgpt(conn, filepath, existing_ids):
             conversations = json.load(f)
 
     print(f"  Total conversations in file: {len(conversations)}")
-
-    new_count = 0
-    new_messages = 0
-    skipped = 0
+    config = load_import_config()
+    ensure_turn_tables(conn)
+    status_counts = {}
 
     for conv in conversations:
         conv_id = conv.get("conversation_id") or conv.get("id")
         if not conv_id:
             conv_id = f"{conv.get('title', 'untitled')}_{conv.get('create_time', 0)}"
 
-        # Skip if already imported
-        if conv_id in existing_ids:
-            skipped += 1
+        reason = config.excluded_reason(conversation_id=conv_id, source="chatgpt")
+        if reason:
+            record_exclusion(conn, conv_id, "chatgpt", reason)
+            status_counts["excluded"] = status_counts.get("excluded", 0) + 1
             continue
 
-        title = conv.get("title", "")
-        created_at = conv.get("create_time")
-        updated_at = conv.get("update_time")
-        mapping = conv.get("mapping", {})
-
-        # Collect messages
-        messages = []
-        for seq, msg_id, message in traverse_message_tree(mapping):
-            author = message.get("author", {})
-            role = author.get("role", "unknown")
-
-            metadata = message.get("metadata", {})
-            if metadata.get("is_visually_hidden_from_conversation"):
-                continue
-
-            content = message.get("content", {})
-            text, content_type = extract_text_content(content)
-
-            if not text.strip():
-                continue
-
-            created = message.get("create_time")
-            parent_id = None
-            for node_id, node in mapping.items():
-                if msg_id in node.get("children", []):
-                    parent_id = node_id
-                    break
-
-            messages.append({
-                "id": msg_id,
-                "conversation_id": conv_id,
-                "parent_id": parent_id,
-                "role": role,
-                "content_text": text,
-                "content_type": content_type,
-                "created_at": created,
-                "sequence_order": seq
-            })
-
-        if not messages:
+        res = TI.build_chatgpt_turns(conv, config)
+        if not res.rows:
             continue
-
-        # Insert conversation
-        conn.execute("""
-            INSERT OR IGNORE INTO conversations
-            (id, title, created_at, updated_at, message_count, source)
-            VALUES (?, ?, ?, ?, ?, 'chatgpt')
-        """, (conv_id, title, created_at, updated_at, len(messages)))
-
-        # Insert messages
-        conn.executemany("""
-            INSERT OR IGNORE INTO messages
-            (id, conversation_id, parent_id, role, content_text, content_type,
-             created_at, sequence_order)
-            VALUES (:id, :conversation_id, :parent_id, :role, :content_text,
-                    :content_type, :created_at, :sequence_order)
-        """, messages)
-
-        new_count += 1
-        new_messages += len(messages)
+        status = write_conversation(
+            conn, conversation_id=conv_id, source="chatgpt", rows=res.rows,
+            content_hash=res.content_hash, title=res.title, created_at=res.created_at,
+            updated_at=res.updated_at, source_path=str(filepath),
+            allowlist=config.paste_allowlist,
+            own_writing=config.own_writing_rule())
+        status_counts[status] = status_counts.get(status, 0) + 1
         existing_ids.add(conv_id)
-
-        if new_count % 50 == 0:
-            print(f"    Imported {new_count} new conversations...")
+        if sum(status_counts.values()) % 50 == 0:
             conn.commit()
 
     conn.commit()
-
-    print(f"\n  Results:")
-    print(f"    Skipped (already in DB): {skipped}")
-    print(f"    New conversations:       {new_count}")
-    print(f"    New messages:            {new_messages}")
-
+    new_count = sum(v for k, v in status_counts.items() if k in ("new", "grown", "upgraded"))
+    print(f"\n  Results: {status_counts}")
     return new_count
 
 
@@ -264,197 +214,275 @@ def find_claude_code_sessions():
     return sessions
 
 
-def parse_claude_code_session(filepath):
+def parse_claude_code_session(filepath, config=None, ctx=None):
+    """Parse one Claude Code session into the legacy conversation dict.
+
+    Kept for callers that want the old shape. The rows come from the turn builder, so
+    only citable subject text and assistant text appear as messages.
     """
-    Parse a Claude Code JSONL session file into conversation + messages.
-
-    Claude Code JSONL format:
-    - type: "file-history-snapshot" — skip
-    - type: "user" — user message, content in message.content (string)
-    - type: "assistant" — assistant message, content in message.content (list of {type, text})
-    - type: "summary" — context compression summary — skip
-    """
-    from datetime import datetime
-
-    messages = []
-    session_id = filepath.stem  # Filename without extension is the session ID
-    first_user_message = None
-    earliest_timestamp = None
-    latest_timestamp = None
-
-    with open(filepath, "r", encoding="utf-8") as f:
-        for line_num, line in enumerate(f):
-            line = line.strip()
-            if not line:
-                continue
-
-            try:
-                obj = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-
-            msg_type = obj.get("type", "")
-
-            # Skip non-message entries
-            if msg_type in ("file-history-snapshot", "summary"):
-                continue
-
-            if msg_type not in ("user", "assistant"):
-                continue
-
-            message = obj.get("message", {})
-            role = message.get("role", msg_type)
-            content = message.get("content", "")
-            timestamp = obj.get("timestamp")
-            msg_uuid = obj.get("uuid", str(uuid.uuid4()))
-            parent_uuid = obj.get("parentUuid")
-
-            # Convert timestamps — may be int (ms), float (s), epoch string,
-            # or ISO 8601 string. Claude Code emits ISO 8601 with a Z suffix
-            # ("2026-05-08T21:08:22.534Z"); float() raises on those, so they
-            # were silently nulled before this 2026-05-20 fix.
-            if timestamp is not None:
-                if isinstance(timestamp, str):
-                    try:
-                        timestamp = float(timestamp)
-                    except ValueError:
-                        try:
-                            timestamp = datetime.fromisoformat(
-                                timestamp.replace("Z", "+00:00")
-                            ).timestamp()
-                        except ValueError:
-                            timestamp = None
-                if timestamp is not None and timestamp > 1e12:
-                    timestamp = timestamp / 1000.0
-
-            # Track timestamps
-            if timestamp is not None:
-                if earliest_timestamp is None or timestamp < earliest_timestamp:
-                    earliest_timestamp = timestamp
-                if latest_timestamp is None or timestamp > latest_timestamp:
-                    latest_timestamp = timestamp
-
-            # Extract text content
-            if isinstance(content, str):
-                text = content
-            elif isinstance(content, list):
-                # Assistant messages have content as list of {type, text}
-                text_parts = []
-                for item in content:
-                    if isinstance(item, dict):
-                        if item.get("type") == "text":
-                            text_parts.append(item.get("text", ""))
-                        elif item.get("type") == "tool_use":
-                            text_parts.append(f"[tool: {item.get('name', 'unknown')}]")
-                        elif item.get("type") == "tool_result":
-                            text_parts.append("[tool result]")
-                    elif isinstance(item, str):
-                        text_parts.append(item)
-                text = "\n".join(text_parts)
-            else:
-                text = str(content) if content else ""
-
-            if not text.strip():
-                continue
-
-            # Track first user message for title synthesis
-            if role == "user" and first_user_message is None:
-                first_user_message = text[:100].strip()
-
-            messages.append({
-                "id": msg_uuid,
-                "conversation_id": session_id,
-                "parent_id": parent_uuid,
-                "role": role,
-                "content_text": text,
-                "content_type": "text",
-                "created_at": timestamp,
-                "sequence_order": len(messages)
-            })
-
-    if not messages:
+    config = config or load_import_config()
+    ctx = ctx or TI.build_claude_code_context([filepath], config)
+    res = TI.build_claude_code_turns(filepath, ctx, config)
+    session_id = Path(filepath).stem
+    msgs = legacy_messages(session_id, res.rows)
+    if not msgs:
         return None
-
-    # Synthesize title from first user message
-    title = first_user_message or "Claude Code Session"
-    if len(title) > 80:
-        title = title[:77] + "..."
-
-    conversation = {
-        "id": session_id,
-        "title": title,
-        "created_at": earliest_timestamp,
-        "updated_at": latest_timestamp,
-        "messages": messages,
-        "source": "claude_code"
-    }
-
-    return conversation
+    return {"id": session_id, "title": res.title, "created_at": res.created_at,
+            "updated_at": res.updated_at, "messages": msgs, "source": "claude_code"}
 
 
-def import_claude_code(conn, existing_ids):
-    """Import new Claude Code sessions."""
+def _bump(counts, key, n=1):
+    counts[key] = counts.get(key, 0) + n
+
+
+def import_claude_code(conn, existing_ids, session_files=None):
+    """Import Claude Code sessions into the turn table (and legacy messages).
+
+    A session already imported with the same content hash is skipped; one that grew is
+    re-imported and marked for extraction (see ``turns.write_conversation``).
+    """
     print(f"\n=== Importing Claude Code Sessions ===")
     print(f"  Looking in: {CLAUDE_PROJECTS_DIR}")
 
-    session_files = find_claude_code_sessions()
+    if session_files is None:
+        session_files = find_claude_code_sessions()
     print(f"  Found {len(session_files)} session files")
+    config = load_import_config()
+    ensure_turn_tables(conn)
+    ctx = TI.build_claude_code_context(session_files, config)
 
-    new_count = 0
-    new_messages = 0
-    skipped = 0
+    status_counts, detail = {}, {}
     errors = 0
-
-    for filepath in session_files:
-        session_id = filepath.stem
-
-        if session_id in existing_ids:
-            skipped += 1
+    for filepath in sorted(session_files, key=str):
+        session_id = Path(filepath).stem
+        reason = config.excluded_reason(conversation_id=session_id, source="claude_code",
+                                        path=filepath)
+        if reason:
+            record_exclusion(conn, session_id, "claude_code", reason)
+            _bump(status_counts, "excluded")
             continue
-
         try:
-            conv = parse_claude_code_session(filepath)
+            res = TI.build_claude_code_turns(filepath, ctx, config)
         except Exception as e:
-            print(f"    ERROR parsing {filepath.name}: {e}")
+            print(f"    ERROR parsing {Path(filepath).name}: {e}")
             errors += 1
             continue
-
-        if conv is None:
+        for k, v in res.counts.items():
+            _bump(detail, k, v)
+        if not res.rows:
             continue
-
-        messages = conv["messages"]
-
-        # Insert conversation
-        conn.execute("""
-            INSERT OR IGNORE INTO conversations
-            (id, title, created_at, updated_at, message_count, source)
-            VALUES (?, ?, ?, ?, ?, 'claude_code')
-        """, (conv["id"], conv["title"], conv["created_at"],
-              conv["updated_at"], len(messages)))
-
-        # Insert messages
-        conn.executemany("""
-            INSERT OR IGNORE INTO messages
-            (id, conversation_id, parent_id, role, content_text, content_type,
-             created_at, sequence_order)
-            VALUES (:id, :conversation_id, :parent_id, :role, :content_text,
-                    :content_type, :created_at, :sequence_order)
-        """, messages)
-
-        new_count += 1
-        new_messages += len(messages)
+        status = write_conversation(
+            conn, conversation_id=session_id, source="claude_code", rows=res.rows,
+            content_hash=res.content_hash, title=res.title, created_at=res.created_at,
+            updated_at=res.updated_at, source_path=str(filepath),
+            allowlist=config.paste_allowlist,
+            own_writing=config.own_writing_rule())
+        if status != "unchanged":
+            for flag, d in res.flags.items():
+                set_flag(conn, session_id, flag, d)
+        _bump(status_counts, status)
         existing_ids.add(session_id)
 
     conn.commit()
-
-    print(f"\n  Results:")
-    print(f"    Skipped (already in DB): {skipped}")
-    print(f"    New sessions:            {new_count}")
-    print(f"    New messages:            {new_messages}")
+    new_count = sum(v for k, v in status_counts.items() if k in ("new", "grown", "upgraded"))
+    print(f"\n  Results: {status_counts}")
+    if detail:
+        print(f"  Record detail: {dict(sorted(detail.items()))}")
     if errors:
         print(f"    Errors:                  {errors}")
-
     return new_count
+
+
+# ===========================================================================
+# SOURCE 2b: Claude Code prompt history (history.jsonl)
+# ===========================================================================
+
+def import_history(conn, filepaths, existing_ids):
+    """Import subject prompts from Claude Code's history.jsonl (one or more copies).
+
+    Prompts only: history carries no assistant turns. Sessions whose full transcript is
+    already in the database are skipped, so the same prompt is not imported twice.
+    Import transcripts first.
+    """
+    if isinstance(filepaths, (str, Path)):
+        filepaths = [filepaths]
+    print(f"\n=== Importing Claude Code prompt history ===")
+    config = load_import_config()
+    ensure_turn_tables(conn)
+    sessions = TI.load_history_sessions(filepaths)
+    status_counts = {}
+    # A prompt can survive in history under one session id and in a transcript under
+    # another (resume, fork). Index the transcript's citable text so such a prompt is
+    # marked a duplicate rather than counted twice. Short texts ("ok", "continue") are
+    # separate utterances, not copies, so only texts of 8+ words are matched.
+    transcript_text = {}
+    for cid, text in conn.execute(
+            "SELECT conversation_id, text FROM turns WHERE source='claude_code' AND "
+            "voice_class IN ('own_typed','own_dictated') AND duplicate_of IS NULL"):
+        if len(text.split()) >= 8:
+            transcript_text.setdefault(TI.V.norm_hash(text), cid)
+    from baselayer import recovered_import as RI
+    for sid in sorted(sessions):
+        conv_id = f"history_{sid}"
+        entries = sessions[sid]
+        if conn.execute("SELECT 1 FROM conversations WHERE id=? AND source='claude_code'",
+                        (sid,)).fetchone():
+            # A transcript copied before its session ended lacks the later prompts;
+            # keep those, and only those, as history turns.
+            entries = RI.entries_after_transcript(conn, sid, entries)
+            if not entries:
+                _bump(status_counts, "covered_by_transcript")
+                continue
+            _bump(status_counts, "covered_but_later_prompts_kept")
+        reason = (config.excluded_reason(conversation_id=conv_id, source="claude_code_history")
+                  or config.excluded_reason(conversation_id=sid))
+        if reason:
+            record_exclusion(conn, conv_id, "claude_code_history", reason)
+            _bump(status_counts, "excluded")
+            continue
+        res = TI.build_history_turns(sid, entries, config)
+        if not res.rows:
+            continue
+        # Mask secrets BEFORE the dedupe comparisons: the transcript and copy text they are
+        # compared against was masked when it was written, so an unmasked prompt holding a
+        # secret would never match its own stored copy.
+        redact_rows(res.rows)
+        for r in res.rows:
+            if r.citable and len(r.text.split()) >= 8:
+                dup = transcript_text.get(TI.V.norm_hash(r.text))
+                if dup:
+                    r.duplicate_of = dup
+        # Prompts a database copy of this session already carries, with its context.
+        for k, v in RI.mark_history_rows(conn, sid, res.rows).items():
+            _bump(status_counts, f"db_copy_{k}", v)
+        status = write_conversation(
+            conn, conversation_id=conv_id, source="claude_code_history", rows=res.rows,
+            content_hash=res.content_hash, title=res.title, created_at=res.created_at,
+            updated_at=res.updated_at, source_path=";".join(str(p) for p in filepaths),
+            allowlist=config.paste_allowlist,
+            own_writing=config.own_writing_rule())
+        _bump(status_counts, status)
+        existing_ids.add(conv_id)
+    conn.commit()
+    print(f"  Results: {status_counts}")
+    return sum(v for k, v in status_counts.items() if k in ("new", "grown", "upgraded"))
+
+
+# ===========================================================================
+# SOURCE 2b': originless queued prompts, append-only
+# ===========================================================================
+
+def import_originless_queued(conn, session_files, existing_ids) -> dict:
+    """Write each session's originless queued prompts as a conversation of its own,
+    ``queued_<sid>``, source ``claude_code_queued``. Returns the status counts.
+
+    The session's own conversation is not touched. Putting the prompts inline (the
+    ``include_originless_queued`` switch) inserts turns mid-session, which renumbers every
+    later turn and moves the turn ids facts cite; ``write_conversation`` refuses that as a
+    conflict. So this path refuses to run while the switch is on: the two would import the
+    same prompts twice. Prompts of 8+ words whose text a transcript already carries as a
+    citable turn are marked ``duplicate_of``, as history prompts are.
+    """
+    config = load_import_config()
+    if config.include_originless_queued:
+        raise ValueError("include_originless_queued is on: the transcript import already carries "
+                         "these prompts inline; the append-only feeder would import them twice")
+    ensure_turn_tables(conn)
+    session_files = [Path(f) for f in session_files]
+    ctx = TI.build_claude_code_context(session_files, config)
+    transcript_text = {}
+    for cid, text in conn.execute(
+            "SELECT conversation_id, text FROM turns WHERE source='claude_code' AND "
+            "voice_class IN ('own_typed','own_dictated') AND duplicate_of IS NULL"):
+        if len(text.split()) >= 8:
+            transcript_text.setdefault(TI.V.norm_hash(text), cid)
+    status_counts = {}
+    for filepath in sorted(session_files, key=str):
+        sid = filepath.stem
+        conv_id = f"queued_{sid}"
+        reason = (config.excluded_reason(conversation_id=conv_id, source="claude_code_queued")
+                  or config.excluded_reason(conversation_id=sid, source="claude_code",
+                                            path=filepath))
+        if reason:
+            record_exclusion(conn, conv_id, "claude_code_queued", reason)
+            _bump(status_counts, "excluded")
+            continue
+        res = TI.build_originless_queued_turns(filepath, ctx, config)
+        if not res.rows:
+            continue
+        redact_rows(res.rows)
+        for r in res.rows:
+            if r.citable and r.duplicate_of is None and len(r.text.split()) >= 8:
+                dup = transcript_text.get(TI.V.norm_hash(r.text))
+                if dup:
+                    r.duplicate_of = dup
+        status = write_conversation(
+            conn, conversation_id=conv_id, source="claude_code_queued", rows=res.rows,
+            content_hash=res.content_hash, title=res.title, created_at=res.created_at,
+            updated_at=res.updated_at, source_path=str(filepath),
+            allowlist=config.paste_allowlist, own_writing=config.own_writing_rule())
+        if status != "unchanged":
+            for flag, d in res.flags.items():
+                set_flag(conn, conv_id, flag, d)
+        _bump(status_counts, status)
+        existing_ids.add(conv_id)
+    conn.commit()
+    print(f"  Originless queued prompts: {status_counts}")
+    return status_counts
+
+
+# ===========================================================================
+# SOURCE 2c: Meeting transcripts ("HH:MM Speaker Name: text" lines)
+# ===========================================================================
+
+def import_meetings(conn, path, existing_ids):
+    """Import meeting transcripts. The subject's speaker label(s) come from the local
+    import config (``meeting_subject_labels``); those lines are ``own_dictated`` and every
+    other speaker is ``other_person``. A transcript in which no line carries a configured
+    subject label is NOT imported: it would enter as all other people, which reads as a
+    successful import of nothing.
+    """
+    print(f"\n=== Importing meeting transcripts ===")
+    config = load_import_config()
+    if not config.meeting_subject_labels:
+        raise ValueError("meeting import needs meeting_subject_labels in the import config "
+                         "(the subject's speaker label); refusing to import every line as "
+                         "another person")
+    ensure_turn_tables(conn)
+    p = Path(path)
+    files = sorted(p.rglob("*.txt")) if p.is_dir() else [p]
+    status_counts = {}
+    for f in files:
+        try:
+            text = f.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            text = f.read_text(encoding="latin-1")
+        if not TI.looks_like_meeting(text):
+            _bump(status_counts, "not_meeting_format")
+            continue
+        res = TI.build_meeting_turns(text, config)
+        conv_id = f"meeting_{res.content_hash[:16]}"
+        reason = config.excluded_reason(conversation_id=conv_id, source="meeting", path=f)
+        if reason:
+            record_exclusion(conn, conv_id, "meeting", reason)
+            _bump(status_counts, "excluded")
+            continue
+        if res.counts["subject_lines"] == 0:
+            print(f"  WARNING: no line in {f.name} carries a configured subject label; "
+                  f"not imported")
+            _bump(status_counts, "no_subject_lines")
+            continue
+        status = write_conversation(
+            conn, conversation_id=conv_id, source="meeting", rows=res.rows,
+            content_hash=res.content_hash, title=res.title or f.stem,
+            created_at=res.created_at, updated_at=res.updated_at, source_path=str(f),
+            allowlist=config.paste_allowlist,
+            own_writing=config.own_writing_rule())
+        _bump(status_counts, status)
+        existing_ids.add(conv_id)
+    conn.commit()
+    print(f"  Results: {status_counts}")
+    return sum(v for k, v in status_counts.items() if k in ("new", "grown", "upgraded"))
 
 
 # ===========================================================================
@@ -498,6 +526,8 @@ def _import_claude_web_dir(conn, dirpath, existing_ids):
     new_count = 0
     new_messages = 0
     skipped = 0
+    config = load_import_config()
+    ensure_turn_tables(conn)
 
     # Look for conversation JSON files
     json_files = list(dirpath.rglob("*.json"))
@@ -519,7 +549,9 @@ def _import_claude_web_dir(conn, dirpath, existing_ids):
             if not conv_id:
                 continue
 
-            if conv_id in existing_ids:
+            reason = config.excluded_reason(conversation_id=conv_id, source="claude_web")
+            if reason:
+                record_exclusion(conn, conv_id, "claude_web", reason)
                 skipped += 1
                 continue
 
@@ -597,19 +629,20 @@ def _import_claude_web_dir(conn, dirpath, existing_ids):
             if not messages:
                 continue
 
-            conn.execute("""
-                INSERT OR IGNORE INTO conversations
-                (id, title, created_at, updated_at, message_count, source)
-                VALUES (?, ?, ?, ?, ?, 'claude_web')
-            """, (conv_id, title, created_at, updated_at, len(messages)))
-
-            conn.executemany("""
-                INSERT OR IGNORE INTO messages
-                (id, conversation_id, parent_id, role, content_text, content_type,
-                 created_at, sequence_order)
-                VALUES (:id, :conversation_id, :parent_id, :role, :content_text,
-                        :content_type, :created_at, :sequence_order)
-            """, messages)
+            res = TI.build_message_list_turns(
+                [{"role": m["role"], "text": m["content_text"], "id": m["id"],
+                  "created_at": m["created_at"]} for m in messages],
+                config,
+                hashlib.sha256(json.dumps(conv, sort_keys=True, default=str).encode("utf-8")).hexdigest())
+            status = write_conversation(
+                conn, conversation_id=conv_id, source="claude_web", rows=res.rows,
+                content_hash=res.content_hash, title=title, created_at=created_at,
+                updated_at=updated_at, source_path=str(json_file),
+                allowlist=config.paste_allowlist,
+                own_writing=config.own_writing_rule())
+            if status == "unchanged":
+                skipped += 1
+                continue
 
             new_count += 1
             new_messages += len(messages)
@@ -806,6 +839,7 @@ def import_json_files(conn, filepath, existing_ids):
         """, (conv_id, title, created_at, created_at, len(texts), "json_file"))
 
         for seq, text in enumerate(texts):
+            text, _ = redact(text)
             msg_id = str(uuid.uuid4())
             conn.execute("""
                 INSERT INTO messages (id, conversation_id, role, content_text, sequence_order, created_at)
@@ -860,12 +894,21 @@ def import_text_files(conn, filepath, existing_ids):
 
     new_count = 0
     new_messages = 0
+    config = load_import_config()
+    ensure_turn_tables(conn)
+    n_excluded = 0
 
     for file_path in files:
         # Use file path as stable ID (hashlib, not hash() which is randomized per-process)
         import hashlib
         path_hash = hashlib.md5(str(file_path).encode()).hexdigest()[:8]
         conv_id = f"textfile_{file_path.stem}_{path_hash}"
+        reason = config.excluded_reason(conversation_id=conv_id, source="text_file",
+                                        path=file_path)
+        if reason:
+            record_exclusion(conn, conv_id, "text_file", reason)
+            n_excluded += 1
+            continue
         if conv_id in existing_ids:
             continue
 
@@ -905,18 +948,17 @@ def import_text_files(conn, filepath, existing_ids):
 
         title = file_path.stem.replace("_", " ").replace("-", " ").title()
 
-        # Store as conversation
-        conn.execute("""
-            INSERT INTO conversations (id, title, created_at, updated_at, message_count, source)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (conv_id, title, created_at, created_at, 1, "text_file"))
-
-        # Store entire file as a single "user" message (self-authored content)
-        msg_id = str(uuid.uuid4())
-        conn.execute("""
-            INSERT INTO messages (id, conversation_id, role, content_text, sequence_order, created_at)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (msg_id, conv_id, "user", text, 0, created_at))
+        # The whole file is one subject turn. Whoever imports a text file asserts it is
+        # the subject's own writing; the basis records that it is an assertion, and the
+        # exclusion config is the way to keep out files that are not (for example documents
+        # an assistant wrote).
+        row = TurnRow(ordinal=0, speaker="subject", voice_class="own_typed", text=text,
+                      basis="source:text_file_assertion", created_at=created_at)
+        write_conversation(conn, conversation_id=conv_id, source="text_file", rows=[row],
+                           content_hash=hashlib.sha256(text.encode("utf-8", "surrogatepass")).hexdigest(),
+                           title=title, created_at=created_at, updated_at=created_at,
+                           source_path=str(file_path), allowlist=config.paste_allowlist,
+                           own_writing=config.own_writing_rule())
 
         new_count += 1
         new_messages += 1
@@ -924,6 +966,8 @@ def import_text_files(conn, filepath, existing_ids):
 
     conn.commit()
     print(f"  Imported: {new_count} files ({new_messages} messages)")
+    if n_excluded:
+        print(f"  Excluded by the import config: {n_excluded} file(s)")
     if skipped_short:
         print(f"  Skipped {len(skipped_short)} file(s) under {MIN_TEXT_FILE_CHARS} characters:")
         for name, n in skipped_short[:10]:
@@ -941,8 +985,14 @@ def main():
     )
     parser.add_argument("--chatgpt", type=str, metavar="FILE",
                         help="Import from ChatGPT export (conversations.json)")
-    parser.add_argument("--claude-code", action="store_true",
-                        help="Import Claude Code sessions from ~/.claude/")
+    parser.add_argument("--claude-code", nargs="?", const=True, default=None, metavar="DIR",
+                        help="Import Claude Code sessions (default ~/.claude/projects, or DIR)")
+    parser.add_argument("--history", type=str, action="append", metavar="FILE",
+                        help="Import subject prompts from a Claude Code history.jsonl "
+                             "(repeatable; import transcripts first)")
+    parser.add_argument("--meetings", type=str, metavar="PATH",
+                        help="Import meeting transcripts (HH:MM Speaker: text); needs "
+                             "meeting_subject_labels in the import config")
     parser.add_argument("--claude-web", type=str, metavar="FILE",
                         help="Import from Claude.ai export (ZIP file)")
     parser.add_argument("--text", type=str, metavar="PATH",
@@ -969,7 +1019,8 @@ def main():
             show_stats(conn)
             return
 
-        if not any([args.chatgpt, args.claude_code, args.claude_web, args.text, args.json, args.all]):
+        if not any([args.chatgpt, args.claude_code, args.claude_web, args.text, args.json,
+                    args.history, args.meetings, args.all]):
             parser.print_help()
             return
 
@@ -989,7 +1040,16 @@ def main():
                 total_new += import_chatgpt(conn, filepath, existing_ids)
 
         if args.claude_code or args.all:
+            global CLAUDE_PROJECTS_DIR
+            if isinstance(args.claude_code, str):
+                CLAUDE_PROJECTS_DIR = Path(args.claude_code)
             total_new += import_claude_code(conn, existing_ids)
+
+        if args.history:
+            total_new += import_history(conn, args.history, existing_ids)
+
+        if args.meetings:
+            total_new += import_meetings(conn, args.meetings, existing_ids)
 
         if args.claude_web:
             total_new += import_claude_web(conn, args.claude_web, existing_ids)

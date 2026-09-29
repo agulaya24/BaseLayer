@@ -201,7 +201,7 @@ def find_candidate_pairs(facts, embeddings, threshold=0.45):
 
 def classify_pair_haiku(fact_a_text, fact_b_text, pred_a, pred_b):
     """Classify a fact pair using Haiku API via api_client.call_api."""
-    from baselayer.api_client import call_api
+    from baselayer.api_client import call_api, response_text
 
     prompt = f"""Classify the relationship between these two facts about the same person.
 
@@ -228,7 +228,7 @@ Return ONLY a JSON object:
             temperature=0,
             caller="contradiction_classify",
         )
-        text = response.content[0].text.strip()
+        text = response_text(response, caller="contradiction_classify").strip()
         if text.startswith("{"):
             return json.loads(text)
         import re

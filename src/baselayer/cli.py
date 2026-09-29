@@ -94,9 +94,10 @@ def cmd_init(args):
         # init_database.py has zero DROP and zero DELETE: --force re-runs CREATE TABLE IF NOT
         # EXISTS and removes nothing.
         print("Use --force to re-run initialization. It does NOT delete anything.")
-        print("For a real reset: `baselayer forget --all` AND delete data/vectors/.")
-        print("Clearing only SQLite leaves stale vectors, which make deduplication treat new")
-        print("facts as already-known: tens of facts where a clean run yields hundreds.")
+        print("For a clean rebuild, build into a fresh corpus directory (set MEMORY_SYSTEM_ROOT).")
+        print("`baselayer forget --all` is not a reset: it keeps the extraction log, so a later")
+        print("extract finds nothing to do. The full extraction reset (facts, extraction log and")
+        print("fact vectors) is `python -m baselayer.extract_facts --reset`.")
         return
 
     # --- Privacy disclosure ---
@@ -342,6 +343,8 @@ def cmd_extract(args):
         argv.extend(["--source", _IMPORT_TO_STORED_SOURCE.get(args.source, args.source)])
     if getattr(args, 'document_mode', False):
         argv.append("--document-mode")
+    if getattr(args, 'turn_contract', False):
+        argv.append("--turn-contract")
     sys.argv = argv
     extract_facts.main()
 
@@ -407,6 +410,21 @@ def cmd_compose(args):
         sys.exit(1)
 
 
+def _rate_argv(args):
+    """Forward the distillation rate confirmation and spend confirmation (spend.py) to the
+    module's own argv."""
+    out = []
+    if getattr(args, "rates_confirmed", None):
+        out += ["--rates-confirmed", args.rates_confirmed]
+    if getattr(args, "rate_in", None) is not None:
+        out += ["--rate-in", str(args.rate_in)]
+    if getattr(args, "rate_out", None) is not None:
+        out += ["--rate-out", str(args.rate_out)]
+    if getattr(args, "confirm_spend", None) is not None:
+        out += ["--confirm-spend", str(args.confirm_spend)]
+    return out
+
+
 def cmd_distill(args):
     """EXPERIMENTAL: distill every fact into an auditable tree (interpretive distillation)."""
     _check_api_key()
@@ -425,6 +443,11 @@ def cmd_distill(args):
         argv += ["--resume-from", args.resume_from]
     if args.write_provenance:
         argv.append("--write-provenance")
+    if getattr(args, "include_other_subjects", False):
+        argv.append("--include-other-subjects")
+    if getattr(args, "exclude_ids", None):
+        argv += ["--exclude-ids", args.exclude_ids]
+    argv += _rate_argv(args)
     sys.argv = argv
     distill.main()
 
@@ -435,17 +458,29 @@ def cmd_assemble(args):
     argv = ["assemble.py"] + list(args.trees) + ["--out", args.out]
     if args.min_runs is not None:
         argv += ["--min-runs", str(args.min_runs)]
+    if getattr(args, "shard_token_budget", None) is not None:
+        argv += ["--shard-token-budget", str(args.shard_token_budget)]
     sys.argv = argv
     assemble.main()
+
+
+def cmd_verify_spec(args):
+    """Post-specification verification: read-only on the corpus, writes only --out."""
+    from baselayer.verification import run as verify_run
+    sys.exit(verify_run.execute(args))
 
 
 def cmd_author_from_package(args):
     """EXPERIMENTAL: author layers plus brief from handoff packages (citations required by schema)."""
     _check_api_key()
     from baselayer.distillation import author_from_package
-    argv = ["author_from_package.py", "--outdir", args.outdir, "--model", args.model]
+    argv = ["author_from_package.py", "--outdir", args.outdir, "--model", args.model,
+            "--effort", args.effort]
+    if args.max_tokens is not None:
+        argv += ["--max-tokens", str(args.max_tokens)]
     for pkg in args.package:
         argv += ["--package", pkg]
+    argv += _rate_argv(args)
     sys.argv = argv
     author_from_package.main()
 
@@ -1504,7 +1539,10 @@ def cmd_pipeline(args):
         print(f"  No new conversations to extract.")
     else:
         print(f"  Batch extraction did not complete. Status: {state.get('status') if state else 'unknown'}")
-        print(f"  Run 'baselayer batch-extract --status' to check, then '--process' when ready.")
+        # --resume, never a bare --process: this batch was submitted incrementally, and a bare
+        # --process first deletes every extracted fact (batch_extract refuses it).
+        print(f"  Run 'baselayer batch-extract --status' to check, then "
+              f"'baselayer batch-extract --process --resume' when ready.")
 
     # Gates before authoring
     print(f"\n  Checking gates...")
@@ -1979,7 +2017,9 @@ def cmd_batch_extract(args):
     import baselayer.batch_extract as batch_extract
 
     if args.submit:
-        batch_extract.run_submit()
+        batch_extract.run_submit(
+            skip_extracted=bool(getattr(args, "incremental", False)),
+            turn_contract=True if getattr(args, "turn_contract", False) else None)
     elif args.status:
         batch_extract.run_status()
     elif args.process:
@@ -2053,6 +2093,12 @@ def cmd_rebuild_fts(args):
         print(f"  The search_facts MCP tool will now use FTS5 for faster lookups.")
 
 
+def _add_rate_args(p):
+    from baselayer.distillation import spend as _spend
+    _spend.add_rate_args(p)
+    _spend.add_spend_args(p)
+
+
 def main():
     # Force UTF-8 stdout/stderr on Windows to prevent UnicodeEncodeError (cp1252)
     import sys as _sys
@@ -2076,13 +2122,16 @@ def main():
     # THIS FLAG DOES NOT DELETE ANYTHING AND THE OLD HELP SAID IT DID.
     # init_database.py is CREATE TABLE IF NOT EXISTS throughout: zero DROP, zero DELETE.
     # A user reaching for --force wants a clean rebuild; what they get is a no-op, and the
-    # re-extraction behind it then reports "all already done", which reads as success. A real
-    # reset is `forget --all` PLUS deleting data/vectors/, because stale vectors make AUDN
-    # return NOOP and yield 12-42 facts where a clean run yields 200+.
+    # re-extraction behind it then reports "all already done", which reads as success.
+    # `forget --all` plus deleting data/vectors/ is NOT a reset either: it leaves
+    # extraction_log, which the extractor's pending-conversation query joins on, so the
+    # re-extract again finds nothing to do. Build into a fresh corpus directory; the full
+    # in-place reset is `python -m baselayer.extract_facts --reset`.
     p_init.add_argument("--force", action="store_true",
                         help="Re-run initialization. NOT destructive: no tables are dropped and "
-                             "no rows deleted. For a real reset use `forget --all` and delete "
-                             "data/vectors/.")
+                             "no rows deleted. For a clean rebuild use a fresh corpus directory; "
+                             "the full extraction reset is `python -m baselayer.extract_facts "
+                             "--reset`.")
     p_init.add_argument("--accept-data-processing", action="store_true",
                         help="Non-interactive acknowledgement of the privacy notice "
                              "(conversation text is sent to the Anthropic API during "
@@ -2098,7 +2147,8 @@ def main():
     # import
     p_import = subparsers.add_parser("import", help="Import conversation history or text files")
     p_import.add_argument("file", help="Path to export file (.zip, .json) or text file/directory")
-    p_import.add_argument("--source", choices=["chatgpt", "claude_web", "claude_code", "journal", "text"],
+    p_import.add_argument("--source", choices=["chatgpt", "claude_web", "claude_code", "journal", "text",
+                                               "history", "meetings"],
                           help="Source type (auto-detected if omitted)")
     p_import.set_defaults(func=cmd_import)
 
@@ -2113,10 +2163,19 @@ def main():
                            help="LLM backend (default: anthropic)")
     p_extract.add_argument("--identity-only", action="store_true",
                            help="Extract only identity-relevant facts from project conversations (D-048)")
-    p_extract.add_argument("--source", choices=["chatgpt", "claude_code", "claude_web", "journal", "text_file"],
-                           help="Filter to a specific conversation source")
+    p_extract.add_argument("--source", choices=["chatgpt", "claude_code", "claude_code_db_copy",
+                                                "claude_desktop_agent", "claude_code_history",
+                                                "claude_web", "meeting", "journal", "text_file"],
+                           help="Filter to a specific stored conversation source. 'claude_code' "
+                                "selects every source with Claude Code session shape "
+                                "(claude_code, claude_code_db_copy, claude_desktop_agent); name "
+                                "one of those to select it alone")
     p_extract.add_argument("--document-mode", action="store_true",
                            help="Document extraction mode (papers, books, patents)")
+    p_extract.add_argument("--turn-contract", action="store_true",
+                           help="Turn-contract extraction: only the subject's own turns are "
+                                "citable and every fact is gated on verbatim evidence spans "
+                                "(docs/core/TURN_CONTRACT.md). Needs a fresh corpus directory.")
     p_extract.set_defaults(func=cmd_extract)
 
     # embed
@@ -2140,13 +2199,14 @@ def main():
 
     # --- interpretive distillation (EXPERIMENTAL) ---------------------------------
     # Successor authoring path. `author` above stays the shipped default; removing it
-    # is a separate decision. Test coverage on this path is 10 mutation tests over
-    # distill.py's citation audit and nothing else; distill_batch.py and convergence.py
-    # (script-only, not exposed here) do not strip fabricated ids from their output.
+    # is a separate decision. Test coverage on this path is mutation tests over distill.py's
+    # citation audit and ledger metrics plus call-shape tests of author_from_package's
+    # request, plus end-to-end runs against fake clients. distill_batch.py (module-only,
+    # not exposed here) strips like distill.py; convergence.py (script-only) does not.
     p_distill = subparsers.add_parser("distill",
         help="EXPERIMENTAL: distill every fact into an auditable tree, one run per "
-             "layer. Successor to `author`; coverage is 10 mutation tests over the "
-             "citation audit, most measurements from one 407-fact corpus.")
+             "layer. Successor to `author`; coverage is mutation tests over the "
+             "citation audit, most measurements from one small corpus.")
     p_distill.add_argument("--db", default=None,
                            help="SQLite corpus (default: this project's memory.db), opened read-only")
     p_distill.add_argument("--out", required=True, help="where to write the tree JSON")
@@ -2168,29 +2228,60 @@ def main():
     p_distill.add_argument("--write-provenance", action="store_true",
                            help="persist root citations to layer_claim_provenance. WRITES to "
                                 "the corpus db; off by default.")
+    _add_rate_args(p_distill)
+    p_distill.add_argument("--include-other-subjects", action="store_true",
+                           help="admit facts whose subject is not the person, labelled as "
+                                "context about someone else (excluded by default, counted "
+                                "either way)")
+    p_distill.add_argument("--exclude-ids", default=None, metavar="FILE",
+                           help="leave these fact ids out of the distillation population (JSON "
+                                "list or one id per line; full uuid or 8-char prefix). The file's "
+                                "sha256 and counts are stamped into the tree.")
     p_distill.set_defaults(func=cmd_distill)
 
     p_assemble = subparsers.add_parser("assemble",
         help="EXPERIMENTAL: stratify distillation trees into one handoff package per "
-             "layer (no API calls). No test exercises this module.")
+             "layer (no API calls).")
     p_assemble.add_argument("trees", nargs="+", help="tree JSONs from `baselayer distill`, same layer")
     p_assemble.add_argument("--out", required=True, help="where to write the package JSON")
     p_assemble.add_argument("--min-runs", type=int, default=None,
                             help="runs a singularity must appear in to count as verified "
                                  "(default: 3, or n_runs when fewer)")
+    p_assemble.add_argument("--shard-token-budget", type=int, default=None,
+                            help="tokens of rendered evidence one author request may carry "
+                                 "(default BASELAYER_LEAF_PAYLOAD_CEILING or 400000); over it "
+                                 "the package is split into shards and --out is a manifest")
     p_assemble.set_defaults(func=cmd_assemble)
 
     p_afp = subparsers.add_parser("author-from-package",
         help="EXPERIMENTAL: author layers and brief from handoff packages; every claim "
-             "must cite fact ids (strict schema). No test exercises this module. "
+             "must cite fact ids (strict schema). Tests run it end to end against a "
+             "scripted fake client; no test calls the API. "
              "Successor to `author`, which remains the shipped path.")
+    _add_rate_args(p_afp)
     p_afp.add_argument("--package", action="append", required=True,
                        help="handoff package json; repeat once per layer")
     p_afp.add_argument("--outdir", required=True)
     p_afp.add_argument("--model", default="claude-opus-5",
                        help="authoring+compose. Compose is 0.24%% of pipeline cost, so the "
                             "best model here is effectively free.")
+    p_afp.add_argument("--effort", default="high",
+                       choices=["low", "medium", "high", "xhigh", "max"],
+                       help="output_config.effort (default high; Opus 5.5 would otherwise "
+                            "default to medium)")
+    p_afp.add_argument("--max-tokens", type=int, default=None,
+                       help="per-call ceiling for layers; compose gets 1.5x. Thinking counts "
+                            "toward it.")
     p_afp.set_defaults(func=cmd_author_from_package)
+
+    p_vspec = subparsers.add_parser("verify-spec",
+        help="Verify an authored specification against its corpus: citations, voice, "
+             "duplicates, triggers (deterministic) and, with --run-model, model-judged "
+             "support, voice, fidelity, cross-claim relations and contradiction reads. "
+             "Read-only on the corpus; writes only --out. Default is a priced dry run.")
+    from baselayer.verification.run import build_parser as _vspec_parser
+    _vspec_parser(p_vspec)
+    p_vspec.set_defaults(func=cmd_verify_spec)
 
 
     # brief
@@ -2315,6 +2406,13 @@ def main():
                          help="With --process: skip Phase 1 reset; augment "
                               "existing facts instead of replacing them. Use "
                               "for follow-up retry batches.")
+    p_batch.add_argument("--turn-contract", action="store_true",
+                         help="With --submit: turn-contract requests (gated at --process). "
+                              "Needs a fresh corpus directory.")
+    p_batch.add_argument("--incremental", action="store_true",
+                         help="With --submit: only conversations not yet extracted, plus "
+                              "sessions that grew since their extraction (turn mode). "
+                              "Process with --process --resume; a bare --process refuses it.")
     p_batch.set_defaults(func=cmd_batch_extract)
 
 

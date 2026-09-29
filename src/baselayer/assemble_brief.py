@@ -1447,7 +1447,8 @@ def call_claude(system_prompt: str, messages: list, api_key: str) -> str:
             messages=messages,
         )
 
-        return response.content[0].text
+        from baselayer.api_client import response_text
+        return response_text(response, caller="assemble_brief.call_claude")
     except ImportError:
         print("ERROR: anthropic package not installed. Run: pip install anthropic")
         return None

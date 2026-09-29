@@ -589,7 +589,7 @@ def compose_unified_brief(run_dir=None, layer_texts=None, source_facts_text=None
         The composed brief text, or None on failure.
     """
     from baselayer.config import LAYER_REVIEW_MODEL
-    from baselayer.api_client import get_anthropic_client
+    from baselayer.api_client import get_anthropic_client, response_text
 
     # Read deployed layers if not provided
     if layer_texts is None:
@@ -698,7 +698,7 @@ def compose_unified_brief(run_dir=None, layer_texts=None, source_facts_text=None
             messages=[{"role": "user", "content": prompt}],
             timeout=httpx.Timeout(600.0, connect=30.0),
         )
-        brief_text = response.content[0].text
+        brief_text = response_text(response, caller="agent_pipeline.compose")
         tokens_used = response.usage.input_tokens + response.usage.output_tokens
         cost = (response.usage.input_tokens * 5 + response.usage.output_tokens * 25) / 1_000_000
         total_cost += cost
@@ -748,7 +748,7 @@ def compose_unified_brief(run_dir=None, layer_texts=None, source_facts_text=None
                         messages=[{"role": "user", "content": decontam_prompt}],
                         timeout=httpx.Timeout(600.0, connect=30.0),
                     )
-                    brief_text = response.content[0].text
+                    brief_text = response_text(response, caller="agent_pipeline.compose_retry")
                     retry_cost = (response.usage.input_tokens * 5 + response.usage.output_tokens * 25) / 1_000_000
                     total_cost += retry_cost
                     print(f"  Retry generated: {len(brief_text)} chars, ~${retry_cost:.3f}")

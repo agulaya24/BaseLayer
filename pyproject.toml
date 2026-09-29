@@ -49,7 +49,7 @@ Documentation = "https://base-layer.ai/llms-full.txt"
 # Only ship the active package surface. Dev-internal subpackages
 # (baselayer.archive, baselayer.archive.dead_pipeline_steps, baselayer.experiments)
 # remain on disk for developers but are excluded from the distribution.
-packages = ["baselayer", "baselayer.distillation"]
+packages = ["baselayer", "baselayer.distillation", "baselayer.verification"]
 
 [tool.setuptools.package-dir]
 "" = "src"
@@ -63,3 +63,6 @@ baselayer = ["archive/*", "archive/**/*", "experiments/*", "experiments/**/*"]
 # the vendored data/external_datasets/ tree, which fail to import and produce
 # collection errors that mask an otherwise green suite. Run: `pytest` or `pytest tests/`.
 testpaths = ["tests"]
+markers = [
+    "legacy: pins the legacy (pre-turn-contract) extraction path. Kept on purpose; deselect with -m 'not legacy'.",
+]

@@ -946,7 +946,7 @@ def generate_layer(layer_name, prompt_text, max_contamination_retries=3):
     Includes deterministic contamination check — rejects output that
     contains verbatim prompt example phrases and regenerates.
     """
-    from baselayer.api_client import call_api
+    from baselayer.api_client import call_api, response_text
 
     for attempt in range(1 + max_contamination_retries):
         suffix = f" (retry {attempt} — decontaminating)" if attempt > 0 else ""
@@ -971,7 +971,7 @@ def generate_layer(layer_name, prompt_text, max_contamination_retries=3):
             caller="author_layers.generate",
         )
 
-        text = resp.content[0].text.strip()
+        text = response_text(resp, caller="author_layers.generate").strip()
         elapsed = time.time() - start
         cost = (resp.usage.input_tokens / 1e6) * 3.00 + (resp.usage.output_tokens / 1e6) * 15.00
         print(f"  Done ({elapsed:.1f}s, {resp.usage.input_tokens} in / {resp.usage.output_tokens} out, ~${cost:.4f})")
@@ -1033,7 +1033,7 @@ def generate_layer_structured(layer_name, prompt_text, schema):
     The model fills in a JSON schema. Content is generative, structure is
     deterministic. Returns the parsed JSON object, not raw text.
     """
-    from baselayer.api_client import get_anthropic_client, logger
+    from baselayer.api_client import get_anthropic_client, logger, response_text
 
     print(f"  Generating {layer_name} layer via {LAYER_GENERATION_MODEL} (structured output)...")
     start = time.time()
@@ -1051,7 +1051,7 @@ def generate_layer_structured(layer_name, prompt_text, schema):
         },
     )
 
-    text = resp.content[0].text.strip()
+    text = response_text(resp, caller="author_layers.generate_structured").strip()
     elapsed = time.time() - start
     cost = (resp.usage.input_tokens / 1e6) * 3.00 + (resp.usage.output_tokens / 1e6) * 15.00
     print(f"  Done ({elapsed:.1f}s, {resp.usage.input_tokens} in / {resp.usage.output_tokens} out, ~${cost:.4f})")

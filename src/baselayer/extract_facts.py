@@ -20,14 +20,17 @@ Run: python extract_facts.py                     # Process all conversations
 """
 
 import contextlib
+import contextvars
 import sys
 import io
 import os
 import sqlite3
+import dataclasses
 import json
 import time
 import uuid
 import argparse
+import math
 import requests
 from datetime import datetime
 
@@ -45,9 +48,13 @@ from baselayer.config import (
     MAX_FACTS_PER_CONVERSATION, MIN_MESSAGES_FOR_EXTRACTION,
     VALID_CATEGORIES, VALID_FACT_CLASSES,
     EXTRACTION_BACKEND, EXTRACTION_API_MODEL,
-    SCOPE_SOURCE_MAPPING, DEFAULT_SCOPE,
+    SCOPE_SOURCE_MAPPING, DEFAULT_SCOPE, CLAUDE_CODE_SOURCES, is_claude_code_source, source_family,
     CONSTRAINED_PREDICATES,
     EXTRACTION_CAPS,
+    DYNAMIC_CAP_DEFAULT, CHARS_PER_FACT,
+    OUTPUT_SAFE_CHUNK_CAP,
+    EXTRACTION_TOKENS_PER_FACT, EXTRACTION_OUTPUT_BUFFER_TOKENS,
+    EXTRACTION_MAX_OUTPUT_TOKENS,
     get_db,
 )
 
@@ -111,12 +118,72 @@ EXTRACT_SCHEMA_FALLBACK = {
 
 def _ensure_structured_columns(conn):
     """D-056 Tier 2: Add predicate/object_text/qualifier columns if missing.
-    Safe to call repeatedly — silently skips if columns already exist."""
+    Safe to call repeatedly — silently skips if columns already exist.
+    Also adds the turn-contract columns, since every extraction entry point
+    (sequential and batch) calls this before its first INSERT."""
     for col in ["predicate", "object_text", "qualifier"]:
         try:
             conn.execute(f"ALTER TABLE memory_facts ADD COLUMN {col} TEXT")
         except sqlite3.OperationalError:
             pass  # Column already exists
+    _ensure_turn_contract_columns(conn)
+
+
+# Turn-contract columns on memory_facts (docs/core/TURN_CONTRACT.md §4, §7).
+# Added by ALTER on an existing database; a fresh one gets them from
+# init_database. NULL on every fact extracted before the contract.
+TURN_CONTRACT_COLUMNS = (
+    ("source_turn_id", "TEXT"),
+    ("evidence_spans", "TEXT"),
+    ("inferred", "INTEGER"),
+    ("voice_class", "TEXT"),
+    ("turn_contract_version", "TEXT"),
+    ("extraction_model", "TEXT"),
+    ("extraction_prompt_hash", "TEXT"),
+    ("git_commit", "TEXT"),
+    ("code_path", "TEXT"),
+    ("practice", "TEXT"),
+    ("grounding", "TEXT"),
+)
+
+
+def fact_practice(conn, evidence_spans):
+    """The practice a gated fact is bounded to, read from the turns its spans cite.
+
+    The tag when every cited turn carries the same one; NULL when none carries one; the
+    sorted tags joined by `+` when they differ (an untagged turn counts as `general`), so a
+    fact resting on two practices is not bounded to either. Read-only; returns NULL on a
+    database without the turn table or its `practice` column, and for no spans."""
+    if isinstance(evidence_spans, str):
+        try:
+            evidence_spans = json.loads(evidence_spans)
+        except ValueError:
+            return None
+    ids = [s.get("turn_id") for s in (evidence_spans or []) if isinstance(s, dict)]
+    ids = [t for t in dict.fromkeys(ids) if t]
+    if not ids:
+        return None
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(turns)")}
+    if "practice" not in cols:
+        return None
+    q = ",".join("?" * len(ids))
+    got = dict(conn.execute(f"SELECT turn_id, practice FROM turns WHERE turn_id IN ({q})", ids).fetchall())
+    tags = {got.get(t) for t in ids}
+    if tags == {None}:
+        return None
+    if len(tags) == 1:
+        return tags.pop()
+    return "+".join(sorted(t or "general" for t in tags))
+
+
+def _ensure_turn_contract_columns(conn):
+    """Add the turn-contract columns if missing. Idempotent; checks the table's
+    actual columns rather than swallowing every OperationalError, so a real
+    failure (a locked or read-only database) is not mistaken for 'exists'."""
+    have = {row[1] for row in conn.execute("PRAGMA table_info(memory_facts)")}
+    for col, typ in TURN_CONTRACT_COLUMNS:
+        if col not in have:
+            conn.execute(f"ALTER TABLE memory_facts ADD COLUMN {col} {typ}")
 
 
 def normalize_category(raw: str) -> str:
@@ -313,6 +380,49 @@ def _get_known_entities_for_prompt():
     )
 
 
+# Set for the duration of a batch submit/process that runs in turn mode without
+# the BASELAYER_TURN_CONTRACT env var (the batch mode can come from its state
+# file or an explicit argument). Read only by _dynamic_cap_enabled.
+_TURN_MODE_ACTIVE = contextvars.ContextVar("baselayer_turn_mode_active", default=False)
+
+
+def _dynamic_cap_enabled() -> bool:
+    """B-halt dynamic fact cap gate (default OFF on the legacy path, ON in turn mode).
+
+    Turn mode (D-108): the static tiers halt a dense conversation rather than
+    trim gated facts, so the density backstop is the turn path's default. An
+    explicit BASELAYER_DYNAMIC_CAP value (including 0) always wins.
+
+    Read at call time (never cached at import) so tests and callers can toggle
+    BASELAYER_DYNAMIC_CAP within a process — mirrors the inline env pattern used
+    by the S98 coverage gate (BASELAYER_SKIP_COVERAGE_GATE). When the env var is
+    unset, falls back to the config mirror DYNAMIC_CAP_DEFAULT (False), so the
+    default path stays byte-for-byte identical to the static-cap pipeline.
+
+    Truthy env values (case-insensitive): 1, true, yes, on.
+    """
+    raw = os.environ.get("BASELAYER_DYNAMIC_CAP")
+    if raw is None:
+        if _turn_contract_enabled() or _TURN_MODE_ACTIVE.get():
+            return True
+        return bool(DYNAMIC_CAP_DEFAULT)
+    return raw.strip().lower() in ("1", "true", "yes", "on")
+
+
+def _extraction_max_tokens(fact_count: int) -> int:
+    """B-halt output-token budget that fits a `fact_count`-fact extraction ask.
+
+    ~EXTRACTION_TOKENS_PER_FACT tokens/fact + a JSON-wrapping buffer, floored at
+    the legacy 2000 and clamped to the extraction model's documented max output
+    tokens. Used ONLY on the flag-on chunk path so a large per-chunk ask does not
+    overflow the fixed ~10K ceiling call_anthropic derives from prompt length
+    (which truncates the JSON and silently loses the whole chunk). The flag-off
+    path passes max_tokens=None and keeps that prompt-length heuristic untouched.
+    """
+    scaled = fact_count * EXTRACTION_TOKENS_PER_FACT + EXTRACTION_OUTPUT_BUFFER_TOKENS
+    return min(EXTRACTION_MAX_OUTPUT_TOKENS, max(2000, scaled))
+
+
 def _get_extraction_caps(message_count: int, total_chars: int = 0,
                           source: str = None) -> dict:
     """Determine extraction caps based on message count AND total character length.
@@ -357,11 +467,21 @@ def _get_extraction_caps(message_count: int, total_chars: int = 0,
     # Per-source override (2026-05-17): raise max_facts ceiling for dense sources
     # so the per-conversation cap is not what bounds extraction. AUDN dedup is.
     overrides = EXTRACTION_CAPS.get("max_facts_ceiling_by_source", {})
-    if source and source in overrides:
-        msg_caps = {
-            "max_facts": max(msg_caps["max_facts"], overrides[source]),
-            "input_char_budget": msg_caps["input_char_budget"],
-        }
+
+    # B-halt (flag ON, default OFF): demote the doc-level cap to a density-derived
+    # runaway backstop — max_facts = min(source_ceiling, ceil(total_chars / CHARS_PER_FACT)).
+    # Only input_char_budget (chunk-sizing) is left untouched. The total_chars == 0
+    # fallback is load-bearing: callers pass total_chars=0 (identity path, some batch
+    # callers), and ceil(0/N)=0 would otherwise zero out max_facts. In that case we
+    # keep today's tier/override value.
+    source = source_family(source)
+    if _dynamic_cap_enabled() and total_chars > 0:
+        ceiling = overrides.get(source, EXTRACTION_CAPS.get("max_facts_ceiling", 600))
+        msg_caps["max_facts"] = min(ceiling, math.ceil(total_chars / CHARS_PER_FACT))
+    else:
+        # Flag OFF, or flag ON with total_chars == 0: unchanged per-source override.
+        if source and source in overrides:
+            msg_caps["max_facts"] = max(msg_caps["max_facts"], overrides[source])
 
     return msg_caps
 
@@ -693,6 +813,9 @@ def create_tables():
             except sqlite3.OperationalError:
                 pass  # Column already exists
 
+        _ensure_turn_contract_columns(conn)
+        conn.commit()
+
         conn.execute("""
             CREATE INDEX IF NOT EXISTS idx_facts_category
             ON memory_facts(category)
@@ -804,6 +927,129 @@ def call_ollama(prompt: str, schema: dict = None, retries: int = MAX_RETRIES) ->
 _anthropic_client = None
 
 
+class ExtractionResponseError(Exception):
+    """A model response that cannot yield facts for a structural reason.
+
+    `reason` is one of "refusal", "max_tokens" or "no_text". These are not
+    transient: retrying a refusal or a truncated answer returns the same thing,
+    so callers count them instead of retrying them into a silent None.
+    """
+
+    def __init__(self, reason: str):
+        super().__init__(reason)
+        self.reason = reason
+
+
+# Per-process tally of structural response failures, read into the run record.
+# A chunk that returns None is otherwise indistinguishable from a chunk with no
+# facts, which is how a truncated JSON response used to vanish without trace.
+_RESPONSE_FAILURES: dict = {}
+
+
+def reset_response_failures():
+    _RESPONSE_FAILURES.clear()
+
+
+def response_failures() -> dict:
+    return dict(_RESPONSE_FAILURES)
+
+
+def _count_response_failure(reason: str):
+    _RESPONSE_FAILURES[reason] = _RESPONSE_FAILURES.get(reason, 0) + 1
+
+
+# MEASURED API usage, one entry per billed call, so a run can be priced from what it actually
+# used rather than from a characters-per-token guess. Appended the moment a response exists,
+# BEFORE it is parsed: a truncated or refused response is billed and discarded, and it must
+# still count. Same lifecycle as _RESPONSE_FAILURES (reset at run start, copied at the end).
+_USAGE_CALLS: list = []
+_CURRENT_CONVERSATION = contextvars.ContextVar("baselayer_current_conversation", default=None)
+# The chunk an extraction call is for: {"chunk": index, "citable_chars": n}. Carried into
+# the call's usage entry so output per citable char can be re-derived from any run.
+_CURRENT_CHUNK = contextvars.ContextVar("baselayer_current_chunk", default=None)
+# Set by the turn path around its extraction calls: a max_tokens stop is raised to the
+# caller (which re-chunks) instead of being counted and turned into None here.
+_RAISE_MAX_TOKENS = contextvars.ContextVar("baselayer_raise_max_tokens", default=False)
+
+
+def reset_usage():
+    _USAGE_CALLS.clear()
+
+
+class SpendCeilingExceeded(SystemExit):
+    """A call would take measured spend past BASELAYER_SPEND_CEILING_USD. A SystemExit so
+    that no per-conversation `except Exception` absorbs it: the run stops, and its record
+    is still written from the loop's `finally`."""
+
+
+def spend_ceiling_usd():
+    raw = os.environ.get("BASELAYER_SPEND_CEILING_USD")
+    return float(raw) if raw not in (None, "") else None
+
+
+def measured_spend_usd(calls=None) -> float:
+    from baselayer.config import SPEND_RATES_PER_MTOK as R
+    t = _tc.usage_totals(_USAGE_CALLS if calls is None else calls)
+    return (t["input_tokens"] * R["input"] + t["output_tokens"] * R["output"]
+            + t["cache_read_input_tokens"] * R["cache_read"]
+            + t["cache_creation_input_tokens"] * R["cache_write"]) / 1e6
+
+
+def check_spend_ceiling(prompt_chars: int, max_tokens: int):
+    """Refuse a call whose worst case would take measured spend past the ceiling."""
+    ceiling = spend_ceiling_usd()
+    if ceiling is None:
+        return
+    from baselayer.config import SPEND_CHARS_PER_TOKEN, SPEND_RATES_PER_MTOK as R
+    spent = measured_spend_usd()
+    worst = (prompt_chars / SPEND_CHARS_PER_TOKEN * R["input"] + max_tokens * R["output"]) / 1e6
+    if spent + worst > ceiling:
+        raise SpendCeilingExceeded(
+            f"spend ceiling ${ceiling:.4f}: measured ${spent:.4f} plus this call's worst case "
+            f"${worst:.4f} would pass it; stopping before the call")
+
+
+def usage_calls() -> list:
+    return list(_USAGE_CALLS)
+
+
+def _record_usage(response, purpose: str):
+    chunk = _CURRENT_CHUNK.get() if purpose == "extract" else None
+    _USAGE_CALLS.append(_tc.usage_entry(
+        getattr(response, "usage", None), purpose=purpose, model=EXTRACTION_API_MODEL, batch=False,
+        conversation_id=_CURRENT_CONVERSATION.get(), at=time.time(), **(chunk or {})))
+
+
+def response_text(response) -> str:
+    """Return the concatenated text blocks of a Messages API response.
+
+    Reads blocks by TYPE, never by position. On a 5-generation model with
+    thinking on, content[0] is a thinking block, so `content[0].text` raises or
+    reads the wrong block. Raises ExtractionResponseError on a refusal, a
+    max_tokens stop (the JSON is truncated and unparseable), or no text at all.
+    """
+    stop = getattr(response, "stop_reason", None)
+    if stop == "refusal":
+        raise ExtractionResponseError("refusal")
+    if stop == "max_tokens":
+        raise ExtractionResponseError("max_tokens")
+    parts = [getattr(b, "text", "") for b in (getattr(response, "content", None) or [])
+             if getattr(b, "type", None) == "text"]
+    text = "".join(parts).strip()
+    if not text:
+        raise ExtractionResponseError("no_text")
+    return text
+
+
+def _strip_json_fences(raw: str) -> str:
+    if raw.startswith("```"):
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+        raw = raw.strip()
+    return raw
+
+
 def _get_anthropic_client():
     """Lazy-initialize and reuse a single Anthropic client instance."""
     global _anthropic_client
@@ -811,6 +1057,16 @@ def _get_anthropic_client():
         from baselayer.llm_provider import get_anthropic_client
         _anthropic_client = get_anthropic_client()
     return _anthropic_client
+
+
+def json_instruction_for(schema: dict = None) -> str:
+    """The instruction prepended to every extraction prompt. Shared by the
+    sequential path, the batch path and the prompt hash, so the three cannot
+    drift apart."""
+    text = "Respond with ONLY valid JSON matching this schema. No explanation, no markdown fences.\n"
+    if schema:
+        text += f"Schema: {json.dumps(schema, indent=2)}\n\n"
+    return text
 
 
 def call_anthropic(prompt: str, schema: dict = None, retries: int = MAX_RETRIES,
@@ -823,9 +1079,7 @@ def call_anthropic(prompt: str, schema: dict = None, retries: int = MAX_RETRIES,
     max_tokens scales dynamically with extraction request size.
     """
     client = _get_anthropic_client()
-    json_instruction = "Respond with ONLY valid JSON matching this schema. No explanation, no markdown fences.\n"
-    if schema:
-        json_instruction += f"Schema: {json.dumps(schema, indent=2)}\n\n"
+    json_instruction = json_instruction_for(schema)
 
     # Dynamic output tokens: estimate from prompt length if not specified
     if max_tokens is None:
@@ -835,6 +1089,8 @@ def call_anthropic(prompt: str, schema: dict = None, retries: int = MAX_RETRIES,
         max_tokens = max(2000, estimated_facts * 200)
 
     for attempt in range(retries + 1):
+        # Outside the try: a refusal here must stop the run, not be retried or swallowed.
+        check_spend_ceiling(len(json_instruction) + len(prompt), max_tokens)
         try:
             response = client.messages.create(
                 model=EXTRACTION_API_MODEL,
@@ -842,19 +1098,24 @@ def call_anthropic(prompt: str, schema: dict = None, retries: int = MAX_RETRIES,
                 temperature=0.1,
                 messages=[{"role": "user", "content": json_instruction + prompt}],
             )
-            raw = response.content[0].text.strip()
-
-            # Strip markdown fences if present
-            if raw.startswith("```"):
-                raw = raw.split("```")[1]
-                if raw.startswith("json"):
-                    raw = raw[4:]
-                raw = raw.strip()
+            _record_usage(response, "audn" if schema is AUDN_SCHEMA else "extract")
+            raw = _strip_json_fences(response_text(response))
 
             result = json.loads(raw)
             return result
 
+        except ExtractionResponseError as e:
+            if e.reason == "max_tokens" and _RAISE_MAX_TOKENS.get():
+                raise                       # the turn path re-chunks; it counts the outcome
+            # Structural, not transient: count it and stop. Retrying a refusal
+            # or a max_tokens truncation spends money and returns the same thing.
+            _count_response_failure(e.reason)
+            print(f"  WARNING: extraction response unusable ({e.reason})")
+            return None
+
         except json.JSONDecodeError:
+            if attempt >= retries:
+                _count_response_failure("json_decode")
             if attempt < retries:
                 continue
             else:
@@ -870,10 +1131,17 @@ def call_anthropic(prompt: str, schema: dict = None, retries: int = MAX_RETRIES,
     return None
 
 
-def call_llm(prompt: str, schema: dict = None, retries: int = MAX_RETRIES) -> dict:
-    """Dispatch to configured backend (ollama or anthropic)."""
+def call_llm(prompt: str, schema: dict = None, retries: int = MAX_RETRIES,
+             max_tokens: int = None) -> dict:
+    """Dispatch to configured backend (ollama or anthropic).
+
+    max_tokens (B-halt): when provided, forwarded to call_anthropic to size the
+    output-token budget to the extraction ask. None (the default, and every
+    flag-off caller) preserves call_anthropic's prompt-length heuristic exactly.
+    call_ollama uses a fixed num_predict and ignores it.
+    """
     if EXTRACTION_BACKEND == "anthropic":
-        return call_anthropic(prompt, schema, retries)
+        return call_anthropic(prompt, schema, retries, max_tokens=max_tokens)
     else:
         return call_ollama(prompt, schema, retries)
 
@@ -1127,7 +1395,9 @@ _IDENTITY_CONTAMINATION_KEYWORDS = [
 
 def validate_structured_response(raw_facts: list[dict], message_count: int,
                                   identity_only: bool = False,
-                                  max_facts: int = None) -> list[dict]:
+                                  max_facts: int = None,
+                                  drop_counter: dict = None,
+                                  uncapped: bool = False) -> list[dict]:
     """Validate and normalize structured extraction results.
 
     D-056 Tier 2: Processes raw LLM output into normalized fact dicts with
@@ -1142,6 +1412,8 @@ def validate_structured_response(raw_facts: list[dict], message_count: int,
         identity_only: If True, apply contamination filter (D-048).
         max_facts: Dynamic cap on facts per conversation (Session 55, Plan 2).
                    Falls back to MAX_FACTS_PER_CONVERSATION if not provided.
+        uncapped: truncate nothing (turn path, fact_count_mode `none`). max_facts=None
+                  does NOT mean uncapped: it means the legacy default.
 
     Returns:
         List of validated, normalized fact dicts.
@@ -1149,10 +1421,23 @@ def validate_structured_response(raw_facts: list[dict], message_count: int,
     # Session 55 (Plan 2): Use dynamic cap if provided, else legacy default
     effective_cap = max_facts if max_facts is not None else MAX_FACTS_PER_CONVERSATION
 
+    # drop_counter (turn path): every fact removed here is counted by reason, so
+    # post-gate losses are visible in the run record instead of vanishing.
+    drops = drop_counter if drop_counter is not None else {}
+
+    def _drop(reason):
+        drops[reason] = drops.get(reason, 0) + 1
+
+    if uncapped:
+        effective_cap = len(raw_facts)
+    if len(raw_facts) > effective_cap:
+        drops["over_per_chunk_cap"] = drops.get("over_per_chunk_cap", 0) + len(raw_facts) - effective_cap
+
     valid_facts = []
     for fact in raw_facts[:effective_cap]:
         raw_confidence = fact.get("confidence", 0.5)
         if raw_confidence < 0.3:
+            _drop("low_confidence")
             continue
 
         # Extract structured fields
@@ -1162,6 +1447,7 @@ def validate_structured_response(raw_facts: list[dict], message_count: int,
         raw_qualifier = fact.get("qualifier", "unknown")
 
         if not raw_object or len(raw_object) < 3:
+            _drop("short_object")
             continue
 
         # Normalize
@@ -1174,12 +1460,14 @@ def validate_structured_response(raw_facts: list[dict], message_count: int,
         fact_text = reconstruct_fact_text(subject, predicate, raw_object)
 
         if len(fact_text) < MIN_FACT_LENGTH:
+            _drop("short_fact")
             continue
 
         # D-048: Contamination filter for identity extraction from project conversations
         if identity_only:
             fact_lower = fact_text.lower()
             if any(kw in fact_lower for kw in _IDENTITY_CONTAMINATION_KEYWORDS):
+                _drop("contamination_filter")
                 continue
 
         computed_conf = compute_confidence(raw_confidence, intent, subject, message_count)
@@ -1203,11 +1491,15 @@ def validate_structured_response(raw_facts: list[dict], message_count: int,
             "object_text": raw_object,
             "qualifier": qualifier,
         })
+        # Turn-contract grounding, present only on facts that passed the gate.
+        for key in ("source_turn_id", "evidence_spans", "voice_class", "inferred", "grounding"):
+            if key in fact:
+                valid_facts[-1][key] = fact[key]
 
     return valid_facts
 
 
-def _strip_noise_content(text: str) -> str:
+def _strip_noise_content(text: str, verbose: bool = True) -> str:
     """Strip non-natural-language content that wastes extraction budget.
 
     Session 68: Automated noise stripping so any text corpus can be imported
@@ -1254,7 +1546,7 @@ def _strip_noise_content(text: str) -> str:
     text = re.sub(r'(\[(?:SEQUENCE|HEX|NOTATION|NUMERIC_DATA)_OMITTED\]\s*){2,}',
                   '[DATA_OMITTED]\n', text)
 
-    if replacements > 0:
+    if replacements > 0 and verbose:
         saved = original_len - len(text)
         print(f"  Noise stripping: {replacements} replacements, {saved:,} chars removed")
 
@@ -1350,7 +1642,20 @@ def extract_facts_from_conversation(conv_id: str, conv_title: str, messages: lis
         full_text = _strip_noise_content(full_text)
 
         chunks = _chunk_text_for_extraction(full_text, input_char_budget)
-        per_chunk_cap = min(50, max_facts)  # D-076: Raised from 15 — let AUDN handle dedup, not caps
+        # B-halt (flag ON): drop the min(50, ...) per-chunk emission-order cut,
+        # the biggest leak on dense chunks — let AUDN cull downstream. The ask is
+        # still bounded by OUTPUT_SAFE_CHUNK_CAP so a density-scaled max_facts
+        # (e.g. 239) does not overflow the output-token ceiling and lose the whole
+        # chunk; the DOC cap stays density-scaled and aggregates across chunks.
+        # chunk_max_tokens sizes the API output budget to the per-chunk ask.
+        # Flag OFF: unchanged min(50, max_facts), heuristic max_tokens (None).
+        # (The prior "D-076" comment mis-cited; the per-chunk cap's real decision is D-063.)
+        if _dynamic_cap_enabled():
+            per_chunk_cap = min(OUTPUT_SAFE_CHUNK_CAP, max_facts)
+            chunk_max_tokens = _extraction_max_tokens(per_chunk_cap)
+        else:
+            per_chunk_cap = min(50, max_facts)
+            chunk_max_tokens = None
         all_facts = []
 
         print(f"  Chunking: {len(full_text):,} chars -> {len(chunks)} chunks (budget {input_char_budget:,}, cap {max_facts})")
@@ -1366,7 +1671,7 @@ def extract_facts_from_conversation(conv_id: str, conv_title: str, messages: lis
                 prompt = build_extraction_prompt(conv_title, chunk,
                                                  max_facts=per_chunk_cap,
                                                  chunk_info=chunk_info)
-            result = call_llm(prompt, schema=schema)
+            result = call_llm(prompt, schema=schema, max_tokens=chunk_max_tokens)
             if result and "facts" in result:
                 validated = validate_structured_response(
                     result["facts"], len(messages), max_facts=per_chunk_cap
@@ -1380,18 +1685,37 @@ def extract_facts_from_conversation(conv_id: str, conv_title: str, messages: lis
         if len(all_facts) > max_facts:
             discarded = len(all_facts) - max_facts
             pct = discarded / len(all_facts) * 100
-            print(f"\n  COVERAGE WARNING: {len(all_facts)} facts extracted, cap is {max_facts}.")
-            print(f"  {discarded} facts ({pct:.0f}%) will be discarded.")
-            print(f"  Consider raising max_facts_ceiling or splitting into chapters.\n")
+            if _dynamic_cap_enabled():
+                # B-halt: max_facts is a density-derived runaway backstop, not a
+                # trim target. Report the breach as implausible density; below the
+                # gate the facts are kept and handed to AUDN, not discarded.
+                print(f"\n  DENSITY WARNING: {len(all_facts)} facts for {len(full_text):,} chars, backstop is {max_facts}.")
+                print(f"  {pct:.0f}% over the implausible-density backstop.\n")
+            else:
+                print(f"\n  COVERAGE WARNING: {len(all_facts)} facts extracted, cap is {max_facts}.")
+                print(f"  {discarded} facts ({pct:.0f}%) will be discarded.")
+                print(f"  Consider raising max_facts_ceiling or splitting into chapters.\n")
 
-            # S98 Phase 3A: Coverage discard gate — block if >20% discarded
+            # S98 Phase 3A: Coverage discard gate — HARD BLOCK if >20% over cap.
+            # Kept a hard block under both flag states (do NOT downgrade to a
+            # warning). Overridable by BASELAYER_SKIP_COVERAGE_GATE.
             if pct > 20 and not os.environ.get("BASELAYER_SKIP_COVERAGE_GATE"):
-                print(f"  COVERAGE GATE: {pct:.0f}% discard rate exceeds 20% threshold.")
-                print(f"  Pipeline blocked to prevent silent data loss.")
-                print(f"  Options: raise max_facts_ceiling, split into smaller files, or set BASELAYER_SKIP_COVERAGE_GATE=1")
+                if _dynamic_cap_enabled():
+                    print(f"  COVERAGE GATE: {pct:.0f}% implies implausibly many facts for input size.")
+                    print(f"  Pipeline halted rather than trimming voice-bearing facts.")
+                    print(f"  Options: raise CHARS_PER_FACT / max_facts_ceiling, split the file, or set BASELAYER_SKIP_COVERAGE_GATE=1")
+                else:
+                    print(f"  COVERAGE GATE: {pct:.0f}% discard rate exceeds 20% threshold.")
+                    print(f"  Pipeline blocked to prevent silent data loss.")
+                    print(f"  Options: raise max_facts_ceiling, split into smaller files, or set BASELAYER_SKIP_COVERAGE_GATE=1")
                 raise SystemExit(1)
 
-        # Apply overall max_facts cap — sort by confidence to keep best, not first
+        # B-halt (flag ON): no silent confidence-sort truncation. Below the gate
+        # threshold every fact passes to AUDN, which culls by cosine-to-corpus.
+        if _dynamic_cap_enabled():
+            return all_facts
+        # Flag OFF (unchanged): apply overall max_facts cap, sorting by confidence
+        # to keep best, not first.
         if len(all_facts) > max_facts:
             all_facts.sort(key=lambda f: f.get("confidence", 0.5), reverse=True)
         return all_facts[:max_facts]
@@ -1522,21 +1846,47 @@ def extract_identity_from_project_conversation(conv_id: str, conv_title: str,
     if len(conv_text) > input_char_budget:
         # No overlap for project conversations: text is turn-bounded, not prose.
         chunks = _chunk_text_for_extraction(conv_text, input_char_budget, overlap=0)
-        per_chunk_cap = min(50, max_facts)
+        # B-halt (flag ON): drop the min(50, ...) per-chunk cut, but bound the ask
+        # by OUTPUT_SAFE_CHUNK_CAP so it fits the output-token ceiling, and size
+        # max_tokens to the ask. Flag OFF: unchanged min(50, max_facts), None.
+        if _dynamic_cap_enabled():
+            per_chunk_cap = min(OUTPUT_SAFE_CHUNK_CAP, max_facts)
+            chunk_max_tokens = _extraction_max_tokens(per_chunk_cap)
+        else:
+            per_chunk_cap = min(50, max_facts)
+            chunk_max_tokens = None
         all_facts = []
         for i, chunk in enumerate(chunks):
             chunk_info = f"Section {i + 1} of {len(chunks)} from '{conv_title}'."
             prompt = build_identity_extraction_prompt(
                 conv_title, chunk, max_facts=per_chunk_cap, chunk_info=chunk_info
             )
-            result = call_llm(prompt, schema=schema)
+            result = call_llm(prompt, schema=schema, max_tokens=chunk_max_tokens)
             if result and "facts" in result:
                 validated = validate_structured_response(
                     result["facts"], len(messages), identity_only=True, max_facts=per_chunk_cap
                 )
                 all_facts.extend(validated)
 
-        # Apply session-level cap, keeping highest-confidence facts
+        # B-halt (flag ON): mirror path 1 — a hard coverage gate on breach instead
+        # of a silent confidence-sort trim. This path has NO gate today; without
+        # one, flag-ON with no trim would silently keep everything (the failure
+        # mode the design exists to prevent). Extended here to honor the
+        # "halt, don't trim" rationale. (If path 2 should stay uncapped instead,
+        # this whole block reduces to `return all_facts`.)
+        if _dynamic_cap_enabled():
+            if len(all_facts) > max_facts:
+                discarded = len(all_facts) - max_facts
+                pct = discarded / len(all_facts) * 100
+                print(f"\n  DENSITY WARNING: {len(all_facts)} identity facts for {len(conv_text):,} chars, backstop is {max_facts}.")
+                print(f"  {pct:.0f}% over the implausible-density backstop.\n")
+                if pct > 20 and not os.environ.get("BASELAYER_SKIP_COVERAGE_GATE"):
+                    print(f"  COVERAGE GATE: {pct:.0f}% implies implausibly many facts for input size.")
+                    print(f"  Pipeline halted rather than trimming voice-bearing facts.")
+                    print(f"  Options: raise CHARS_PER_FACT / max_facts_ceiling, split the file, or set BASELAYER_SKIP_COVERAGE_GATE=1")
+                    raise SystemExit(1)
+            return all_facts
+        # Flag OFF (unchanged): apply session-level cap, keeping highest-confidence facts.
         if len(all_facts) > max_facts:
             all_facts.sort(key=lambda f: f.get("confidence", 0.5), reverse=True)
         return all_facts[:max_facts]
@@ -1553,14 +1903,763 @@ def extract_identity_from_project_conversation(conv_id: str, conv_title: str,
 
 
 # ---------------------------------------------------------------------------
+# Turn-contract extraction (docs/core/TURN_CONTRACT.md)
+# ---------------------------------------------------------------------------
+#
+# Four phases per conversation, and the order is the point:
+#   1. LLM phase   extract_turn_chunks      model calls; may fail and be caught
+#   2. gate        gate_turn_chunks         pure; NEVER inside an exception handler
+#   3. finalize    finalize_turn_facts      validation + density backstop, counted
+#   4. store       store_turn_facts         AUDN + INSERT; rolled back on error
+# The legacy loop wraps everything in one try whose handler COMMITS, so a gate
+# that raised half way through storing would have committed the facts already
+# inserted. Here the gate runs before any INSERT and outside every handler.
+
+from baselayer import turn_contract as _tc  # noqa: E402
+from baselayer.config import (  # noqa: E402
+    TURN_CONTEXT_CHAR_BUDGET, TURN_CONTEXT_MAX_TURNS,
+    TURN_CONTAMINATION_FILTER, TURN_EVIDENCE_SPAN_MAX_CHARS, TURN_EVIDENCE_SPAN_MIN_WORDS,
+    TURN_EXTRACTION_TOKENS_PER_FACT, TURN_FACT_COUNT_MODE, TURN_FACT_COUNT_MODES,
+    TURN_UNCOUNTED_MODES, TURN_COVERAGE_SENTENCE, TURN_COVERAGE_MODES, TURN_FRAGMENT_SENTENCE,
+    TURN_OUTPUT_TOKENS_FLOOR, TURN_OUTPUT_TOKENS_PER_CITABLE_CHAR,
+)
+
+TURN_CONTRACT_VERSION = _tc.TURN_CONTRACT_VERSION
+
+_TURN_FACT_ITEM = {
+    "type": "object",
+    "properties": {
+        "subject": {"type": "string"},
+        "predicate": {"type": "string"},
+        "object": {"type": "string"},
+        "qualifier": {"type": "string"},
+        "category": {"type": "string"},
+        "temporal": {"type": "string"},
+        "confidence": {"type": "number"},
+        "inferred": {"type": "boolean"},
+        "evidence_spans": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "turn": {"type": "string"},   # an S<n> label from the prompt
+                    "span": {"type": "string"},   # verbatim words from that turn
+                },
+                "required": ["turn", "span"],
+            },
+        },
+    },
+    "required": ["subject", "predicate", "object", "category", "confidence",
+                 "inferred", "evidence_spans"],
+}
+
+TURN_EXTRACT_SCHEMA = {
+    "type": "object",
+    "properties": {"facts": {"type": "array", "items": _TURN_FACT_ITEM}},
+    "required": ["facts"],
+}
+
+
+def _turn_contract_enabled() -> bool:
+    """Turn-contract mode is opt-in and explicit (BASELAYER_TURN_CONTRACT or
+    `baselayer extract --turn-contract`). It is never inferred from the turn
+    table existing, because a table-name mismatch would then fall back to the
+    legacy path and store ungated, unstamped facts while reporting success."""
+    raw = os.environ.get("BASELAYER_TURN_CONTRACT")
+    return bool(raw) and raw.strip().lower() in ("1", "true", "yes", "on")
+
+
+def _turn_extraction_max_tokens(fact_count: int) -> int:
+    """Output budget for a turn-path ask: sized per fact WITH grounding spans.
+    Always explicit on this path, whatever the dynamic-cap flag, because the
+    prompt-length heuristic in call_anthropic predates evidence spans."""
+    scaled = fact_count * TURN_EXTRACTION_TOKENS_PER_FACT + EXTRACTION_OUTPUT_BUFFER_TOKENS
+    return min(EXTRACTION_MAX_OUTPUT_TOKENS, max(2000, scaled))
+
+
+def turn_output_budget(citable_chars: int) -> int:
+    """max_tokens for one chunk in fact_count_mode `none`, from its citable characters
+    (config TURN_OUTPUT_TOKENS_PER_CITABLE_CHAR, where the derivation is written)."""
+    scaled = math.ceil(TURN_OUTPUT_TOKENS_PER_CITABLE_CHAR * max(0, citable_chars))
+    return min(EXTRACTION_MAX_OUTPUT_TOKENS, max(TURN_OUTPUT_TOKENS_FLOOR, scaled))
+
+
+def turn_chunk_max_tokens(chunk, plan: dict) -> int:
+    """The output budget for one chunk: from the fact count when capped, from the chunk's
+    citable characters when the prompt carries no count."""
+    if uncounted_mode(plan.get("fact_count_mode")):
+        return turn_output_budget(chunk.citable_chars)
+    return plan["max_tokens"]
+
+
+def _abstract_noncitable_project_text(text: str) -> str:
+    """The D-048 rule for Claude Code sessions, applied to NON-CITABLE turns
+    only: strip code, tool blocks and diff lines; keep a short turn whole and a
+    long one as its first line. Same treatment the legacy abstraction gave
+    assistant turns, so the context a model sees is unchanged in kind."""
+    import re
+    text = re.sub(r'```[\s\S]*?```', '[code removed]', text)
+    text = re.sub(r'<[a-z_]+>[\s\S]*?</[a-z_]+>', '[tool output removed]', text)
+    text = re.sub(r'^\s*[+-]{3}\s+[a-z]/.*$', '', text, flags=re.MULTILINE)
+    text = re.sub(r'^\s*@@.*@@.*$', '', text, flags=re.MULTILINE)
+    text = re.sub(r'\n{3,}', '\n\n', text).strip()
+    if len(text) <= 500:
+        return text
+    return text.split('\n')[0][:200] + " [...]"
+
+
+def _turn_noncitable_transform(source: str):
+    """Per-source treatment of non-citable turns, kept exactly as the legacy
+    path treats assistant text today (so any cost change is attributable to
+    the context turns, not to a changed assistant rule): Claude Code sessions
+    get the D-048 abstraction, every other source the noise strip only."""
+    if is_claude_code_source(source):
+        return _abstract_noncitable_project_text
+    return lambda t: _strip_noise_content(t, verbose=False)
+
+
+_TURN_LABELS_HELP = """HOW THE TURNS ARE LABELLED
+- [S1 | SUBJECT, typed] or [S2 | SUBJECT, spoken]: the subject's own words. Only these S labels can be cited.
+- Every other label (ASSISTANT, OTHER PERSON, PASTED MATERIAL, TOOL OUTPUT, HARNESS SUMMARY, PROGRAMMATIC PROMPT, UNCLASSIFIED) is marked "not citable". Read those turns to understand what the subject is responding to. Never attribute their content to the subject: something the assistant said is not a fact about the subject, even when the subject replied to it."""
+
+
+def uncounted_mode(mode) -> bool:
+    """True for the modes whose prompt carries no count (TURN_UNCOUNTED_MODES): no per-chunk
+    truncation and the output budget from citable chars. The one test every mode site uses.
+    A missing mode (a pre-switch batch state file) is `capped`."""
+    return (mode or "capped") in TURN_UNCOUNTED_MODES
+
+
+def _mode_prompt_flags(mode) -> dict:
+    """The prompt sentences a fact-count mode adds: the coverage sentence for
+    TURN_COVERAGE_MODES, and the fragment sentence for `coverage_fragments`."""
+    return {"coverage": mode in TURN_COVERAGE_MODES, "fragments": mode == "coverage_fragments"}
+
+
+def turn_fact_count_mode() -> str:
+    """One of TURN_FACT_COUNT_MODES (config TURN_FACT_COUNT_MODE, overridable per run with
+    BASELAYER_FACT_COUNT_MODE). Read at call time. An unknown value is refused, never
+    read as a default."""
+    raw = os.environ.get("BASELAYER_FACT_COUNT_MODE")
+    mode = (raw if raw is not None and raw.strip() else TURN_FACT_COUNT_MODE).strip().lower()
+    if mode not in TURN_FACT_COUNT_MODES:
+        raise ValueError(f"fact_count_mode {mode!r} is not one of {TURN_FACT_COUNT_MODES}")
+    return mode
+
+
+def build_turn_extraction_prompt(conv_title: str, context_text: str, body_text: str,
+                                 max_facts, chunk_info: str = None,
+                                 project_session: bool = False,
+                                 entity_hints: str = None, coverage: bool = False,
+                                 fragments: bool = False) -> str:
+    """The turn-contract extraction prompt (contract §3). The prompt ASKS for
+    grounding; gate_facts is what enforces it (§3: "the prompt is not the
+    enforcement"). max_facts None is fact_count_mode `none`: no count and no
+    ordering in the prompt."""
+    predicates_str = ", ".join(CONSTRAINED_PREDICATES)
+    if max_facts is None:
+        ask = "Extract facts about the SUBJECT as structured triples."
+        if coverage:
+            ask += " " + TURN_COVERAGE_SENTENCE
+        if fragments:
+            ask += " " + TURN_FRAGMENT_SENTENCE
+    else:
+        ask = (f"Extract up to {max_facts} facts about the SUBJECT as structured triples, "
+               f"most identity-relevant first.")
+    if entity_hints is None:
+        entity_hints = _get_known_entities_for_prompt()
+    chunk_context = f"\n<chunk_context>{chunk_info}</chunk_context>\n" if chunk_info else ""
+    earlier = context_text.strip() or "(none: this section starts the conversation)"
+    if project_session:
+        setting = ("a technical project session with an AI coding assistant. Code and tool "
+                   "output in non-citable turns has been abbreviated")
+        focus = ("EXTRACT facts about the subject AS A PERSON: working style, communication "
+                 "preferences, values, decision patterns, how they direct work, preferences and "
+                 "opinions that transcend the project. DO NOT EXTRACT: software architecture, "
+                 "tools or libraries used, code artifacts, anything only true inside this project.")
+    else:
+        setting = "a conversation with an AI assistant"
+        focus = ("Pay attention to relationships the subject mentions (family, friends, colleagues, "
+                 "mentors, partners): who each person is to the subject, and the dynamic. Use "
+                 "category \"relationship\" for interpersonal facts. Skip one-off tasks and "
+                 "product lookups unless they reveal something lasting about the subject.")
+
+    return f"""You are extracting facts about one person, the SUBJECT, from {setting}.
+{chunk_context}
+<conversation_title>{conv_title}</conversation_title>
+
+<earlier_turns>
+These turns come before this section. They are here only so you can understand what the subject is responding to. Do not extract from them and do not cite them.
+
+{earlier}
+</earlier_turns>
+
+<turns>
+{body_text}
+</turns>
+
+{_TURN_LABELS_HELP}
+
+WHAT TO EXTRACT
+{ask} A fact may restate what the subject said, or state an understanding you infer from one or several of the subject's turns. When the subject accepts, rejects or corrects something the assistant proposed, the fact is what the subject decided, grounded in the subject's reply (for example "yes, do that") read together with the turn it answers.
+{focus}{entity_hints}
+
+GROUNDING (required on every fact)
+- evidence_spans: 1 or more excerpts, each {{"turn": "S<n>", "span": "<exact words>"}}. Copy each span character for character from that S turn: no paraphrase, no ellipsis, no joining of separate sentences, no words from any other turn. Each span must be at least {TURN_EVIDENCE_SPAN_MIN_WORDS} words and at most {TURN_EVIDENCE_SPAN_MAX_CHARS} characters. An inferred fact lists every subject passage it rests on.
+- inferred: false when the fact restates what the subject said; true when it is your interpretation of the subject's words.
+- If a fact cannot be grounded in the subject's own words in <turns>, do not output it.
+
+For each fact also provide:
+- subject: the person's name if known, otherwise "user".
+- predicate: MUST be one of: {predicates_str}
+- object: the specific value, entity or description. Concrete and precise; no hedging language.
+- qualifier: temporal or conditional context, or "unknown".
+- category: one of: preference, biography, project, relationship, interest, skill, value, habit, opinion, goal, negative_trait
+- temporal: current, past, or unknown
+- confidence: 0.0 to 1.0
+
+Example:
+  {{"subject": "user", "predicate": "prefers", "object": "direct answers before reasoning", "qualifier": "unknown", "category": "preference", "temporal": "current", "confidence": 0.9, "inferred": false, "evidence_spans": [{{"turn": "S2", "span": "just give me the answer first"}}]}}
+
+Return a JSON object with a "facts" array. If the subject's turns support no facts, return {{"facts": []}}."""
+
+
+def turn_prompt_hash(project_session: bool, mode: str = None) -> str:
+    """Hash of the turn prompt TEMPLATE, the schema and the JSON instruction.
+    Content and entity hints are replaced by fixed sentinels, so the hash
+    changes when the wording changes and not when the conversation does.
+    The fact-count mode changes the wording, so it changes the hash."""
+    mode = mode or turn_fact_count_mode()
+    template = build_turn_extraction_prompt(
+        "<TITLE>", "<CONTEXT>", "<TURNS>", max_facts=None if uncounted_mode(mode) else 0,
+        chunk_info="<CHUNK>",
+        project_session=project_session, entity_hints="", **_mode_prompt_flags(mode))
+    return _tc.prompt_hash(template + json_instruction_for(TURN_EXTRACT_SCHEMA))
+
+
+def legacy_prompt_hash(builder, schema=None) -> str:
+    """Same idea for the legacy builders, so legacy facts carry a prompt hash too."""
+    try:
+        template = builder("<TITLE>", "<CONTENT>", max_facts=0, chunk_info="<CHUNK>")
+    except TypeError:
+        template = builder("<TITLE>", "<CONTENT>", max_facts=0)
+    return _tc.prompt_hash(template + json_instruction_for(schema or EXTRACT_SCHEMA))
+
+
+def _extraction_model_name() -> str:
+    return EXTRACTION_API_MODEL if EXTRACTION_BACKEND == "anthropic" else LLM_MODEL
+
+
+def turn_stamps() -> dict:
+    """Per-prompt-variant stamps for a turn-contract run (contract §7)."""
+    model = _extraction_model_name()
+    return {variant: _tc.extraction_stamp(model, turn_prompt_hash(variant), code_file=__file__)
+            for variant in (False, True)}
+
+
+class TurnChunkResult:
+    __slots__ = ("chunk", "raw_facts", "failed")
+
+    def __init__(self, chunk, raw_facts, failed=False):
+        self.chunk, self.raw_facts, self.failed = chunk, raw_facts, failed
+
+
+def turn_extraction_plan(turns, source: str) -> dict:
+    """Caps for one conversation's turn-contract extraction. `fact_count_mode` is
+    saved in the plan so the batch path finalises with the mode it submitted with."""
+    total_chars = sum(len(t.text) for t in turns)
+    caps = _get_extraction_caps(len(turns), total_chars, source=source)
+    max_facts = caps["max_facts"]
+    if _dynamic_cap_enabled():
+        per_chunk_cap = min(OUTPUT_SAFE_CHUNK_CAP, max_facts)
+    else:
+        per_chunk_cap = min(50, max_facts)
+    return {"input_char_budget": caps["input_char_budget"], "max_facts": max_facts,
+            "per_chunk_cap": per_chunk_cap, "total_chars": total_chars,
+            "max_tokens": _turn_extraction_max_tokens(per_chunk_cap),
+            "fact_count_mode": turn_fact_count_mode(),
+            "citable_chars": sum(len(t.text) for t in turns if t.citable)}
+
+
+def build_turn_chunks(turns, source: str, budget: int):
+    return _tc.build_chunks(turns, budget,
+                            context_budget=TURN_CONTEXT_CHAR_BUDGET,
+                            context_max_turns=TURN_CONTEXT_MAX_TURNS,
+                            noncitable_transform=_turn_noncitable_transform(source))
+
+
+def turn_chunk_prompt(conv_title: str, chunk, plan: dict, project_session: bool) -> str:
+    info = f"Section {chunk.index} of {chunk.total} from '{conv_title}'." if chunk.total > 1 else None
+    mode = plan.get("fact_count_mode")
+    count = None if uncounted_mode(mode) else plan["per_chunk_cap"]
+    return build_turn_extraction_prompt(conv_title, chunk.rendered_context, chunk.rendered_body,
+                                        max_facts=count, chunk_info=info,
+                                        project_session=project_session,
+                                        **_mode_prompt_flags(mode))
+
+
+def _call_turn_chunk(conv_title: str, ch, plan: dict, project_session: bool, chunk_label):
+    """One extraction call for one chunk. Returns the facts list, or None when the
+    response was unusable. Raises ExtractionResponseError("max_tokens") so the caller
+    can re-chunk."""
+    prompt = turn_chunk_prompt(conv_title, ch, plan, project_session)
+    tok = _CURRENT_CHUNK.set({"chunk": chunk_label, "citable_chars": ch.citable_chars})
+    raise_tok = _RAISE_MAX_TOKENS.set(True)
+    try:
+        result = call_llm(prompt, schema=TURN_EXTRACT_SCHEMA,
+                          max_tokens=turn_chunk_max_tokens(ch, plan))
+    finally:
+        _RAISE_MAX_TOKENS.reset(raise_tok)
+        _CURRENT_CHUNK.reset(tok)
+    if result and isinstance(result.get("facts"), list):
+        return result["facts"]
+    return None
+
+
+def rechunk_after_max_tokens(conv_title: str, turns, source: str, *, failed_index,
+                             body_ids, citable_ids, plan: dict, project_session: bool,
+                             record, path: str = "sequential"):
+    """A chunk stopped on max_tokens: rebuild the conversation up to the chunk's last
+    body turn at HALF the input budget, keep the parts that carry any of the failed
+    chunk's citable turns, and call each part once. Returns TurnChunkResult list (a part
+    that fails is a failed result). Every outcome is counted and the chunk is listed in
+    the run record: nothing is dropped silently. A part that overlaps an earlier chunk
+    can re-extract a turn already extracted there; AUDN deduplicates it."""
+    positions = [i for i, t in enumerate(turns) if t.turn_id in body_ids]
+    half = max(1, plan["input_char_budget"] // 2)
+    parts = [c for c in build_turn_chunks(turns[:max(positions) + 1] if positions else turns,
+                                          source, half)
+             if c.has_citable and set(c.alias_to_turn.values()) & set(citable_ids)]
+    entry = {"conversation_id": _CURRENT_CONVERSATION.get(), "chunk": failed_index,
+             "path": path, "input_char_budget": half, "parts": len(parts),
+             "still_truncated": 0, "failed": 0}
+    if record is not None:
+        record.c["rechunked_on_max_tokens"] += 1
+        record.rechunked.append(entry)
+    results = []
+    for part in parts:
+        label = f"{failed_index}.r{part.index}"
+        if record is not None:
+            record.c["chunks_called"] += 1
+            record.c["rechunk_calls"] += 1
+        try:
+            facts = _call_turn_chunk(conv_title, part, plan, project_session, label)
+        except ExtractionResponseError as e:          # truncated again: count, list, go on
+            _count_response_failure(e.reason)
+            entry["still_truncated"] += 1
+            facts = None
+        if facts is None:
+            entry["failed"] += 1
+            if record is not None:
+                record.c["chunks_failed"] += 1
+            results.append(TurnChunkResult(part, None, failed=True))
+        else:
+            results.append(TurnChunkResult(part, facts))
+    return results
+
+
+def extract_turn_chunks(conv_title: str, turns, source: str, *, project_session: bool,
+                        record=None):
+    """Phase 1: one model call per chunk that has at least one citable turn.
+    Returns (results, plan). A chunk with no subject turn is skipped (there is
+    nothing it could ground) and still serves as context for the next chunk."""
+    plan = turn_extraction_plan(turns, source)
+    chunks = build_turn_chunks(turns, source, plan["input_char_budget"])
+    results = []
+    for ch in chunks:
+        if not ch.has_citable:
+            if record is not None:
+                record.c["chunks_skipped_no_citable"] += 1
+            continue
+        prompt = turn_chunk_prompt(conv_title, ch, plan, project_session)
+        if record is not None:
+            record.c["chunks_called"] += 1
+            record.c["prompt_chars"] += len(prompt)
+            record.c["context_chars"] += len(ch.rendered_context)
+        try:
+            facts = _call_turn_chunk(conv_title, ch, plan, project_session, ch.index)
+        except ExtractionResponseError:               # max_tokens: re-chunk, retry once
+            results.extend(rechunk_after_max_tokens(
+                conv_title, turns, source, failed_index=ch.index,
+                body_ids={p.turn.turn_id for p in ch.body},
+                citable_ids=set(ch.alias_to_turn.values()), plan=plan,
+                project_session=project_session, record=record))
+            continue
+        if facts is not None:
+            results.append(TurnChunkResult(ch, facts))
+        else:
+            if record is not None:
+                record.c["chunks_failed"] += 1
+            results.append(TurnChunkResult(ch, None, failed=True))
+    return results, plan
+
+
+def turn_referent():
+    """The subject's names for a turn-contract run, from the import config
+    (`subject_names`). Refuses, before any model call, when none is configured:
+    without it the extractor's own name for the subject is stored as a third
+    party (contract §5). Aliases of other people come from the entity map and
+    are used only by the gate's subject check."""
+    from baselayer.import_config import load_import_config
+    try:
+        ref = _tc.referent_from_config(load_import_config())
+    except _tc.ReferentNotConfigured as e:
+        raise TurnContractViolation(str(e)) from None
+    groups = {}
+    for variant, canonical in _get_entity_map().items():
+        if isinstance(canonical, str) and not variant.startswith("_"):
+            groups.setdefault(canonical.strip().lower(), {canonical.strip().lower()}).add(variant)
+    aliases = {m: tuple(sorted(g - {m})) for g in groups.values() for m in g}
+    return dataclasses.replace(ref, aliases=aliases)
+
+
+def gate_turn_chunks(results, referent) -> list:
+    """Phase 2, the §5 gate, per chunk, on EVERY raw fact the model returned
+    (before any cap slice, so rejections past a cap are still counted).
+    Pure and deliberately free of exception handling: if it raises, the run
+    stops before anything from this conversation is stored."""
+    return [(r.chunk, _tc.gate_facts(r.raw_facts, r.chunk, referent=referent))
+            for r in results if not r.failed]
+
+
+def finalize_turn_facts(gated, message_count: int, plan: dict, *, project_session: bool,
+                        record=None) -> list[dict]:
+    """Phase 3: normalise the accepted facts (the per-chunk cap applies in capped
+    mode only) and add the conversation to the density alarm. Every drop is counted
+    in the run record; nothing is trimmed at the conversation level."""
+    drops = {}
+    facts = []
+    # Pre-switch batch state files carry no mode: they were submitted capped.
+    uncapped = uncounted_mode(plan.get("fact_count_mode"))
+    for _chunk, g in gated:
+        if record is not None:
+            record.add_gate(g)
+        # The D-048 contamination filter rides on identity_only. It is OFF in turn
+        # mode (TURN_CONTAMINATION_FILTER, D-108): the span gate replaces it.
+        facts.extend(validate_structured_response(
+            g.accepted, message_count,
+            identity_only=bool(project_session and TURN_CONTAMINATION_FILTER),
+            max_facts=plan["per_chunk_cap"], drop_counter=drops, uncapped=uncapped))
+
+    # No conversation-level halt or trim on the turn path, in either mode. A dense
+    # conversation is REPORTED in the run record's density block (the alarm), never cut;
+    # the runaway guard is the spend ceiling. Capped mode keeps only its per-chunk
+    # truncation above, which is what its prompt promised the model.
+    if record is not None:
+        record.density.append({"conversation_id": _CURRENT_CONVERSATION.get(),
+                               "citable_chars": plan.get("citable_chars"),
+                               "facts": len(facts)})
+
+    if record is not None:
+        record.post_gate_drops.update(drops)
+        record.c["facts_after_validation"] += len(facts)
+    return facts
+
+
+def merge_noop_spans(conn, target_id, spans, version: str, record=None) -> int:
+    """Append a NOOPed duplicate's evidence spans to the surviving fact, deduplicated on
+    (turn_id, normalised span), and re-read the survivor's `practice` from the turns it
+    now cites. Returns the number of spans added. Runs inside the caller's transaction,
+    so a failed conversation rolls it back with everything else. A survivor that cannot
+    be found (no row for the id at this contract version) is counted, never guessed."""
+    if not target_id or not spans:
+        return 0
+    row = conn.execute("SELECT evidence_spans FROM memory_facts WHERE id = ? AND "
+                       "turn_contract_version = ?", (target_id, version)).fetchone()
+    if row is None:
+        if record is not None:
+            record.c["noop_survivor_missing"] += 1
+        return 0
+    try:
+        held = json.loads(row[0]) if row[0] else []
+    except (TypeError, ValueError):
+        if record is not None:
+            record.c["noop_survivor_spans_unparseable"] += 1
+        return 0
+    seen = {(s.get("turn_id"), _tc.normalise_for_match(str(s.get("span", ""))))
+            for s in held if isinstance(s, dict)}
+    added = 0
+    for s in spans:
+        key = (s.get("turn_id"), _tc.normalise_for_match(str(s.get("span", ""))))
+        if key in seen:
+            continue
+        seen.add(key)
+        held.append(dict(s))
+        added += 1
+    if added:
+        conn.execute("UPDATE memory_facts SET evidence_spans = ?, practice = ?, updated_at = ? "
+                     "WHERE id = ?", (json.dumps(held, ensure_ascii=False),
+                                      fact_practice(conn, held), time.time(), target_id))
+    return added
+
+
+def store_turn_facts(conn, conv_id: str, facts: list[dict], fact_collection, embed_model, *,
+                     scope: str, stamp: dict, corrections=None, record=None,
+                     embedded: list = None) -> int:
+    """Phase 4: AUDN against gated facts of the same contract version only,
+    then INSERT with grounding and stamp. The caller rolls back on error."""
+    stored_ids = []
+    version = stamp["turn_contract_version"]
+    for f in facts:
+        text = f["fact"]
+        if corrections and check_against_corrections(text, corrections):
+            if record is not None:
+                record.post_gate_drops["user_correction_block"] += 1
+            continue
+        similar = find_similar_facts(text, fact_collection, embed_model,
+                                     contract_version=version, grounding=f.get("grounding"),
+                                     conn=conn)
+        decision = make_audn_decision(text, similar)
+        action = decision.get("action", "ADD")
+        if record is not None:
+            record.audn[action] += 1
+        if action not in ("ADD", "UPDATE"):
+            if action == "NOOP" and similar:
+                # A duplicate is not stored twice, but its grounding is kept: the
+                # survivor gains the duplicate's own-voice spans (TURN_CONTRACT §5).
+                target = max(similar, key=lambda x: x["similarity"]).get("fact_id")
+                added = merge_noop_spans(conn, target, f.get("evidence_spans") or [],
+                                         version, record=record)
+                if record is not None:
+                    record.c["noop_spans_merged"] += added
+            if action == "DELETE" and similar:
+                target = max(similar, key=lambda x: x["similarity"]).get("fact_id")
+                if target:
+                    conn.execute("UPDATE memory_facts SET superseded_by = 'CONTRADICTED', "
+                                 "updated_at = ? WHERE id = ? AND turn_contract_version = ?",
+                                 (time.time(), target, version))
+            continue
+        supersedes = None
+        if action == "UPDATE":
+            text = decision.get("updated_fact") or text
+            if similar:
+                supersedes = max(similar, key=lambda x: x["similarity"]).get("fact_id")
+        fid = store_fact(conn, text, f["category"], f["confidence"], conv_id, action, supersedes,
+                         subject=f.get("subject", "user"), intent=f.get("intent", "does"),
+                         temporal=f.get("temporal", "unknown"),
+                         raw_llm_confidence=f.get("raw_llm_confidence"),
+                         fact_class=f.get("fact_class", "unclassified"),
+                         knowledge_tier=f.get("knowledge_tier", "untiered"), tiered_by=None,
+                         scope=scope, predicate=f.get("predicate"),
+                         object_text=f.get("object_text"), qualifier=f.get("qualifier"),
+                         source_turn_id=f["source_turn_id"],
+                         evidence_spans=f["evidence_spans"], inferred=f.get("inferred"),
+                         voice_class=f.get("voice_class"), stamp=stamp,
+                         grounding=f.get("grounding"), record=record)
+        if embed_model and fact_collection:
+            embed_fact(fid, text, f["category"], fact_collection, embed_model,
+                       contract_version=version, grounding=f.get("grounding"))
+            if embedded is not None:
+                embedded.append(fid)
+        stored_ids.append(fid)
+    if len(stored_ids) >= 2:
+        link_facts(conn, stored_ids, conv_id)
+    return len(stored_ids)
+
+
+def _facts_stamp_counts(conn, version: str) -> tuple[int, int]:
+    """(facts NOT stamped `version`, facts stamped with ANY version), read-only.
+
+    Never ALTERs: the guards run before anything writes, so a run pointed at the
+    wrong database (for instance the live served one) refuses without having
+    added a column to it. A missing table counts as empty; a missing version
+    column means no fact is stamped."""
+    tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    if "memory_facts" not in tables:
+        return 0, 0
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(memory_facts)")}
+    if "turn_contract_version" not in cols:
+        n = conn.execute("SELECT COUNT(*) FROM memory_facts").fetchone()[0]
+        return n, 0
+    unstamped = conn.execute(
+        "SELECT COUNT(*) FROM memory_facts WHERE turn_contract_version IS NULL "
+        "OR turn_contract_version != ?", (version,)).fetchone()[0]
+    stamped_any = conn.execute(
+        "SELECT COUNT(*) FROM memory_facts WHERE turn_contract_version IS NOT NULL").fetchone()[0]
+    return unstamped, stamped_any
+
+
+class TurnContractViolation(RuntimeError):
+    """Raised before any model call when the corpus cannot be extracted under
+    the turn contract (or cannot be extracted outside it) without mixing."""
+
+
+def assert_fresh_for_turn_contract(conn, fact_collection=None,
+                                   version: str = TURN_CONTRACT_VERSION):
+    """Refuse a turn-contract run on a database that holds any fact not stamped
+    with this contract version, in SQLite or in the Chroma collection.
+
+    The operating assumption is a fresh corpus directory. Gated and ungated
+    facts must never meet in AUDN: a gated fact NOOPed against a legacy one is
+    a gated fact silently replaced by an assistant-sourced one. The search-time
+    version filter in find_similar_facts is the second layer; this is the first.
+    Note that `baselayer forget --all` does not clear extraction_log; the full
+    reset is `python -m baselayer.extract_facts --reset`, and a fresh directory
+    is safer than either. Read-only."""
+    bad, _ = _facts_stamp_counts(conn, version)
+    if bad:
+        raise TurnContractViolation(
+            f"{bad} facts in this database are not stamped {version}. Turn-contract "
+            f"extraction must run in a FRESH corpus directory; gated facts must never be "
+            f"deduplicated against legacy ones.")
+    if fact_collection is not None:
+        total = fact_collection.count()
+        if total:
+            stamped = len(fact_collection.get(where={"turn_contract_version": version},
+                                              include=[])["ids"])
+            if stamped != total:
+                raise TurnContractViolation(
+                    f"the vector store holds {total - stamped} fact vectors not stamped "
+                    f"{version} (of {total}). Use a fresh corpus directory.")
+
+
+def assert_legacy_allowed(conn):
+    """Refuse a LEGACY run on a corpus whose facts were extracted under the turn
+    contract, so gated and ungated facts never share a database.
+
+    A turn table alone is NOT refused. The importer writes turn rows for every
+    source it knows, and projects them into the legacy `messages` table
+    (citable subject text plus assistant text only) precisely so that the
+    default pipeline (`baselayer run`, which extracts on the legacy path) keeps
+    working on a freshly imported corpus. The mixing hazard is facts, so facts
+    are what this checks."""
+    _, n = _facts_stamp_counts(conn, TURN_CONTRACT_VERSION)
+    if n:
+        raise TurnContractViolation(
+            f"{n} facts here were extracted under the turn contract; a legacy run would "
+            f"mix ungated facts into a gated corpus. Extract it with --turn-contract "
+            f"(BASELAYER_TURN_CONTRACT=1), not the legacy path.")
+
+
+def turn_run_settings() -> dict:
+    """Every cap and switch that shapes a turn-contract run, for the header and
+    the per-run record (no hidden caps)."""
+    return {
+        "turn_contract_version": TURN_CONTRACT_VERSION,
+        "turn_table": _tc.TURN_TABLE,
+        "fact_count_mode": turn_fact_count_mode(),
+        "spend_ceiling_usd": spend_ceiling_usd(),
+        "output_tokens_per_citable_char": TURN_OUTPUT_TOKENS_PER_CITABLE_CHAR,
+        "output_tokens_floor": TURN_OUTPUT_TOKENS_FLOOR,
+        "output_tokens_ceiling": EXTRACTION_MAX_OUTPUT_TOKENS,
+        "dynamic_cap": _dynamic_cap_enabled(),
+        "skip_coverage_gate": bool(os.environ.get("BASELAYER_SKIP_COVERAGE_GATE")),
+        "context_char_budget": TURN_CONTEXT_CHAR_BUDGET,
+        "context_max_turns": TURN_CONTEXT_MAX_TURNS,
+        "span_min_words": _tc.span_bounds()[0],
+        "span_max_chars": _tc.span_bounds()[1],
+        "contamination_filter": bool(TURN_CONTAMINATION_FILTER),
+        # MIN_MESSAGES_FOR_EXTRACTION is not applied in turn mode (D-108): a
+        # conversation is extracted if it has any citable turn.
+        "min_messages_for_extraction": None,
+        "tokens_per_fact": TURN_EXTRACTION_TOKENS_PER_FACT,
+        "output_safe_chunk_cap": OUTPUT_SAFE_CHUNK_CAP,
+        "chars_per_fact": CHARS_PER_FACT,
+        "extraction_model": _extraction_model_name(),
+        "backend": EXTRACTION_BACKEND,
+    }
+
+
+def check_turn_versions(turns, record=None):
+    """Turns written under a different contract version cannot be extracted
+    under this one: raise. A NULL version (importer did not stamp) is counted,
+    not refused, and shows up in the run record."""
+    other = {t.contract_version for t in turns
+             if t.contract_version is not None and t.contract_version != TURN_CONTRACT_VERSION}
+    if other:
+        raise TurnContractViolation(
+            f"turns stamped {sorted(other)} cannot be extracted under {TURN_CONTRACT_VERSION}")
+    if record is not None:
+        record.c["turns_unstamped"] += sum(1 for t in turns if t.contract_version is None)
+
+
+def process_turn_conversation(conv: dict, conn, fact_collection, embed_model, *,
+                              stamps: dict, record, referent, corrections=None,
+                              identity_only: bool = False) -> int:
+    """One conversation through the four phases. Returns facts stored, or -1
+    when the LLM phase failed. Raises (never swallows) on a gate failure,
+    missing turns, or the coverage gate."""
+    conv_id, source = conv["id"], conv.get("source", "unknown")
+    if conv.get("grown"):
+        record.c["grown_conversations"] += 1
+    turns = _tc.load_turns(conn, conv_id)
+    if not turns:
+        # The importer writes every turn, citable or not. No rows at all means
+        # the conversation never went through the turn-contract importer.
+        record.c["conversations_without_turns"] += 1
+        conn.execute("INSERT OR REPLACE INTO extraction_log "
+                     "(conversation_id, facts_extracted, processed_at) VALUES (?, -1, ?)",
+                     (conv_id, time.time()))
+        conn.commit()
+        return -1
+    check_turn_versions(turns, record)
+    project = identity_only or is_claude_code_source(source)
+    scope = "personal" if identity_only else SCOPE_SOURCE_MAPPING.get(source, DEFAULT_SCOPE)
+    record.c["turns"] += len(turns)
+    record.c["citable_turns"] += sum(1 for t in turns if t.citable)
+    record.c["turns_chars"] += sum(len(t.text) for t in turns)
+    record.c["citable_chars"] += sum(len(t.text) for t in turns if t.citable)
+
+    try:
+        results, plan = extract_turn_chunks(conv["title"], turns, source,
+                                            project_session=project, record=record)
+    except Exception as e:  # model / network failure only; nothing stored yet
+        record.c["conversation_errors"] += 1
+        print(f"  ERROR (model phase) on '{conv['title'][:40]}': {e}")
+        conn.execute("INSERT OR REPLACE INTO extraction_log "
+                     "(conversation_id, facts_extracted, processed_at) VALUES (?, -1, ?)",
+                     (conv_id, time.time()))
+        conn.commit()
+        return -1
+
+    gated = gate_turn_chunks(results, referent)              # NO handler above this
+    facts = finalize_turn_facts(gated, len(turns), plan,      # may SystemExit, by design
+                                project_session=project, record=record)
+
+    embedded = []
+    try:
+        stored = store_turn_facts(conn, conv_id, facts, fact_collection, embed_model,
+                                  scope=scope, stamp=stamps[project], corrections=corrections,
+                                  record=record, embedded=embedded)
+        conn.execute("INSERT OR REPLACE INTO extraction_log "
+                     "(conversation_id, facts_extracted, processed_at) VALUES (?, ?, ?)",
+                     (conv_id, stored, time.time()))
+        mark_turn_conversation_extracted(conn, conv_id)
+        conn.commit()
+    except BaseException:
+        # never commit a half-stored conversation, whatever stopped it (the spend
+        # ceiling raises SystemExit, which `except Exception` would let through)
+        conn.rollback()
+        if embedded and fact_collection is not None:
+            fact_collection.delete(ids=embedded)  # and leave no orphan vectors behind
+        raise
+    record.c["facts_stored"] += stored
+    return stored
+
+
+# ---------------------------------------------------------------------------
 # AUDN Decision (D-005)
 # ---------------------------------------------------------------------------
 
-def find_similar_facts(fact_text: str, collection, embed_model, top_k: int = 5) -> list[dict]:
+def find_similar_facts(fact_text: str, collection, embed_model, top_k: int = 5,
+                       contract_version: str = None, grounding: str = None,
+                       conn=None) -> list[dict]:
     """
     Find existing facts that are similar to the candidate fact.
     Used for deduplication — if a very similar fact exists, we UPDATE or NOOP.
     Uses pre-loaded embed_model to avoid repeated model reloads.
+
+    contract_version (turn path): restrict the search to facts stamped with the
+    same turn-contract version, so AUDN can never NOOP, UPDATE or DELETE a gated
+    fact against an ungated legacy one. Legacy vectors carry no version key and
+    are therefore invisible to the filter.
+
+    conn (turn path): exclude superseded facts. A superseded fact's vector stays
+    in the store, so without this an UPDATE could land on a dead fact (and
+    re-point it, orphaning its first successor) and a NOOP could merge spans into
+    it. `superseded_by` is read on the caller's connection, so a supersession made
+    earlier in the same uncommitted transaction counts. The query over-fetches
+    until it holds top_k live hits or the store runs out.
     """
     if collection is None or embed_model is None:
         return []
@@ -1568,10 +2667,17 @@ def find_similar_facts(fact_text: str, collection, embed_model, top_k: int = 5) 
     try:
         # Use pre-loaded model instead of query_texts to avoid reloading
         embedding = embed_model.encode([fact_text]).tolist()
-        results = collection.query(
-            query_embeddings=embedding,
-            n_results=top_k,
-        )
+        query = {"query_embeddings": embedding, "n_results": top_k}
+        if contract_version and grounding:
+            # Turn path: never deduplicate a prose-grounded fact against a record-only
+            # one (or the reverse): the survivor could be excluded from distillation.
+            query["where"] = {"$and": [{"turn_contract_version": contract_version},
+                                       {"grounding": grounding}]}
+        elif contract_version:
+            query["where"] = {"turn_contract_version": contract_version}
+        results = collection.query(**query)
+        if conn is not None:
+            results = _drop_superseded_hits(conn, collection, query, results, top_k)
 
         similar = []
         if results["documents"] and results["documents"][0]:
@@ -1600,7 +2706,40 @@ def find_similar_facts(fact_text: str, collection, embed_model, top_k: int = 5) 
 
     except Exception as e:
         print(f"  WARNING: find_similar_facts failed: {e}", file=sys.stderr)
+        # Counted, because a failing search silently switches AUDN dedup off
+        # (every candidate becomes ADD); the run record surfaces the count.
+        _count_response_failure("similarity_search_error")
         return []
+
+
+def _drop_superseded_hits(conn, collection, query: dict, results: dict, top_k: int) -> dict:
+    """Remove hits whose fact is superseded (any non-NULL `superseded_by`, markers
+    included), re-querying with a larger n_results until top_k live hits remain or
+    the collection is exhausted. Returns a results dict of the same shape."""
+    n = query["n_results"]
+    total = None
+    while True:
+        metas = results["metadatas"][0] if results.get("metadatas") else []
+        ids = [m.get("fact_id", "") for m in metas]
+        dead = set()
+        for i in range(0, len(ids), 500):
+            part = [x for x in ids[i:i + 500] if x]
+            if part:
+                q = ",".join("?" * len(part))
+                dead.update(r[0] for r in conn.execute(
+                    f"SELECT id FROM memory_facts WHERE id IN ({q}) "
+                    f"AND superseded_by IS NOT NULL", part))
+        keep = [k for k, fid in enumerate(ids) if fid not in dead]
+        if len(keep) >= top_k or len(ids) < n:
+            break
+        if total is None:
+            total = collection.count()
+        if n >= total:
+            break
+        n = min(n * 4, total)
+        results = collection.query(**{**query, "n_results": n})
+    keep = keep[:top_k]
+    return {k: [[results[k][0][j] for j in keep]] for k in ("documents", "metadatas", "distances")}
 
 
 def make_audn_decision(candidate_fact: str, similar_facts: list[dict]) -> dict:
@@ -1671,7 +2810,14 @@ def store_fact(conn, fact_text: str, category: str, confidence: float,
                scope: str = None,
                predicate: str = None,
                object_text: str = None,
-               qualifier: str = None) -> str:
+               qualifier: str = None,
+               source_turn_id: str = None,
+               evidence_spans=None,
+               inferred=None,
+               voice_class: str = None,
+               stamp: dict = None,
+               grounding: str = None,
+               record=None) -> str:
     """Store a fact in memory_facts and return its ID.
     D-022: Now stores subject, intent, temporal_state, and raw_llm_confidence.
     Temporal processing: Now stores fact_class (event/state/unclassified).
@@ -1681,6 +2827,14 @@ def store_fact(conn, fact_text: str, category: str, confidence: float,
     Provenance: tiered_by tracks which model assigned the tier (qwen/opus)."""
     fact_id = str(uuid.uuid4())
     now = time.time()
+    stamp = stamp or {}
+    # The practice the fact is bounded to comes from the turns its spans cite (a gated
+    # fact only; a legacy fact has no spans and gets NULL).
+    practice = fact_practice(conn, evidence_spans) if evidence_spans else None
+    if evidence_spans is not None and not isinstance(evidence_spans, str):
+        evidence_spans = json.dumps(evidence_spans, ensure_ascii=False)
+    if inferred is not None:
+        inferred = 1 if inferred else 0
 
     conn.execute("""
         INSERT INTO memory_facts
@@ -1688,21 +2842,76 @@ def store_fact(conn, fact_text: str, category: str, confidence: float,
          created_at, updated_at, superseded_by, source,
          subject, intent, temporal_state, raw_llm_confidence, fact_class,
          knowledge_tier, tiered_by, scope,
-         predicate, object_text, qualifier)
-        VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 'extraction', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         predicate, object_text, qualifier,
+         source_turn_id, evidence_spans, inferred, voice_class,
+         turn_contract_version, extraction_model, extraction_prompt_hash,
+         git_commit, code_path, practice, grounding)
+        VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 'extraction', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (fact_id, fact_text, category, confidence, conv_id, now, now,
           subject, intent, temporal, raw_llm_confidence, fact_class,
           knowledge_tier, tiered_by, scope,
-          predicate, object_text, qualifier))
+          predicate, object_text, qualifier,
+          source_turn_id, evidence_spans, inferred, voice_class,
+          stamp.get("turn_contract_version"), stamp.get("extraction_model"),
+          stamp.get("extraction_prompt_hash"), stamp.get("git_commit"),
+          stamp.get("code_path"), practice, grounding))
 
-    # If this supersedes another fact, mark the old one
+    # If this supersedes another fact, mark the old one. A set superseded_by is
+    # never overwritten: that re-points a dead fact and orphans its first
+    # successor, leaving two live near-duplicates. The chain's live head is
+    # superseded instead (see _supersede).
     if supersedes_id:
-        conn.execute("""
-            UPDATE memory_facts SET superseded_by = ?, updated_at = ?
-            WHERE id = ?
-        """, (fact_id, now, supersedes_id))
+        _supersede(conn, supersedes_id, fact_id, now, record)
 
     return fact_id
+
+
+def live_head(conn, fact_id: str):
+    """Follow superseded_by from fact_id to the end of its chain. Returns
+    (head_id, None) when the chain ends at a live fact, and (None, reason) when it
+    ends at a non-fact marker (the marker itself, e.g. 'CONTRADICTED'), at a
+    missing row ('missing') or in a cycle ('cycle'). Read-only."""
+    seen = set()
+    cur = fact_id
+    while True:
+        row = conn.execute("SELECT superseded_by FROM memory_facts WHERE id = ?",
+                           (cur,)).fetchone()
+        if row is None:
+            return None, "missing"
+        nxt = row[0]
+        if nxt is None:
+            return cur, None
+        seen.add(cur)
+        if nxt in seen:
+            return None, "cycle"
+        if conn.execute("SELECT 1 FROM memory_facts WHERE id = ?", (nxt,)).fetchone() is None:
+            return None, nxt
+        cur = nxt
+
+
+def _supersede(conn, target_id: str, new_id: str, now: float, record=None):
+    """Mark target_id superseded by new_id only while it is live. If it is already
+    superseded, supersede the live head of its chain; if the chain ends in a marker,
+    a missing row or a cycle, supersede nothing and new_id stays live. Returns the id
+    actually superseded, or None. Every case other than the direct one is counted."""
+    def count(key):
+        if record is not None:
+            record.c[key] += 1
+    upd = ("UPDATE memory_facts SET superseded_by = ?, updated_at = ? "
+           "WHERE id = ? AND superseded_by IS NULL")
+    if conn.execute(upd, (new_id, now, target_id)).rowcount == 1:
+        return target_id
+    if conn.execute("SELECT 1 FROM memory_facts WHERE id = ?", (target_id,)).fetchone() is None:
+        count("update_target_missing")
+        return None
+    count("update_target_already_superseded")
+    head, _end = live_head(conn, target_id)
+    if head is not None and head != new_id and conn.execute(upd, (new_id, now, head)).rowcount == 1:
+        count("update_rerouted_to_live_head")
+        return head
+    count("update_target_chain_dead")
+    return None
 
 
 def tier_facts_by_predicate(conn) -> tuple[int, int]:
@@ -1748,14 +2957,24 @@ def link_facts(conn, fact_ids: list[str], conv_id: str):
             """, (id1, id2, conv_id))
 
 
-def embed_fact(fact_id: str, fact_text: str, category: str, collection, model):
-    """Embed a fact into the ChromaDB facts collection."""
+def embed_fact(fact_id: str, fact_text: str, category: str, collection, model,
+               contract_version: str = None, grounding: str = None):
+    """Embed a fact into the ChromaDB facts collection.
+
+    contract_version is written as metadata only when set: Chroma rejects None
+    values, and a legacy fact must stay WITHOUT the key so the version filter in
+    find_similar_facts cannot match it."""
     embedding = model.encode([fact_text]).tolist()
+    meta = {"fact_id": fact_id, "category": category}
+    if contract_version:
+        meta["turn_contract_version"] = contract_version
+    if grounding:
+        meta["grounding"] = grounding
     collection.add(
         ids=[fact_id],
         embeddings=embedding,
         documents=[fact_text],
-        metadatas=[{"fact_id": fact_id, "category": category}],
+        metadatas=[meta],
     )
 
 
@@ -1763,13 +2982,85 @@ def embed_fact(fact_id: str, fact_text: str, category: str, collection, model):
 # Main Processing Pipeline
 # ---------------------------------------------------------------------------
 
+def mark_turn_conversation_extracted(conn, conv_id: str) -> None:
+    """Clear the importer's needs_extraction mark after a successful turn-mode
+    extraction. The caller commits. A database without import_state (a turn table
+    written some other way) has nothing to clear."""
+    try:
+        conn.execute("UPDATE import_state SET needs_extraction = 0 WHERE conversation_id = ?",
+                     (conv_id,))
+    except sqlite3.OperationalError:
+        pass
+
+
+def _turn_conversations_to_process(conn, source_filter: str = None) -> list:
+    """Turn mode (D-108). Two differences from the legacy selector:
+
+    - No MIN_MESSAGES_FOR_EXTRACTION. A history.jsonl session or a short
+      conversation is the subject's own words; a conversation with no citable
+      turn costs nothing, because a chunk with no citable turn makes no call.
+    - Grown sessions come back. The importer rewrites a conversation whose source
+      grew and sets import_state.needs_extraction. needs_extraction is also 1 on
+      every fresh import, so on its own it cannot mean "grown"; grown is
+      re-imported AFTER the last extraction (imported_at > processed_at). An
+      errored conversation is therefore not retried here (use --retry-errors).
+    - Conversations whose turns hold nothing citable (no own-voice turn outside a
+      fork/resume copy: harness children, tool-only sessions) are not selected. They
+      could never yield a fact, and returning them made `--limit N` spend its N on
+      them. A conversation with NO turn rows is still selected, so the missing-import
+      error stays loud.
+    """
+    has_state = conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' "
+                             "AND name='import_state'").fetchone() is not None
+    grown = ("(s.needs_extraction = 1 AND s.imported_at > e.processed_at)"
+             if has_state else "0")
+    join = "LEFT JOIN import_state s ON c.id = s.conversation_id" if has_state else ""
+    sql = f"""
+        SELECT c.id, c.title, c.created_at, c.message_count, c.source,
+               CASE WHEN e.conversation_id IS NOT NULL THEN 1 ELSE 0 END AS grown
+        FROM conversations c
+        LEFT JOIN extraction_log e ON c.id = e.conversation_id
+        {join}
+        WHERE (e.conversation_id IS NULL OR {grown})
+          AND (NOT EXISTS (SELECT 1 FROM turns t0 WHERE t0.conversation_id = c.id)
+               OR EXISTS (SELECT 1 FROM turns t1 WHERE t1.conversation_id = c.id
+                          AND t1.voice_class IN ('own_typed', 'own_dictated')
+                          AND t1.duplicate_of IS NULL))
+        {"AND c.source IN (" + ",".join("?" * len(_filter_sources(source_filter))) + ")"
+         if source_filter else ""}
+        ORDER BY c.created_at
+    """
+    return conn.execute(sql, _filter_sources(source_filter)).fetchall()
+
+
+def _filter_sources(source_filter) -> tuple:
+    """Stored source names a --source filter selects. "claude_code" selects every source
+    with Claude Code session shape (config.CLAUDE_CODE_SOURCES): database copies and Desktop
+    agent sessions are the same kind of conversation under a provenance-bearing name. Any
+    other value, including a single family member, selects exactly that source."""
+    if not source_filter:
+        return ()
+    if is_claude_code_source(source_filter) and source_family(source_filter) == source_filter:
+        # the family name itself ("claude_code"), not one named member
+        return tuple(CLAUDE_CODE_SOURCES)
+    return (source_filter,)
+
+
 def get_conversations_to_process(conn, limit: int = None, conv_id: str = None,
                                   source_filter: str = None,
-                                  retry_errors: bool = False) -> list[dict]:
+                                  retry_errors: bool = False,
+                                  turn_mode: bool = None,
+                                  conv_ids: list = None) -> list[dict]:
     """Get list of conversations that haven't been processed yet.
     D-044: Now includes source for scope derivation.
     source_filter: if set, only return conversations from that source (e.g. 'claude_code').
-    retry_errors: if True, also include conversations that previously errored (-1 in extraction_log)."""
+    retry_errors: if True, also include conversations that previously errored (-1 in extraction_log).
+    turn_mode: None reads BASELAYER_TURN_CONTRACT. Turn mode selects with
+    _turn_conversations_to_process (no minimum message count; grown sessions).
+    conv_ids: an explicit list (a pilot sample). Only those not yet in extraction_log
+    are returned, in the order given, so one run record covers the whole sample."""
+    if turn_mode is None:
+        turn_mode = _turn_contract_enabled()
     if retry_errors and not conv_id:
         # Clear error entries so they're re-processed
         deleted = conn.execute(
@@ -1783,20 +3074,29 @@ def get_conversations_to_process(conn, limit: int = None, conv_id: str = None,
             SELECT id, title, created_at, message_count, source
             FROM conversations WHERE id = ?
         """, (conv_id,)).fetchall()
+    elif conv_ids is not None:
+        done = {r[0] for r in conn.execute("SELECT conversation_id FROM extraction_log")}
+        found = {r[0]: r for r in conn.execute(
+            "SELECT id, title, created_at, message_count, source FROM conversations "
+            f"WHERE id IN ({','.join('?' * len(conv_ids))})", list(conv_ids)).fetchall()}             if conv_ids else {}
+        rows = [found[i] for i in conv_ids if i in found and i not in done]
+    elif turn_mode:
+        rows = _turn_conversations_to_process(conn, source_filter)
     else:
         # Sources that use single-message conversations (text files, journals)
         # are exempt from the minimum message count filter
         single_msg_sources = ('text_file', 'journal')
         if source_filter:
-            rows = conn.execute("""
+            rows = conn.execute(f"""
                 SELECT c.id, c.title, c.created_at, c.message_count, c.source
                 FROM conversations c
                 LEFT JOIN extraction_log e ON c.id = e.conversation_id
                 WHERE e.conversation_id IS NULL
                   AND (c.message_count >= ? OR c.source IN (?, ?))
-                  AND c.source = ?
+                  AND c.source IN ({",".join("?" * len(_filter_sources(source_filter)))})
                 ORDER BY c.created_at
-            """, (MIN_MESSAGES_FOR_EXTRACTION, *single_msg_sources, source_filter)).fetchall()
+            """, (MIN_MESSAGES_FOR_EXTRACTION, *single_msg_sources,
+                  *_filter_sources(source_filter))).fetchall()
         else:
             rows = conn.execute("""
                 SELECT c.id, c.title, c.created_at, c.message_count, c.source
@@ -1812,7 +3112,8 @@ def get_conversations_to_process(conn, limit: int = None, conv_id: str = None,
 
     return [
         {"id": r[0], "title": r[1] or "Untitled", "created_at": r[2],
-         "message_count": r[3], "source": r[4] or "unknown"}
+         "message_count": r[3], "source": r[4] or "unknown",
+         **({"grown": bool(r[5])} if len(r) > 5 else {})}
         for r in rows
     ]
 
@@ -1832,6 +3133,20 @@ def get_conversation_messages(conn, conv_id: str) -> list[dict]:
     return [{"role": r[0], "text": r[1]} for r in rows]
 
 
+_LEGACY_STAMPS: dict = {}
+
+
+def _legacy_stamp(kind: str) -> dict:
+    """Stamp for a legacy (ungated) fact: turn_contract_version is None."""
+    if kind not in _LEGACY_STAMPS:
+        builder = {"identity": build_identity_extraction_prompt,
+                   "document": build_document_extraction_prompt}.get(kind, build_extraction_prompt)
+        _LEGACY_STAMPS[kind] = _tc.extraction_stamp(
+            _extraction_model_name(), legacy_prompt_hash(builder),
+            contract_version=None, code_file=__file__)
+    return _LEGACY_STAMPS[kind]
+
+
 def process_conversation(conv: dict, conn, fact_collection, embed_model,
                          corrections=None, identity_only: bool = False,
                          document_mode: bool = False) -> int:
@@ -1844,7 +3159,15 @@ def process_conversation(conv: dict, conn, fact_collection, embed_model,
     project-scope conversations (extracts who you ARE, not what you're building).
     document_mode: if True, treats text as a document corpus and extracts
     the document's implicit worldview (S68 — patents, papers, reports).
+
+    This is the LEGACY (ungated) path. It refuses to run while turn-contract
+    mode is on, so a direct caller cannot store ungated facts into a gated
+    corpus; process_turn_conversation is the turn-contract equivalent.
     """
+    if _turn_contract_enabled():
+        raise TurnContractViolation(
+            "process_conversation is the legacy, ungated path; with the turn contract on, "
+            "use process_turn_conversation")
     conv_id = conv["id"]
     conv_title = conv["title"]
     conv_source = conv.get("source", "unknown")
@@ -1884,6 +3207,15 @@ def process_conversation(conv: dict, conn, fact_collection, embed_model,
         """, (conv_id, time.time()))
         conn.commit()
         return 0
+
+    # Legacy facts are stamped too (model, prompt hash, commit, repo-relative
+    # code path), with turn_contract_version left NULL: they are NOT gated.
+    if identity_only:
+        stamp = _legacy_stamp("identity")
+    elif document_mode:
+        stamp = _legacy_stamp("document")
+    else:
+        stamp = _legacy_stamp("general")
 
     # Step 2-3: For each candidate, check similarity and make AUDN decision
     stored_fact_ids = []
@@ -1925,7 +3257,7 @@ def process_conversation(conv: dict, conn, fact_collection, embed_model,
                                 knowledge_tier=k_tier, tiered_by=tier_source,
                                 scope=scope,
                                 predicate=predicate, object_text=object_text,
-                                qualifier=qualifier)
+                                qualifier=qualifier, stamp=stamp)
             if embed_model and fact_collection:
                 embed_fact(fact_id, fact_text, category, fact_collection, embed_model)
             stored_fact_ids.append(fact_id)
@@ -1946,7 +3278,7 @@ def process_conversation(conv: dict, conn, fact_collection, embed_model,
                                knowledge_tier=k_tier, tiered_by=tier_source,
                                scope=scope,
                                predicate=predicate, object_text=object_text,
-                               qualifier=qualifier)
+                               qualifier=qualifier, stamp=stamp)
             if embed_model and fact_collection:
                 embed_fact(fact_id, updated_text, category, fact_collection, embed_model)
             stored_fact_ids.append(fact_id)
@@ -2026,12 +3358,14 @@ def _should_warn_low_fact_count(total_facts: int, errors: int, *, total_chars: i
 
 def run_extraction(limit: int = None, conv_id: str = None,
                     identity_only: bool = False, source_filter: str = None,
-                    retry_errors: bool = False, document_mode: bool = False):
+                    retry_errors: bool = False, document_mode: bool = False,
+                    conv_ids: list = None):
     """Main extraction pipeline.
     D-048: identity_only mode extracts personal identity facts from project conversations.
     S68: document_mode treats text as document corpus (patents, papers, reports).
     source_filter: restrict to conversations from a specific source (e.g. 'claude_code').
-    retry_errors: clear errored entries and re-process those conversations."""
+    retry_errors: clear errored entries and re-process those conversations.
+    conv_ids: extract exactly these conversations (a pilot sample), in one run."""
     if document_mode:
         mode_label = "Document Corpus Extraction (S68)"
     elif identity_only:
@@ -2052,7 +3386,32 @@ def run_extraction(limit: int = None, conv_id: str = None,
     # Session 55 (Plan 2): Show extraction cap tiers
     print(f"Extraction caps: {len(EXTRACTION_CAPS['tiers'])} tiers, "
           f"ceiling {EXTRACTION_CAPS['max_facts_ceiling']} facts")
+    print(f"Dynamic fact cap (BASELAYER_DYNAMIC_CAP): {'ON' if _dynamic_cap_enabled() else 'OFF'}")
+    print(f"Turn contract (BASELAYER_TURN_CONTRACT): "
+          f"{TURN_CONTRACT_VERSION if _turn_contract_enabled() else 'OFF (legacy, ungated)'}")
+    import baselayer.config as _cfg
+    print(f"Database: {_cfg.DATABASE_FILE}")
     print("=" * 60)
+
+    # Turn contract preflight: READ-ONLY, before create_tables() or the vector
+    # store can write anything. A run aimed at the wrong database refuses here
+    # without having altered it.
+    turn_mode = _turn_contract_enabled()
+    with contextlib.closing(get_db()) as _pre:
+        if turn_mode:
+            if document_mode:
+                raise TurnContractViolation(
+                    "--document-mode has no subject voice to ground facts in; the turn "
+                    "contract does not apply to document corpora.")
+            if not _tc.turn_rows_exist(_pre):
+                raise TurnContractViolation(
+                    f"turn-contract extraction needs the turn table '{_tc.TURN_TABLE}' with "
+                    f"rows; this database has none. Import with the turn-contract importer.")
+            assert_fresh_for_turn_contract(_pre)
+            referent = turn_referent()
+        else:
+            assert_legacy_allowed(_pre)
+            referent = None
 
     # Setup
     create_tables()
@@ -2105,6 +3464,11 @@ def run_extraction(limit: int = None, conv_id: str = None,
                 print("  (clears SQLite + ChromaDB) before re-extracting.")
                 print("!" * 60)
 
+        # Second half of the preflight: the vector store, now that it is open.
+        # Refuses before any model call if it holds vectors not stamped V.
+        if turn_mode:
+            assert_fresh_for_turn_contract(conn, fact_collection)
+
         # Get conversations to process
         # D-048: identity_only mode uses source_filter to target project conversations
         effective_source = source_filter
@@ -2112,7 +3476,8 @@ def run_extraction(limit: int = None, conv_id: str = None,
             effective_source = "claude_code"  # Default: extract identity from Claude Code sessions
         conversations = get_conversations_to_process(conn, limit=limit, conv_id=conv_id,
                                                       source_filter=effective_source,
-                                                      retry_errors=retry_errors)
+                                                      retry_errors=retry_errors,
+                                                      conv_ids=conv_ids)
         total = len(conversations)
 
         if total == 0:
@@ -2134,8 +3499,18 @@ def run_extraction(limit: int = None, conv_id: str = None,
         total_facts = 0
         total_chars = 0
         errors = 0
+        reset_usage()
 
-        for i, conv in enumerate(conversations):
+        turn_record = None
+        if turn_mode:
+            # The turn path has its own loop (four phases, gate outside every
+            # handler); the legacy loop below then iterates over nothing.
+            turn_record, total_facts, total_chars, errors = _run_turn_loop(
+                conversations, conn, fact_collection, embed_model,
+                corrections=corrections, identity_only=identity_only, start_time=start_time,
+                referent=referent)
+
+        for i, conv in enumerate([] if turn_mode else conversations):
             try:
                 # Input size for the low-yield guard. Must stay in sync with the
                 # filter in get_conversation_messages(), so it counts exactly the
@@ -2148,10 +3523,14 @@ def run_extraction(limit: int = None, conv_id: str = None,
                       AND content_text IS NOT NULL
                       AND LENGTH(content_text) > 5
                 """, (conv["id"],)).fetchone()[0]
-                facts_stored = process_conversation(conv, conn, fact_collection, embed_model,
-                                                    corrections=corrections,
-                                                    identity_only=identity_only,
-                                                    document_mode=document_mode)
+                _conv_tok = _CURRENT_CONVERSATION.set(conv["id"])
+                try:
+                    facts_stored = process_conversation(conv, conn, fact_collection, embed_model,
+                                                        corrections=corrections,
+                                                        identity_only=identity_only,
+                                                        document_mode=document_mode)
+                finally:
+                    _CURRENT_CONVERSATION.reset(_conv_tok)
                 total_facts += facts_stored
 
                 # Progress update
@@ -2214,6 +3593,7 @@ def run_extraction(limit: int = None, conv_id: str = None,
         print(f"Conversations processed: {total}")
         print(f"Facts stored: {total_facts}")
         print(f"Errors: {errors}")
+        print(_tc.usage_line(_tc.usage_totals(usage_calls())))
         print(f"Time: {total_time:.1f}s ({total_time/60:.1f} min)")
         if total > 0:
             print(f"Average: {total_facts/total:.1f} facts per conversation")
@@ -2224,7 +3604,11 @@ def run_extraction(limit: int = None, conv_id: str = None,
         # causing AUDN NOOP, or input text flattened so the corpus collapsed to one
         # chunk). Only flag full runs — limited/single-conversation runs are
         # legitimately small.
-        if _should_warn_low_fact_count(total_facts, errors, total_chars=total_chars,
+        # Not applied on the turn path: its 2.2/10K floor was calibrated on
+        # legacy extraction, where assistant text also yielded facts. The turn
+        # path's own tripwires are the gate's suspect flags in the run record.
+        if not turn_mode and _should_warn_low_fact_count(
+                                       total_facts, errors, total_chars=total_chars,
                                        limit=limit, conv_id=conv_id,
                                        retry_errors=retry_errors, identity_only=identity_only,
                                        document_mode=document_mode):
@@ -2237,6 +3621,63 @@ def run_extraction(limit: int = None, conv_id: str = None,
             print("    - input text flattened (lost paragraph breaks), collapsing to one chunk")
             print("  Verify the fact count before running author/compose on this data.")
             print("!" * 60)
+
+        if turn_record is not None and turn_record.c["conversations_without_turns"]:
+            print(f"\nERROR: {turn_record.c['conversations_without_turns']} conversations have no "
+                  f"rows in the turn table; they were not extracted. See the run record.")
+            raise SystemExit(2)
+
+
+def _run_turn_loop(conversations, conn, fact_collection, embed_model, *, corrections,
+                   identity_only, start_time, referent):
+    """The turn-contract loop. The per-run record is written in a `finally`
+    (which catches nothing), so an aborted run still leaves its counts."""
+    stamps = turn_stamps()
+    settings = turn_run_settings()
+    settings["referent_names"] = len(referent.names)     # a count; the names stay in the config
+    record = _tc.ExtractionRunRecord(
+        "turn", settings, stamp={"general": stamps[False], "project": stamps[True]})
+    reset_response_failures()
+    print(f"\nTurn contract {TURN_CONTRACT_VERSION}: grounded facts only.")
+    for k, v in settings.items():
+        print(f"  {k}: {v}")
+    print(f"  git_commit: {stamps[False]['git_commit']}  code_path: {stamps[False]['code_path']}")
+    total = len(conversations)
+    total_facts = errors = 0
+    completed = False
+    try:
+        for i, conv in enumerate(conversations):
+            _conv_tok = _CURRENT_CONVERSATION.set(conv["id"])
+            try:
+                n = process_turn_conversation(conv, conn, fact_collection, embed_model,
+                                              stamps=stamps, record=record,
+                                              referent=referent, corrections=corrections,
+                                              identity_only=identity_only)
+            except SpendCeilingExceeded as e:
+                record.notes.append(f"spend ceiling: {e}")
+                raise
+            finally:
+                _CURRENT_CONVERSATION.reset(_conv_tok)
+            if n < 0:
+                errors += 1
+            else:
+                total_facts += n
+            if (i + 1) % BATCH_SIZE == 0 or i == total - 1:
+                elapsed = time.time() - start_time
+                print(f"  [{i+1}/{total}] Facts: {total_facts} | Errors: {errors} | "
+                      f"gate rejected {sum(record.rejected.values())} of "
+                      f"{record.c['candidates']} | {elapsed:.0f}s")
+        completed = True
+    finally:
+        record.response_failures = response_failures()
+        record.usage_calls = usage_calls()
+        if not completed:
+            record.notes.append("run aborted by an exception; counts are partial")
+        for line in record.summary_lines():
+            print(line)
+        path = record.write(conn)
+        print(f"  run record: {path}")
+    return record, total_facts, record.c["turns_chars"], errors
 
 
 def show_stats():
@@ -2411,19 +3852,33 @@ def main():
     parser.add_argument("--conversation", type=str, help="Process a single conversation by ID")
     parser.add_argument("--stats", action="store_true", help="Show extraction statistics")
     parser.add_argument("--reset", action="store_true",
-                        help="Reset extraction log (reprocess all conversations)")
+                        help="DESTRUCTIVE full extraction reset: deletes extraction-sourced "
+                             "facts, the extraction log and fact relationships, and drops the "
+                             "fact vector collection (user corrections survive). Prefer building "
+                             "into a fresh corpus directory.")
     parser.add_argument("--identity-only", action="store_true",
                         help="D-048: Extract only identity-relevant facts from project conversations "
                              "(strips code/tools, keeps user directives and behavioral patterns)")
     parser.add_argument("--source", type=str, default=None,
-                        help="Filter to conversations from a specific source (chatgpt, claude_code, claude_web)")
+                        help="Filter to conversations from a specific source (chatgpt, claude_web, "
+                             "claude_code_history, meeting, text_file, ...). 'claude_code' selects "
+                             "every source with Claude Code session shape (claude_code, "
+                             "claude_code_db_copy, claude_desktop_agent); name one of those to "
+                             "select it alone.")
     parser.add_argument("--document-mode", action="store_true",
                         help="S68: Treat text as document corpus (patents, papers, reports). "
                              "Extracts the document's implicit worldview rather than personal facts.")
     parser.add_argument("--retry-errors", action="store_true",
                         help="Clear errored extraction_log entries (-1) and re-process those conversations")
+    parser.add_argument("--turn-contract", action="store_true",
+                        help="Extract under the turn contract (docs/core/TURN_CONTRACT.md): "
+                             "turn-bounded chunks, only the subject's own turns citable, every "
+                             "fact grounded in verbatim spans and gated. Same as "
+                             "BASELAYER_TURN_CONTRACT=1. Needs a fresh corpus directory.")
 
     args = parser.parse_args()
+    if args.turn_contract:
+        os.environ["BASELAYER_TURN_CONTRACT"] = "1"
 
     if args.stats:
         show_stats()

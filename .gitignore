@@ -271,3 +271,6 @@ scripts/extract_voice_bank.py
 # Per-subject ignore rules that would name an individual live in .git/info/exclude,
 # which is local and never pushed. Naming them here published the name and disclosed
 # that the material exists, which is what the rule was meant to prevent.
+
+# Local import config (exclusion list, allowlist, subject labels): personal data, never tracked
+data/import_config.json

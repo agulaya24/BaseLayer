@@ -307,6 +307,10 @@ EXTRACTION_CAPS = {
     ],
     # Absolute ceiling regardless of message count (S97: raised from 200 for large documents)
     "max_facts_ceiling": 600,
+    # NOTE (B-halt / dynamic fact cap): when BASELAYER_DYNAMIC_CAP is enabled the
+    # static tier max_facts above is demoted to a density-derived runaway backstop
+    # (see DYNAMIC_CAP_DEFAULT + CHARS_PER_FACT below). The tier values here are
+    # unchanged and remain the sole cap when the flag is off.
     # 2026-05-17: per-source overrides for the absolute ceiling. Multi-day Claude
     # Code sessions (compacted instead of restarted) can produce thousands of
     # candidate facts across windows; the default 600 trips the >20% coverage
@@ -317,6 +321,141 @@ EXTRACTION_CAPS = {
     },
     "max_input_char_budget": 24000,
 }
+
+
+# ==========================================================================
+# DYNAMIC FACT CAP — "B-halt" (default OFF)
+# ==========================================================================
+# Gated behind the BASELAYER_DYNAMIC_CAP env var. When unset/false, extraction
+# behavior is byte-for-byte identical to the static-cap pipeline above. When
+# enabled, three things change (all in extract_facts.py):
+#   1. per_chunk_cap = max_facts (drops the min(50, ...) emission-order cut —
+#      the main leak on dense chunks).
+#   2. the doc-level max_facts becomes a density-derived runaway backstop:
+#      min(source_ceiling, ceil(total_chars / CHARS_PER_FACT)).
+#   3. the silent confidence-sort truncation is removed, so on breach the S98
+#      coverage gate HALTS rather than quietly keeping the top-N.
+# The S98 coverage gate and the S65/S106 stale-vector guards are unchanged.
+#
+# DYNAMIC_CAP_DEFAULT is the config mirror of the env var: it is the fallback
+# used only when BASELAYER_DYNAMIC_CAP is unset. Flip it to True here to enable
+# B-halt globally without setting the env var. Left False so the default path
+# is unchanged. The env var, when present, always wins over this mirror.
+DYNAMIC_CAP_DEFAULT = False
+
+# Density estimate for the B-halt backstop: roughly one extracted fact per this
+# many input characters. EMPIRICALLY TUNABLE — this 175 is a starting point, not
+# a measured constant. Derive it from a real dense-doc run before trusting it.
+CHARS_PER_FACT = 175
+
+# Per-CHUNK extraction ask ceiling (B-halt, flag-on only). The doc-level cap is
+# density-scaled and aggregates across chunks, but the per-CHUNK ask is bounded
+# by the API output-token ceiling: asking the extraction model for many more than
+# this in one chunk overflows max_tokens, truncates the JSON response, and loses
+# the entire chunk's facts (observed on a document build: chunks of about 130 facts
+# succeeded, about 140 or more failed). Only the per-chunk ask is bounded here — a dense doc still lands
+# its full density across N chunks, and AUDN dedups. EMPIRICALLY TUNABLE.
+OUTPUT_SAFE_CHUNK_CAP = 100
+
+# max_tokens scaling for extraction (B-halt, flag-on only). Output tokens must
+# cover the requested fact count, so the ceiling tracks the ask instead of a
+# fixed value. ~EXTRACTION_TOKENS_PER_FACT tokens/fact + a JSON-wrapping buffer,
+# clamped to the extraction model's documented max output tokens.
+# Haiku 4.5 (claude-haiku-4-5-20251001) max output = 64000 tokens.
+EXTRACTION_TOKENS_PER_FACT = 90
+EXTRACTION_OUTPUT_BUFFER_TOKENS = 2000
+EXTRACTION_MAX_OUTPUT_TOKENS = 64000
+
+
+# ==========================================================================
+# TURN CONTRACT EXTRACTION (docs/core/TURN_CONTRACT.md)
+# ==========================================================================
+# Named caps for turn-contract extraction. Each one is printed in the run
+# header and written into the per-run record, so no cap in this path is hidden.
+#
+# Opt-in: turn-contract extraction runs only when BASELAYER_TURN_CONTRACT is
+# truthy (or `baselayer extract --turn-contract`). It is never inferred from a
+# table existing: a mismatch in the turn table's name would otherwise fall back
+# silently to the legacy path and store ungated, unstamped facts.
+#
+# Preceding turns carried into each chunk as read-only CONTEXT (no citable ids).
+# This is what lets the model read a short reply ("yes, do that") against the
+# turn it answers. It is input on top of the chunk body, so it is a direct cost
+# lever; measure its effect on a pilot before raising it.
+TURN_CONTEXT_CHAR_BUDGET = 3000
+TURN_CONTEXT_MAX_TURNS = 4
+# Bounds on one evidence span, ENFORCED by the gate (contract section 5, reason
+# `span_length`) and stated in the prompt. A span under the minimum ("yes", "ok")
+# grounds nothing on its own; a span over the maximum is usually a whole turn
+# cited wholesale, which passes the substring check while pointing at nothing in
+# particular. Overridable per run with BASELAYER_TURN_SPAN_MIN_WORDS and
+# BASELAYER_TURN_SPAN_MAX_CHARS; the values used are written to the run record.
+TURN_EVIDENCE_SPAN_MIN_WORDS = 3
+TURN_EVIDENCE_SPAN_MAX_CHARS = 400
+# The D-048 contamination filter (drop any fact that mentions the pipeline, the
+# project, extraction, a model name...) exists because legacy extraction read
+# assistant text in project sessions as the subject's. Under the turn contract
+# the span gate removes that failure at the source, and the filter would also
+# drop facts the subject grounded in their own words about their own project. OFF in
+# turn mode; the legacy path keeps it.
+TURN_CONTAMINATION_FILTER = False
+# Output tokens per fact on the turn path. The legacy 90 (EXTRACTION_TOKENS_PER_FACT)
+# was tuned for triples without grounding; each fact now also carries one or more
+# spans of up to TURN_EVIDENCE_SPAN_MAX_CHARS (~100 tokens each) plus ids and the inferred flag.
+# Under-sizing this truncates the JSON and loses the whole chunk, which is the
+# failure OUTPUT_SAFE_CHUNK_CAP exists to prevent. EMPIRICALLY TUNABLE: set it
+# from the pilot's measured output tokens per fact.
+TURN_EXTRACTION_TOKENS_PER_FACT = 180
+# Whether the turn-path prompt carries a fact count. Overridable per run with
+# BASELAYER_FACT_COUNT_MODE; the mode used is written to the run record.
+#   capped: "Extract up to N facts ... most identity-relevant first", and accepted facts past
+#           the per-chunk cap are truncated (counted as over_per_chunk_cap). The behaviour
+#           before the switch existed; its prompt hash is pinned in tests. Selectable per run;
+#           also what a batch plan without the key (written before the switch) is read as.
+#   none:   no count and no ordering in the prompt, no per-chunk truncation of gated facts.
+#   coverage: `none` plus TURN_COVERAGE_SENTENCE in the prompt. Everything but the wording
+#           is `none`'s: budget from citable chars, no per-chunk truncation.
+#   coverage_fragments: `coverage` plus TURN_FRAGMENT_SENTENCE, which asks the model to
+#           extract nothing from a fragment or an unclear question. Everything else is
+#           `coverage`'s.
+# Default `coverage`: in a same-sample comparison of the three modes it dropped most of
+# capped's noise facts (over-read fragments, stretches, pasted text) and its duplicates at
+# lower output cost; `coverage_fragments` was not better than `coverage` on its own target.
+TURN_FACT_COUNT_MODES = ("capped", "none", "coverage", "coverage_fragments")
+TURN_UNCOUNTED_MODES = ("none", "coverage", "coverage_fragments")
+TURN_COVERAGE_MODES = ("coverage", "coverage_fragments")
+TURN_COVERAGE_SENTENCE = ("Extract every distinct fact the subject's own words support; do not "
+                          "stop early and do not restate the same fact in different words.")
+TURN_FRAGMENT_SENTENCE = ("If a turn is a fragment or a question whose meaning is not clear from "
+                          "its context, extract nothing from it.")
+TURN_FACT_COUNT_MODE = "coverage"
+# Output budget in fact_count_mode `none`, per chunk:
+#   max_tokens = clamp(TURN_OUTPUT_TOKENS_FLOOR,
+#                      ceil(TURN_OUTPUT_TOKENS_PER_CITABLE_CHAR x chunk citable chars),
+#                      EXTRACTION_MAX_OUTPUT_TOKENS)
+# Derivation (a turn-contract pilot run, capped prompt, Haiku 4.5,
+# 22 extraction calls): output tokens per citable char of each call's own chunk. On the 8
+# chunks over 600 citable chars the ratio was 0.33 to 2.11 (max 2.111, a 1,319-char chunk
+# that returned 2,784 tokens); the per-CONVERSATION averages used in the design review
+# (max 1.39) hide that chunk. Three times the per-chunk maximum is 6.33, rounded up to 6.4.
+# Below 600 chars the ratio is dominated by the small denominator (up to 18 on an
+# 82-char chunk); the floor covers every small chunk observed (largest small-chunk output
+# 1,482 tokens). The largest output of any call was 2,784 tokens.
+# Every extraction call's usage entry carries `citable_chars`, so this constant is
+# re-derived from each run's own record rather than from this one. A chunk that still
+# stops on max_tokens is re-chunked, never dropped (extract_facts).
+TURN_OUTPUT_TOKENS_PER_CITABLE_CHAR = 6.4
+TURN_OUTPUT_TOKENS_FLOOR = 2000
+# Run-wide spend ceiling (the runaway guard that replaced the fact-count halt on the turn
+# path). Set per run with BASELAYER_SPEND_CEILING_USD; unset means no ceiling. Checked
+# before every sequential model call: measured spend so far (every call's usage, AUDN
+# included) plus the call's worst case (prompt chars / SPEND_CHARS_PER_TOKEN input, plus
+# max_tokens output) must stay at or under the ceiling, or the run stops.
+# Rates are USD per million tokens for the extraction model, Claude Haiku 4.5, published
+# first-party rates (input 1, output 5; cache read 0.1x and cache write 1.25x input).
+# Confirm them against the current price list before relying on the ceiling.
+SPEND_RATES_PER_MTOK = {"input": 1.0, "output": 5.0, "cache_read": 0.10, "cache_write": 1.25}
+SPEND_CHARS_PER_TOKEN = 3.5   # conservative: the pilot measured 3.77 prompt chars per token
 
 
 # ==========================================================================
@@ -463,10 +602,32 @@ CONSOLIDATION_MAX_CLUSTER_SIZE = 15
 # Facts are scope-tagged by interaction mode. Personal feeds identity blocks.
 # Project feeds project briefs (CLAUDE.md). Anchors cross scopes.
 
+# Sources whose conversations have Claude Code SESSION SHAPE: a subject directing an agent
+# through tool calls, with assistant turns full of code and tool traffic. Live and recovered
+# raw transcripts import as "claude_code"; database copies of older sessions and Claude
+# Desktop agent-mode sessions carry their own source names (recovered_import) so provenance
+# stays visible, but every behaviour keyed on session shape (project scope, chunk overlap,
+# abstraction of assistant text, the per-source fact ceiling, the identity-only default)
+# must treat them alike. Prompt history (claude_code_history) is NOT a member: it holds
+# prompts only, with no assistant turns, so nothing about session shape applies to it.
+# Whether its facts are project or personal scope is an open decision.
+CLAUDE_CODE_SOURCES = ("claude_code", "claude_code_db_copy", "claude_desktop_agent")
+
+
+def is_claude_code_source(source) -> bool:
+    return source in CLAUDE_CODE_SOURCES
+
+
+def source_family(source):
+    """The key per-source settings are looked up under: "claude_code" for every member of
+    CLAUDE_CODE_SOURCES, the source itself otherwise."""
+    return "claude_code" if source in CLAUDE_CODE_SOURCES else source
+
+
 SCOPE_SOURCE_MAPPING = {
     "chatgpt": "personal",
     "claude_web": "personal",
-    "claude_code": "project",
+    **{s: "project" for s in CLAUDE_CODE_SOURCES},
     # Future: "slack" -> "professional", "email" -> "professional"
 }
 

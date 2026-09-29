@@ -1,7 +1,8 @@
 """Author a layer from a handoff package, then compose. The last two hops.
 
-EXPERIMENTAL AND UNTESTED. No test exercises this module; see
-baselayer/distillation/__init__.py for the full status.
+EXPERIMENTAL. Only the API call shape and response handling of `call_structured` are tested
+(tests/test_author_from_package_call_shape.py, fake client, no API); authoring quality is not.
+See baselayer/distillation/__init__.py for the full status.
 
 🎯 WHAT WAS MISSING. Distillation produced trees. `assemble.py` turned trees into a package.
 Nothing read the package. This closes it: render the package into the layer's own prompt, author,
@@ -24,6 +25,7 @@ would hand the author a pile it cannot weigh.
 """
 import argparse
 import io
+from collections import Counter
 import json
 import os
 import sys
@@ -34,7 +36,13 @@ import sys
 _src = os.environ.get("BASELAYER_SRC")
 if _src:
     sys.path.insert(0, _src)
+elif not __package__:
+    # Run as a plain script: pin THIS checkout's src/ so the stamp helper is the running code's,
+    # not whatever `baselayer` happens to be installed (a different checkout on this machine).
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 import anthropic
+from baselayer import turn_contract as _tc
+from baselayer.distillation import spend as _spend
 
 
 def render(pkg, max_themes=None):
@@ -68,6 +76,22 @@ def render(pkg, max_themes=None):
                  "singularity section as CANDIDATES.\n"
                  % (pkg["n_runs"], pkg["min_runs_for_verified"]))
 
+    others = pkg.get("other_subject_ids") or {}
+    if others:
+        # Facts about other people, admitted as context (distill --include-other-subjects).
+        # Labelled wherever they appear so none is read as a trait of the person.
+        L.append("%d facts below are about OTHER PEOPLE, not the person. They are labelled "
+                 "(ABOUT <name>, NOT THE PERSON) and are context only: never state one as the "
+                 "person's own trait, and never rest a claim on them alone.\n" % len(others))
+
+    def _about(fid):
+        return "(ABOUT %s, NOT THE PERSON) " % others[fid] if fid in others else ""
+
+    def _words(s):
+        # T1 (--leaf-spans): the person's own words for this singularity, checked at the leaf
+        # against that fact's evidence spans. Absent on a default package, so nothing changes.
+        return '   own words: "%s"' % s["own_words"] if s.get("own_words") else ""
+
     L.append("\n## THEMES  (%d statements across %d runs, NOT de-duplicated)\n" %
              (len(pkg["themes"]), pkg["n_runs"]))
     L.append("The runs restate the same claims in different words. Judge which say the same "
@@ -85,9 +109,12 @@ def render(pkg, max_themes=None):
     for t in pkg["themes"][:max_themes]:
         fids = t.get("fact_ids") or []
         tags = " ".join("[F-%s]" % f for f in fids)
-        L.append("- [run %s] %s  (rests on %d fact%s) %s"
+        oth = [f for f in fids if f in others]
+        L.append("- [run %s] %s  (rests on %d fact%s) %s%s"
                  % (t.get("from_run"), t["statement"], len(fids),
-                    "" if len(fids) == 1 else "s", tags))
+                    "" if len(fids) == 1 else "s", tags,
+                    ("  [cites facts about others: %s]"
+                     % ", ".join("F-%s (%s)" % (f, others[f]) for f in oth)) if oth else ""))
 
     if pkg.get("verified_meaningful", pkg["n_runs"] > 1):
         L.append("\n## SINGULARITIES, VERIFIED  (%d, in >= %d of %d runs, VERBATIM)\n"
@@ -99,15 +126,17 @@ def render(pkg, max_themes=None):
     L.append("Facts no theme covers, carried unparaphrased. A fact can be decisive and appear "
              "exactly once; frequency is not significance.\n")
     for s in pkg["singularities_verified"]:
-        L.append("- [F-%s] %s   (%d/%d runs)" % (s["fact_id"], s["verbatim"], s["runs"],
-                                                  pkg["n_runs"]))
+        L.append("- [F-%s] %s%s   (%d/%d runs)%s" % (s["fact_id"], _about(s["fact_id"]),
+                                                      s["verbatim"], s["runs"], pkg["n_runs"],
+                                                      _words(s)))
 
     L.append("\n## SINGULARITIES, UNVERIFIED  (%d, single-run)\n"
              % len(pkg["singularities_unverified"]))  # all shown; no cap
     L.append("⚠️ 57-62%% of single-run singularities are resampling noise. Treat as candidates, "
              "not evidence. Use only if a verified item or a theme corroborates.\n")
     for s in pkg["singularities_unverified"]:
-        L.append("- [F-%s] %s" % (s["fact_id"], s["verbatim"]))
+        L.append("- [F-%s] %s%s%s" % (s["fact_id"], _about(s["fact_id"]), s["verbatim"],
+                                      _words(s)))
 
     L.append("\n## CONTRADICTIONS  (%d, union, NEVER resolved)\n" % len(pkg["contradictions"]))
     L.append("🚨 DO NOT RESOLVE THESE. Where this person's stated belief conflicts with reported "
@@ -119,7 +148,8 @@ def render(pkg, max_themes=None):
     L.append("\n## SET ASIDE\n")
     L.append("%d facts every run judged not load-bearing for this layer. %d are CONTESTED: some "
              "runs dismissed them and others kept them, and that disagreement is information.\n"
-             % (len(pkg["dismissed_by_all_runs"]), len(pkg["dismissed_CONTESTED"])))
+             % (len(pkg["dismissed_by_all_runs"]),
+                pkg.get("dismissed_CONTESTED_total", len(pkg["dismissed_CONTESTED"]))))
     out = "\n".join(L)
 
     # 🚨 NO-TRUNCATION ASSERTION. Five unnamed caps of this class were found in this codebase,
@@ -207,14 +237,56 @@ LAYER_SCHEMA = {
 _TRANSIENT = ("overloaded_error", "rate_limit_error", "api_error", "timeout")
 
 
-def _stream_with_retry(cl, model, maxtok, tool, msgs, tries=5, tool_name="emit_layer"):
+# 🚨 FORCED TOOL USE IS GONE ON CLAUDE OPUS 5.5 (and Fable 5.1): tool_choice {"type": "tool"}
+# returns a 400 before any work is done ("tool_choice: type "tool" and "any" are not supported
+# for this model."). Demonstrated against this function on 2026-09-24. So the call is now
+# tool_choice AUTO + strict:true on the tool + an explicit system instruction naming the tool.
+#   - strict:true keeps the guarantee this file rests on: IF the model calls the tool, the input
+#     validates against the schema, so a claim cannot exist without its fact_ids field.
+#   - auto does NOT guarantee a call, so "no tool_use block" is now a checked, retryable outcome
+#     inside the SAME attempt budget as the citation gate (never extra resends of the payload).
+#   - The system line is the steer that forced tool_choice used to supply. It lives here, not in
+#     the callers, because the compose prompt never named its tool at all.
+# ⚠️ DO NOT add eager_input_streaming to this tool. With it on, the API stops validating tool
+# input, which silently removes the schema guarantee the citation gate depends on.
+# ⚠️ Model-agnostic: the same request shape is valid on claude-opus-5 and claude-opus-5-5.
+# No `thinking` param is ever sent (adaptive is the default on both; `disabled` 400s on 5.5).
+# Effort IS sent explicitly: 5.5 defaults to `medium` where Opus 5 defaults to `high`, so
+# omitting it would silently change how hard the author thinks when the model id changes.
+# The run's per-call spend guard (spend.SpendGuard), set by main() before any client exists.
+# `_stream_with_retry` is the one place every authoring and compose request is sent from, so
+# the ceiling is checked there: before the first attempt AND before every re-ask, each of which
+# re-sends the whole package.
+_GUARD = None
+
+_STEER = ("Respond ONLY by calling the %s tool, exactly once, with the complete output. "
+          "Do not write any prose outside the tool call.")
+
+
+def _stream_with_retry(cl, model, maxtok, tool, msgs, tries=5, tool_name="emit_layer",
+                       effort="high"):
     import time
+    if not effort:
+        # An omitted effort silently falls back to the model's own default (medium on Opus 5.5),
+        # which changes how the layer was authored without anything recording it.
+        raise ValueError("effort must be set explicitly (low|medium|high|xhigh|max)")
+    kw = {"output_config": {"effort": effort}}
+    if _GUARD is not None:
+        _GUARD.check(len(json.dumps(msgs)) + len(_STEER % tool_name) + len(json.dumps(tool)),
+                     maxtok)
     for n in range(1, tries + 1):
         try:
+            # disable_parallel_tool_use: at most one emit_layer call. With auto tool choice the
+            # model could otherwise split a layer across two calls; the second is not read.
             with cl.messages.stream(model=model, max_tokens=maxtok, tools=[tool],
-                                    tool_choice={"type": "tool", "name": tool_name},
-                                    messages=msgs) as st:
-                return st.get_final_message()
+                                    tool_choice={"type": "auto",
+                                                 "disable_parallel_tool_use": True},
+                                    system=_STEER % tool_name,
+                                    messages=msgs, **kw) as st:
+                r = st.get_final_message()
+            if _GUARD is not None:
+                _GUARD.record(r.usage.input_tokens, r.usage.output_tokens)
+            return r
         except Exception as e:
             if not any(t in str(e) for t in _TRANSIENT) or n == tries:
                 raise
@@ -223,25 +295,90 @@ def _stream_with_retry(cl, model, maxtok, tool, msgs, tries=5, tool_name="emit_l
             time.sleep(wait)
 
 
+# Rates are NOT defined here: spend.py holds the one dated table, which the operator confirms
+# per run (--rates-confirmed) or overrides (--rate-in/--rate-out). An unlisted model is refused.
+
+
+class AuthoringRefused(RuntimeError):
+    """The model declined (stop_reason == "refusal"). Not retried: resending the same payload
+    (up to ~700K tokens) to be declined again is pure cost."""
+
+
 def call_structured(cl, model, prompt, schema, supplied, maxtok=16000, tries=3,
-                    tool_name="emit_layer"):
+                    tool_name="emit_layer", effort="high", usage=None, items_key=None,
+                    quote_gate=None, quote_stats=None):
     """Author via a strict tool call, then VERIFY AT THE OUTPUT and re-ask on failure.
 
     `supplied` is the set of fact ids the package actually handed this author. An id outside it
     was not evidence this run saw, so it is a fabrication and fails the gate exactly as a missing
     id does.
+
+    Response handling, in order, every attempt:
+      refusal     -> raise AuthoringRefused (with stop_details), no retry
+      max_tokens  -> raise, no retry: the same request truncates the same way; thinking shares
+                     max_tokens, so raise --max-tokens or lower --effort
+      no tool_use -> one rejected attempt, re-asked fresh within `tries`
+      citations   -> the gate below, unchanged
+      quotes      -> only with `quote_gate` (quote_gate.QuoteGate), after the citations pass,
+                     and NEVER a re-ask: a quote whose words are in an own-voice span of a
+                     supplied fact the claim does not cite gets that fact auto-cited (and
+                     recorded in the claim's `gate_added_citations`); any other unfound quote
+                     loses its quote marks (the words stay). Counts by reason go into the
+                     `quote_stats` dict.
+    Blocks are selected by type, never by index: on 5-generation models thinking blocks come
+    first. Re-asks are fresh single-turn requests, so no thinking block is ever replayed and
+    preserved-thinking history rules cannot apply.
+
+    The returned token counts are the SUM over every attempt. They used to be the accepted
+    attempt's alone, so a layer that took three tries reported a third of what it cost. Pass a
+    dict as `usage` to also receive the attempt count.
     """
+    if usage is None:
+        usage = {}
+    usage.update(input_tokens=0, output_tokens=0, attempts=0)
     tool = {"name": tool_name, "description": "Emit the authored output.",
             "strict": True, "input_schema": schema}
     msgs = [{"role": "user", "content": prompt}]
     last = ""
     for attempt in range(1, tries + 1):
-        r = _stream_with_retry(cl, model, maxtok, tool, msgs, tool_name=tool_name)
-        blk = next((b for b in r.content if getattr(b, "type", None) == "tool_use"), None)
+        r = _stream_with_retry(cl, model, maxtok, tool, msgs, tool_name=tool_name,
+                               effort=effort)
+        usage["attempts"] += 1
+        usage["input_tokens"] += r.usage.input_tokens
+        usage["output_tokens"] += r.usage.output_tokens
+        if r.stop_reason == "refusal":
+            sd = getattr(r, "stop_details", None)
+            # On SDK 0.79.0 stop_details is not a typed field and arrives as a plain dict.
+            get = (lambda k: sd.get(k)) if isinstance(sd, dict) else (lambda k: getattr(sd, k, None))
+            raise AuthoringRefused(
+                "model %s REFUSED (category=%s): %s" % (model, get("category"), get("explanation")))
+        if r.stop_reason == "max_tokens":
+            raise RuntimeError(
+                "TRUNCATED at max_tokens=%d (out=%d). Thinking counts toward max_tokens; raise "
+                "--max-tokens or lower --effort. Not retried: the same request truncates the "
+                "same way." % (maxtok, r.usage.output_tokens))
+        uses = [b for b in r.content if getattr(b, "type", None) == "tool_use"]
+        if len(uses) > 1:
+            # Taking the first would silently drop the rest of the layer. Reject the attempt.
+            last = ("you called the %s tool %d times. Emit the whole output in exactly ONE "
+                    "call." % (tool_name, len(uses)))
+            print("    ATTEMPT %d REJECTED: %d tool_use blocks" % (attempt, len(uses)), flush=True)
+            msgs = [{"role": "user", "content": prompt + chr(10) + chr(10)
+                     + "YOUR PREVIOUS ATTEMPT WAS REJECTED: " + last}]
+            continue
+        blk = uses[0] if uses else None
         if blk is None:
-            raise RuntimeError("no tool_use block, stop_reason=%s" % r.stop_reason)
+            last = ("you did not call the %s tool (stop_reason=%s). The output is accepted "
+                    "only as a %s tool call." % (tool_name, r.stop_reason, tool_name))
+            print("    ATTEMPT %d REJECTED: no tool_use block, stop_reason=%s"
+                  % (attempt, r.stop_reason), flush=True)
+            msgs = [{"role": "user", "content": prompt + chr(10) + chr(10)
+                     + "YOUR PREVIOUS ATTEMPT WAS REJECTED: " + last
+                     + " Emit the whole output again by calling the tool."}]
+            continue
         data = blk.input
-        claims = data.get("claims") or data.get("sections") or []
+        claims = ((data.get(items_key) or []) if items_key
+                  else (data.get("claims") or data.get("sections") or []))
         naked = [c.get("id") or c.get("heading", "?") for c in claims
                  if not (c.get("fact_ids") or [])]
         bogus = sorted({f for c in claims for f in (c.get("fact_ids") or [])
@@ -265,7 +402,13 @@ def call_structured(cl, model, prompt, schema, supplied, maxtok=16000, tries=3,
             cited = {f.lstrip("F-").strip("[]") for c in claims for f in c["fact_ids"]}
             print("    citations: %d claims, ALL cited, %d distinct ids, %d unrecognised dropped"
                   % (len(claims), len(cited), dropped), flush=True)
-            return data, r.usage.input_tokens, r.usage.output_tokens
+            if quote_gate is not None:
+                # QUOTE GATE (design T1): quote marks assert the person's own words, so each
+                # quoted phrase must sit in an own-voice span of a fact its claim cites. It
+                # corrects the claims in place and never rejects the attempt.
+                # Deliberately outside any exception handler: a failure here must stop the run.
+                _quote_gate_step(quote_gate, quote_stats, claims, supplied, attempt)
+            return data, usage["input_tokens"], usage["output_tokens"]
 
         if not claims:
             problem = "you emitted zero claims"
@@ -279,7 +422,7 @@ def call_structured(cl, model, prompt, schema, supplied, maxtok=16000, tries=3,
             cited = {f.lstrip("F-").strip("[]") for c in claims for f in c["fact_ids"]}
             print("    citations: %d claims, ALL cited, %d distinct ids, 0 fabricated"
                   % (len(claims), len(cited)), flush=True)
-            return data, r.usage.input_tokens, r.usage.output_tokens
+            return data, usage["input_tokens"], usage["output_tokens"]
         last = problem
         print("    ATTEMPT %d REJECTED: %s" % (attempt, problem[:110]), flush=True)
         # RE-ASK FRESH RATHER THAN THREADING A CONVERSATION. Accumulating assistant turns broke
@@ -293,6 +436,55 @@ def call_structured(cl, model, prompt, schema, supplied, maxtok=16000, tries=3,
                  + " Emit the whole layer again with that corrected."}]
     # 🚨 A LAYER WITH NO RESOLVABLE CITATIONS IS A FAILED RUN, NOT A RUN WITH A GAP.
     raise RuntimeError("CITATION GATE FAILED after %d attempts: %s" % (tries, last))
+
+
+def _quote_gate_step(gate, stats, claims, supplied, attempt):
+    """The quote check on an accepted attempt, correcting `claims` in place. No re-ask.
+
+    `uncited_span` (the person's words, in a supplied fact the claim does not cite) of at least
+    AUTO_CITE_MIN_WORDS words and at most AUTO_CITE_MAX_HOLDERS holders: the holding facts are
+    auto-cited and recorded in the claim's `gate_added_citations`. Every other finding (a
+    shorter or widely held uncited quote, `not_found`, `elided`): the quote marks are removed,
+    the words kept as paraphrase. Each quote's action is recorded. The claims are then
+    re-checked and anything still flagged is counted as `residual_after_gate` (expected 0)."""
+    from baselayer.distillation import quote_gate as _qg
+    if stats is None:
+        stats = {}
+    n = len(gate.phrases(claims))
+    found = gate.check(claims, supplied)
+    by = _qg.record(stats, attempt, n, found)
+    act = [(f, _qg.disposition(f)) for f in found]
+    cite = [f for f, a in act if a == "auto_cited"]
+    rest = [f for f, a in act if a != "auto_cited"]
+    added = gate.auto_cite(claims, cite) if cite else 0
+    stripped = gate.strip(claims, rest) if rest else 0
+    residual = gate.check(claims, supplied) if found else []
+    stats["auto_cited"] = stats.get("auto_cited", 0) + added
+    stats["final"] = {"attempt": attempt, "quotes_checked": n, "passed": n - len(found),
+                      "flagged": len(found), "by_reason": dict(by),
+                      "auto_cited": added, "quote_marks_stripped": stripped,
+                      "residual_after_gate": len(residual),
+                      "by_action": dict(Counter(a for _, a in act)),
+                      "auto_cited_claims": [{"claim": f.claim_id, "field": f.field,
+                                             "phrase": f.phrase, "action": "auto_cited",
+                                             "fact_ids": ["F-%s" % i for i in f.source_ids]}
+                                            for f in cite],
+                      "stripped": [{"claim": f.claim_id, "field": f.field, "phrase": f.phrase,
+                                    "reason": f.reason, "action": a,
+                                    "holders": len(f.source_ids)}
+                                   for f, a in act if a != "auto_cited"]}
+    if found:
+        print("    quotes: %d checked, %d fact id(s) auto-cited for %d uncited quote(s), quote "
+              "marks removed from %d phrase(s): %s"
+              % (n, added, len(cite), stripped, dict(Counter(a for _, a in act))), flush=True)
+    else:
+        print("    quotes: %d checked, all found in the cited facts' own-voice spans" % n,
+              flush=True)
+    if residual:
+        print("    quotes: WARNING %d quote(s) still flagged after the gate: %s"
+              % (len(residual), [(f.claim_id, f.field, f.reason) for f in residual]),
+              flush=True)
+    return None
 
 
 def render_claims(d):
@@ -327,6 +519,12 @@ def render_claims(d):
         L.append("")
         if fids:
             L.append("provenance: [%s]" % ", ".join("F-%s" % f for f in fids))
+            L.append("")
+        # A citation the quote gate added (the quoted words sit in that fact's own-voice span)
+        # is listed apart, so the artifact never presents it as the author's choice.
+        if c.get("gate_added_citations"):
+            L.append("*Citations added by the quote gate:* %s"
+                     % " ".join("[%s]" % f for f in c["gate_added_citations"]))
             L.append("")
     return chr(10).join(L)
 
@@ -403,7 +601,150 @@ def render_brief(d):
     return chr(10).join(L)
 
 
-def main():
+def layer_prompt_parts(pkg, quote_rule=False):
+    """The layer prompt as a list of lines; the last element is the rendered package. One
+    builder for authoring and for the up-front estimate. `quote_rule` (--quote-gate) adds one
+    line stating the quote rule the gate enforces; off, the prompt is unchanged."""
+    lay = pkg["layer"]
+    # 🚨 DO NOT REUSE THE PROSE LAYER PROMPT VERBATIM UNDER A TOOL SCHEMA.
+    # The first strict-schema run failed all three attempts because the prose ANCHORS prompt
+    # carries its own detailed markdown output-format instructions, and the tool schema demands a
+    # different shape. Given two incompatible output contracts the model produced neither:
+    # it emitted CORE-shaped ids (M1, C1) under the ANCHORS prompt, then fabricated
+    # F-COUNT-407 and F-INPUT-EMPTY, which is the model describing its INPUT rather than
+    # the subject. Two contracts, one job.
+    #
+    # 🎯 So keep the layer DIRECTIVE (what this layer is for, which is judgment the schema
+    # cannot carry) and drop the format instructions (which the schema now owns).
+    DIRECTIVE = {
+        "anchors": "AXIOMS this person reasons FROM, not about: pre-set certainties that "
+                   "narrow what they will consider before situation-specific information "
+                   "arrives. Name them A1, A2, ... Load-bearing means: it constrains what "
+                   "they treat as settled.",
+        "core": "HOW this person communicates, what context they carry, and what an AI must "
+                "know to interpret them. Biography counts here. Name them C1, C2, ... "
+                "Load-bearing means: it changes how you would read something they said.",
+        "predictions": "HOW this person responds to SPECIFIC SITUATIONS. Name them P1, P2, "
+                       "... Each `active_when` must name a concrete, recognisable "
+                       "circumstance. Load-bearing means: it lets you anticipate a concrete "
+                       "behaviour in a nameable circumstance.",
+        # A 'blind' tree is the CONTROL ARM: distilled with no layer directive. It is the default
+        # for distill.py, so without this key the documented default path dies with a bare
+        # KeyError. The directive says plainly that it is a control, because its dispositions
+        # are not comparable to a directed arm's and a reader must not treat its output as a layer.
+        "blind": "NO LAYER DIRECTIVE. This is the CONTROL ARM. Write what the evidence supports "
+                 "about how this subject operates, generally. Name the claims B1, B2, ... Load-bearing "
+                 "means: it bears on how they operate. Output from this arm is a control and is not "
+                 "comparable to a directed layer.",
+    }[lay]
+    _P = [
+        "You are authoring the %s layer of a behavioural specification." % lay.upper(),
+        "",
+        DIRECTIVE,
+        "",
+        "Emit it by calling the emit_layer tool. The tool schema defines the output "
+        "shape; do not write prose outside the tool call.",
+        "",
+        "EVERY CLAIM MUST CARRY THE FACT IDS IT RESTS ON, copied exactly from the "
+        "evidence below. A claim with no ids cannot be followed back to its evidence, "
+        "and the entire value of this specification is that any statement in it can be. "
+        "Do not invent ids and do not cite an id that does not appear below.",
+        "",
+        "Mark contested: true where the evidence disagrees with itself. Carry the "
+        "tension; do not resolve it.",
+        "",
+        # 🚨 THESE FOUR WERE DROPPED WITH THE FORMAT INSTRUCTIONS AND SHOULD NOT HAVE BEEN.
+        # Trimming the prose prompt's markdown scaffolding was right; these four are
+        # constraints the schema cannot express, and prior ablation testing established the
+        # first two as load-bearing. The cleanup deleted something measured to matter.
+        (os.environ.get("BASELAYER_BROAD_CLAIMS") and
+         "BREADTH: state each claim broadly, at the level of a general disposition. Prefer "
+         "wide claims that cover much of this person's record over narrow ones tied to "
+         "specific circumstances." or
+         "DOMAIN-AGNOSTIC: state each claim so it applies across this person's whole life, "
+         "not only the domain the evidence happened to come from."),
+        "Do not name philosophy or psychology frameworks. Describe the behaviour.",
+        "Write in the third person, using they/them.",
+        "DERIVE ONLY FROM THE EVIDENCE BELOW. Do not add what you know about people in "
+        "general.",
+        "",
+        render(pkg),
+    ]
+    if quote_rule:
+        from baselayer.distillation.quote_gate import PROMPT_RULE
+        _P[-1:-1] = [PROMPT_RULE, ""]
+    sh = pkg.get("shard")
+    if sh:
+        # One of several shards of this layer's package (assemble.shard). Inserted before the
+        # evidence, so the prompt hash covers it.
+        _P[-1:-1] = [
+            "SHARD %d OF %d. The evidence below is one of %d contiguous parts of this layer's "
+            "evidence (leaves %d to %d), split because the whole does not fit one request. The "
+            "other parts are authored separately and the claims are concatenated; a later step "
+            "reads all of them. Do not state that anything is absent from this person's record "
+            "because it is absent here." % (sh["index"], sh["of"], sh["of"],
+                                            sh["leaf_range"][0], sh["leaf_range"][1] - 1),
+            ""]
+    return _P
+
+
+def load_packages(paths):
+    """[(layer, [package, ...])], one entry per layer. A shard manifest (assemble.py over its
+    budget) expands to its shard files, in shard order; a plain package is a list of one."""
+    groups = []
+    for p in paths:
+        d = json.load(open(p, encoding="utf-8"))
+        if d.get("shard_manifest"):
+            here = os.path.dirname(os.path.abspath(p))
+            parts = [json.load(open(os.path.join(here, n), encoding="utf-8"))
+                     for n in d["shards"]]
+            idx = [pk["shard"]["index"] for pk in parts]
+            if idx != list(range(1, len(parts) + 1)) or any(
+                    pk["shard"]["of"] != len(parts) or pk["layer"] != d["layer"] for pk in parts):
+                raise SystemExit("shard manifest %s is inconsistent (indexes %s)" % (p, idx))
+            groups.append((d["layer"], parts))
+        else:
+            groups.append((d["layer"], [d]))
+    return groups
+
+
+def refuse_duplicate_layers(groups):
+    """Two packages for one layer would overwrite each other's layer; refused."""
+    seen = [g[0] for g in groups]
+    if len(set(seen)) != len(seen):
+        raise SystemExit("more than one package for a layer: %s" % seen)
+
+
+_PREFIX = {"anchors": "A", "core": "C", "predictions": "P", "blind": "B"}
+
+
+def combine_shards(lay, parts):
+    """Concatenate shard layers into one layer. No model call and no collapse: claims keep their
+    text and citations, are renumbered in shard order, and record the shard they came from."""
+    claims, pre = [], []
+    for meta, d in parts:
+        if d.get("preamble"):
+            pre.append("(shard %d of %d) %s" % (meta["index"], meta["of"], d["preamble"]))
+        for c in d.get("claims") or []:
+            claims.append(dict(c, shard=meta["index"], shard_claim_id=c.get("id")))
+    for n, c in enumerate(claims, 1):
+        c["id"] = "%s%d" % (_PREFIX.get(lay, "X"), n)
+    return {"layer": lay, "preamble": chr(10).join(pre), "claims": claims,
+            "shards": [dict(meta, claims=len(d.get("claims") or [])) for meta, d in parts]}
+
+
+def _supplied(pkg):
+    s = {x["fact_id"] for x in pkg["singularities_verified"]}
+    s |= {x["fact_id"] for x in pkg["singularities_unverified"]}
+    for t in pkg["themes"]:
+        s |= set(t.get("fact_ids") or [])
+    for c in pkg["contradictions"]:
+        s |= set(c.get("a_fact_ids") or [])
+        s |= set(c.get("b_fact_ids") or [])
+    return s
+
+
+def _main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--package", action="append", required=True,
                     help="handoff package json; repeat once per layer")
@@ -411,81 +752,198 @@ def main():
     ap.add_argument("--model", default="claude-opus-5",
                     help="authoring+compose. Compose is 0.24%% of pipeline cost, so the best "
                          "model here is effectively free.")
+    ap.add_argument("--effort", default="high",
+                    choices=["low", "medium", "high", "xhigh", "max"],
+                    help="output_config.effort, sent explicitly. Default high = what Opus 5 ran "
+                         "at when effort was omitted; Opus 5.5 would otherwise default to medium.")
+    ap.add_argument("--max-tokens", type=int, default=None,
+                    help="per-call ceiling for layers (compose gets 1.5x). Thinking counts toward "
+                         "it. Default 64000 layers / 96000 compose (capped at 128000).")
+    ap.add_argument("--no-compose", action="store_true",
+                    help="author the layers only; do not compose the brief (design tests)")
+    ap.add_argument("--quote-gate", action="store_true",
+                    help="check every quoted phrase in a claim against the own-voice evidence "
+                         "spans of the facts that claim cites (reads --db). No re-ask: a quote "
+                         "of 3+ words found in at most 5 other supplied facts auto-cites them "
+                         "(recorded per claim as gate_added_citations); any other unfound quote "
+                         "loses its quote marks. Off by default.")
+    ap.add_argument("--db", default=None,
+                    help="the corpus memory.db the packages were built from (--quote-gate)")
+    _spend.add_rate_args(ap)
+    _spend.add_spend_args(ap)
     a = ap.parse_args()
+    # Thinking shares max_tokens and Opus 5.5 thinks more per turn than Opus 5, so the Opus 5
+    # sizing (16000/24000) truncates. The request streams, so a higher ceiling costs nothing
+    # unless used. 128000 is the output cap; compose at 1.5x would 400 above it.
+    lmax = a.max_tokens or 64000
+    cmax = min(128000, int(a.max_tokens * 1.5)) if a.max_tokens else 96000
     os.makedirs(a.outdir, exist_ok=True)
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+    # Every package is read BEFORE the client exists, so a version mix is refused at no cost.
+    # One specification is built from facts gated under one turn contract, or from none; a
+    # package written before stamps existed counts as unversioned (contract §7).
+    groups = load_packages(a.package)
+    packages = [pk for _, parts in groups for pk in parts]
+    try:
+        contract_version = _tc.single_contract_version(
+            ((pk.get("stamp") or {}).get("turn_contract_version") for pk in packages),
+            "the input packages")
+    except _tc.MixedContractVersions as e:
+        raise SystemExit("MIXED CONTRACT VERSIONS: %s" % e)
+    refuse_duplicate_layers(groups)
+    # QUOTE GATE: every supplied id is resolved against the database before any client exists,
+    # so a wrong path or a missing fact refuses the run instead of passing claims unchecked.
+    qgate, qinfo = None, None
+    if a.quote_gate:
+        from baselayer.distillation import quote_gate as _qg
+        if not a.db:
+            raise SystemExit("--quote-gate needs --db (the corpus memory.db)")
+        try:
+            spans, qinfo = _qg.load_spans(a.db, sorted({i for pk in packages
+                                                        for i in _supplied(pk)}))
+        except _qg.QuoteGateUnavailable as e:
+            raise SystemExit("QUOTE GATE CANNOT RUN: %s" % e)
+        qgate = _qg.QuoteGate(spans)
+        print("QUOTE GATE: %d facts, %d own-voice spans (%d own-writing pastes), %d non-own "
+              "spans skipped, %d ambiguous id prefixes"
+              % (qinfo["facts"], qinfo.get("own_spans", 0),
+                 qinfo.get("own_writing_pasted_spans", 0),
+                 qinfo.get("non_own_spans_skipped", 0), qinfo["ambiguous_prefixes"]),
+              flush=True)
+
+    def _qstats():
+        return _qg.new_stats(qgate, qinfo) if qgate is not None else None
+
+    def _qfields(st):
+        return {"quote_gate": st} if st is not None else {}
+    # Refused before any client exists, after the free version-mix check.
+    rates = _spend.rates_from_args(a.model, a)
+    ri, ro = rates["in"], rates["out"]
+
+    # UP-FRONT ESTIMATE AND CEILING, before any client exists. Layers already on disk are reused
+    # and cost nothing. Compose's input is estimated from the layers' expected output plus the
+    # contradictions union. Output per call is the measured figure (spend.py); the ceiling, not
+    # the estimate, bounds the run.
+    global _GUARD
+    def _shard_js(pk):
+        sh = pk["shard"]
+        return os.path.join(a.outdir, "%s.shard%02dof%02d.json"
+                            % (pk["layer"], sh["index"], sh["of"]))
+
+    def _is_done(pk):
+        if os.environ.get("BASELAYER_REAUTHOR"):
+            return False
+        if (os.path.exists(os.path.join(a.outdir, "%s.md" % pk["layer"]))
+                and os.path.exists(os.path.join(a.outdir, "%s.json" % pk["layer"]))):
+            return True
+        return bool(pk.get("shard")) and os.path.exists(_shard_js(pk))
+
+    todo = [pk for pk in packages if not _is_done(pk)]
+    lchars = [len(chr(10).join(layer_prompt_parts(pk, a.quote_gate))) for pk in todo]
+    l_est, l_worst = _spend.estimate_calls(lchars, _spend.MEASURED_AUTHOR_LAYER_OUT_TOKENS,
+                                           rates, lmax)
+    cchars = (len(packages) * _spend.MEASURED_AUTHOR_LAYER_OUT_TOKENS * _spend.CHARS_PER_TOKEN
+              + sum(len(c.get("tension", "")) + 4 for pk in packages
+                    for c in pk.get("contradictions") or []) + 4000)
+    c_est, c_worst = ((0.0, 0.0) if a.no_compose else
+                      _spend.estimate_calls([int(cchars)], _spend.MEASURED_COMPOSE_OUT_TOKENS,
+                                            rates, cmax))
+    est, est_worst = l_est + c_est, l_worst + c_worst
+    print("ESTIMATE: $%.4f (%d layer calls + compose, one attempt each); worst $%.4f if every "
+          "call stops at max_tokens. A rejected attempt re-sends its whole prompt."
+          % (est, len(todo), est_worst), flush=True)
+    ceiling = _spend.plan_ceiling(est, a.confirm_spend)
+    _GUARD = _spend.SpendGuard(rates, ceiling, label="author")
+    print("SPEND CEILING: $%.4f, checked before every call and every re-ask" % ceiling,
+          flush=True)
+
+    def _write_stamp(name, **fields):
+        """<outdir>/<name>.stamp.json beside the artifact it describes. It used to exist only
+        as a line on stdout, which is gone the moment the terminal is."""
+        st = _tc.artifact_stamp(name if name == "brief" else "layer", code_file=__file__,
+                                **({} if name == "brief" else {"layer": name}),
+                                model=a.model, turn_contract_version=contract_version,
+                                effort=a.effort, rates_per_mtok=[ri, ro],
+                                spend_estimate_usd=round(est, 6), spend_ceiling_usd=ceiling,
+                                rates_source=rates["source"], rates_as_of=rates["as_of"],
+                                **fields)
+        u = st.get("usage") or {}
+        st["cost_usd"] = (u.get("input_tokens", 0) / 1e6 * ri
+                          + u.get("output_tokens", 0) / 1e6 * ro)
+        path = os.path.join(a.outdir, "%s.stamp.json" % name)
+        with open(path + ".tmp", "w", encoding="utf-8") as fh:
+            json.dump(st, fh, indent=1)
+        os.replace(path + ".tmp", path)
 
     cl = anthropic.Anthropic()
     layers, all_contra, tin, tout = {}, [], 0, 0
     structured = {}
     ev = {}
-    for p in a.package:
-        pkg = json.load(open(p, encoding="utf-8"))
-        lay = pkg["layer"]
-        # 🚨 DO NOT REUSE THE PROSE LAYER PROMPT VERBATIM UNDER A TOOL SCHEMA.
-        # The first strict-schema run failed all three attempts because the prose ANCHORS prompt
-        # carries its own detailed markdown output-format instructions, and the tool schema demands a
-        # different shape. Given two incompatible output contracts the model produced neither:
-        # it emitted CORE-shaped ids (M1, C1) under the ANCHORS prompt, then fabricated
-        # F-COUNT-407 and F-INPUT-EMPTY, which is the model describing its INPUT rather than
-        # the subject. Two contracts, one job.
-        #
-        # 🎯 So keep the layer DIRECTIVE (what this layer is for, which is judgment the schema
-        # cannot carry) and drop the format instructions (which the schema now owns).
-        DIRECTIVE = {
-            "anchors": "AXIOMS this person reasons FROM, not about: pre-set certainties that "
-                       "narrow what they will consider before situation-specific information "
-                       "arrives. Name them A1, A2, ... Load-bearing means: it constrains what "
-                       "they treat as settled.",
-            "core": "HOW this person communicates, what context they carry, and what an AI must "
-                    "know to interpret them. Biography counts here. Name them C1, C2, ... "
-                    "Load-bearing means: it changes how you would read something they said.",
-            "predictions": "HOW this person responds to SPECIFIC SITUATIONS. Name them P1, P2, "
-                           "... Each `active_when` must name a concrete, recognisable "
-                           "circumstance. Load-bearing means: it lets you anticipate a concrete "
-                           "behaviour in a nameable circumstance.",
-            # A 'blind' tree is the CONTROL ARM: distilled with no layer directive. It is the default
-            # for distill.py, so without this key the documented default path dies with a bare
-            # KeyError. The directive says plainly that it is a control, because its dispositions
-            # are not comparable to a directed arm's and a reader must not treat its output as a layer.
-            "blind": "NO LAYER DIRECTIVE. This is the CONTROL ARM. Write what the evidence supports "
-                     "about how this subject operates, generally. Name the claims B1, B2, ... Load-bearing "
-                     "means: it bears on how they operate. Output from this arm is a control and is not "
-                     "comparable to a directed layer.",
-        }[lay]
-        _P = [
-            "You are authoring the %s layer of a behavioural specification." % lay.upper(),
-            "",
-            DIRECTIVE,
-            "",
-            "Emit it by calling the emit_layer tool. The tool schema defines the output "
-            "shape; do not write prose outside the tool call.",
-            "",
-            "EVERY CLAIM MUST CARRY THE FACT IDS IT RESTS ON, copied exactly from the "
-            "evidence below. A claim with no ids cannot be followed back to its evidence, "
-            "and the entire value of this specification is that any statement in it can be. "
-            "Do not invent ids and do not cite an id that does not appear below.",
-            "",
-            "Mark contested: true where the evidence disagrees with itself. Carry the "
-            "tension; do not resolve it.",
-            "",
-            # 🚨 THESE FOUR WERE DROPPED WITH THE FORMAT INSTRUCTIONS AND SHOULD NOT HAVE BEEN.
-            # Trimming the prose prompt's markdown scaffolding was right; these four are
-            # constraints the schema cannot express, and prior ablation testing established the
-            # first two as load-bearing. The cleanup deleted something measured to matter.
-            (os.environ.get("BASELAYER_BROAD_CLAIMS") and
-             "BREADTH: state each claim broadly, at the level of a general disposition. Prefer "
-             "wide claims that cover much of this person's record over narrow ones tied to "
-             "specific circumstances." or
-             "DOMAIN-AGNOSTIC: state each claim so it applies across this person's whole life, "
-             "not only the domain the evidence happened to come from."),
-            "Do not name philosophy or psychology frameworks. Describe the behaviour.",
-            "Write in the third person, using they/them.",
-            "DERIVE ONLY FROM THE EVIDENCE BELOW. Do not add what you know about people in "
-            "general.",
-            "",
-            render(pkg),
-        ]
+    for lay, parts in groups:
+        if len(parts) > 1:
+            # SHARDED LAYER: each shard is its own request with its own citation gate (its
+            # `supplied` set is the shard's ids), checkpointed per shard; then concatenated.
+            _done = os.path.join(a.outdir, "%s.md" % lay)
+            _js = os.path.join(a.outdir, "%s.json" % lay)
+            if (os.path.exists(_done) and os.path.exists(_js)
+                    and not os.environ.get("BASELAYER_REAUTHOR")):
+                layers[lay] = io.open(_done, encoding="utf-8").read()
+                structured[lay] = json.load(open(_js, encoding="utf-8"))
+                all_contra += [c for pk in parts for c in pk["contradictions"]]
+                print("  %-12s already authored, reusing (BASELAYER_REAUTHOR=1 to force)" % lay,
+                      flush=True)
+                continue
+            done_parts, susage, shard_meta = [], {"input_tokens": 0, "output_tokens": 0,
+                                                  "attempts": 0}, []
+            sq = [] if qgate is not None else None
+            for pk in parts:
+                sh = pk["shard"]
+                sp = _shard_js(pk)
+                _Ps = layer_prompt_parts(pk, a.quote_gate)
+                if os.path.exists(sp) and not os.environ.get("BASELAYER_REAUTHOR"):
+                    sd = json.load(open(sp, encoding="utf-8"))
+                    print("  %-12s shard %d/%d already authored, reusing"
+                          % (lay, sh["index"], sh["of"]), flush=True)
+                else:
+                    lu, qs = {}, _qstats()
+                    sd, i, o = call_structured(cl, a.model, chr(10).join(_Ps), LAYER_SCHEMA,
+                                               _supplied(pk), maxtok=lmax, effort=a.effort,
+                                               usage=lu, quote_gate=qgate, quote_stats=qs)
+                    if qs is not None:
+                        sq.append(dict(qs, shard=sh["index"]))
+                    tin += i; tout += o
+                    for k in susage:
+                        susage[k] += lu.get(k, 0)
+                    json.dump(sd, open(sp, "w", encoding="utf-8"), indent=1)
+                    print("  %-12s shard %d/%d authored: %d claims"
+                          % (lay, sh["index"], sh["of"], len(sd.get("claims") or [])),
+                          flush=True)
+                meta = {"index": sh["index"], "of": sh["of"], "leaf_range": sh["leaf_range"],
+                        "prompt_hash": _tc.prompt_hash(chr(10).join(_Ps[:-1])),
+                        "input_hash": _tc.json_input_hash(pk)}
+                done_parts.append((meta, sd))
+                shard_meta.append(meta)
+            data = combine_shards(lay, done_parts)
+            txt = render_claims(data)
+            layers[lay] = txt
+            structured[lay] = data
+            all_contra += [c for pk in parts for c in pk["contradictions"]]
+            open(_done, "w", encoding="utf-8").write(txt)
+            json.dump(data, open(_js, "w", encoding="utf-8"), indent=1)
+            _write_stamp(lay, prompt_hash=_tc.prompt_hash(chr(10).join(
+                             layer_prompt_parts(dict(parts[0], shard=None),
+                                                a.quote_gate)[:-1])),
+                         input_hash=_tc.json_input_hash([m["input_hash"] for m in shard_meta]),
+                         package_stamp_input_hash=(parts[0].get("stamp") or {}).get("input_hash"),
+                         shards=shard_meta, max_tokens=lmax, usage=susage,
+                         **_qfields({"enabled": True, "per_shard": sq} if sq is not None
+                                    else None))
+            print("  %-12s authored from %d shards: %d claims, %d chars"
+                  % (lay, len(parts), len(data["claims"]), len(txt)), flush=True)
+            continue
+        pkg = parts[0]
+        _P = layer_prompt_parts(pkg, a.quote_gate)
         prompt = chr(10).join(_P)
         # 🚨 THE GATE HAD ~80% FALSE POSITIVES AND THE MODEL WAS BLAMED FOR THEM.
         # `supplied` was built from theme and singularity ids only. The CONTRADICTIONS block is
@@ -510,16 +968,23 @@ def main():
             all_contra += pkg["contradictions"]
             print("  %-12s already authored, reusing (BASELAYER_REAUTHOR=1 to force)" % lay,
                   flush=True)
+            # The reused layer keeps the stamp of the run that WROTE it; this run did not
+            # produce it and must not claim to. A layer from before stamps has none: say so.
+            _sp = os.path.join(a.outdir, "%s.stamp.json" % lay)
+            if not os.path.exists(_sp):
+                print("  %-12s WARNING: reused layer has NO stamp file; its model, effort and "
+                      "cost are unrecorded" % lay, flush=True)
+            if qgate is not None and not (os.path.exists(_sp) and "quote_gate" in json.load(
+                    open(_sp, encoding="utf-8"))):
+                print("  %-12s WARNING: reused layer was not quote-checked (--quote-gate is on, "
+                      "its stamp has no quote_gate record)" % lay, flush=True)
             continue
 
-        supplied = {s["fact_id"] for s in pkg["singularities_verified"]}
-        supplied |= {s["fact_id"] for s in pkg["singularities_unverified"]}
-        for t in pkg["themes"]:
-            supplied |= set(t.get("fact_ids") or [])
-        for c in pkg["contradictions"]:
-            supplied |= set(c.get("a_fact_ids") or [])
-            supplied |= set(c.get("b_fact_ids") or [])
-        data, i, o = call_structured(cl, a.model, prompt, LAYER_SCHEMA, supplied)
+        supplied = _supplied(pkg)
+        lusage, lq = {}, _qstats()
+        data, i, o = call_structured(cl, a.model, prompt, LAYER_SCHEMA, supplied,
+                                     maxtok=lmax, effort=a.effort, usage=lusage,
+                                     quote_gate=qgate, quote_stats=lq)
         txt = render_claims(data)
         tin += i; tout += o
         layers[lay] = txt
@@ -544,8 +1009,19 @@ def main():
         open(os.path.join(a.outdir, "%s.md" % lay), "w", encoding="utf-8").write(txt)
         json.dump(data, open(os.path.join(a.outdir, "%s.json" % lay), "w", encoding="utf-8"),
                   indent=1)
+        # prompt_hash covers the fixed instructions (everything but the rendered package); the
+        # package itself is the input, hashed separately, so the two can change independently.
+        _write_stamp(lay, prompt_hash=_tc.prompt_hash(chr(10).join(_P[:-1])),
+                     input_hash=_tc.json_input_hash(pkg),
+                     package_stamp_input_hash=(pkg.get("stamp") or {}).get("input_hash"),
+                     max_tokens=lmax, usage=lusage, **_qfields(lq))
         print("  %-12s authored: %d claims, %d chars" % (lay, len(data["claims"]), len(txt)), flush=True)
 
+    if a.no_compose:
+        print("compose skipped (--no-compose). cost $%.2f (in=%d out=%d, %s at $%g/$%g per "
+              "MTok) -> %s" % (tin / 1e6 * ri + tout / 1e6 * ro, tin, tout, a.model, ri, ro,
+                               a.outdir))
+        return
     # COMPOSE, with the contradictions union the layer authors could not see across.
     # 🚨 NINTH CAP: compose saw 200 of ~1,480 contradictions. The channel whose entire purpose is
     # that contradictions are CARRIED AND NEVER RESOLVED was showing 13% of them to the only node
@@ -579,15 +1055,32 @@ def main():
     layer_ids = set()
     for lay_txt in layers.values():
         layer_ids |= {m for m in __import__("re").findall(r"[0-9a-f]{8}", lay_txt)}
-    bdata, i, o = call_structured(cl, a.model, cprompt, BRIEF_SCHEMA, layer_ids, maxtok=24000,
-                                  tool_name="emit_brief")
+    busage = {}
+    bdata, i, o = call_structured(cl, a.model, cprompt, BRIEF_SCHEMA, layer_ids, maxtok=cmax,
+                                  tool_name="emit_brief", effort=a.effort, usage=busage)
     tin += i; tout += o
     txt = render_brief(bdata)
     open(os.path.join(a.outdir, "brief.md"), "w", encoding="utf-8").write(txt)
+    # Compose's instructions are interleaved with its inputs, so its prompt_hash covers the FULL
+    # prompt sent; the input hash covers the structured layers and the contradictions union.
+    _write_stamp("brief", prompt_hash=_tc.prompt_hash(cprompt),
+                 prompt_hash_scope="full_prompt",
+                 input_hash=_tc.json_input_hash({"layers": structured, "contradictions": all_contra}),
+                 max_tokens=cmax, usage=busage)
     print("  compose: %d sections, %d contradictions carried, %d chars"
           % (len(bdata.get("sections") or []), len(bdata.get("carried_contradictions") or []), len(txt)))
-    print("cost $%.2f (in=%d out=%d) -> %s" % (tin / 1e6 * 5 + tout / 1e6 * 25, tin, tout,
-                                               a.outdir))
+    print("cost $%.2f (in=%d out=%d, %s at $%g/$%g per MTok) -> %s"
+          % (tin / 1e6 * ri + tout / 1e6 * ro, tin, tout, a.model, ri, ro, a.outdir))
+
+
+def main():
+    """Run, then clear the module's spend guard however the run ends: the guard carries this
+    run's ceiling and measured spend, and must not constrain a later caller in-process."""
+    global _GUARD
+    try:
+        return _main()
+    finally:
+        _GUARD = None
 
 
 if __name__ == "__main__":

@@ -1,7 +1,8 @@
 """HOW MANY RUNS UNTIL THE INVARIANT SET STOPS SHRINKING?
 
-EXPERIMENTAL AND UNTESTED. No test exercises this module, and it does not call
-validate(), so its output is UNSTRIPPED: fabricated fact ids are not removed.
+EXPERIMENTAL AND MOSTLY UNTESTED. Tests run only its population filters, under --dry-run;
+nothing tests the submit or collect path. It does not call validate(), so its output is
+UNSTRIPPED: fabricated fact ids are not removed.
 
 Measured: three IDENTICAL anchors runs (same model, partition, directive, corpus)
 produced singularity sets of 39/37/44 with a union of 75, of which only 13 appeared in all
@@ -35,6 +36,7 @@ import importlib.util
 
 _src = open(os.path.join(HERE, "distill.py"), encoding="utf-8").read().replace("\nmain()\n", "\n")
 _d = importlib.util.module_from_spec(importlib.util.spec_from_loader("_d", loader=None))
+_d.__file__ = os.path.join(HERE, "distill.py")   # distill.py reads __file__ at import
 exec(compile(_src, "distill.py", "exec"), _d.__dict__)
 
 
@@ -72,12 +74,28 @@ def main():
                          "over hundreds of chunks, so it has to be re-measured at scale before "
                          "being paid for.")
     ap.add_argument("--slice-seed", type=int, default=7)
+    _d.add_record_only_arg(ap)
+    _d.add_subject_arg(ap)
+    _d.add_exclude_ids_arg(ap)
+    _d._spend.add_rate_args(ap)
+    _d._spend.add_spend_args(ap)
     a = ap.parse_args()
+    rates = _d._spend.rates_from_args(a.model, a)
     os.makedirs(a.out, exist_ok=True)
 
     c = sqlite3.connect("file:%s?mode=ro" % a.db, uri=True)
+    gfilter, ro_in, ro_out = _d.record_only_filter(c, a.include_record_only)
+    sfilter, subject_info = _d.subject_filter(c, a.include_other_subjects, gfilter)
+    other_subjects = _d.other_subject_map(c, a.include_other_subjects)
     rows = c.execute("SELECT id, fact_text, predicate, category, id FROM memory_facts "
-                     "WHERE superseded_by IS NULL ORDER BY id").fetchall()
+                     "WHERE superseded_by IS NULL%s%s ORDER BY id" % (gfilter, sfilter)).fetchall()
+    # Same exclusion as distill.load_facts, applied before --limit-facts slices the population.
+    rows, exclude_info = _d.apply_exclude_ids(c, rows, a.exclude_ids)
+    print("record_only facts: %d excluded, %d included" % (ro_out, ro_in), flush=True)
+    print("other-subject facts: %d excluded, %d included (%s)"
+          % (subject_info["other_subject_facts_excluded"],
+             subject_info["other_subject_facts_included"], subject_info["subject_filter"]),
+          flush=True)
     if a.limit_facts and a.limit_facts < len(rows):
         import random as _r
         rows = _r.Random(a.slice_seed).sample(list(rows), a.limit_facts)
@@ -91,18 +109,31 @@ def main():
     reqs = []
     for run in range(a.runs):
         for n, (label, fs) in enumerate(chunks):
-            body = "\n".join("[%s] %s" % (r[0][:8], r[1]) for r in fs)
-            p = _d.LEAF_PROMPT % (_d.LAYER_DIRECTIVES[a.layer], label, len(fs), body, _d.LEAF_SCHEMA)
+            p = _d.leaf_prompt(a.layer, label, fs, other_subjects)
             reqs.append({"custom_id": "r%03d-c%03d" % (run, n),
                          "params": {"model": a.model, "max_tokens": 16000,
                                     "messages": [{"role": "user", "content": p}]}})
-    ri, ro = _d._RATES[a.model]  # raise on unknown; a defaulted rate is fiction
+    ri, ro = rates["in"], rates["out"]
     est_in = sum(len(r["params"]["messages"][0]["content"]) for r in reqs) / 3.6
     est = (est_in / 1e6 * ri + len(reqs) * 5800 / 1e6 * ro) * 0.5
     print("estimated batch cost: $%.2f (serial $%.2f)" % (est, est * 2), flush=True)
     if a.dry_run:
         print("DRY RUN, nothing submitted.")
         return
+    if not a.resume:
+        # A batch is one submission: its estimate is checked against the ceiling before submit.
+        _d._spend.plan_ceiling(est, a.confirm_spend)
+    else:
+        # As distill_batch --resume: a batch submitted under one exclusion list is not collected
+        # under another. batch.json written before the field existed records none (None).
+        bpath = os.path.join(a.out, "batch.json")
+        rec = json.load(open(bpath, encoding="utf-8")) if os.path.exists(bpath) else {}
+        if (rec.get("batch_id") == a.resume
+                and rec.get("exclude_ids_sha256") != exclude_info["exclude_ids_sha256"]):
+            raise SystemExit("--resume: batch.json records exclude-ids sha256 %s; this "
+                             "invocation has %s. Resume with the arguments that submitted it."
+                             % (rec.get("exclude_ids_sha256"),
+                                exclude_info["exclude_ids_sha256"]))
 
     cl = anthropic.Anthropic()
     if a.resume:
@@ -112,7 +143,8 @@ def main():
         b = cl.messages.batches.create(requests=reqs)
         bid = b.id
         json.dump({"batch_id": bid, "runs": a.runs, "chunks": len(chunks),
-                   "layer": a.layer, "partition": a.partition, "model": a.model},
+                   "layer": a.layer, "partition": a.partition, "model": a.model,
+                   "facts": len(rows), **exclude_info},
                   open(os.path.join(a.out, "batch.json"), "w"), indent=1)
         print("submitted batch %s (%d requests)" % (bid, len(reqs)), flush=True)
 
@@ -160,8 +192,8 @@ def main():
     if len(sings) not in cps:
         cps.append(len(sings))
     rep = {"batch_id": bid, "model": a.model, "layer": a.layer, "partition": a.partition,
-           "runs_ok": len(sings), "errors": errs,
-           "cost_usd_batch": round(_d._cost(a.model, tin, tout) * 0.5, 2),
+           "runs_ok": len(sings), "errors": errs, "facts": len(rows), **exclude_info,
+           "cost_usd_batch": round(_d._spend.cost_usd(rates, tin, tout, batch=True), 2),
            "in": tin, "out": tout,
            "disposition_mean": round(sum(per_run[i]["disp"] for i in order) / max(1, len(order)), 1),
            "verbatim_exact_pct": round(100.0 * sum(per_run[i]["verbatim_ok"] for i in order)
@@ -183,4 +215,5 @@ def main():
           % (rep["verbatim_exact_pct"], rep["disposition_mean"]))
 
 
-main()
+if __name__ == "__main__":
+    main()
