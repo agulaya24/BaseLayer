@@ -124,6 +124,12 @@ class TestInitDatabase:
             "schema_version",
             "subjects",
             "user_corrections",
+            "turns",
+            "turn_contract",
+            "import_state",
+            "conversation_flags",
+            "import_exclusions",
+            "import_redactions",
         ]
         # Filter out FTS virtual tables (memory_facts_fts*) from actual tables
         core_tables = [t for t in table_names if not t.startswith("memory_facts_fts")]

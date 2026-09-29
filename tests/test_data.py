@@ -24,6 +24,12 @@ EXPECTED_TABLES = [
     "schema_version",
     "subjects",
     "user_corrections",
+    "turns",
+    "turn_contract",
+    "import_state",
+    "conversation_flags",
+    "import_exclusions",
+    "import_redactions",
 ]
 
 
@@ -69,6 +75,31 @@ class TestSchemaValidation:
             "commitment_depth", "subject", "intent", "temporal_state",
         }
         assert required.issubset(cols), f"Missing: {required - cols}"
+
+    def test_memory_facts_turn_contract_columns(self, temp_db):
+        """A fresh database must carry every turn-contract column (grounding plus
+        the §7 stamp). Checked by exact name, one by one, so a missing column
+        fails here rather than at the first INSERT of a gated fact."""
+        conn, _ = temp_db
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(memory_facts)")}
+        for col in ("source_turn_id", "evidence_spans", "inferred", "voice_class",
+                    "turn_contract_version", "extraction_model", "extraction_prompt_hash",
+                    "git_commit", "code_path"):
+            assert col in cols, f"memory_facts is missing turn-contract column {col}"
+
+    def test_turn_contract_columns_migrate_onto_an_old_table(self, tmp_path):
+        """An existing database gains the columns without losing rows, and the
+        migration is idempotent."""
+        import sqlite3
+        from baselayer.extract_facts import _ensure_turn_contract_columns
+        conn = sqlite3.connect(str(tmp_path / "old.db"))
+        conn.execute("CREATE TABLE memory_facts (id TEXT PRIMARY KEY, fact_text TEXT NOT NULL)")
+        conn.execute("INSERT INTO memory_facts VALUES ('f1', 'kept')")
+        _ensure_turn_contract_columns(conn)
+        _ensure_turn_contract_columns(conn)
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(memory_facts)")}
+        assert {"source_turn_id", "evidence_spans", "turn_contract_version", "code_path"} <= cols
+        assert conn.execute("SELECT fact_text FROM memory_facts").fetchall() == [("kept",)]
 
     def test_epistemic_anchors_columns(self, temp_db):
         conn, _ = temp_db

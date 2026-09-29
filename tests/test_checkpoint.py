@@ -87,12 +87,16 @@ class TestCheckpointExtraction:
         assert result is False
         conn.close()
 
-    def test_counts_active_facts_only(self, checkpoint_db):
+    def test_counts_active_facts_only(self, checkpoint_db, capsys):
         from baselayer.checkpoint import checkpoint_extraction
         conn, _ = checkpoint_db
-        # f5 is superseded, should not be counted
+        # 5 facts in the fixture; f5 is superseded and must not be counted
+        assert conn.execute("SELECT COUNT(*) FROM memory_facts").fetchone()[0] == 5
         result = checkpoint_extraction(conn, sample_size=10)
         assert result is True
+        out = capsys.readouterr().out
+        assert "Total active facts: 4" in out
+        assert "Superseded fact" not in out
 
     def test_reports_predicate_distribution(self, checkpoint_db, capsys):
         from baselayer.checkpoint import checkpoint_extraction
