@@ -92,7 +92,8 @@ def test_a_billed_but_unusable_response_is_still_counted(env, monkeypatch):
         r.stop_reason = "max_tokens"
         return r
     msgs.create = truncated
-    env.ef.run_extraction()
+    with pytest.raises(SystemExit):      # every part truncates: a failed chunk fails the run
+        env.ef.run_extraction()
     u = _records(env)[-1]["api_usage"]
     assert u["totals"]["calls"] == msgs.calls >= 1
 

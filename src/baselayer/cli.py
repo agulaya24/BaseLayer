@@ -2,16 +2,17 @@
 """
 Base Layer CLI — Personal AI Memory System
 
-Pipeline (5 steps): Import -> Extract -> Embed -> Author -> Compose
+Pipeline (4 steps): Import -> Extract -> Embed -> Author. Compose (a unified prose brief
+from the authored layers) is optional and separate: `baselayer compose`.
 
-The 5-step sequence above is the canonical logical order documented in
+The 4-step sequence above is the canonical logical order documented in
 docs/core/ARCHITECTURE.md. The one-command runner `baselayer run` groups embed
-into a post-compose traceability phase together with tiering and verification
+into a post-authoring traceability phase together with tiering and verification
 for efficiency; step-by-step usage (baselayer embed between extract and author)
 runs the logical order directly. Both produce the same final artifacts.
 
 Usage:
-    baselayer run <file> [-y]               One-command pipeline: import > extract > author > compose > traceability
+    baselayer run <file> [-y]               One-command pipeline: import > extract > author > traceability
     baselayer ui                            Local drag-and-drop web interface
     baselayer init                          Initialize a fresh database
     baselayer import <file> [--source X]    Import conversations (chatgpt/claude/journal)
@@ -19,7 +20,7 @@ Usage:
     baselayer extract --identity-only       Extract identity traits from Claude Code sessions
     baselayer embed                         Generate vector embeddings (optional utility)
     baselayer author [--layer X]            Generate the three specification layers (requires Anthropic API key)
-    baselayer compose                       Compose unified specification from deployed layers (Opus API)
+    baselayer compose                       OPTIONAL, legacy: compose a unified brief from the deployed layers (Opus API)
     baselayer brief <message>               Assemble a memory brief for a message
     baselayer chat                          Interactive chat with memory-augmented Claude
     baselayer checkpoint <stage>            Quality gate reports (extraction/all)
@@ -396,7 +397,10 @@ def cmd_author(args):
 
 
 def cmd_compose(args):
-    """Compose a unified narrative specification from the deployed layers."""
+    """OPTIONAL, legacy: compose a unified narrative brief from the deployed layers.
+
+    Not part of `baselayer run` or `author-from-package` by default. The three layers are the
+    specification; the brief restates them as prose."""
     _check_api_key()
     _check_extraction_complete()
     _check_fact_floor()
@@ -471,11 +475,14 @@ def cmd_verify_spec(args):
 
 
 def cmd_author_from_package(args):
-    """EXPERIMENTAL: author layers plus brief from handoff packages (citations required by schema)."""
+    """EXPERIMENTAL: author layers from handoff packages (citations required by schema); the
+    unified brief only with --compose."""
     _check_api_key()
     from baselayer.distillation import author_from_package
     argv = ["author_from_package.py", "--outdir", args.outdir, "--model", args.model,
             "--effort", args.effort]
+    if getattr(args, "compose", False):
+        argv.append("--compose")
     if args.max_tokens is not None:
         argv += ["--max-tokens", str(args.max_tokens)]
     for pkg in args.package:
@@ -1260,14 +1267,14 @@ def cmd_journal(args):
         print(f"\n  Next steps:")
         print(f"    1. Extract facts:  baselayer extract")
         print(f"    2. Author layers:  baselayer author")
-        print(f"    3. Compose brief:  baselayer compose")
-        print(f"    4. Start MCP:      baselayer-mcp")
+        print(f"    3. Start MCP:      baselayer-mcp")
+        print(f"    (Optional: 'baselayer compose' adds a unified prose brief.)")
         print(f"\n  Tip: Journal entries are the highest quality input for identity.")
         print(f"  Run 'baselayer journal' again anytime to add more.\n")
 
 
 def _run_traceability():
-    """Post-compose traceability: tier facts, generate embeddings, build provenance, detect tensions.
+    """Post-authoring traceability: tier facts, generate embeddings, build provenance, detect tensions.
 
     These steps don't change the specification output. They build the audit trail
     that makes every claim inspectable. Cost: ~$0.05 per subject (Haiku for tensions).
@@ -1597,12 +1604,12 @@ _IMPORT_TO_STORED_SOURCE = {"text": "text_file"}
 
 
 def cmd_run(args):
-    """One-command pipeline (5 steps): import -> extract -> author -> compose -> traceability.
+    """One-command pipeline (4 steps): import -> extract -> author -> traceability.
 
-    The canonical logical pipeline is Import -> Extract -> Embed -> Author -> Compose.
-    This runner groups embed into the post-compose traceability phase (alongside
-    tiering and verification) for efficiency. Step-by-step usage runs the logical
-    order directly. See docs/core/ARCHITECTURE.md.
+    The canonical logical pipeline is Import -> Extract -> Embed -> Author. This runner
+    groups embed into the post-authoring traceability phase (alongside tiering and
+    verification) for efficiency. It does not compose a unified brief: that is optional
+    and separate (`baselayer compose`). See docs/core/ARCHITECTURE.md.
     """
     from baselayer.config import DATABASE_FILE, database_initialized
 
@@ -1637,7 +1644,7 @@ def cmd_run(args):
         print(f"\n  {_existing} conversations already imported. Skipping import.")
     else:
         print(f"\n{'='*60}")
-        print(f"  Step 1/5: Importing data")
+        print(f"  Step 1/4: Importing data")
         print(f"{'='*60}\n")
         cmd_import(args)
 
@@ -1658,7 +1665,7 @@ def cmd_run(args):
 
     # Step 2: Extract
     print(f"\n{'='*60}")
-    print(f"  Step 2/5: Extracting facts")
+    print(f"  Step 2/4: Extracting facts")
     print(f"{'='*60}\n")
     if getattr(args, 'document_mode', False):
         import baselayer.extract_facts as extract_facts
@@ -1670,26 +1677,40 @@ def cmd_run(args):
     else:
         cmd_extract(args)
 
-    # Step 3: Author (3 layers, no review)
-    # Step 4: Compose (unified brief)
+    # Step 3: Author (3 layers, no review). No compose: the unified brief is optional and
+    # separate (`baselayer compose`).
     print(f"\n{'='*60}")
-    print(f"  Step 3-4/5: Authoring the three specification layers + composing brief")
+    print(f"  Step 3/4: Authoring the three specification layers")
     print(f"{'='*60}\n")
     args.layer = None
     args.no_citations = False
-    args.compose = True
+    args.compose = False
     cmd_author(args)
 
-    # Step 5: Traceability (tier + embed + provenance + tensions)
+    # Step 4: Traceability (tier + embed + provenance + tensions)
     print(f"\n{'='*60}")
-    print(f"  Step 5/5: Building traceability infrastructure")
+    print(f"  Step 4/4: Building traceability infrastructure")
     print(f"{'='*60}\n")
     _run_traceability()
 
-    # Done — show result
-    from baselayer.config import PROJECT_ROOT
+    # Done: the specification is the three layers. A brief exists only if one was composed
+    # separately (`baselayer compose`).
+    from baselayer.config import PROJECT_ROOT, ANCHORS_LAYER_FILE, CORE_LAYER_FILE, \
+        PREDICTIONS_LAYER_FILE
+    layer_files = [f for f in (ANCHORS_LAYER_FILE, CORE_LAYER_FILE, PREDICTIONS_LAYER_FILE)
+                   if f.exists()]
     brief_path = PROJECT_ROOT / "data" / "identity_layers" / "brief_v5_clean.md"
-    if brief_path.exists():
+    if layer_files:
+        print(f"\n{'='*60}")
+        print(f"  Done! Your specification is ready.")
+        print(f"{'='*60}")
+        for f in layer_files:
+            print(f"  Layer: {f}")
+        print(f"\n  Next steps:")
+        print(f"    Add to Claude:    claude mcp add --transport stdio base-layer -- baselayer-mcp")
+        print(f"    Review facts:     baselayer review")
+        print(f"    Optional brief:   baselayer compose  (a unified prose brief from the layers)")
+    elif brief_path.exists():
         brief_text = brief_path.read_text(encoding="utf-8")
         # Strip YAML header
         if brief_text.startswith("---"):
@@ -1715,7 +1736,7 @@ def cmd_run(args):
         print(f"    Interactive chat:  baselayer chat")
         print(f"    Review facts:     baselayer review")
     else:
-        print(f"\n  Pipeline complete but no brief was generated.")
+        print(f"\n  Pipeline complete but no specification layer was generated.")
         print(f"  Run 'baselayer stats' to check your data.")
 
 
@@ -2189,12 +2210,15 @@ def main():
     p_author.add_argument("--no-citations", action="store_true",
                           help="Disable Citations API (use self-citation fallback)")
     p_author.add_argument("--compose", action="store_true",
-                          help="Chain unified brief composition after layer generation")
+                          help="OPTIONAL: also compose the unified brief after the layers "
+                               "(off by default)")
     p_author.set_defaults(func=cmd_author)
 
-    # compose (S62 — unified brief from deployed layers)
+    # compose (S62: unified brief from deployed layers). Optional and separate: not part of
+    # `run` or `author-from-package` by default.
     p_compose = subparsers.add_parser("compose",
-        help="Compose unified narrative specification from the deployed layers (Opus API)")
+        help="OPTIONAL, legacy: compose a unified prose brief from the deployed layers (Opus "
+             "API). Not run by `baselayer run`; the three layers are the specification.")
     p_compose.set_defaults(func=cmd_compose)
 
     # --- interpretive distillation (EXPERIMENTAL) ---------------------------------
@@ -2254,7 +2278,8 @@ def main():
     p_assemble.set_defaults(func=cmd_assemble)
 
     p_afp = subparsers.add_parser("author-from-package",
-        help="EXPERIMENTAL: author layers and brief from handoff packages; every claim "
+        help="EXPERIMENTAL: author layers from handoff packages (the unified brief only "
+             "with --compose); every claim "
              "must cite fact ids (strict schema). Tests run it end to end against a "
              "scripted fake client; no test calls the API. "
              "Successor to `author`, which remains the shipped path.")
@@ -2272,6 +2297,9 @@ def main():
     p_afp.add_argument("--max-tokens", type=int, default=None,
                        help="per-call ceiling for layers; compose gets 1.5x. Thinking counts "
                             "toward it.")
+    p_afp.add_argument("--compose", action="store_true",
+                       help="OPTIONAL, off by default: also compose the unified brief from "
+                            "the authored layers")
     p_afp.set_defaults(func=cmd_author_from_package)
 
     p_vspec = subparsers.add_parser("verify-spec",
@@ -2458,7 +2486,8 @@ def main():
     # The two are not versions of each other: `pipeline` is the internal multi-subject driver,
     # `run` is the single-corpus entry point. Neither replaces the other.
     p_run = subparsers.add_parser("run",
-        help="One-command pipeline from a FILE: import > extract > author > compose. "
+        help="One-command pipeline from a FILE: import > extract > author (the unified "
+             "brief is optional and separate: `baselayer compose`). "
              "Start here if you have an export to process.")
     p_run.add_argument("file", help="Path to export file (.zip, .json) or text file/directory")
     p_run.add_argument("--source", choices=["chatgpt", "claude_web", "claude_code", "journal", "text"],

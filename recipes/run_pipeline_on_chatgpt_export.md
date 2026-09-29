@@ -101,7 +101,7 @@ Opus composes the three layers into a unified specification at `data/identity_la
 baselayer run /path/to/chatgpt-export.zip
 ```
 
-`run` chains import, extract, embed, author, and compose with the cost-estimate gate before extraction. Use `--yes` only if the user has pre-confirmed the spend. Do not pass `--yes` automatically.
+`run` chains import, extract, embed and author with the cost-estimate gate before extraction. It does not compose a unified brief; `baselayer compose` is optional and separate. Use `--yes` only if the user has pre-confirmed the spend. Do not pass `--yes` automatically.
 
 ## Expected output
 

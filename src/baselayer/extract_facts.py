@@ -2158,10 +2158,14 @@ def turn_stamps() -> dict:
 
 
 class TurnChunkResult:
-    __slots__ = ("chunk", "raw_facts", "failed")
+    """One chunk's outcome. `budget` and `upto` say how the chunk was built (input character
+    budget; built from the first `upto` turns, 0 = all), so a failed chunk can be rebuilt
+    exactly and retried alone. `reason` names why a failed chunk failed."""
+    __slots__ = ("chunk", "raw_facts", "failed", "budget", "upto", "reason")
 
-    def __init__(self, chunk, raw_facts, failed=False):
+    def __init__(self, chunk, raw_facts, failed=False, budget=None, upto=0, reason=None):
         self.chunk, self.raw_facts, self.failed = chunk, raw_facts, failed
+        self.budget, self.upto, self.reason = budget, upto, reason
 
 
 def turn_extraction_plan(turns, source: str) -> dict:
@@ -2227,8 +2231,8 @@ def rechunk_after_max_tokens(conv_title: str, turns, source: str, *, failed_inde
     can re-extract a turn already extracted there; AUDN deduplicates it."""
     positions = [i for i, t in enumerate(turns) if t.turn_id in body_ids]
     half = max(1, plan["input_char_budget"] // 2)
-    parts = [c for c in build_turn_chunks(turns[:max(positions) + 1] if positions else turns,
-                                          source, half)
+    upto = max(positions) + 1 if positions else 0
+    parts = [c for c in build_turn_chunks(turns[:upto] if upto else turns, source, half)
              if c.has_citable and set(c.alias_to_turn.values()) & set(citable_ids)]
     entry = {"conversation_id": _CURRENT_CONVERSATION.get(), "chunk": failed_index,
              "path": path, "input_char_budget": half, "parts": len(parts),
@@ -2242,19 +2246,21 @@ def rechunk_after_max_tokens(conv_title: str, turns, source: str, *, failed_inde
         if record is not None:
             record.c["chunks_called"] += 1
             record.c["rechunk_calls"] += 1
+        reason = "unusable_response"
         try:
             facts = _call_turn_chunk(conv_title, part, plan, project_session, label)
         except ExtractionResponseError as e:          # truncated again: count, list, go on
             _count_response_failure(e.reason)
             entry["still_truncated"] += 1
-            facts = None
+            facts, reason = None, "max_tokens"
         if facts is None:
             entry["failed"] += 1
             if record is not None:
                 record.c["chunks_failed"] += 1
-            results.append(TurnChunkResult(part, None, failed=True))
+            results.append(TurnChunkResult(part, None, failed=True, budget=half, upto=upto,
+                                           reason=reason))
         else:
-            results.append(TurnChunkResult(part, facts))
+            results.append(TurnChunkResult(part, facts, budget=half, upto=upto))
     return results
 
 
@@ -2286,11 +2292,13 @@ def extract_turn_chunks(conv_title: str, turns, source: str, *, project_session:
                 project_session=project_session, record=record))
             continue
         if facts is not None:
-            results.append(TurnChunkResult(ch, facts))
+            results.append(TurnChunkResult(ch, facts, budget=plan["input_char_budget"]))
         else:
             if record is not None:
                 record.c["chunks_failed"] += 1
-            results.append(TurnChunkResult(ch, None, failed=True))
+            results.append(TurnChunkResult(ch, None, failed=True,
+                                           budget=plan["input_char_budget"],
+                                           reason="unusable_response"))
     return results, plan
 
 
@@ -2573,6 +2581,232 @@ def check_turn_versions(turns, record=None):
         record.c["turns_unstamped"] += sum(1 for t in turns if t.contract_version is None)
 
 
+# ---------------------------------------------------------------------------
+# Failed chunks (turn contract): recorded as FAILED, retried alone
+# ---------------------------------------------------------------------------
+#
+# A chunk whose call fails (an API error after retries, a refusal, an unparseable or
+# schema-invalid reply, a part that truncated again after re-chunking) used to be dropped:
+# the conversation was logged as extracted with the other chunks' count, its import mark was
+# cleared, the batch path marked the chunk done, and nothing ever selected it again. Now:
+#   - the conversation's good chunks are still stored (nothing that worked is thrown away);
+#   - each failed chunk is written here, in the same transaction, with what it takes to
+#     rebuild it exactly (its body turn ids, input budget and turn prefix);
+#   - the run counts it as an error and exits non-zero after its record is written;
+#   - the next run (sequential, or an incremental batch submit) and `--process --resume`
+#     retry ONLY these chunks. A retried chunk that truncates is re-chunked at half its own
+#     budget, so a persistent truncation is retried smaller each time, never skipped.
+# A chunk that keeps failing (a refusal, say) is retried, and fails the run, every time; the
+# row's `attempts` counts it. `--process` without --resume clears the table with the reset.
+
+FAILED_CHUNKS_TABLE = "extraction_chunks_failed"
+_FAILED_PLAN_KEYS = ("max_facts", "per_chunk_cap", "max_tokens", "fact_count_mode")
+
+
+def ensure_failed_chunks_table(conn) -> None:
+    conn.execute(f"""
+        CREATE TABLE IF NOT EXISTS {FAILED_CHUNKS_TABLE} (
+            conversation_id TEXT NOT NULL,
+            chunk_key TEXT NOT NULL,            -- JSON list of the chunk's body turn ids, sorted
+            input_char_budget INTEGER NOT NULL, -- the budget the chunk was built with
+            turns_upto INTEGER NOT NULL,        -- built from the first N turns; 0 = all
+            plan TEXT NOT NULL,                 -- JSON: the plan fields the call used
+            path TEXT NOT NULL,                 -- sequential | batch
+            reason TEXT NOT NULL,
+            attempts INTEGER NOT NULL DEFAULT 1,
+            batch_id TEXT,
+            recorded_at REAL NOT NULL,
+            PRIMARY KEY (conversation_id, chunk_key, input_char_budget, turns_upto)
+        )""")
+
+
+def failed_chunks_table_exists(conn) -> bool:
+    return conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+                        (FAILED_CHUNKS_TABLE,)).fetchone() is not None
+
+
+def chunk_key(body_turn_ids) -> str:
+    return json.dumps(sorted(body_turn_ids), separators=(",", ":"))
+
+
+def failed_chunk(conv_id: str, body_turn_ids, budget: int, upto: int, plan: dict, path: str,
+                 reason: str) -> dict:
+    return {"conversation_id": conv_id, "chunk_key": chunk_key(body_turn_ids),
+            "input_char_budget": int(budget), "turns_upto": int(upto or 0),
+            "plan": json.dumps({k: plan.get(k) for k in _FAILED_PLAN_KEYS}, sort_keys=True),
+            "path": path, "reason": reason or "unusable_response"}
+
+
+def failures_of(results, conv_id: str, plan: dict, path: str) -> list:
+    """failed_chunk rows for every failed TurnChunkResult."""
+    return [failed_chunk(conv_id, r.chunk.body_voice, r.budget or plan["input_char_budget"],
+                         r.upto, plan, path, r.reason)
+            for r in results if r.failed]
+
+
+def load_failed_chunks(conn, conv_id: str) -> list:
+    if not failed_chunks_table_exists(conn):
+        return []
+    cur = conn.execute(f"SELECT conversation_id, chunk_key, input_char_budget, turns_upto, "
+                       f"plan, path, reason, attempts FROM {FAILED_CHUNKS_TABLE} "
+                       f"WHERE conversation_id = ? ORDER BY recorded_at, chunk_key", (conv_id,))
+    cols = [d[0] for d in cur.description]
+    return [dict(zip(cols, r)) for r in cur.fetchall()]
+
+
+def failed_chunk_conversations(conn) -> set:
+    if not failed_chunks_table_exists(conn):
+        return set()
+    return {r[0] for r in conn.execute(
+        f"SELECT DISTINCT conversation_id FROM {FAILED_CHUNKS_TABLE}")}
+
+
+def write_failed_chunks(conn, conv_id: str, failures, *, replace_all: bool, resolved=(),
+                        batch_id: str = None) -> None:
+    """Record failed chunks. The caller commits, with the facts, in one transaction.
+    replace_all: a full extraction of the conversation supersedes every earlier row.
+    resolved: (chunk_key, input_char_budget, turns_upto) of rows a retry settled.
+    A failure that is already recorded has its attempts counted up."""
+    ensure_failed_chunks_table(conn)
+    if replace_all:
+        conn.execute(f"DELETE FROM {FAILED_CHUNKS_TABLE} WHERE conversation_id = ?", (conv_id,))
+    for key, budget, upto in resolved:
+        conn.execute(f"DELETE FROM {FAILED_CHUNKS_TABLE} WHERE conversation_id = ? AND "
+                     f"chunk_key = ? AND input_char_budget = ? AND turns_upto = ?",
+                     (conv_id, key, budget, upto))
+    now = time.time()
+    for f in failures:
+        conn.execute(f"""
+            INSERT INTO {FAILED_CHUNKS_TABLE} (conversation_id, chunk_key, input_char_budget,
+                turns_upto, plan, path, reason, attempts, batch_id, recorded_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(conversation_id, chunk_key, input_char_budget, turns_upto) DO UPDATE SET
+                attempts = attempts + 1, reason = excluded.reason, path = excluded.path,
+                plan = excluded.plan, batch_id = excluded.batch_id,
+                recorded_at = excluded.recorded_at
+        """, (f["conversation_id"], f["chunk_key"], f["input_char_budget"], f["turns_upto"],
+              f["plan"], f["path"], f["reason"], 1, batch_id, now))
+
+
+def note_failed_chunks(record, failures) -> None:
+    """Count and list the failed chunks this run leaves open, in the run record."""
+    if record is None:
+        return
+    record.c["chunks_failed_open"] += len(failures)
+    for f in failures:
+        record.failed_chunks.append({
+            "conversation_id": f["conversation_id"], "path": f["path"], "reason": f["reason"],
+            "body_turns": len(json.loads(f["chunk_key"])),
+            "input_char_budget": f["input_char_budget"], "turns_upto": f["turns_upto"]})
+
+
+def rebuild_failed_chunk(turns, source: str, row: dict):
+    """The chunk a failed-chunk row describes, rebuilt from the current turns, or None when
+    no chunk with the same body turns is built any more (the turns or settings changed)."""
+    upto = row["turns_upto"]
+    for ch in build_turn_chunks(turns[:upto] if upto else turns, source,
+                                row["input_char_budget"]):
+        if ch.has_citable and chunk_key(ch.body_voice) == row["chunk_key"]:
+            return ch
+    return None
+
+
+def failed_chunk_plan(base: dict, row: dict) -> dict:
+    """The plan a failed chunk is retried with: the conversation's current plan, overlaid with
+    the recorded fields and the chunk's own input budget."""
+    plan = dict(base, **{k: v for k, v in json.loads(row["plan"]).items() if v is not None})
+    plan["input_char_budget"] = row["input_char_budget"]
+    return plan
+
+
+def upsert_log_sum(conn, conv_id: str, stored: int) -> None:
+    """A retry ADDS its facts to the conversation's logged count; it never replaces it."""
+    conn.execute("""
+        INSERT INTO extraction_log (conversation_id, facts_extracted, processed_at)
+        VALUES (?, ?, ?)
+        ON CONFLICT(conversation_id) DO UPDATE SET
+            facts_extracted = MAX(facts_extracted, 0) + excluded.facts_extracted,
+            processed_at = excluded.processed_at
+    """, (conv_id, stored, time.time()))
+
+
+def retry_failed_chunks(conv: dict, conn, fact_collection, embed_model, *, stamps: dict, record,
+                        referent, corrections=None, identity_only: bool = False,
+                        path: str = "sequential", batch_id: str = None) -> tuple:
+    """Retry ONLY the recorded failed chunks of one conversation, synchronously. Each is
+    rebuilt exactly, called, gated and stored like any chunk; a row is deleted when its chunk
+    succeeds and kept (attempts + 1) when it fails again. A chunk that can no longer be
+    rebuilt stays recorded as `not_reproducible`. Returns (facts stored, failures left)."""
+    conv_id, source = conv["id"], conv.get("source", "unknown")
+    rows = load_failed_chunks(conn, conv_id)
+    turns = _tc.load_turns(conn, conv_id)
+    if not rows or not turns:
+        return 0, 0
+    check_turn_versions(turns, record)
+    project = identity_only or is_claude_code_source(source)
+    scope = "personal" if identity_only else SCOPE_SOURCE_MAPPING.get(source, DEFAULT_SCOPE)
+    title = conv.get("title") or "Untitled"
+    base = turn_extraction_plan(turns, source)
+    results, failures, resolved, recovered = [], [], [], 0
+    fplan = None
+    for row in rows:
+        plan = failed_chunk_plan(base, row)
+        fplan = fplan or plan
+        key = (row["chunk_key"], row["input_char_budget"], row["turns_upto"])
+        record.c["chunks_retried"] += 1
+        ch = rebuild_failed_chunk(turns, source, row)
+        if ch is None:
+            record.c["chunks_not_reproducible"] += 1
+            failures.append(dict(row, path=path, reason="not_reproducible"))
+            continue
+        record.c["chunks_called"] += 1
+        label = f"retry:{ch.index}"
+        try:
+            facts = _call_turn_chunk(title, ch, plan, project, label)
+        except ExtractionResponseError:           # max_tokens: re-chunk at half this budget
+            parts = rechunk_after_max_tokens(
+                title, turns, source, failed_index=label,
+                body_ids={p.turn.turn_id for p in ch.body},
+                citable_ids=set(ch.alias_to_turn.values()), plan=plan,
+                project_session=project, record=record, path=path)
+            resolved.append(key)                  # the parts replace the row
+            left = failures_of(parts, conv_id, plan, path)
+            failures.extend(left)
+            recovered += 0 if left else 1
+            results.extend(r for r in parts if not r.failed)
+            continue
+        if facts is None:
+            record.c["chunks_failed"] += 1
+            failures.append(dict(row, path=path, reason="unusable_response"))
+        else:
+            results.append(TurnChunkResult(ch, facts, budget=row["input_char_budget"],
+                                           upto=row["turns_upto"]))
+            resolved.append(key)
+            recovered += 1
+
+    gated = gate_turn_chunks(results, referent)              # NO handler above this
+    facts = finalize_turn_facts(gated, len(turns), fplan, project_session=project,
+                                record=record)
+    embedded = []
+    try:
+        stored = store_turn_facts(conn, conv_id, facts, fact_collection, embed_model,
+                                  scope=scope, stamp=stamps[project], corrections=corrections,
+                                  record=record, embedded=embedded)
+        upsert_log_sum(conn, conv_id, stored)
+        write_failed_chunks(conn, conv_id, failures, replace_all=False, resolved=resolved,
+                            batch_id=batch_id)
+        conn.commit()
+    except BaseException:
+        conn.rollback()
+        if embedded and fact_collection is not None:
+            fact_collection.delete(ids=embedded)
+        raise
+    record.c["facts_stored"] += stored
+    record.c["chunks_recovered"] += recovered
+    note_failed_chunks(record, failures)
+    return stored, len(failures)
+
+
 def process_turn_conversation(conv: dict, conn, fact_collection, embed_model, *,
                               stamps: dict, record, referent, corrections=None,
                               identity_only: bool = False) -> int:
@@ -2612,6 +2846,7 @@ def process_turn_conversation(conv: dict, conn, fact_collection, embed_model, *,
         conn.commit()
         return -1
 
+    failures = failures_of(results, conv_id, plan, "sequential")
     gated = gate_turn_chunks(results, referent)              # NO handler above this
     facts = finalize_turn_facts(gated, len(turns), plan,      # may SystemExit, by design
                                 project_session=project, record=record)
@@ -2624,6 +2859,9 @@ def process_turn_conversation(conv: dict, conn, fact_collection, embed_model, *,
         conn.execute("INSERT OR REPLACE INTO extraction_log "
                      "(conversation_id, facts_extracted, processed_at) VALUES (?, ?, ?)",
                      (conv_id, stored, time.time()))
+        # A failed chunk is recorded as FAILED, with the good chunks' facts, never dropped.
+        if failures or failed_chunks_table_exists(conn):
+            write_failed_chunks(conn, conv_id, failures, replace_all=True)
         mark_turn_conversation_extracted(conn, conv_id)
         conn.commit()
     except BaseException:
@@ -2634,6 +2872,7 @@ def process_turn_conversation(conv: dict, conn, fact_collection, embed_model, *,
             fact_collection.delete(ids=embedded)  # and leave no orphan vectors behind
         raise
     record.c["facts_stored"] += stored
+    note_failed_chunks(record, failures)
     return stored
 
 
@@ -3004,6 +3243,8 @@ def _turn_conversations_to_process(conn, source_filter: str = None) -> list:
       every fresh import, so on its own it cannot mean "grown"; grown is
       re-imported AFTER the last extraction (imported_at > processed_at). An
       errored conversation is therefore not retried here (use --retry-errors).
+    - A conversation with a recorded failed chunk (extraction_chunks_failed) comes back,
+      flagged `retry`: unless it also grew, only its failed chunks are called again.
     - Conversations whose turns hold nothing citable (no own-voice turn outside a
       fork/resume copy: harness children, tool-only sessions) are not selected. They
       could never yield a fact, and returning them made `--limit N` spend its N on
@@ -3015,13 +3256,17 @@ def _turn_conversations_to_process(conn, source_filter: str = None) -> list:
     grown = ("(s.needs_extraction = 1 AND s.imported_at > e.processed_at)"
              if has_state else "0")
     join = "LEFT JOIN import_state s ON c.id = s.conversation_id" if has_state else ""
+    # A conversation with a recorded failed chunk comes back too, for that chunk alone.
+    retry = (f"EXISTS (SELECT 1 FROM {FAILED_CHUNKS_TABLE} f WHERE f.conversation_id = c.id)"
+             if failed_chunks_table_exists(conn) else "0")
     sql = f"""
         SELECT c.id, c.title, c.created_at, c.message_count, c.source,
-               CASE WHEN e.conversation_id IS NOT NULL THEN 1 ELSE 0 END AS grown
+               CASE WHEN e.conversation_id IS NOT NULL AND {grown} THEN 1 ELSE 0 END AS grown,
+               CASE WHEN e.conversation_id IS NOT NULL AND {retry} THEN 1 ELSE 0 END AS retry
         FROM conversations c
         LEFT JOIN extraction_log e ON c.id = e.conversation_id
         {join}
-        WHERE (e.conversation_id IS NULL OR {grown})
+        WHERE (e.conversation_id IS NULL OR {grown} OR {retry})
           AND (NOT EXISTS (SELECT 1 FROM turns t0 WHERE t0.conversation_id = c.id)
                OR EXISTS (SELECT 1 FROM turns t1 WHERE t1.conversation_id = c.id
                           AND t1.voice_class IN ('own_typed', 'own_dictated')
@@ -3075,7 +3320,8 @@ def get_conversations_to_process(conn, limit: int = None, conv_id: str = None,
             FROM conversations WHERE id = ?
         """, (conv_id,)).fetchall()
     elif conv_ids is not None:
-        done = {r[0] for r in conn.execute("SELECT conversation_id FROM extraction_log")}
+        done = ({r[0] for r in conn.execute("SELECT conversation_id FROM extraction_log")}
+                - failed_chunk_conversations(conn))
         found = {r[0]: r for r in conn.execute(
             "SELECT id, title, created_at, message_count, source FROM conversations "
             f"WHERE id IN ({','.join('?' * len(conv_ids))})", list(conv_ids)).fetchall()}             if conv_ids else {}
@@ -3113,7 +3359,8 @@ def get_conversations_to_process(conn, limit: int = None, conv_id: str = None,
     return [
         {"id": r[0], "title": r[1] or "Untitled", "created_at": r[2],
          "message_count": r[3], "source": r[4] or "unknown",
-         **({"grown": bool(r[5])} if len(r) > 5 else {})}
+         **({"grown": bool(r[5])} if len(r) > 5 else {}),
+         **({"retry": bool(r[6])} if len(r) > 6 else {})}
         for r in rows
     ]
 
@@ -3626,6 +3873,14 @@ def run_extraction(limit: int = None, conv_id: str = None,
             print(f"\nERROR: {turn_record.c['conversations_without_turns']} conversations have no "
                   f"rows in the turn table; they were not extracted. See the run record.")
             raise SystemExit(2)
+        if turn_record is not None and errors:
+            n_open = turn_record.c["chunks_failed_open"]
+            print(f"\nERROR: {errors} extraction error(s): {n_open} failed chunk(s) recorded "
+                  f"for retry, {errors - n_open} conversation(s) failed outright. Nothing a "
+                  f"failed chunk would have produced is stored; the next run retries the "
+                  f"failed chunks (extraction_chunks_failed) and --retry-errors the failed "
+                  f"conversations. See the run record.")
+            raise SystemExit(1)
 
 
 def _run_turn_loop(conversations, conn, fact_collection, embed_model, *, corrections,
@@ -3648,11 +3903,19 @@ def _run_turn_loop(conversations, conn, fact_collection, embed_model, *, correct
     try:
         for i, conv in enumerate(conversations):
             _conv_tok = _CURRENT_CONVERSATION.set(conv["id"])
+            open_before = record.c["chunks_failed_open"]
             try:
-                n = process_turn_conversation(conv, conn, fact_collection, embed_model,
-                                              stamps=stamps, record=record,
-                                              referent=referent, corrections=corrections,
-                                              identity_only=identity_only)
+                if conv.get("retry") and not conv.get("grown"):
+                    # only the recorded failed chunks; the rest are already stored
+                    n, _left = retry_failed_chunks(conv, conn, fact_collection, embed_model,
+                                                   stamps=stamps, record=record,
+                                                   referent=referent, corrections=corrections,
+                                                   identity_only=identity_only)
+                else:
+                    n = process_turn_conversation(conv, conn, fact_collection, embed_model,
+                                                  stamps=stamps, record=record,
+                                                  referent=referent, corrections=corrections,
+                                                  identity_only=identity_only)
             except SpendCeilingExceeded as e:
                 record.notes.append(f"spend ceiling: {e}")
                 raise
@@ -3662,6 +3925,7 @@ def _run_turn_loop(conversations, conn, fact_collection, embed_model, *, correct
                 errors += 1
             else:
                 total_facts += n
+            errors += record.c["chunks_failed_open"] - open_before
             if (i + 1) % BATCH_SIZE == 0 or i == total - 1:
                 elapsed = time.time() - start_time
                 print(f"  [{i+1}/{total}] Facts: {total_facts} | Errors: {errors} | "

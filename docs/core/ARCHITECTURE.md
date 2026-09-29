@@ -87,7 +87,7 @@ Authoring supersession: Step 4 in the 5-step pipeline is superseded by Interpret
 
 **One command:** `baselayer run <file>` runs steps 1 through 5 with a cost estimate gate before spending anything.
 
-**Runner note.** Embeddings are not read by the authoring step. Authoring reads facts from SQLite via SQL. ChromaDB serves semantic search, `verify`, and provenance fallback only. The `baselayer run` one-command path runs Import, Extract, Author, Compose, then performs Embed together with tiering and verification in a post-compose traceability phase. Step-by-step usage can still run `baselayer embed` at any time, but it is not semantically between `extract` and `author`. Both paths produce the same final artifacts. The logical stage semantics treat Embed as independent of Author for generation, and as a dependency only for verification and vector-provenance fallback.
+**Runner note.** Embeddings are not read by the authoring step. Authoring reads facts from SQLite via SQL. ChromaDB serves semantic search, `verify`, and provenance fallback only. The `baselayer run` one-command path runs Import, Extract, Author, then performs Embed together with tiering and verification in a post-authoring traceability phase. It does not compose a unified brief; `baselayer compose` is optional and separate. Step-by-step usage can still run `baselayer embed` at any time, but it is not semantically between `extract` and `author`. Both paths produce the same final artifacts. The logical stage semantics treat Embed as independent of Author for generation, and as a dependency only for verification and vector-provenance fallback.
 
 ---
 

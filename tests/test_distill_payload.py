@@ -201,7 +201,7 @@ def test_author_authors_each_shard_and_concatenates(author_env, monkeypatch, tmp
                                       "--shard-token-budget", "3000"])
     asm.main()
     n = len(json.load(open(man, encoding="utf-8"))["shards"])
-    out = author_env.run(man)
+    out = author_env.run(man, extra=("--compose",))
     layer_calls = [c for c in ShardAuthorClient.calls if c["tools"][0]["name"] == "emit_layer"]
     assert len(layer_calls) == n
     for k, c in enumerate(layer_calls, 1):

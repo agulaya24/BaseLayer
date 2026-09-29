@@ -288,7 +288,7 @@ def author_env(monkeypatch, tmp_path, capsys):
 
 
 def test_layer_and_brief_each_get_a_stamp_file(author_env):
-    out = author_env.run(author_env.write_pkg("anchors.json", V))
+    out = author_env.run(author_env.write_pkg("anchors.json", V), extra=("--compose",))
     for name, tool in (("anchors", "emit_layer"), ("brief", "emit_brief")):
         st = json.loads((out / ("%s.stamp.json" % name)).read_text(encoding="utf-8"))
         for k in REQUIRED + ("effort", "max_tokens", "usage", "cost_usd", "rates_per_mtok"):
@@ -317,7 +317,7 @@ def test_reused_layer_keeps_its_original_stamp(author_env):
     AuthorClient.calls = []
     author_env.run(pkg)
     assert (out / "anchors.stamp.json").read_text(encoding="utf-8") == first
-    assert all(c["tools"][0]["name"] == "emit_brief" for c in AuthorClient.calls)
+    assert AuthorClient.calls == []          # reused, and no brief by default: no call at all
 
 
 def test_packages_of_different_versions_are_refused(author_env):

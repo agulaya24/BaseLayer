@@ -41,8 +41,8 @@ All commands invoked as `baselayer <subcommand>`. Source of truth: [`src/baselay
 | `baselayer extract` | Extract facts via Haiku 4.5 (46 constrained predicates, AUDN lifecycle). Add `--turn-contract` to ground every fact in the subject's own turns (see below). |
 | `baselayer embed` | Generate ChromaDB vectors for provenance tracing. |
 | `baselayer author --layer all` | Author anchors, core, and predictions layers (Sonnet 4.6). |
-| `baselayer compose` | Compose unified specification from the three layers (Opus 4.6). |
-| `baselayer run <file>` | Full pipeline with cost-gate. Runs `import` -> `extract` -> `author` -> `compose`, then embeds in a post-compose traceability phase. |
+| `baselayer compose` | Optional, legacy: compose a unified prose brief from the three layers (Opus 4.6). Not run by `baselayer run`. |
+| `baselayer run <file>` | Full pipeline with cost-gate. Runs `import` -> `extract` -> `author`, then embeds in a post-authoring traceability phase. No brief: `compose` is optional and separate. |
 | `baselayer stats` | Database stats: conversations, facts, tier breakdown. |
 | `baselayer search "<query>"` | FTS keyword search across active facts. |
 | `baselayer provenance --claim A1` | Trace a specification claim back to its supporting facts. |

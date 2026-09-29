@@ -878,6 +878,7 @@ class ExtractionRunRecord:
         self.usage_calls = []     # one usage_entry per billed API call (usage_entry)
         self.rechunked = []       # one entry per chunk re-chunked after a max_tokens stop
         self.density = []         # one row per conversation: citable chars, facts after the gate
+        self.failed_chunks = []   # one entry per failed chunk this run left recorded for retry
         self.notes = []
 
     def add_gate(self, g: GateResult):
@@ -907,6 +908,7 @@ class ExtractionRunRecord:
             "subject_reassigned_from": dict(self.subject_reassigned_from),
             "response_failures": dict(self.response_failures),
             "rechunked": list(self.rechunked),
+            "failed_chunks": list(self.failed_chunks),
             "density": density_summary(self.density),
             "api_usage": {"totals": usage_totals(self.usage_calls),
                           "calls": list(self.usage_calls)},
@@ -942,6 +944,14 @@ class ExtractionRunRecord:
             for row in den["top10"][:3]:
                 lines.append(f"    {row['facts_per_1k_citable']:>8} {row['facts']:>5} facts / "
                              f"{row['citable_chars']:,} chars  {row['conversation_id']}")
+        if c.get("chunks_retried"):
+            lines.append(f"  failed chunks retried {c['chunks_retried']} | recovered "
+                         f"{c.get('chunks_recovered', 0)}")
+        if c.get("chunks_failed_open"):
+            convs = len({f["conversation_id"] for f in d["failed_chunks"]})
+            lines.append(f"  FAILED chunks {c['chunks_failed_open']} in {convs} conversation(s): "
+                         f"not stored, recorded in extraction_chunks_failed, retried by the next "
+                         f"run (listed in the record)")
         if d["response_failures"]:
             lines.append("  unusable responses: "
                          + ", ".join(f"{k} {v}" for k, v in sorted(d["response_failures"].items())))

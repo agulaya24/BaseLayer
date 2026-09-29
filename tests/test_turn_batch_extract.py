@@ -210,10 +210,15 @@ def test_turn_process_counts_unusable_responses(benv, monkeypatch):
     trunc = types.SimpleNamespace(create=lambda **kw: _result("x", [], stop="max_tokens").result.message)
     monkeypatch.setattr(benv.ef, "EXTRACTION_BACKEND", "anthropic")
     monkeypatch.setattr(benv.ef, "_get_anthropic_client", lambda: types.SimpleNamespace(messages=trunc))
-    benv.be.run_process()
+    # The part that truncated again is a failed chunk: recorded for retry, and the run exits
+    # non-zero after its record and the batch state are written (tests/test_failed_chunks.py).
+    with pytest.raises(SystemExit) as ei:
+        benv.be.run_process()
+    assert ei.value.code == 1
     rec = _records(benv)[-1]
     assert rec["response_failures"] == {"max_tokens": 1}
     assert rec["counts"]["chunks_failed"] == 1
+    assert rec["counts"]["chunks_failed_open"] == 1
     assert rec["counts"]["rechunked_on_max_tokens"] == 1
 
 

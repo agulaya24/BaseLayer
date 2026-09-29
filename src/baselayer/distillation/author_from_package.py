@@ -1,4 +1,9 @@
-"""Author a layer from a handoff package, then compose. The last two hops.
+"""Author the layers from handoff packages; compose a unified brief only on request.
+
+The brief is optional and off by default (`--compose` builds it; `--no-compose` is accepted and
+is the default). The layers are the specification; the brief restates them as prose, and on the
+runs measured nearly every brief assertion was already a layer claim. Compose is kept, with the
+contradictions union below, for anyone who asks for the brief.
 
 EXPERIMENTAL. Only the API call shape and response handling of `call_structured` are tested
 (tests/test_author_from_package_call_shape.py, fake client, no API); authoring quality is not.
@@ -6,7 +11,7 @@ See baselayer/distillation/__init__.py for the full status.
 
 🎯 WHAT WAS MISSING. Distillation produced trees. `assemble.py` turned trees into a package.
 Nothing read the package. This closes it: render the package into the layer's own prompt, author,
-then compose the three layers WITH THE CONTRADICTIONS UNION.
+then, with --compose, compose the three layers WITH THE CONTRADICTIONS UNION.
 
 🚨 WHY COMPOSE GETS THE CONTRADICTIONS AND THE LAYER AUTHORS' OUTPUT IS NOT ENOUGH.
 The three layer authors are blind to each other by design: layers are allowed to contradict, and
@@ -759,8 +764,11 @@ def _main():
     ap.add_argument("--max-tokens", type=int, default=None,
                     help="per-call ceiling for layers (compose gets 1.5x). Thinking counts toward "
                          "it. Default 64000 layers / 96000 compose (capped at 128000).")
+    ap.add_argument("--compose", action="store_true",
+                    help="OPTIONAL, off by default: also compose the unified brief from the "
+                         "authored layers (one more call). The layers are the specification.")
     ap.add_argument("--no-compose", action="store_true",
-                    help="author the layers only; do not compose the brief (design tests)")
+                    help="accepted for older scripts; not composing is now the default")
     ap.add_argument("--quote-gate", action="store_true",
                     help="check every quoted phrase in a claim against the own-voice evidence "
                          "spans of the facts that claim cites (reads --db). No re-ask: a quote "
@@ -846,13 +854,14 @@ def _main():
     cchars = (len(packages) * _spend.MEASURED_AUTHOR_LAYER_OUT_TOKENS * _spend.CHARS_PER_TOKEN
               + sum(len(c.get("tension", "")) + 4 for pk in packages
                     for c in pk.get("contradictions") or []) + 4000)
-    c_est, c_worst = ((0.0, 0.0) if a.no_compose else
+    compose = a.compose and not a.no_compose
+    c_est, c_worst = ((0.0, 0.0) if not compose else
                       _spend.estimate_calls([int(cchars)], _spend.MEASURED_COMPOSE_OUT_TOKENS,
                                             rates, cmax))
     est, est_worst = l_est + c_est, l_worst + c_worst
-    print("ESTIMATE: $%.4f (%d layer calls + compose, one attempt each); worst $%.4f if every "
+    print("ESTIMATE: $%.4f (%d layer calls%s, one attempt each); worst $%.4f if every "
           "call stops at max_tokens. A rejected attempt re-sends its whole prompt."
-          % (est, len(todo), est_worst), flush=True)
+          % (est, len(todo), " + compose" if compose else "", est_worst), flush=True)
     ceiling = _spend.plan_ceiling(est, a.confirm_spend)
     _GUARD = _spend.SpendGuard(rates, ceiling, label="author")
     print("SPEND CEILING: $%.4f, checked before every call and every re-ask" % ceiling,
@@ -1017,10 +1026,10 @@ def _main():
                      max_tokens=lmax, usage=lusage, **_qfields(lq))
         print("  %-12s authored: %d claims, %d chars" % (lay, len(data["claims"]), len(txt)), flush=True)
 
-    if a.no_compose:
-        print("compose skipped (--no-compose). cost $%.2f (in=%d out=%d, %s at $%g/$%g per "
-              "MTok) -> %s" % (tin / 1e6 * ri + tout / 1e6 * ro, tin, tout, a.model, ri, ro,
-                               a.outdir))
+    if not compose:
+        print("no brief composed (optional; --compose builds one). cost $%.2f (in=%d out=%d, "
+              "%s at $%g/$%g per MTok) -> %s" % (tin / 1e6 * ri + tout / 1e6 * ro, tin, tout,
+                                                a.model, ri, ro, a.outdir))
         return
     # COMPOSE, with the contradictions union the layer authors could not see across.
     # 🚨 NINTH CAP: compose saw 200 of ~1,480 contradictions. The channel whose entire purpose is

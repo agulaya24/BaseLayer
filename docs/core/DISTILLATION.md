@@ -73,7 +73,8 @@ checkable rather than asserted.
 distill.py             facts -> a tree of leaves, four channels each (one layer per run)
 distill_batch.py       the same leaves for every layer in one Message Batches submission
 assemble.py            one or more trees -> a stratified handoff package (no model call)
-author_from_package.py package -> layered output with mandatory citations, then the brief
+author_from_package.py package -> layered output with mandatory citations; the brief only
+                       with --compose (optional, off by default)
 quote_gate.py          optional check of quoted phrases in authored claims (--quote-gate)
 spend.py               the dated rate table, estimates and the spend ceiling
 situation_first.py     design test: an alternative predictions author (not on the default path)
@@ -95,7 +96,7 @@ The distillation modules take their models from their own arguments, not from `c
 |---|---|---|---|
 | extraction (before distillation) | `extract_facts.py`, `batch_extract.py` | `claude-haiku-4-5-20251001` (`config.EXTRACTION_API_MODEL`) | stamped on every fact |
 | leaves | `distill.py`, `distill_batch.py` | `claude-sonnet-5` | `--model` |
-| layers and brief | `author_from_package.py` | `claude-opus-5`, effort `high` | Opus 5.5 with `--model claude-opus-5-5`; effort is always sent |
+| layers (and the optional brief) | `author_from_package.py` | `claude-opus-5`, effort `high` | Opus 5.5 with `--model claude-opus-5-5`; effort is always sent |
 | situation-first predictions (design test) | `situation_first.py` | `claude-opus-5-5`, effort `high` | not on the default path |
 
 The one configuration run end to end at scale used Sonnet 5 leaves on the batch path with
@@ -116,7 +117,7 @@ but do not forward every option. The options below exist only when the module is
 | `--include-other-subjects` | `distill`, `distill_batch`, `convergence` | yes, on `distill` |
 | `--rates-confirmed`, `--rate-in`, `--rate-out`, `--confirm-spend` | every billed module | yes, on `distill` and `author-from-package` |
 | `--quote-gate`, `--db` | `author_from_package` | no |
-| `--no-compose` | `author_from_package` | no |
+| `--compose` (optional brief, off by default; `--no-compose` is accepted and is the default) | `author_from_package` | yes, on `author-from-package` |
 | `--dry-run`, `--resume` | `distill_batch` (module-only as a whole) | no |
 | `--resume-step3` | `situation_first` (module-only as a whole) | no |
 
@@ -180,7 +181,8 @@ baselayer assemble <trees>/anchors_predicate_0.json --out <packages>/anchors.jso
 baselayer assemble <trees>/core_predicate_0.json --out <packages>/core.json
 baselayer assemble <trees>/predictions_predicate_0.json --out <packages>/predictions.json
 
-# 3. Author the three layers, then compose the brief.
+# 3. Author the three layers. No brief is composed unless --compose is added: the layers are the
+#    specification, and the brief is optional (legacy).
 python -m baselayer.distillation.author_from_package \
     --package <packages>/anchors.json --package <packages>/core.json \
     --package <packages>/predictions.json --outdir <spec> \
@@ -260,7 +262,7 @@ Leaves read facts only. When the corpus was extracted under the turn contract
 own typed or spoken words. The leaf check that rejects fact ids outside the supplied set keeps
 theme statements tied to those gated facts. Distillation adds no speaker logic of its own.
 
-Stamps (contract §7). Every leaf, the tree, the package, each authored layer and the brief carry
+Stamps (contract §7). Every leaf, the tree, the package, each authored layer and a composed brief carry
 a stamp:
 - the contract version, read from the input facts (a mix of versions is refused before any call);
 - the model, or null for the mechanical package step;
@@ -304,7 +306,12 @@ some quoted phrases turn out not to be the person's words (an assistant's phrasi
 paraphrase inside quote marks). The gate checks every quoted phrase in a claim's `name`,
 `statement` and `active_when` against the own-voice evidence spans (voice class `own_typed` or
 `own_dictated`) of the facts that claim cites. Matching ignores case, whitespace, quote-mark style
-and leading or trailing sentence punctuation (`.,;:!?`).
+and leading or trailing sentence punctuation (`.,;:!?`), and is by whole words: the quote must sit
+in the span at word boundaries, so a fragment of a word (`'art'` in "start") or a run that cuts a
+word (`'ly and i kn'`) does not match, and an apostrophe between letters is part of the word
+(`'don'` does not match "don't"). Spans are the person's raw text, so a verbatim quote keeps its
+typos and matches; a quote whose typo the author corrected does not match and loses its quote
+marks. The leaf `own_words` check is still a plain substring test.
 
 A quote that fails is handled on the accepted attempt. The gate never re-asks for a quote:
 
@@ -320,7 +327,9 @@ A quote that fails is handled on the accepted attempt. The gate never re-asks fo
   gate:`), so a citation the gate chose is never presented as the author's.
 - Claims are re-checked after the gate; anything still flagged is printed as a warning and counted
   as `residual_after_gate`.
-- The layer stamp records the mode (`auto_cite_strip`), both bounds, and each quote's action
+- The layer stamp records the mode (`auto_cite_strip`), the match rule (`match: word_boundary`;
+  stamps written before this rule have no `match` key and used a plain substring test), both
+  bounds, and each quote's action
   (`auto_cited`, `stripped_short`, `stripped_many_holders`, `stripped_elided`,
   `stripped_not_found`).
 - The gate refuses to run, rather than passing claims unchecked, if the database lacks the
@@ -427,8 +436,8 @@ before the first leaf and records the measured payload on the tree; it no longer
 `--shard-token-budget` into shards along contiguous leaf ranges, with no model call and nothing
 dropped, and writes a manifest; `author_from_package.py` authors each shard separately and
 concatenates the claims. The layer files are not collapsed across shards, so they can hold near
-duplicates; compose reads all of them when it writes the brief (see "Not in this package:
-consolidation").
+duplicates; compose, when asked for with `--compose`, reads all of them when it writes the brief
+(see "Not in this package: consolidation").
 
 **Subjects.** Distillation reads only facts whose subject is the person (`subject = 'user'`);
 the rest are counted on the tree. `--include-other-subjects` admits them, labelled as being about

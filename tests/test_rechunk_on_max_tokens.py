@@ -9,6 +9,8 @@ import json
 import re
 import types
 
+import pytest
+
 from tests.test_api_usage_record import _usage
 from tests.test_turn_batch_extract import _result, benv  # noqa: F401
 from tests.test_turn_extraction import (  # noqa: F401  (env is a fixture)
@@ -77,11 +79,15 @@ def test_a_part_that_truncates_again_is_counted_and_listed(env, monkeypatch):
     monkeypatch.setenv("BASELAYER_TURN_CONTRACT", "1")
     monkeypatch.setattr(env.ef, "_get_extraction_caps", _caps)
     _client(monkeypatch, env.ef, Scripted(truncate_again=True))
-    env.ef.run_extraction()
+    with pytest.raises(SystemExit) as ei:     # the failed part fails the run, after the record
+        env.ef.run_extraction()
+    assert ei.value.code == 1
     rec = _records(env)[-1]
     assert rec["counts"]["rechunked_on_max_tokens"] == 1
     assert rec["rechunked"][0]["still_truncated"] == 1
     assert rec["counts"]["chunks_failed"] == 1
+    assert rec["counts"]["chunks_failed_open"] == 1
+    assert rec["failed_chunks"][0]["reason"] == "max_tokens"
     assert rec["response_failures"]["max_tokens"] == 1
     assert "max_tokens_after_rechunk" in rec["suspect"]
     assert len(_facts(env)) >= 1          # the other part still stored its facts

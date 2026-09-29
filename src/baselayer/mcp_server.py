@@ -744,10 +744,9 @@ def get_brief(reason: str) -> str:
     brief_file = UNIFIED_BRIEF_FILE if UNIFIED_BRIEF_FILE.exists() else UNIFIED_BRIEF_CITED_FILE
     if not brief_file.exists():
         return (
-            "Unified brief is not present in this user's specification. "
-            "Tell the user: \"Your unified brief is missing. Generate it with "
-            "`baselayer compose`.\" Continue using CORE plus the structural "
-            "layers."
+            "No unified brief was composed for this user's specification. The brief is "
+            "optional: the structural layers are the specification, and `baselayer compose` "
+            "builds a brief only when asked. Continue using CORE plus the structural layers."
         )
     content = brief_file.read_text(encoding="utf-8")
     marker = "## Injectable Block"

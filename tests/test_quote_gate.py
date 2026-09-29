@@ -81,6 +81,65 @@ def test_strip_removes_only_the_flagged_quote_marks():
     assert c["statement"] == "Consistency 'is everything' but they sit on their hands."
 
 
+
+# ------------------------------------------------------------------ whole words only (F-3)
+# A quote must sit in the span at word boundaries. Before this rule the gate used a raw
+# substring test, so a fragment of a word ('art' in "start") or a run that cuts two words
+# ('ly and i kn') passed, and an uncited fragment of 3+ tokens was AUTO-CITED.
+
+WB = {"aaaaaaaa": ["we start early and i know this"]}
+
+
+def test_a_fragment_of_a_word_is_not_a_quote():
+    g = qg.QuoteGate(WB)
+    for q in ("art", "sta", "no", "is"):
+        got = [(f.phrase, f.reason) for f in g.check([_claim("They '%s'." % q)], set(WB))]
+        assert got == [(q, "not_found")], q
+
+
+def test_a_run_that_cuts_words_is_not_a_quote_and_is_never_auto_cited():
+    g = qg.QuoteGate({"aaaaaaaa": ["unrelated words"], "bbbbbbbb": WB["aaaaaaaa"]})
+    for q in ("t ear", "ly and i kn", "art early and i"):
+        got = [(f.phrase, f.reason, f.source_ids)
+               for f in g.check([_claim("They '%s'." % q)], {"aaaaaaaa", "bbbbbbbb"})]
+        assert got == [(q, "not_found", ())], q
+
+
+def test_whole_words_still_match_case_and_edge_punctuation_normalised():
+    g = qg.QuoteGate(WB)
+    for q in ("start", "Start early", "we start early and I know this.", "i know"):
+        assert g.check([_claim("They '%s'." % q)], set(WB)) == [], q
+
+
+def test_part_of_a_contraction_is_not_a_whole_word():
+    g = qg.QuoteGate({"aaaaaaaa": ["i don't know yet"]})
+    for q in ("don", "t know"):
+        got = [f.reason for f in g.check([_claim("They '%s'." % q)], {"aaaaaaaa"})]
+        assert got == ["not_found"], q
+    assert g.check([_claim("They 'don't know'.")], {"aaaaaaaa"}) == []
+
+
+def test_a_verbatim_quote_keeps_the_persons_typos_and_matches():
+    # Control (passes on either rule): the gate compares against the raw span, typos included.
+    g = qg.QuoteGate({"aaaaaaaa": ["i dont knwo if thsi works yet"]})
+    assert g.check([_claim("They 'dont knwo if thsi works'.")], {"aaaaaaaa"}) == []
+
+
+def test_a_quote_whose_typo_was_corrected_does_not_match():
+    # "startd" corrected to "start" is a prefix of the typo, so a substring test passed it.
+    g = qg.QuoteGate({"aaaaaaaa": ["we startd early"]})
+    for q in ("start", "we start"):
+        got = [f.reason for f in g.check([_claim("They '%s'." % q)], {"aaaaaaaa"})]
+        assert got == ["not_found"], q
+    # Control: a correction that is not a prefix never matched under either rule.
+    g2 = qg.QuoteGate({"aaaaaaaa": ["i dont knwo if thsi works"]})
+    assert [f.reason for f in g2.check([_claim("They 'don't know if this works'.")],
+                                       {"aaaaaaaa"})] == ["not_found"]
+
+
+def test_the_stats_record_the_match_rule():
+    assert qg.new_stats(qg.QuoteGate(WB), {})["match"] == "word_boundary"
+
 # ------------------------------------------------------------------ spans from the database
 
 def _db(tmp_path, cols=True):

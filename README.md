@@ -30,14 +30,16 @@ ASSEMBLE   Package each layer so writing can respect those groups
            (a package too large for one request is split into shards; nothing is dropped)
 AUTHOR     Write the layers as readable text with citations where required
            (optional quote gate: quoted phrases must be the person's own words from cited facts)
-COMPOSE    Merge layers into one brief
+           The three layers are the specification.
+COMPOSE    Optional, separate, off by default: merge the layers into one prose brief
+           (`baselayer compose`, or `--compose` on author-from-package)
 
 EMBED      Side branch. Build a vector index for search and verification. The writer does not read it.
 VERIFY     After authoring, a separate read-only check of the specification against its evidence.
 ```
 
 Models by stage, as the code defaults them: extraction on Claude Haiku 4.5, distillation leaves on
-Claude Sonnet 5, layers and brief on Claude Opus 5 (Opus 5.5 is supported with `--model
+Claude Sonnet 5, layers (and the optional brief) on Claude Opus 5 (Opus 5.5 is supported with `--model
 claude-opus-5-5`). The static `baselayer author` path is separate and configured in `config.py`.
 Every billed distillation or authoring run prints an estimate first and refuses to start without a
 spend ceiling at or above it. Detail and the full option list: `docs/core/DISTILLATION.md`.
@@ -88,8 +90,11 @@ baselayer init
 baselayer import chatgpt-export.zip       # or claude-export.json, ~/journals/, notes.md
 baselayer estimate
 baselayer extract && baselayer embed
-baselayer author && baselayer compose
+baselayer author
+baselayer compose                         # optional: a unified prose brief from the layers
 ```
+
+`baselayer run` stops after the layers (and the traceability step); it does not compose a brief.
 
 Experimental distillation path (billed runs need the rate table confirmed and a spend ceiling;
 `<table date>` is `RATES_AS_OF` in `src/baselayer/distillation/spend.py`):
@@ -156,7 +161,8 @@ Register as an MCP server:
 claude mcp add --transport stdio base-layer -- baselayer-mcp
 ```
 
-It loads the brief and layers as always-on context and exposes tools:
+It loads the layers as always-on context and exposes tools (`get_brief` returns the brief only
+if one was composed):
 
 - get_brief(reason)
 - recall_memories(query)
@@ -167,7 +173,8 @@ It loads the brief and layers as always-on context and exposes tools:
 
 It runs over stdio locally. Traces write to ~/.baselayer/sessions/<pid>/log.jsonl.
 
-You can also paste the layers and brief into any system prompt. You will lose retrieval.
+You can also paste the layers (and a brief, if you composed one) into any system prompt. You will
+lose retrieval.
 
 ## Edit it
 

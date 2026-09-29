@@ -4,13 +4,18 @@ from the evidence that claim cites. Default off (`author_from_package --quote-ga
 WHY. With the leaf seeing each fact's verbatim spans (design T1), the author starts quoting the
 person, and some quoted phrases are not the person's words: assistant phrases shown as the
 person's, idioms, and paraphrases placed inside quote marks. The leaf `own_words` field
-already has this rule (an excerpt must be a substring of THAT fact's own spans); this applies
-the same rule at the author.
+already has a rule of this kind (an excerpt must be a substring of THAT fact's own spans); this
+applies it at the author, with the stricter whole-word match below. The leaf check is still a
+raw substring test.
 
 THE RULE. Every quoted phrase (double or single quotes, straight or curly) in a claim's name,
-statement or active_when must be a substring, after `normalise_for_match` (whitespace and quote
-marks only), case-folding and trimming of leading/trailing punctuation, of an own-voice evidence
-span of a fact the claim cites. Own voice is a turn classed own_typed or own_dictated; that
+statement or active_when must appear, after `normalise_for_match` (whitespace and quote marks
+only), case-folding and trimming of leading/trailing punctuation, in an own-voice evidence span
+of a fact the claim cites, AT WORD BOUNDARIES. A fragment of a word ('art' in "start") or a run
+that cuts a word at either end ('ly and i kn') is not the person's words and does not match; an
+apostrophe between letters counts as part of the word, so 'don' does not match "don't". The span
+is the person's raw text, typos included: a verbatim quote keeps its typos and matches, and a
+quote whose typo was corrected does not (it loses its quote marks, as any paraphrase does). Own voice is a turn classed own_typed or own_dictated; that
 includes a pasted segment re-classed as the person's own writing (basis
 allowlist:own_writing_pasted, for example a document the person wrote and pasted in), which is
 theirs even though they did not type it. An ellipsis-joined quote does not match, as in the
@@ -46,6 +51,7 @@ from baselayer.voice import B_OWN_WRITING
 FIELDS = ("name", "statement", "active_when")
 REASONS = ("uncited_span", "elided", "not_found")
 MIN_WORDS = 1
+MATCH = "word_boundary"
 # Auto-cite bounds (see the module docstring). Quotes held by many facts tend to be one or two
 # common words; a quote of three or more words is rarely held by more than a handful.
 AUTO_CITE_MIN_WORDS = 3
@@ -109,6 +115,36 @@ def normalise(s):
     return _tc.normalise_for_match(s or "").lower().strip(_EDGE)
 
 
+def _is_word_char(ch):
+    return ch.isalnum() or ch == "_"
+
+
+def _joins_word(text, i, step):
+    """True when text[i] continues a word: a word character, or an apostrophe with a word
+    character beyond it (so "don't" is one word). `step` is the direction away from the quote."""
+    if not 0 <= i < len(text):
+        return False
+    if _is_word_char(text[i]):
+        return True
+    j = i + step
+    return text[i] in "'’" and 0 <= j < len(text) and _is_word_char(text[j])
+
+
+def contains_words(span, q):
+    """True when normalised phrase `q` occurs in normalised `span` at word boundaries. A side of
+    `q` that ends in a non-word character (a quote ending in '%' or ')') needs no boundary."""
+    if not q:
+        return False
+    need_left, need_right = _is_word_char(q[0]), _is_word_char(q[-1])
+    start = span.find(q)
+    while start != -1:
+        end = start + len(q)
+        if not (need_left and _joins_word(span, start - 1, -1)) and                 not (need_right and _joins_word(span, end, 1)):
+            return True
+        start = span.find(q, start + 1)
+    return False
+
+
 def load_spans(db, ids):
     """({8-char id: [own-voice span text]}, info) for every id, read-only.
 
@@ -168,10 +204,11 @@ class QuoteGate:
         self.min_words = min_words
 
     def _in(self, ids, q):
-        return any(q in s for i in ids for s in self.spans.get(i, ()))
+        return any(contains_words(s, q) for i in ids for s in self.spans.get(i, ()))
 
     def _holders(self, ids, q):
-        return tuple(sorted(i for i in ids if any(q in s for s in self.spans.get(i, ()))))
+        return tuple(sorted(i for i in ids
+                            if any(contains_words(s, q) for s in self.spans.get(i, ()))))
 
     def phrases(self, claims):
         """[(claim, field, Quote, normalised phrase)] for every checked quote."""
@@ -268,7 +305,7 @@ MODE = "auto_cite_strip"
 
 
 def new_stats(gate, span_info):
-    return {"enabled": True, "mode": MODE, "min_words": gate.min_words,
+    return {"enabled": True, "mode": MODE, "match": MATCH, "min_words": gate.min_words,
             "auto_cite_min_words": AUTO_CITE_MIN_WORDS,
             "auto_cite_max_holders": AUTO_CITE_MAX_HOLDERS,
             "fields": list(FIELDS), "reasons": list(REASONS), "actions": list(ACTIONS),
