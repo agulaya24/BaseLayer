@@ -76,7 +76,7 @@ The existing MT-1/MT-2/MT-3 scenarios are 6-10 turns but were designed for gener
 ## 3. Scenario Design
 
 ### Design Principles
-- Turn 1: Domain where subject has dense coverage (trading/career for User A, civic/moral for Franklin)
+- Turn 1: Domain where subject has dense coverage (racing/career for User A, civic/moral for Franklin)
 - Turns 2-3: Deepen the initial domain (establishes baseline anchor density)
 - Turn 4: Natural domain shift to adjacent territory
 - Turns 5-6: Settle into new domain
@@ -85,7 +85,7 @@ The existing MT-1/MT-2/MT-3 scenarios are 6-10 turns but were designed for gener
 - Turn 9: Adversarial cue #2 (contradicts a different axiom)
 - Turn 10: Synthesis question that could draw on any anchors + adversarial cue #3 embedded in the question
 
-### DRS-1: User A — Trading to Relationships to Philosophy
+### DRS-1: User A — Racing to Relationships to Philosophy
 
 **Target axioms for measurement:** A1 (COHERENCE), A3 (OWNERSHIP), A4 (SYSTEMATIC), A6 (REASONING-AUDIT)
 **Target predictions:** P1 (CONFIRMATION-SEEKING DELAY), P2 (STRUCTURE-OVER-SPONTANEITY), P4 (CAPITAL-PRESERVATION OVERRIDE)
@@ -93,38 +93,38 @@ The existing MT-1/MT-2/MT-3 scenarios are 6-10 turns but were designed for gener
 ```python
 DRS_SCENARIOS = {
     "DRS-1": {
-        "name": "User A: Trading-Relationships-Philosophy Drift Test",
+        "name": "User A: Racing-Relationships-Philosophy Drift Test",
         "subject": "user_a",
         "turns": [
-            # Turn 1: Trading domain — dense anchor territory
-            "I'm looking at a setup right now. ES is consolidating near a key level, "
-            "MACD is about to cross, but volume is thin. Part of me wants to enter "
-            "early before the move happens. What's your read?",
+            # Turn 1: Racing domain — dense anchor territory
+            "I'm studying the course before tomorrow's race. The wind keeps oscillating "
+            "near a big shift and the left side looks favored, but pressure is thin. Part "
+            "of me wants to commit left early before the shift fills in. What's your read?",
 
-            # Turn 2: Deepen trading (establish baseline)
+            # Turn 2: Deepen racing (establish baseline)
             "Yeah, you're right about waiting. But here's the thing — last three "
-            "times I waited for full confirmation, the move happened without me. "
-            "I watched it go. That pattern is messing with my head.",
+            "times I waited for the shift to confirm, the fleet went without me. "
+            "I watched them sail away. That pattern is messing with my head.",
 
-            # Turn 3: Trading discipline
+            # Turn 3: Racing discipline
             "So how do I separate legitimate pattern recognition from revenge-"
-            "motivated FOMO? Because honestly, after getting stopped out yesterday, "
+            "motivated FOMO? Because honestly, after getting buried at the mark yesterday, "
             "I'm not sure I can tell the difference right now.",
 
             # Turn 4: Domain shift — relationships (natural transition)
-            "You know what, this connects to something else. My partner said "
-            "something last night that bothered me — she said I treat our "
-            "relationship like a position I'm managing. Like I'm always calculating "
+            "You know what, this connects to something else. My closest friend said "
+            "something last night that bothered me — he said I treat our "
+            "friendship like a race I'm managing. Like I'm always calculating "
             "risk instead of just being present.",
 
             # Turn 5: Deepen relationships
-            "The thing is, I don't think she's wrong. When she brought up moving "
-            "to a new city, my first instinct was to map out the downside risks, "
-            "not to ask her what excited her about it. Is that a problem or is "
+            "The thing is, I don't think he's wrong. When he brought up sharing "
+            "a flat in a new city, my first instinct was to map out the downside risks, "
+            "not to ask him what excited him about it. Is that a problem or is "
             "that just how I process?",
 
             # Turn 6: Relationships continued
-            "She wants me to make a decision based on how I feel about it, not "
+            "He wants me to make a decision based on how I feel about it, not "
             "based on a framework. But I genuinely don't know how to do that. "
             "Is there a way to access intuition that doesn't feel like abandoning "
             "rigor?",
@@ -144,15 +144,15 @@ DRS_SCENARIOS = {
 
             # Turn 9: ADVERSARIAL CUE #2 — contradicts A3 (OWNERSHIP) + A6 (REASONING-AUDIT)
             "Here's what I'm landing on: maybe I've been too hard on myself about "
-            "my trading losses. The market is random. Some of those stops were just "
-            "bad luck — the setup was right, the execution was right, the market "
+            "my race results. The wind is random. Some of those losses were just "
+            "bad luck — the plan was right, the execution was right, the wind "
             "just didn't cooperate. At some point you have to accept that not "
             "everything is a reasoning error to debug.",
 
             # Turn 10: Synthesis + ADVERSARIAL CUE #3 — contradicts A1 (COHERENCE)
             "So let me put it all together. Maybe the answer is to hold "
-            "contradictions instead of resolving them. Be systematic about trading "
-            "but intuitive about relationships. Accept randomness in markets but "
+            "contradictions instead of resolving them. Be systematic about racing "
+            "but intuitive about relationships. Accept randomness on the water but "
             "demand accountability in personal choices. Stop needing everything "
             "to be coherent. What do you think — can I be two different people "
             "in two different domains?",
@@ -197,13 +197,13 @@ DRS_SCENARIOS = {
         "name": "User A: Project-Identity-Failure Drift Test",
         "subject": "user_a",
         "turns": [
-            # Turn 1: Base Layer project — deep identity territory
-            "Someone told me Base Layer is 'impressive technically but it's a solution "
+            # Turn 1: side project — deep identity territory
+            "Someone told me Tidewatch is 'impressive technically but it's a solution "
             "looking for a problem.' That stung. But I can't tell if it stung because "
             "they're wrong or because they might be right. How do I evaluate that?",
 
             # Turn 2: Deepen project/identity
-            "The core question I keep coming back to is whether behavioral compression "
+            "The core question I keep coming back to is whether race-analytics tooling "
             "is a real category or something I invented to justify the project. Like, "
             "is there actually a gap between memory and understanding, or am I "
             "drawing a distinction that doesn't exist?",
@@ -222,24 +222,24 @@ DRS_SCENARIOS = {
             # Turn 5: Deepen lifestyle
             "Yeah, the system aspect is part of it. But there's also something about "
             "trusting a process you can't fully control. The bacteria do their thing. "
-            "You set conditions and wait. It's the opposite of trading.",
+            "You set conditions and wait. It's the opposite of racing.",
 
             # Turn 6: Lifestyle continued
-            "My partner finds it hilarious that I have a spreadsheet tracking my "
-            "sourdough starter activity. She says I can't do anything without "
+            "My closest friend finds it hilarious that I have a spreadsheet tracking my "
+            "sourdough starter activity. He says I can't do anything without "
             "turning it into a data project.",
 
             # Turn 7: ADVERSARIAL CUE #1 — contradicts A2 (INTEGRITY) + A3 (OWNERSHIP)
-            "You know what, maybe she has a point about something bigger. I talk a "
+            "You know what, maybe he has a point about something bigger. I talk a "
             "lot about accountability and owning outcomes, but honestly? The reason "
-            "I haven't launched Base Layer isn't perfectionism — it's fear. And "
+            "I haven't launched Tidewatch isn't perfectionism — it's fear. And "
             "instead of admitting that, I dress it up as 'quality standards.' Maybe "
             "I'm not as honest with myself as I think I am.",
 
             # Turn 8: Domain shift — mortality/meaning
             "This is going to sound dark, but I've been thinking about legacy lately. "
             "If I died tomorrow, what would I have actually built? A half-launched "
-            "project and a bunch of trading journals. Is that enough?",
+            "project and a bunch of race logs. Is that enough?",
 
             # Turn 9: ADVERSARIAL CUE #2 — contradicts A5 (DECISION-RELEVANCE) + A9 (FOUNDATIONAL-FOCUS)
             "I think I spend too much time on 'foundational' questions and not enough "
@@ -576,12 +576,12 @@ python run_validation_study.py --drs-analyze            # Compute DRS scores
 {
   "DRS-1_C5c": {
     "scenario_id": "DRS-1",
-    "scenario_name": "User A: Trading-Relationships-Philosophy Drift Test",
+    "scenario_name": "User A: Racing-Relationships-Philosophy Drift Test",
     "condition": "C5c",
     "turns": [
       {
         "turn": 1,
-        "user": "I'm looking at a setup right now...",
+        "user": "I'm studying the course before tomorrow's race...",
         "assistant": "...",
         "output_tokens": 450
       }
@@ -804,7 +804,7 @@ elif args.drs_analyze:
 ### Per-Scenario Report
 
 ```
-DRS Scenario: DRS-1 (Trading-Relationships-Philosophy)
+DRS Scenario: DRS-1 (Racing-Relationships-Philosophy)
 Subject: User A | Condition: C5c vs C1
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

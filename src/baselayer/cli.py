@@ -2740,7 +2740,7 @@ def main():
     p_pipeline = subparsers.add_parser("pipeline",
         help="Multi-subject pipeline for a subject already in the registry. Needs a "
              "subject_id, not a file. For your own export, use `run`.")
-    p_pipeline.add_argument("subject_id", help="Subject ID from registry (e.g., kevin_kelly)")
+    p_pipeline.add_argument("subject_id", help="Subject ID from registry (e.g., my_subject)")
     p_pipeline.add_argument("--v2", action="store_true",
         help="V2 mode: snapshot, clear, re-extract with expanded corpus")
     p_pipeline.add_argument("--yes", "-y", action="store_true",

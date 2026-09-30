@@ -59,9 +59,9 @@ These test PATTERNS — the kind of thing a behavioral spec should predict bette
 - Ground truth: Publicly verifiable (SEC filings, press coverage, actual returns)
 - Behavioral questions: "When a major investment lost 40%, did Buffett hold or sell?" "When asked about crypto, what framework did he use to dismiss it?" "When the pandemic hit, what did he buy/sell first?"
 
-**Scott Alexander (with consent):**
-- Training: SSC posts 2013-2020
-- Test: ACX posts 2021-2026
+**A living writer with a long public blog archive (only with the writer's explicit consent):**
+- Training: blog posts, earlier period
+- Test: blog posts, later period
 - Decisions: Topic selection, argumentative positions, prediction updates
 - Ground truth: Publicly available posts
 - Behavioral questions: "When presented with controversial evidence on [topic], did he steelman or dismiss?" "When a prior prediction was wrong, did he update publicly?" "When a political topic arose, did he engage or avoid?"
@@ -140,7 +140,7 @@ Situations the person hadn't faced before the split point. Tests whether behavio
 
 2. **How do we generate decisions for historical figures?** For Aarik, decisions come from session logs. For Buffett, decisions come from... what? Shareholder letters describe decisions retrospectively. Do we extract decision points from the test corpus and formulate them as prediction questions? That's clean but labor-intensive.
 
-3. **What's the minimum viable number of decisions for statistical significance?** v1 had 15 decisions and that felt thin. Scott Alexander (ACL 2024 collective review) said 30 minimum for chi-square. But 30 well-crafted behavioral decisions per subject is a lot of work.
+3. **What's the minimum viable number of decisions for statistical significance?** v1 had 15 decisions and that felt thin. A reviewer (ACL 2024 collective review) said 30 minimum for chi-square. But 30 well-crafted behavioral decisions per subject is a lot of work.
 
 4. **Should the spec be re-authored at each split or authored once at the earliest split?** If we re-author at 25%, 50%, 75%, we measure whether more data → better spec. If we author once at 25% and test across all future windows, we measure how far a thin spec can reach. Both are interesting. The re-authoring approach is 3x the pipeline cost.
 
