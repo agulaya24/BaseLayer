@@ -58,6 +58,52 @@ from baselayer.config import (
 # ===========================================================================
 
 
+# Set by `baselayer run --accept-gaps` (cli._coverage_gate). Recorded in the gaps manifest.
+COVERAGE_GAPS_ACCEPTED = False
+# One id per authoring process: every layer it writes points to the same gaps manifest.
+_SPEC_RUN_ID = None
+_SPEC_LAYERS = []
+
+
+def spec_run_id() -> str:
+    global _SPEC_RUN_ID
+    if _SPEC_RUN_ID is None:
+        import os
+        import time
+        _SPEC_RUN_ID = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime()) + "_" + os.urandom(3).hex()
+    return _SPEC_RUN_ID
+
+
+def _coverage_gap_lines(file_path, layer_name) -> list:
+    """The chunk ledger's quarantined chunks (parts of the corpus no fact was extracted from)
+    are STATED beside the layers, never inside them (design decision 2026-09-29): a gaps manifest,
+    `coverage_gaps_<spec_run_id>.json`, is written next to the layer and next to its history
+    copy, and the frontmatter carries only a pointer, the count and whether the gaps were
+    accepted. A corpus with no ledger (legacy extraction) gets no manifest and no lines."""
+    from baselayer import chunk_ledger as _cl
+    rid = spec_run_id()
+    if layer_name not in _SPEC_LAYERS:
+        _SPEC_LAYERS.append(layer_name)
+    with contextlib.closing(get_db()) as conn:
+        if not _cl.table_exists(conn):
+            return []
+        m = _cl.gaps_manifest(conn, run_id=rid, producer="author_layers.store_layer",
+                              accepted=bool(COVERAGE_GAPS_ACCEPTED),
+                              output=[n.lower() for n in _SPEC_LAYERS])
+    name = f"coverage_gaps_{rid}.json"
+    for where in (Path(file_path).parent, IDENTITY_LAYERS_DIR / "history"):
+        where.mkdir(parents=True, exist_ok=True)
+        _cl.write_manifest(where / name, m)
+    lines = [f"spec_run_id: {rid}",
+             f"coverage_gaps_manifest: {name}  # quarantined chunks are stated there, not here",
+             f"coverage_gaps_count: {m['count']}"]
+    if m["count"]:
+        lines.append("coverage_gaps_accepted: "
+                     + ("true  # baselayer run --accept-gaps" if COVERAGE_GAPS_ACCEPTED
+                        else "false  # authored outside the run gate"))
+    return lines
+
+
 def _get_user_pronouns():
     """Load user pronouns from entity_map.json. Returns 'they/them' as default."""
     from baselayer.config import PROJECT_ROOT
@@ -2036,6 +2082,7 @@ def store_layer(layer_name, text, file_path, metadata_lines=None, is_regen=False
     ]
     if input_info:
         frontmatter_lines.append(f"input: {input_info}")
+    frontmatter_lines.extend(_coverage_gap_lines(file_path, layer_name))
     frontmatter_lines.append("---")
 
     content = "\n".join(frontmatter_lines) + "\n\n## Injectable Block\n\n" + text + "\n"

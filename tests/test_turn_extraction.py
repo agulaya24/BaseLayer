@@ -314,6 +314,13 @@ def test_a_raising_gate_propagates_and_commits_nothing(env, monkeypatch):
     assert _facts(env) == []
     rec = _records(env)[-1]
     assert any("aborted" in n for n in rec["notes"])
+    # The chunk is the unit of commit (the chunk ledger): the planned chunk was recorded
+    # pending before the call, and stays pending, so the next run calls it again.
+    c = env.get_db()
+    rows = [tuple(r) for r in c.execute("SELECT conversation_id, status FROM extraction_chunks")]
+    logged = c.execute("SELECT COUNT(*) FROM extraction_log").fetchone()[0]
+    c.close()
+    assert rows == [(CONV, "pending")] and logged == 0
 
 
 def test_a_storage_failure_rolls_back_the_conversation(env, monkeypatch):
@@ -334,6 +341,11 @@ def test_a_storage_failure_rolls_back_the_conversation(env, monkeypatch):
         env.ef.run_extraction()
     assert _facts(env) == []                    # first fact's INSERT rolled back
     assert FakeClient.collection.count() == 0   # and its vector removed
+    # ... and the chunk's ledger row with them: it is still pending, not done
+    c = env.get_db()
+    rows = [tuple(r) for r in c.execute("SELECT status, facts_stored FROM extraction_chunks")]
+    c.close()
+    assert rows == [("pending", 0)]
 
 
 # ---------------------------------------------------------------------------

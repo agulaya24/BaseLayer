@@ -209,12 +209,81 @@ without restating; `coverage_fragments` also asks for nothing from a fragment or
 question. The mode is part of the prompt hash, and a batch chunk keeps the mode it was
 submitted with (a plan written before the switch existed reads as `capped`). A chunk that stops on `max_tokens` is re-chunked at half the input budget and
 each part retried once (`rechunked_on_max_tokens`, listed under `rechunked`); a part that
-truncates again is a failed chunk and a suspect flag. A failed chunk (that part, or any call
-that failed: an API error after retries, a refusal, an unparseable or schema-invalid reply) is
-never marked done: it is recorded in `extraction_chunks_failed` (its body turn ids, input budget
-and turn prefix, so it can be rebuilt exactly) in the same transaction as the conversation's other
-facts, counted as an error, listed in the run record, and the run exits 1. The next run and
-`batch-extract --process --resume` retry only the recorded chunks. No conversation is halted or trimmed on a
+truncates again is a failed chunk and a suspect flag.
+
+**The chunk ledger** (`extraction_chunks`, `chunk_ledger.py`). Every chunk the sequential and batch
+turn paths send is one row: `pending`, `done`, `failed`, `quarantined` or `split`. A row's
+identity is its body pieces (turn id and offsets), input budget and turn prefix, which is what it
+takes to rebuild the chunk exactly; `input_hash` hashes its exact call input (prompt and output
+budget). A chunk is its own checkpoint: its facts, its row (`facts_stored`) and the conversation's
+logged count, which is the sum of `facts_stored` over its done rows, commit in one transaction.
+A run plans each selected conversation against its rows: a done chunk whose input is unchanged is
+never called again; a pending or failed chunk runs; a chunk whose input hash changed runs again; a
+`split` chunk (it stopped on max_tokens) is covered by its parts, which are rows with its
+`block_id` as `parent_id`; a row the current chunking no longer reaches is deleted. A failed chunk
+is `failed`, counted as an error and listed in the run record, and retried by the next run and by
+`batch-extract --process --resume` (synchronously, for the chunks that batch recorded as failed).
+Its `last_error` says why, with the error text: `max_tokens` (a part that truncated again),
+`json_decode`, `not_an_object` or `not_a_list` (unparseable), `refusal`, `no_text`, `error:` (the
+API rejected the input: 400, 413, 422), or `access:` / `unclassified:`. Only CONTENT failures count
+as attempts, so an unreachable API never counts against a chunk (design decision 2026-09-29): an
+access failure (network error, timeout, 429, 5xx, 529 overloaded, 401/403, a batch result that
+expired or was canceled, or an errored result of another error type) leaves `attempts` unchanged
+and adds to `access_errors`, so an outage never quarantines a chunk; an exception that is neither
+an API status nor a transport error is `unclassified` and does not count either. Attempts count
+across a split lineage; after three content failures (the first call and two retries) the chunk is
+`quarantined`, as is a recorded chunk that can no longer be rebuilt (`not_reproducible`).
+Quarantined chunks are not retried automatically, and a conversation with any quarantined chunk is
+marked PARTIAL (conversation flag `extraction_partial`), not extracted: its `needs_extraction` mark
+is set, even if an earlier run had cleared it (a conversation with only failed or pending chunks is
+marked as before; the ledger selects it again). Extraction exits 1 while any chunk
+is pending or failed; `baselayer run` stops before authoring over quarantined chunks unless given
+`--accept-gaps`. Quarantined chunks are STATED beside every authored artifact, never inside its
+text: a gaps manifest (conversation, block id, chunk key, why, error text, attempts, model; the
+partial conversations; the run id) is written as `coverage_gaps_<spec_run_id>.json` beside the
+static layers (each layer's frontmatter carries only a pointer, the count and whether the gaps
+were accepted), as `<out>.coverage_gaps.json` and `coverage_gaps_<layer>_<run_id>.json` beside a
+distillation tree, and as `coverage_gaps_<id>.json` (plus `coverage_gaps.json`, the latest copy)
+beside `author-from-package` layers, where the id hashes the packages and the gaps, so each layer
+stamp keeps pointing at the manifest of its own authoring run after a resume (read from
+`--db`; without it the manifest says the ledger was not checked). `baselayer chunks
+list|retry|quarantine` lists chunks, requeues a failed or quarantined chunk with its attempts
+reset, or quarantines one by hand; `chunks list --review` lists every quarantined chunk with why
+it failed, plus the review requests below.
+
+**The model and the review backlog.** Every row records the extraction model of the attempt that
+settled it (`model`; `unknown` for rows settled before the column existed). `input_hash` does not
+cover the model, so a model change invalidates nothing and never re-runs a chunk
+automatically (design decision 2026-09-29). Done work not made by the configured model is
+the model backlog: `baselayer chunks list --backlog` lists it, each run ends with one line
+counting it (known by another model, mixed, unknown, and how many done blocks matched the
+configured model by fact stamps), and `baselayer chunks ack-model <block ids> | --conv-id | --all [--note]`
+records that it was seen against the configured model, with a timestamp
+(`extraction_model_acks`; a later model change resurfaces it). Re-extracting it is a separate,
+deliberate action. Work with no recorded model (a conversation logged before the ledger, with
+no rows and none written for it, or a row settled before the column existed) takes its model
+from the `extraction_model` stamp on the facts it stored, at read time, rewriting nothing
+(existing corpora are backfilled with known models where possible;
+design decision 2026-09-29): all of a pre-ledger conversation's facts; a chunk's facts on its turns; the legacy
+block's facts on no turn another of its rows covers. Facts of more than one model, or of one
+model beside unstamped facts, read `mixed(a,b,...)` with the count per model and are never
+resolved to one of them (an acknowledgement covers that exact mix); no stamp at all reads
+`unknown`. Naming an already extracted conversation (`--conversation` on
+`python -m baselayer.extract_facts`, with an optional `--reason`, or a pilot's `conv_ids`)
+re-extracts nothing: it prints why and records a review request (`extraction_review_requests`:
+conversation, requested at, reason), because a forced re-extraction needs a case-by-case review of
+its blast radius. Naming the done legacy block of a migrated conversation to `baselayer chunks
+retry` (optional `--reason`) is the same: a review request with the block id, one printed line,
+no re-extraction; the other named chunks are still requeued and the exit code is unaffected.
+Nothing acts on a review request. On the batch path each
+result is matched to the identity and input hash it was submitted with (a prompt change between
+submit and process does not orphan the batch), and a consumed result is marked in
+`extraction_chunks_done` even when it failed: the row, not that table, says whether the chunk is
+done. A corpus extracted before the ledger has no rows: a conversation with an `extraction_log`
+row and no chunk rows counts as done and nothing re-runs it unless it grew. The earlier
+`extraction_chunks_failed` table is migrated into the ledger on first use (its failed rows, plus one
+`done` legacy block per conversation carrying the logged count) and dropped. `--reset` clears the
+ledger with the log. No conversation is halted or trimmed on a
 fact count: the run record's `density` block reports facts per 1K citable characters with the
 run's own p50/p90/p99/max and the ten densest conversations, and the runaway guard is the
 spend ceiling (`BASELAYER_SPEND_CEILING_USD`, checked before every sequential call against

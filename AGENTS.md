@@ -110,6 +110,12 @@ distillation commands (`distill`: Sonnet 5; `author-from-package`: Opus 5, Opus 
 - **`baselayer verify-spec <spec_dir> --label L --corpus C --out O`** checks a finished
   specification read-only. It is a dry run by default and calls no model. It re-gates every span of
   every gated fact and checks legacy facts at conversation level (`docs/core/VERIFY_SPEC.md`).
+- **`baselayer consolidate <spec_dir> --out O`** builds the served form of a finished
+  specification without calling a model. The output is the always-on claims in full, plus trigger
+  categories whose lines name the claim ids to pull, plus an index JSON. Every stage writes one
+  stamped JSON file, and 14 checks must pass: claim text unchanged, fact ids preserved, every claim
+  reachable, every trigger wording verbatim from an authored condition
+  (`docs/core/CONSOLIDATION.md`).
 - **Build into a fresh corpus directory** (point `MEMORY_SYSTEM_ROOT` at a new directory). Turn
   mode refuses a database holding facts not stamped with its version.
 

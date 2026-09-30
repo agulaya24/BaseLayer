@@ -3,6 +3,8 @@
     baselayer verify-spec <spec_dir> --label subject98 --corpus <corpus dir or memory.db> --out <dir>
         [--referent] [--run-model --rater cli --rater-cwd <dir outside any project> [--model sonnet]]
         [--run-model --rater api --model <id> --confirm-api-spend <usd cap>]
+        [--checks corrections,occasions,time_split,integrity,backcheck,support,...]
+        [--corrections <person>.json] [--exclude-ids FILE ...] [--backcheck-results <run dir or verdicts.json>]
 
 Default is a dry run: every deterministic check runs, the model-judged tasks are
 built and priced, and nothing calls a model. The only directory written is --out.
@@ -31,8 +33,11 @@ from .pricing import DEFAULT_OUTPUT_TOKENS, estimate, format_estimate
 from .raters import ApiRater, ClaudeCliRater, Rater, run_probe
 from .report import write_reports
 from .spec_io import load_spec
+from . import checks as modular
+from .checks.summary import compare_with_backcheck, render as render_summary
 
 MODEL_CHECKS = ("support", "voice", "fidelity", "cross", "adjudicate")
+MODULAR_CHECKS = tuple(modular.CHECKS)
 
 
 # ---------------------------------------------------------------- write guard
@@ -159,7 +164,33 @@ def build_parser(p: argparse.ArgumentParser | None = None) -> argparse.ArgumentP
     p.add_argument("--confirm-api-spend", type=float, default=None, help="api: USD cap; the run refuses if the upper estimate exceeds it")
     p.add_argument("--probe", action="store_true", help="run a context probe of the actual child first and store it beside the results")
     p.add_argument("--probe-canary", action="append", default=[], help="string whose presence in the probe answer means not blind (repeatable)")
-    p.add_argument("--checks", default=",".join(MODEL_CHECKS), help=f"model checks to build/run, from {','.join(MODEL_CHECKS)}")
+    p.add_argument("--checks", default=None,
+                   help="comma-separated checks to run. Modular, no model: "
+                        f"{','.join(MODULAR_CHECKS)}. Model-judged (built and priced; run only with --run-model): "
+                        f"{','.join(MODEL_CHECKS)}. Default: all of both; a default modular check whose input is "
+                        "missing is recorded as not_run, a named one is an error")
+    g = p.add_argument_group("modular checks")
+    g.add_argument("--corrections", default=None, metavar="JSON",
+                   help="corrections: the person's corrections rules file (one per person, kept outside this repository)")
+    g.add_argument("--exclude-ids", action="append", default=[], metavar="FILE",
+                   help="integrity: fact ids that must not be cited (repeatable; the --exclude-ids file format of distill)")
+    g.add_argument("--min-occasions", type=int, default=modular.occasions.DEFAULTS["min_occasions"],
+                   help="occasions: flag a claim resting on fewer separate occasions than this (default 2)")
+    g.add_argument("--occasion-unit", choices=modular.occasions.UNITS, default=modular.occasions.DEFAULTS["unit"],
+                   help="occasions: count distinct dates, distinct conversations, or the smaller of the two (default min)")
+    g.add_argument("--occasion-layers", default=",".join(modular.occasions.DEFAULTS["layers"]),
+                   help="occasions: layers the minimum applies to (default predictions; empty = all)")
+    g.add_argument("--tz-offset-hours", type=float, default=0.0,
+                   help="occasions: shift fact times before taking the date (default 0, UTC)")
+    g.add_argument("--split-majority", type=float, default=modular.time_split.DEFAULTS["majority"],
+                   help="time_split: share of facts a date cut must separate (default 0.8)")
+    g.add_argument("--split-min-gap-days", type=float, default=modular.time_split.DEFAULTS["min_gap_days"],
+                   help="time_split: minimum gap between the two sides' median dates (default 30)")
+    g.add_argument("--backcheck-results", default=None, metavar="PATH",
+                   help="backcheck: an external back-check's results (its directory, run directory or verdicts.json); "
+                        "loaded, never run. Also the side source for time_split")
+    g.add_argument("--backcheck-script", default=None, metavar="PATH",
+                   help="backcheck: the external back-check script, for the command recorded in the report (never executed)")
     p.add_argument("--cross-select", type=int, default=400, help="candidate claim pairs sent to the cross-claim check")
     p.add_argument("--cross-recall", type=int, default=100, help="random non-candidate pairs judged to estimate what the cut misses")
     p.add_argument("--assume-output-tokens", type=int, default=DEFAULT_OUTPUT_TOKENS)
@@ -195,10 +226,24 @@ def execute(a: argparse.Namespace, rater: Rater | None = None) -> int:
     corpus_root = Path(a.corpus).resolve()
     protected = [spec_dir, corpus_root, db.parent]
     guard_out(out, protected)
-    checks = [c.strip() for c in a.checks.split(",") if c.strip()]
-    unknown = set(checks) - set(MODEL_CHECKS)
+    explicit = a.checks is not None
+    named = [c.strip() for c in (a.checks or ",".join(MODEL_CHECKS + MODULAR_CHECKS)).split(",") if c.strip()]
+    unknown = set(named) - set(MODEL_CHECKS) - set(MODULAR_CHECKS)
     if unknown:
         raise SystemExit(f"unknown checks: {sorted(unknown)}")
+    checks = [c for c in named if c in MODEL_CHECKS]
+    mod_names = [c for c in named if c in MODULAR_CHECKS]
+    mod_options = {"corrections": a.corrections, "exclude_ids": a.exclude_ids,
+                   "backcheck_results": a.backcheck_results, "backcheck_script": a.backcheck_script}
+    if explicit:
+        for n in mod_names:
+            need = modular.missing_inputs(n, mod_options)
+            if need:
+                raise SystemExit(f"check {n} needs {', '.join(need)}")
+    mod_params = {"occasions": {"min_occasions": a.min_occasions, "unit": a.occasion_unit,
+                                "layers": tuple(x.strip() for x in a.occasion_layers.split(",") if x.strip()),
+                                "tz_offset_hours": a.tz_offset_hours},
+                  "time_split": {"majority": a.split_majority, "min_gap_days": a.split_min_gap_days}}
     out.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
 
@@ -229,6 +274,18 @@ def execute(a: argparse.Namespace, rater: Rater | None = None) -> int:
         if not a.no_existing:
             existing, f4 = check_existing(spec, corpus)
             findings += f4
+
+        # ---- modular checks (no model)
+        mod_runs, bc_data = (modular.run_checks(mod_names, spec, corpus, mod_options, mod_params)
+                             if mod_names else ({}, None))
+        for r in mod_runs.values():
+            for x in r.results:
+                if x.status != "pass":
+                    findings.append(finding(x.check, "error" if x.status == "fail" else "warn",
+                                            [x.claim] if x.claim else [],
+                                            [e for e in x.evidence_ids if str(e).startswith("F-")],
+                                            detail=x.reason, kind="modular"))
+        comparison = compare_with_backcheck(mod_runs, bc_data, spec)
 
         # ---- model tasks
         tasks = {}
@@ -332,10 +389,28 @@ def execute(a: argparse.Namespace, rater: Rater | None = None) -> int:
         "model_results": model_results,
         "findings": findings,
     }
+    report["modular_checks"] = {n: r.to_dict() for n, r in mod_runs.items()}
+    report["modular_comparison"] = comparison
+    summary["modular_checks"] = {n: {"status": r.status, **r.counts()} for n, r in mod_runs.items()}
     jp, mp = write_reports(report, out)
     print(f"wrote {jp}\nwrote {mp}")
+    if mod_runs:
+        sp = out / f"{spec.label}.summary.md"
+        tmp = sp.with_suffix(".md.tmp")
+        tmp.write_text(render_summary(spec.label, mod_runs, comparison,
+                                      {"spec_dir": spec.spec_dir, "n_claims": len(spec.claims),
+                                       "open_mode": open_info.get("open_mode"),
+                                       "out_note": "Reports are written to --out, never beside the spec: the out guard "
+                                                   "refuses any directory inside a corpus data directory."}),
+                       encoding="utf-8")
+        tmp.replace(sp)
+        print(f"wrote {sp}")
+        for n, r in mod_runs.items():
+            c = r.counts()
+            print(f"  {n:<12} {r.status:<8} pass {c['pass']:>4}  flag {c['flag']:>4}  fail {c['fail']:>4}  {r.reason[:80]}")
     failed = model_meta.get("failed_tasks") or []
-    return 2 if failed else 0
+    errored = [n for n, r in mod_runs.items() if r.status == "error"]
+    return 2 if failed or errored else 0
 
 
 def run_model_checks(a, spec, profiles, corpus, tasks, rater, raw_dir, findings, checks) -> dict:

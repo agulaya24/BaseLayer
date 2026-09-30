@@ -21,6 +21,7 @@ Run: python extract_facts.py                     # Process all conversations
 
 import contextlib
 import contextvars
+import hashlib
 import sys
 import io
 import os
@@ -912,6 +913,8 @@ def call_ollama(prompt: str, schema: dict = None, retries: int = MAX_RETRIES) ->
 
         except requests.exceptions.ConnectionError:
             print("  ERROR: Cannot connect to Ollama. Is it running? (ollama serve)")
+            if _RAISE_CALL_ERRORS.get():
+                raise                       # the turn path records it as an access failure
             return None
 
         except Exception as e:
@@ -919,6 +922,8 @@ def call_ollama(prompt: str, schema: dict = None, retries: int = MAX_RETRIES) ->
                 continue
             else:
                 print(f"  ERROR: Ollama call failed: {e}")
+                if _RAISE_CALL_ERRORS.get():
+                    raise                   # the turn path classifies it (content or access)
                 return None
 
     return None
@@ -935,9 +940,13 @@ class ExtractionResponseError(Exception):
     so callers count them instead of retrying them into a silent None.
     """
 
-    def __init__(self, reason: str):
+    def __init__(self, reason: str, detail: str = None):
         super().__init__(reason)
-        self.reason = reason
+        self.reason, self.detail = reason, detail
+
+    def describe(self) -> str:
+        """The ledger's last_error: the reason, and the error text when there is one."""
+        return (f"{self.reason}: {self.detail}" if self.detail else self.reason)[:300]
 
 
 # Per-process tally of structural response failures, read into the run record.
@@ -970,6 +979,62 @@ _CURRENT_CHUNK = contextvars.ContextVar("baselayer_current_chunk", default=None)
 # Set by the turn path around its extraction calls: a max_tokens stop is raised to the
 # caller (which re-chunks) instead of being counted and turned into None here.
 _RAISE_MAX_TOKENS = contextvars.ContextVar("baselayer_raise_max_tokens", default=False)
+# Set by the turn path too: a call that still raises after its retries is re-raised to the
+# caller, which tells a CONTENT failure (counts toward quarantine) from an ACCESS failure (does
+# not), instead of being turned into None here, where an outage read as an unusable reply.
+_RAISE_CALL_ERRORS = contextvars.ContextVar("baselayer_raise_call_errors", default=False)
+
+# Only content failures count, never access to the API (design decision 2026-09-29). A status the
+# API returns for the input itself (400 invalid request, 413 too large, 422 unprocessable) is
+# content: the same input fails the same way. Every other status (401/403 auth, 404, 408, 409,
+# 429, 5xx, 529 overloaded) and every transport error is access.
+_CONTENT_STATUSES = frozenset({400, 413, 422})
+_CONTENT_BATCH_ERRORS = frozenset({"invalid_request_error", "request_too_large"})
+
+
+def classify_call_error(exc) -> str:
+    """'content', 'access' or 'unclassified' for an exception raised by an extraction call.
+    Only 'content' counts toward a chunk's quarantine. 'unclassified' (not an API status and
+    not a transport error, e.g. a bug of ours) does not count either: it stays failed and
+    visible, and `extract` keeps exiting 1 on it."""
+    status = getattr(exc, "status_code", None)
+    if not isinstance(status, int):
+        status = getattr(getattr(exc, "response", None), "status_code", None)
+    if isinstance(status, int):
+        return "content" if status in _CONTENT_STATUSES else "access"
+    try:
+        import anthropic
+        if isinstance(exc, anthropic.APIConnectionError):     # includes APITimeoutError
+            return "access"
+    except ImportError:
+        pass
+    if isinstance(exc, (ConnectionError, TimeoutError, OSError)):   # requests' too
+        return "access"
+    return "unclassified"
+
+
+def call_error_reason(exc, kind: str) -> str:
+    """The ledger's last_error for a raised call: prefixed `access:` or `unclassified:` when it
+    does not count toward quarantine."""
+    text = f"{type(exc).__name__}: {exc}"
+    return (f"{kind}: {text}" if kind != "content" else f"error: {text}")[:300]
+
+
+def classify_batch_failure(result) -> tuple:
+    """(kind, reason) for a batch result that did not succeed. expired and canceled are access;
+    errored is content only for an input the API rejected (invalid_request_error,
+    request_too_large), access for any other error type, unclassified when no type is given."""
+    rtype = getattr(result, "type", None)
+    if rtype in ("expired", "canceled"):
+        return "access", f"access: batch result {rtype}"
+    err = getattr(result, "error", None)
+    inner = getattr(err, "error", None) or err
+    etype = getattr(inner, "type", None)
+    if etype in _CONTENT_BATCH_ERRORS:
+        return "content", f"{rtype}: {etype}"
+    if etype:
+        return "access", f"access: batch result {rtype}: {etype}"
+    return "unclassified", f"unclassified: batch result {rtype} (no error type given)"
 
 
 def reset_usage():
@@ -1111,14 +1176,18 @@ def call_anthropic(prompt: str, schema: dict = None, retries: int = MAX_RETRIES,
             # or a max_tokens truncation spends money and returns the same thing.
             _count_response_failure(e.reason)
             print(f"  WARNING: extraction response unusable ({e.reason})")
+            if _RAISE_CALL_ERRORS.get():
+                raise                       # the turn path records WHY on the chunk's row
             return None
 
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as e:
             if attempt >= retries:
                 _count_response_failure("json_decode")
             if attempt < retries:
                 continue
             else:
+                if _RAISE_CALL_ERRORS.get():
+                    raise ExtractionResponseError("json_decode", str(e)) from e
                 return None
 
         except Exception as e:
@@ -1126,6 +1195,8 @@ def call_anthropic(prompt: str, schema: dict = None, retries: int = MAX_RETRIES,
                 continue
             else:
                 print(f"  ERROR: Anthropic API call failed: {e}")
+                if _RAISE_CALL_ERRORS.get():
+                    raise                   # the turn path classifies it (content or access)
                 return None
 
     return None
@@ -2160,12 +2231,15 @@ def turn_stamps() -> dict:
 class TurnChunkResult:
     """One chunk's outcome. `budget` and `upto` say how the chunk was built (input character
     budget; built from the first `upto` turns, 0 = all), so a failed chunk can be rebuilt
-    exactly and retried alone. `reason` names why a failed chunk failed."""
-    __slots__ = ("chunk", "raw_facts", "failed", "budget", "upto", "reason")
+    exactly and retried alone. `reason` names why a failed chunk failed; `counted` is False for
+    an access (or unclassified) failure, which never counts toward quarantine."""
+    __slots__ = ("chunk", "raw_facts", "failed", "budget", "upto", "reason", "counted")
 
-    def __init__(self, chunk, raw_facts, failed=False, budget=None, upto=0, reason=None):
+    def __init__(self, chunk, raw_facts, failed=False, budget=None, upto=0, reason=None,
+                 counted=True):
         self.chunk, self.raw_facts, self.failed = chunk, raw_facts, failed
         self.budget, self.upto, self.reason = budget, upto, reason
+        self.counted = counted
 
 
 def turn_extraction_plan(turns, source: str) -> dict:
@@ -2209,15 +2283,23 @@ def _call_turn_chunk(conv_title: str, ch, plan: dict, project_session: bool, chu
     prompt = turn_chunk_prompt(conv_title, ch, plan, project_session)
     tok = _CURRENT_CHUNK.set({"chunk": chunk_label, "citable_chars": ch.citable_chars})
     raise_tok = _RAISE_MAX_TOKENS.set(True)
+    err_tok = _RAISE_CALL_ERRORS.set(True)
     try:
         result = call_llm(prompt, schema=TURN_EXTRACT_SCHEMA,
                           max_tokens=turn_chunk_max_tokens(ch, plan))
     finally:
+        _RAISE_CALL_ERRORS.reset(err_tok)
         _RAISE_MAX_TOKENS.reset(raise_tok)
         _CURRENT_CHUNK.reset(tok)
-    if result and isinstance(result.get("facts"), list):
-        return result["facts"]
-    return None
+    # An unreadable reply is a content failure with a name, never an exception of another
+    # kind here. None (a backend that returned nothing usable) stays "unusable_response".
+    if result is None:
+        return None
+    if not isinstance(result, dict):
+        raise ExtractionResponseError("not_an_object", f"reply is a {type(result).__name__}")
+    if not isinstance(result.get("facts"), list):
+        raise ExtractionResponseError("not_a_list", "reply has no facts list")
+    return result["facts"]
 
 
 def rechunk_after_max_tokens(conv_title: str, turns, source: str, *, failed_index,
@@ -2246,19 +2328,23 @@ def rechunk_after_max_tokens(conv_title: str, turns, source: str, *, failed_inde
         if record is not None:
             record.c["chunks_called"] += 1
             record.c["rechunk_calls"] += 1
-        reason = "unusable_response"
+        reason, counted = "unusable_response", True
         try:
             facts = _call_turn_chunk(conv_title, part, plan, project_session, label)
-        except ExtractionResponseError as e:          # truncated again: count, list, go on
-            _count_response_failure(e.reason)
-            entry["still_truncated"] += 1
-            facts, reason = None, "max_tokens"
+        except ExtractionResponseError as e:
+            if e.reason == "max_tokens":              # truncated again: count, list, go on
+                _count_response_failure(e.reason)
+                entry["still_truncated"] += 1
+            facts, reason = None, e.describe()
+        except Exception as e:                         # the call raised: content or access
+            kind = classify_call_error(e)
+            facts, reason, counted = None, call_error_reason(e, kind), kind == "content"
         if facts is None:
             entry["failed"] += 1
             if record is not None:
                 record.c["chunks_failed"] += 1
             results.append(TurnChunkResult(part, None, failed=True, budget=half, upto=upto,
-                                           reason=reason))
+                                           reason=reason, counted=counted))
         else:
             results.append(TurnChunkResult(part, facts, budget=half, upto=upto))
     return results
@@ -2284,7 +2370,14 @@ def extract_turn_chunks(conv_title: str, turns, source: str, *, project_session:
             record.c["context_chars"] += len(ch.rendered_context)
         try:
             facts = _call_turn_chunk(conv_title, ch, plan, project_session, ch.index)
-        except ExtractionResponseError:               # max_tokens: re-chunk, retry once
+        except ExtractionResponseError as e:
+            if e.reason != "max_tokens":              # refused or unreadable: failed
+                if record is not None:
+                    record.c["chunks_failed"] += 1
+                results.append(TurnChunkResult(ch, None, failed=True,
+                                               budget=plan["input_char_budget"],
+                                               reason=e.describe()))
+                continue
             results.extend(rechunk_after_max_tokens(
                 conv_title, turns, source, failed_index=ch.index,
                 body_ids={p.turn.turn_id for p in ch.body},
@@ -2331,7 +2424,7 @@ def gate_turn_chunks(results, referent) -> list:
 
 
 def finalize_turn_facts(gated, message_count: int, plan: dict, *, project_session: bool,
-                        record=None) -> list[dict]:
+                        record=None, density: bool = True) -> list[dict]:
     """Phase 3: normalise the accepted facts (the per-chunk cap applies in capped
     mode only) and add the conversation to the density alarm. Every drop is counted
     in the run record; nothing is trimmed at the conversation level."""
@@ -2353,7 +2446,7 @@ def finalize_turn_facts(gated, message_count: int, plan: dict, *, project_sessio
     # conversation is REPORTED in the run record's density block (the alarm), never cut;
     # the runaway guard is the spend ceiling. Capped mode keeps only its per-chunk
     # truncation above, which is what its prompt promised the model.
-    if record is not None:
+    if record is not None and density:
         record.density.append({"conversation_id": _CURRENT_CONVERSATION.get(),
                                "citable_chars": plan.get("citable_chars"),
                                "facts": len(facts)})
@@ -2403,10 +2496,13 @@ def merge_noop_spans(conn, target_id, spans, version: str, record=None) -> int:
 
 def store_turn_facts(conn, conv_id: str, facts: list[dict], fact_collection, embed_model, *,
                      scope: str, stamp: dict, corrections=None, record=None,
-                     embedded: list = None) -> int:
+                     embedded: list = None, stored_ids: list = None,
+                     link_with=()) -> int:
     """Phase 4: AUDN against gated facts of the same contract version only,
-    then INSERT with grounding and stamp. The caller rolls back on error."""
-    stored_ids = []
+    then INSERT with grounding and stamp. The caller rolls back on error.
+    stored_ids, when given, receives the new fact ids. link_with: ids stored earlier in the
+    same conversation (other chunks), linked to these as co-occurring (D-013)."""
+    new_ids = []
     version = stamp["turn_contract_version"]
     for f in facts:
         text = f["fact"]
@@ -2459,10 +2555,15 @@ def store_turn_facts(conn, conv_id: str, facts: list[dict], fact_collection, emb
                        contract_version=version, grounding=f.get("grounding"))
             if embedded is not None:
                 embedded.append(fid)
-        stored_ids.append(fid)
-    if len(stored_ids) >= 2:
-        link_facts(conn, stored_ids, conv_id)
-    return len(stored_ids)
+        new_ids.append(fid)
+    if len(new_ids) >= 2:
+        link_facts(conn, new_ids, conv_id)
+    for a in new_ids:
+        for b in link_with or ():
+            _link_pair(conn, a, b, conv_id)
+    if stored_ids is not None:
+        stored_ids.extend(new_ids)
+    return len(new_ids)
 
 
 def _facts_stamp_counts(conn, version: str) -> tuple[int, int]:
@@ -2582,237 +2683,440 @@ def check_turn_versions(turns, record=None):
 
 
 # ---------------------------------------------------------------------------
-# Failed chunks (turn contract): recorded as FAILED, retried alone
+# The chunk ledger (turn contract): every chunk a checkpointed block
 # ---------------------------------------------------------------------------
 #
-# A chunk whose call fails (an API error after retries, a refusal, an unparseable or
-# schema-invalid reply, a part that truncated again after re-chunking) used to be dropped:
-# the conversation was logged as extracted with the other chunks' count, its import mark was
-# cleared, the batch path marked the chunk done, and nothing ever selected it again. Now:
-#   - the conversation's good chunks are still stored (nothing that worked is thrown away);
-#   - each failed chunk is written here, in the same transaction, with what it takes to
-#     rebuild it exactly (its body turn ids, input budget and turn prefix);
-#   - the run counts it as an error and exits non-zero after its record is written;
-#   - the next run (sequential, or an incremental batch submit) and `--process --resume`
-#     retry ONLY these chunks. A retried chunk that truncates is re-chunked at half its own
-#     budget, so a persistent truncation is retried smaller each time, never skipped.
-# A chunk that keeps failing (a refusal, say) is retried, and fails the run, every time; the
-# row's `attempts` counts it. `--process` without --resume clears the table with the reset.
+# Each chunk of a turn-contract extraction is one row of `extraction_chunks` (chunk_ledger.py):
+# pending, done, failed, quarantined or split. A chunk is its own checkpoint: its facts, its row
+# and the conversation's logged count (the sum over its done rows) commit in one transaction,
+# so an interrupted run loses at most the chunk in flight. A run plans each selected
+# conversation against its rows:
+#   - a done chunk whose input is unchanged is never called again;
+#   - a pending or failed chunk runs; a chunk whose input hash changed is invalid and runs;
+#   - a split chunk (it stopped on max_tokens) is covered by its parts, which are rows too;
+#   - a quarantined chunk is not retried automatically (`baselayer chunks retry` requeues it);
+#   - a row the current chunking no longer reaches is deleted (the conversation changed).
+# A chunk that fails MAX_CHUNK_ATTEMPTS times (the first call and two retries), or that can no
+# longer be rebuilt (`not_reproducible`), is quarantined. A conversation logged before the
+# ledger existed, with no rows, counts as done: nothing re-runs it unless it grew.
 
-FAILED_CHUNKS_TABLE = "extraction_chunks_failed"
-_FAILED_PLAN_KEYS = ("max_facts", "per_chunk_cap", "max_tokens", "fact_count_mode")
+from baselayer import chunk_ledger as _cl  # noqa: E402
 
-
-def ensure_failed_chunks_table(conn) -> None:
-    conn.execute(f"""
-        CREATE TABLE IF NOT EXISTS {FAILED_CHUNKS_TABLE} (
-            conversation_id TEXT NOT NULL,
-            chunk_key TEXT NOT NULL,            -- JSON list of the chunk's body turn ids, sorted
-            input_char_budget INTEGER NOT NULL, -- the budget the chunk was built with
-            turns_upto INTEGER NOT NULL,        -- built from the first N turns; 0 = all
-            plan TEXT NOT NULL,                 -- JSON: the plan fields the call used
-            path TEXT NOT NULL,                 -- sequential | batch
-            reason TEXT NOT NULL,
-            attempts INTEGER NOT NULL DEFAULT 1,
-            batch_id TEXT,
-            recorded_at REAL NOT NULL,
-            PRIMARY KEY (conversation_id, chunk_key, input_char_budget, turns_upto)
-        )""")
-
-
-def failed_chunks_table_exists(conn) -> bool:
-    return conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
-                        (FAILED_CHUNKS_TABLE,)).fetchone() is not None
+_LEDGER_PLAN_KEYS = ("max_facts", "per_chunk_cap", "max_tokens", "fact_count_mode")
+MAX_CHUNK_ATTEMPTS = _cl.MAX_CHUNK_ATTEMPTS
 
 
 def chunk_key(body_turn_ids) -> str:
+    """The pre-ledger key (sorted body turn ids) of `extraction_chunks_failed` rows. It is not
+    unique when one long turn is split across several chunks; migrated rows keep it."""
     return json.dumps(sorted(body_turn_ids), separators=(",", ":"))
 
 
-def failed_chunk(conv_id: str, body_turn_ids, budget: int, upto: int, plan: dict, path: str,
-                 reason: str) -> dict:
-    return {"conversation_id": conv_id, "chunk_key": chunk_key(body_turn_ids),
-            "input_char_budget": int(budget), "turns_upto": int(upto or 0),
-            "plan": json.dumps({k: plan.get(k) for k in _FAILED_PLAN_KEYS}, sort_keys=True),
-            "path": path, "reason": reason or "unusable_response"}
+def ledger_chunk_key(ch) -> str:
+    """A chunk's identity: its body pieces in order, [[turn_id, start, end], ...]."""
+    return json.dumps([[p.turn.turn_id, p.start, p.end] for p in ch.body],
+                      separators=(",", ":"))
 
 
-def failures_of(results, conv_id: str, plan: dict, path: str) -> list:
-    """failed_chunk rows for every failed TurnChunkResult."""
-    return [failed_chunk(conv_id, r.chunk.body_voice, r.budget or plan["input_char_budget"],
-                         r.upto, plan, path, r.reason)
-            for r in results if r.failed]
-
-
-def load_failed_chunks(conn, conv_id: str) -> list:
-    if not failed_chunks_table_exists(conn):
-        return []
-    cur = conn.execute(f"SELECT conversation_id, chunk_key, input_char_budget, turns_upto, "
-                       f"plan, path, reason, attempts FROM {FAILED_CHUNKS_TABLE} "
-                       f"WHERE conversation_id = ? ORDER BY recorded_at, chunk_key", (conv_id,))
-    cols = [d[0] for d in cur.description]
-    return [dict(zip(cols, r)) for r in cur.fetchall()]
-
-
-def failed_chunk_conversations(conn) -> set:
-    if not failed_chunks_table_exists(conn):
-        return set()
-    return {r[0] for r in conn.execute(
-        f"SELECT DISTINCT conversation_id FROM {FAILED_CHUNKS_TABLE}")}
-
-
-def write_failed_chunks(conn, conv_id: str, failures, *, replace_all: bool, resolved=(),
-                        batch_id: str = None) -> None:
-    """Record failed chunks. The caller commits, with the facts, in one transaction.
-    replace_all: a full extraction of the conversation supersedes every earlier row.
-    resolved: (chunk_key, input_char_budget, turns_upto) of rows a retry settled.
-    A failure that is already recorded has its attempts counted up."""
-    ensure_failed_chunks_table(conn)
-    if replace_all:
-        conn.execute(f"DELETE FROM {FAILED_CHUNKS_TABLE} WHERE conversation_id = ?", (conv_id,))
-    for key, budget, upto in resolved:
-        conn.execute(f"DELETE FROM {FAILED_CHUNKS_TABLE} WHERE conversation_id = ? AND "
-                     f"chunk_key = ? AND input_char_budget = ? AND turns_upto = ?",
-                     (conv_id, key, budget, upto))
-    now = time.time()
-    for f in failures:
-        conn.execute(f"""
-            INSERT INTO {FAILED_CHUNKS_TABLE} (conversation_id, chunk_key, input_char_budget,
-                turns_upto, plan, path, reason, attempts, batch_id, recorded_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(conversation_id, chunk_key, input_char_budget, turns_upto) DO UPDATE SET
-                attempts = attempts + 1, reason = excluded.reason, path = excluded.path,
-                plan = excluded.plan, batch_id = excluded.batch_id,
-                recorded_at = excluded.recorded_at
-        """, (f["conversation_id"], f["chunk_key"], f["input_char_budget"], f["turns_upto"],
-              f["plan"], f["path"], f["reason"], 1, batch_id, now))
-
-
-def note_failed_chunks(record, failures) -> None:
-    """Count and list the failed chunks this run leaves open, in the run record."""
-    if record is None:
-        return
-    record.c["chunks_failed_open"] += len(failures)
-    for f in failures:
-        record.failed_chunks.append({
-            "conversation_id": f["conversation_id"], "path": f["path"], "reason": f["reason"],
-            "body_turns": len(json.loads(f["chunk_key"])),
-            "input_char_budget": f["input_char_budget"], "turns_upto": f["turns_upto"]})
-
-
-def rebuild_failed_chunk(turns, source: str, row: dict):
-    """The chunk a failed-chunk row describes, rebuilt from the current turns, or None when
-    no chunk with the same body turns is built any more (the turns or settings changed)."""
-    upto = row["turns_upto"]
-    for ch in build_turn_chunks(turns[:upto] if upto else turns, source,
-                                row["input_char_budget"]):
-        if ch.has_citable and chunk_key(ch.body_voice) == row["chunk_key"]:
+def rebuild_chunk(turns, source: str, key: str, budget: int, upto: int):
+    """The chunk a ledger row describes, rebuilt from the current turns, or None when no chunk
+    with that identity is built any more (the turns or the chunking changed)."""
+    try:
+        parsed = json.loads(key)
+        chunks = build_turn_chunks(turns[:upto] if upto else turns, source, budget)
+    except (TypeError, ValueError):
+        return None
+    piece_level = bool(parsed) and isinstance(parsed[0], list)
+    for ch in chunks:
+        if ch.has_citable and (ledger_chunk_key(ch) if piece_level
+                               else chunk_key(ch.body_voice)) == key:
             return ch
     return None
 
 
-def failed_chunk_plan(base: dict, row: dict) -> dict:
-    """The plan a failed chunk is retried with: the conversation's current plan, overlaid with
-    the recorded fields and the chunk's own input budget."""
-    plan = dict(base, **{k: v for k, v in json.loads(row["plan"]).items() if v is not None})
+def chunk_input_hash(conv_title: str, ch, plan: dict, project_session: bool) -> str:
+    """Hash of a chunk's exact call input: the prompt (title, section header, entity hints,
+    mode, the rendered context and body) and its output budget. Identical on the sequential
+    and batch paths."""
+    prompt = turn_chunk_prompt(conv_title, ch, plan, project_session)
+    raw = f"{prompt}\x00max_tokens={turn_chunk_max_tokens(ch, plan)}"
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:32]
+
+
+def row_plan(base: dict, row: dict) -> dict:
+    """The plan a recorded chunk runs with: the conversation's current plan, overlaid with the
+    recorded fields and the chunk's own input budget."""
+    try:
+        recorded = json.loads(row.get("plan") or "{}")
+    except ValueError:
+        recorded = {}
+    plan = dict(base, **{k: v for k, v in recorded.items() if v is not None})
     plan["input_char_budget"] = row["input_char_budget"]
     return plan
 
 
-def upsert_log_sum(conn, conv_id: str, stored: int) -> None:
-    """A retry ADDS its facts to the conversation's logged count; it never replaces it."""
-    conn.execute("""
-        INSERT INTO extraction_log (conversation_id, facts_extracted, processed_at)
-        VALUES (?, ?, ?)
-        ON CONFLICT(conversation_id) DO UPDATE SET
-            facts_extracted = MAX(facts_extracted, 0) + excluded.facts_extracted,
-            processed_at = excluded.processed_at
-    """, (conv_id, stored, time.time()))
+def _plan_json(plan: dict) -> str:
+    return json.dumps({k: plan.get(k) for k in _LEDGER_PLAN_KEYS}, sort_keys=True)
 
 
-def retry_failed_chunks(conv: dict, conn, fact_collection, embed_model, *, stamps: dict, record,
-                        referent, corrections=None, identity_only: bool = False,
-                        path: str = "sequential", batch_id: str = None) -> tuple:
-    """Retry ONLY the recorded failed chunks of one conversation, synchronously. Each is
-    rebuilt exactly, called, gated and stored like any chunk; a row is deleted when its chunk
-    succeeds and kept (attempts + 1) when it fails again. A chunk that can no longer be
-    rebuilt stays recorded as `not_reproducible`. Returns (facts stored, failures left)."""
-    conv_id, source = conv["id"], conv.get("source", "unknown")
-    rows = load_failed_chunks(conn, conv_id)
-    turns = _tc.load_turns(conn, conv_id)
-    if not rows or not turns:
-        return 0, 0
-    check_turn_versions(turns, record)
-    project = identity_only or is_claude_code_source(source)
-    scope = "personal" if identity_only else SCOPE_SOURCE_MAPPING.get(source, DEFAULT_SCOPE)
-    title = conv.get("title") or "Untitled"
-    base = turn_extraction_plan(turns, source)
-    results, failures, resolved, recovered = [], [], [], 0
-    fplan = None
-    for row in rows:
-        plan = failed_chunk_plan(base, row)
-        fplan = fplan or plan
-        key = (row["chunk_key"], row["input_char_budget"], row["turns_upto"])
-        record.c["chunks_retried"] += 1
-        ch = rebuild_failed_chunk(turns, source, row)
-        if ch is None:
-            record.c["chunks_not_reproducible"] += 1
-            failures.append(dict(row, path=path, reason="not_reproducible"))
-            continue
-        record.c["chunks_called"] += 1
-        label = f"retry:{ch.index}"
-        try:
-            facts = _call_turn_chunk(title, ch, plan, project, label)
-        except ExtractionResponseError:           # max_tokens: re-chunk at half this budget
-            parts = rechunk_after_max_tokens(
-                title, turns, source, failed_index=label,
-                body_ids={p.turn.turn_id for p in ch.body},
-                citable_ids=set(ch.alias_to_turn.values()), plan=plan,
-                project_session=project, record=record, path=path)
-            resolved.append(key)                  # the parts replace the row
-            left = failures_of(parts, conv_id, plan, path)
-            failures.extend(left)
-            recovered += 0 if left else 1
-            results.extend(r for r in parts if not r.failed)
-            continue
-        if facts is None:
-            record.c["chunks_failed"] += 1
-            failures.append(dict(row, path=path, reason="unusable_response"))
-        else:
-            results.append(TurnChunkResult(ch, facts, budget=row["input_char_budget"],
-                                           upto=row["turns_upto"]))
-            resolved.append(key)
-            recovered += 1
+def _row_key(row: dict) -> tuple:
+    return (row["chunk_key"], row["input_char_budget"], row["turns_upto"])
 
-    gated = gate_turn_chunks(results, referent)              # NO handler above this
-    facts = finalize_turn_facts(gated, len(turns), fplan, project_session=project,
-                                record=record)
-    embedded = []
+
+class ChunkWork:
+    """One chunk to run: the rebuilt chunk, the plan it is called with, its ledger identity
+    (key = (chunk_key, input_char_budget, turns_upto)) and the attempts already made on it."""
+    __slots__ = ("chunk", "plan", "key", "block_id", "parent_id", "input_hash", "attempts",
+                 "body_ids", "citable_ids")
+
+    def __init__(self, conv_id, chunk, plan, key, *, parent_id=None, input_hash=None,
+                 attempts=0, body_ids=None, citable_ids=None):
+        self.chunk, self.plan, self.key = chunk, plan, tuple(key)
+        self.block_id = _cl.block_id(conv_id, *self.key)
+        self.parent_id, self.input_hash = parent_id, input_hash
+        self.attempts = int(attempts or 0)
+        self.body_ids = (set(body_ids) if body_ids is not None
+                         else {p.turn.turn_id for p in chunk.body})
+        self.citable_ids = (set(citable_ids) if citable_ids is not None
+                            else set(chunk.alias_to_turn.values()))
+
+
+class LedgerPlan:
+    """What a run does with one conversation. `legacy`: logged before the ledger existed, so
+    only its recorded open chunks run."""
+
+    def __init__(self, base):
+        self.base = base
+        self.work = []            # ChunkWork, in order
+        self.stale = []           # block ids no longer reached by the current chunking
+        self.quarantine = []      # (row, reason): cannot be rebuilt
+        self.legacy = False
+        self.logged = False       # extraction_log has a row (>= 0) for the conversation
+        self.grown = False
+        self.no_citable = 0
+        self.skipped_done = 0
+        self.skipped_quarantined = 0
+        self.invalidated = 0
+
+
+def _conversation_grown(conn, conv_id: str) -> bool:
+    """Re-imported after its last extraction (the importer's needs_extraction mark)."""
     try:
-        stored = store_turn_facts(conn, conv_id, facts, fact_collection, embed_model,
-                                  scope=scope, stamp=stamps[project], corrections=corrections,
-                                  record=record, embedded=embedded)
-        upsert_log_sum(conn, conv_id, stored)
-        write_failed_chunks(conn, conv_id, failures, replace_all=False, resolved=resolved,
-                            batch_id=batch_id)
-        conn.commit()
-    except BaseException:
-        conn.rollback()
-        if embedded and fact_collection is not None:
-            fact_collection.delete(ids=embedded)
-        raise
-    record.c["facts_stored"] += stored
-    record.c["chunks_recovered"] += recovered
-    note_failed_chunks(record, failures)
-    return stored, len(failures)
+        r = conn.execute("SELECT s.needs_extraction, s.imported_at, e.processed_at "
+                         "FROM import_state s JOIN extraction_log e "
+                         "ON e.conversation_id = s.conversation_id "
+                         "WHERE s.conversation_id = ?", (conv_id,)).fetchone()
+    except sqlite3.OperationalError:
+        return False
+    return bool(r and r[0] == 1 and r[1] is not None and r[2] is not None and r[1] > r[2])
+
+
+def plan_ledger_work(conn, conv_id: str, conv_title: str, turns, source: str, *,
+                     project_session: bool, fresh: bool = False) -> LedgerPlan:
+    """Plan one conversation against its ledger rows. Read-only. `fresh` ignores the ledger
+    (a full batch submit, whose --process resets it)."""
+    base = turn_extraction_plan(turns, source)
+    lp = LedgerPlan(base)
+    rows = [] if fresh else _cl.load_rows(conn, conv_id)
+    log = None if fresh else conn.execute(
+        "SELECT facts_extracted FROM extraction_log WHERE conversation_id = ?",
+        (conv_id,)).fetchone()
+    if rows and log is None:
+        # Rows but no log row: extraction_log was reset by something that did not know the
+        # ledger (an older --reset). Nothing recorded can be trusted: plan afresh.
+        lp.stale = [r["block_id"] for r in rows]
+        rows = []
+    by_key = {_row_key(r): r for r in rows}
+    marker = by_key.pop((_cl.LEGACY_KEY, 0, 0), None)
+    children = {}
+    for r in by_key.values():
+        if r["parent_id"]:
+            children.setdefault(r["parent_id"], []).append(r)
+    logged = log is not None and log[0] is not None and log[0] >= 0
+    lp.logged = logged
+    lp.grown = logged and not fresh and _conversation_grown(conn, conv_id)
+    reachable = set()
+
+    def reach(row):
+        """A recorded row reached from its parent, or a loose (migrated) row: an open one is
+        rebuilt exactly and runs; a split one hands on to its parts."""
+        reachable.add(row["block_id"])
+        st = row["status"]
+        if st == "done":
+            lp.skipped_done += 1
+        elif st == "quarantined":
+            lp.skipped_quarantined += 1
+        elif st == "split":
+            for child in children.get(row["block_id"], []):
+                reach(child)
+        else:
+            ch = rebuild_chunk(turns, source, row["chunk_key"], row["input_char_budget"],
+                               row["turns_upto"])
+            if ch is None:
+                lp.quarantine.append((row, "not_reproducible"))
+                return
+            plan = row_plan(base, row)
+            lp.work.append(ChunkWork(conv_id, ch, plan, _row_key(row),
+                                     parent_id=row["parent_id"],
+                                     input_hash=chunk_input_hash(conv_title, ch, plan,
+                                                                 project_session),
+                                     attempts=row["attempts"]))
+
+    pre_ledger = logged and not lp.grown and (
+        (not by_key and marker is None) or (marker is not None and marker["status"] == "done"))
+    if pre_ledger:
+        # Extracted before the ledger: covered. Only its recorded open chunks run.
+        lp.legacy = True
+        for r in by_key.values():
+            if not r["parent_id"] or r["parent_id"] not in {x["block_id"]
+                                                            for x in by_key.values()}:
+                reach(r)
+        return lp
+
+    for ch in build_turn_chunks(turns, source, base["input_char_budget"]):
+        if not ch.has_citable:
+            lp.no_citable += 1
+            continue
+        key = (ledger_chunk_key(ch), base["input_char_budget"], 0)
+        h = chunk_input_hash(conv_title, ch, base, project_session)
+        row = by_key.get(key)
+        if row is not None:
+            reachable.add(row["block_id"])
+        if row is not None and row["input_hash"] == h:
+            if row["status"] in _cl.OPEN_STATUSES:
+                lp.work.append(ChunkWork(conv_id, ch, base, key, input_hash=h,
+                                         attempts=row["attempts"]))
+            else:
+                reach(row)
+            continue
+        if row is not None:
+            lp.invalidated += 1          # its input changed: it runs again, from attempt 0
+        lp.work.append(ChunkWork(conv_id, ch, base, key, input_hash=h))
+    lp.stale += [r["block_id"] for r in by_key.values() if r["block_id"] not in reachable]
+    if marker is not None:
+        lp.stale.append(marker["block_id"])  # the per-chunk plan supersedes the legacy block
+    return lp
+
+
+def apply_ledger_plan(conn, conv_id: str, lp: LedgerPlan, path: str, batch_id: str = None):
+    """Write a plan: delete stale rows, quarantine what cannot be rebuilt, record every chunk
+    to run as pending. The caller commits."""
+    _cl.delete_blocks(conn, lp.stale)
+    for row, reason in lp.quarantine:
+        _cl.upsert(conn, conv_id, _row_key(row), status="quarantined", last_error=reason)
+    for w in lp.work:
+        _cl.upsert(conn, conv_id, w.key, status="pending", parent_id=w.parent_id,
+                   input_hash=w.input_hash, plan=_plan_json(w.plan), path=path,
+                   attempts=w.attempts, facts_stored=0, batch_id=batch_id)
+
+
+def _note_quarantine(record, conv_id, row_or_work, reason, path, attempts=None):
+    if record is None:
+        return
+    record.c["chunks_quarantined"] += 1
+    key = row_or_work.key if isinstance(row_or_work, ChunkWork) else _row_key(row_or_work)
+    record.failed_chunks.append({
+        "conversation_id": conv_id, "status": "quarantined", "path": path, "reason": reason,
+        "block_id": _cl.block_id(conv_id, *key), "body_turns": _cl.body_turn_count(key[0]),
+        "input_char_budget": key[1], "turns_upto": key[2], "attempts": attempts})
+
+
+class _ConversationStopped(Exception):
+    """A chunk call raised (not an unusable reply): its row is failed and the rest of the
+    conversation stays pending for the next run."""
+
+
+class ChunkRunner:
+    """Runs and settles the chunks of one conversation, each in its own transaction."""
+
+    def __init__(self, conn, conv_id, title, turns, source, *, project_session, scope, stamp,
+                 record, referent, corrections, collection, embed_model, path,
+                 batch_id=None, base=None):
+        self.conn, self.conv_id, self.title, self.turns = conn, conv_id, title, turns
+        self.source, self.project, self.scope, self.stamp = source, project_session, scope, stamp
+        self.record, self.referent, self.corrections = record, referent, corrections
+        self.collection, self.embed_model = collection, embed_model
+        self.path, self.batch_id = path, batch_id
+        self.base = base or {}
+        # The model a synchronous call here uses (a batch result carries the model it was
+        # submitted with instead: _settle_batch_result passes it).
+        self.model = _extraction_model_name()
+        self.stored = 0          # facts stored this run
+        self.validated = 0       # facts after validation this run (the density alarm)
+        self.ids = []            # fact ids stored this run: co-occurrence links span chunks
+
+    # -- one planned chunk, called synchronously ---------------------------------------
+    def run(self, w: ChunkWork, label=None):
+        rec = self.record
+        attempts = w.attempts + 1
+        if w.attempts:
+            rec.c["chunks_retried"] += 1
+        if label is None:
+            label = f"retry:{w.chunk.index}" if (w.attempts or w.parent_id) else w.chunk.index
+        prompt = turn_chunk_prompt(self.title, w.chunk, w.plan, self.project)
+        rec.c["chunks_called"] += 1
+        rec.c["prompt_chars"] += len(prompt)
+        rec.c["context_chars"] += len(w.chunk.rendered_context)
+        try:
+            facts = _call_turn_chunk(self.title, w.chunk, w.plan, self.project, label)
+        except ExtractionResponseError as e:
+            if e.reason == "max_tokens":               # re-chunk at half its budget
+                return self.split(w, attempts, label)
+            rec.c["chunks_failed"] += 1                # refused or unreadable: content
+            return self.fail(w, attempts, e.describe())
+        except Exception as e:                         # the call raised after its retries
+            rec.c["chunks_failed"] += 1
+            kind = classify_call_error(e)
+            if kind == "content":                      # the API rejected this input: counts
+                self.fail(w, attempts, call_error_reason(e, kind))
+            else:                                      # access (or unclassified): never counts
+                self.fail(w, w.attempts, call_error_reason(e, kind), counted=False)
+            raise _ConversationStopped(str(e)) from e
+        if facts is None:
+            rec.c["chunks_failed"] += 1
+            return self.fail(w, attempts, "unusable_response")
+        self.store(w, [TurnChunkResult(w.chunk, facts)], attempts)
+        if w.attempts:
+            rec.c["chunks_recovered"] += 1
+
+    # -- settling ----------------------------------------------------------------------
+    def _row_fields(self, w: ChunkWork) -> dict:
+        return {"parent_id": w.parent_id, "input_hash": w.input_hash,
+                "plan": _plan_json(w.plan), "path": self.path, "batch_id": self.batch_id}
+
+    def split(self, w: ChunkWork, attempts: int, label, extra=None, model=None):
+        """The chunk stopped on max_tokens: mark it split, re-chunk it at half its budget and
+        settle each part as its own row (a part that truncates again fails). The parts inherit
+        the attempt count, so a truncation cannot be retried smaller forever. The parts are
+        called now, synchronously, so they record this process's model; `model` is the one
+        the truncated call used (a batch's submitted model)."""
+        _cl.upsert(self.conn, self.conv_id, w.key, status="split", attempts=attempts,
+                   facts_stored=0, last_error="max_tokens: re-chunked at half its budget",
+                   model=model or self.model, **self._row_fields(w))
+        if extra:
+            extra(0)
+        self.conn.commit()
+        parts = rechunk_after_max_tokens(
+            self.title, self.turns, self.source, failed_index=label, body_ids=w.body_ids,
+            citable_ids=w.citable_ids, plan=w.plan, project_session=self.project,
+            record=self.record, path=self.path)
+        ok = True
+        for r in parts:
+            cw = ChunkWork(self.conv_id, r.chunk, dict(w.plan, input_char_budget=r.budget),
+                           (ledger_chunk_key(r.chunk), r.budget, r.upto), parent_id=w.block_id,
+                           input_hash=chunk_input_hash(self.title, r.chunk, w.plan,
+                                                       self.project),
+                           attempts=attempts - 1)
+            if r.failed:
+                ok = False
+                # the part's lineage count is the truncated parent's; an access failure of the
+                # part adds nothing to it and can never quarantine it
+                self.fail(cw, attempts, r.reason or "unusable_response", counted=r.counted)
+            else:
+                self.store(cw, [r], attempts)
+        if w.attempts and ok:
+            self.record.c["chunks_recovered"] += 1
+
+    def fail(self, w: ChunkWork, attempts: int, reason: str, extra=None, counted=True,
+             model=None):
+        """Record a failed call. A content failure (`counted`) that reaches MAX_CHUNK_ATTEMPTS
+        is quarantined. An access failure (`counted=False`: network, timeout, 429, 5xx, auth,
+        an expired or canceled batch result) is recorded failed with its error, adds one to
+        `access_errors` and never quarantines; the caller passes the attempts unchanged."""
+        quarantined = counted and attempts >= MAX_CHUNK_ATTEMPTS
+        _cl.upsert(self.conn, self.conv_id, w.key,
+                   status="quarantined" if quarantined else "failed", attempts=attempts,
+                   facts_stored=0,
+                   last_error=(f"{reason} (quarantined after {attempts} attempts)"
+                               if quarantined else reason),
+                   model=model or self.model, **self._row_fields(w))
+        if not counted:
+            _cl.add_access_error(self.conn, w.block_id)
+            if self.record is not None:
+                self.record.c["chunks_failed_access"] += 1
+        if extra:
+            extra(0)
+        self.conn.commit()
+        if quarantined:
+            _note_quarantine(self.record, self.conv_id, w, reason, self.path, attempts)
+            return
+        rec = self.record
+        rec.c["chunks_failed_open"] += 1
+        rec.failed_chunks.append({
+            "conversation_id": self.conv_id, "status": "failed", "path": self.path,
+            "reason": reason, "block_id": w.block_id, "body_turns": len(w.body_ids),
+            "input_char_budget": w.key[1], "turns_upto": w.key[2], "attempts": attempts,
+            "counted": counted})
+
+    def store(self, w: ChunkWork, results, attempts: int, extra=None, model=None):
+        """Gate, validate and store one chunk's facts, mark its row done with the count and
+        rewrite the conversation's logged count, in one transaction."""
+        rec = self.record
+        gated = gate_turn_chunks(results, self.referent)      # NO handler above this
+        facts = finalize_turn_facts(gated, len(self.turns), w.plan,  # may SystemExit, by design
+                                    project_session=self.project, record=rec, density=False)
+        embedded, ids = [], []
+        try:
+            n = store_turn_facts(self.conn, self.conv_id, facts, self.collection,
+                                 self.embed_model, scope=self.scope, stamp=self.stamp,
+                                 corrections=self.corrections, record=rec, embedded=embedded,
+                                 stored_ids=ids, link_with=self.ids)
+            _cl.upsert(self.conn, self.conv_id, w.key, status="done", attempts=attempts,
+                       facts_stored=n, last_error=None, model=model or self.model,
+                       **self._row_fields(w))
+            _cl.refresh_log(self.conn, self.conv_id)
+            if extra:
+                extra(n)
+            self.conn.commit()
+        except BaseException:
+            # never commit a half-stored chunk, whatever stopped it (the spend ceiling raises
+            # SystemExit, which `except Exception` would let through)
+            self.conn.rollback()
+            if embedded and self.collection is not None:
+                self.collection.delete(ids=embedded)  # and leave no orphan vectors behind
+            raise
+        self.ids.extend(ids)
+        self.stored += n
+        self.validated += len(facts)
+        rec.c["facts_stored"] += n
+
+    def finish(self):
+        """After the conversation's chunks: its logged count (0 when nothing was citable), the
+        importer's mark and the density row. A conversation with any quarantined chunk is
+        marked PARTIAL (conversation flag `extraction_partial`), not extracted: its
+        needs_extraction mark stays set. Only a conversation with none is marked extracted."""
+        if _cl.has_rows(self.conn, self.conv_id):
+            _cl.refresh_log(self.conn, self.conv_id)
+        else:
+            self.conn.execute("INSERT OR REPLACE INTO extraction_log "
+                              "(conversation_id, facts_extracted, processed_at) VALUES (?, 0, ?)",
+                              (self.conv_id, time.time()))
+        if _cl.mark_extraction_state(self.conn, self.conv_id) and self.record is not None:
+            self.record.c["conversations_partial"] += 1
+        self.conn.commit()
+        if self.record is not None:
+            self.record.density.append({"conversation_id": self.conv_id,
+                                        "citable_chars": self.base.get("citable_chars"),
+                                        "facts": self.validated})
+
+
+def flag_for_review(conn, conv_id: str, reason, via: str) -> None:
+    """A named conversation is already extracted: re-extract nothing, record the request in
+    the review backlog and say so (design decision 2026-09-29): conversation and chunk boundaries can be
+    messy, so a forced re-extraction needs a blast-radius review case by case, and the request
+    is flagged instead. Nothing acts on the entry."""
+    _cl.record_review(conn, conv_id, reason, via)
+    conn.commit()
+    print(f"  {conv_id}: already extracted, not re-extracted. Recorded in the review backlog "
+          f"(`baselayer chunks list --reviews`)" + (f": {reason}" if reason else "") + ".")
 
 
 def process_turn_conversation(conv: dict, conn, fact_collection, embed_model, *,
                               stamps: dict, record, referent, corrections=None,
                               identity_only: bool = False) -> int:
-    """One conversation through the four phases. Returns facts stored, or -1
-    when the LLM phase failed. Raises (never swallows) on a gate failure,
-    missing turns, or the coverage gate."""
+    """One conversation through the four phases, chunk by chunk against the ledger. Returns
+    the facts stored this run, or -1 when the conversation has no turn rows. Raises (never
+    swallows) on a gate failure or the coverage gate."""
     conv_id, source = conv["id"], conv.get("source", "unknown")
     if conv.get("grown"):
         record.c["grown_conversations"] += 1
@@ -2829,51 +3133,44 @@ def process_turn_conversation(conv: dict, conn, fact_collection, embed_model, *,
     check_turn_versions(turns, record)
     project = identity_only or is_claude_code_source(source)
     scope = "personal" if identity_only else SCOPE_SOURCE_MAPPING.get(source, DEFAULT_SCOPE)
+    title = conv.get("title") or "Untitled"
+
+    lp = plan_ledger_work(conn, conv_id, title, turns, source, project_session=project)
+    record.c["chunks_skipped_no_citable"] += lp.no_citable
+    record.c["chunks_skipped_done"] += lp.skipped_done
+    record.c["chunks_skipped_quarantined"] += lp.skipped_quarantined
+    record.c["chunks_invalidated"] += lp.invalidated
+    if lp.legacy and not lp.work and not lp.quarantine:
+        record.c["conversations_pre_ledger"] += 1      # extracted before the ledger: done
+        if conv.get("named"):
+            flag_for_review(conn, conv_id, conv.get("review_reason"), "conv_id")
+        return 0
+    if lp.logged and not lp.work and not lp.quarantine and not lp.stale:
+        record.c["conversations_already_done"] += 1    # every chunk settled: nothing to run
+        if conv.get("named"):
+            flag_for_review(conn, conv_id, conv.get("review_reason"), "conv_id")
+        return 0
     record.c["turns"] += len(turns)
     record.c["citable_turns"] += sum(1 for t in turns if t.citable)
     record.c["turns_chars"] += sum(len(t.text) for t in turns)
     record.c["citable_chars"] += sum(len(t.text) for t in turns if t.citable)
 
+    apply_ledger_plan(conn, conv_id, lp, "sequential")
+    conn.commit()
+    for row, reason in lp.quarantine:
+        _note_quarantine(record, conv_id, row, reason, "sequential")
+    runner = ChunkRunner(conn, conv_id, title, turns, source, project_session=project,
+                         scope=scope, stamp=stamps[project], record=record, referent=referent,
+                         corrections=corrections, collection=fact_collection,
+                         embed_model=embed_model, path="sequential", base=lp.base)
     try:
-        results, plan = extract_turn_chunks(conv["title"], turns, source,
-                                            project_session=project, record=record)
-    except Exception as e:  # model / network failure only; nothing stored yet
+        for w in lp.work:
+            runner.run(w)
+    except _ConversationStopped as e:
         record.c["conversation_errors"] += 1
-        print(f"  ERROR (model phase) on '{conv['title'][:40]}': {e}")
-        conn.execute("INSERT OR REPLACE INTO extraction_log "
-                     "(conversation_id, facts_extracted, processed_at) VALUES (?, -1, ?)",
-                     (conv_id, time.time()))
-        conn.commit()
-        return -1
-
-    failures = failures_of(results, conv_id, plan, "sequential")
-    gated = gate_turn_chunks(results, referent)              # NO handler above this
-    facts = finalize_turn_facts(gated, len(turns), plan,      # may SystemExit, by design
-                                project_session=project, record=record)
-
-    embedded = []
-    try:
-        stored = store_turn_facts(conn, conv_id, facts, fact_collection, embed_model,
-                                  scope=scope, stamp=stamps[project], corrections=corrections,
-                                  record=record, embedded=embedded)
-        conn.execute("INSERT OR REPLACE INTO extraction_log "
-                     "(conversation_id, facts_extracted, processed_at) VALUES (?, ?, ?)",
-                     (conv_id, stored, time.time()))
-        # A failed chunk is recorded as FAILED, with the good chunks' facts, never dropped.
-        if failures or failed_chunks_table_exists(conn):
-            write_failed_chunks(conn, conv_id, failures, replace_all=True)
-        mark_turn_conversation_extracted(conn, conv_id)
-        conn.commit()
-    except BaseException:
-        # never commit a half-stored conversation, whatever stopped it (the spend
-        # ceiling raises SystemExit, which `except Exception` would let through)
-        conn.rollback()
-        if embedded and fact_collection is not None:
-            fact_collection.delete(ids=embedded)  # and leave no orphan vectors behind
-        raise
-    record.c["facts_stored"] += stored
-    note_failed_chunks(record, failures)
-    return stored
+        print(f"  ERROR (model phase) on '{title[:40]}': {e}")
+    runner.finish()
+    return runner.stored
 
 
 # ---------------------------------------------------------------------------
@@ -3187,13 +3484,17 @@ def link_facts(conn, fact_ids: list[str], conv_id: str):
     """Create co-occurrence edges between facts from the same conversation (D-013)."""
     for i in range(len(fact_ids)):
         for j in range(i + 1, len(fact_ids)):
-            id1, id2 = sorted([fact_ids[i], fact_ids[j]])
-            conn.execute("""
-                INSERT INTO fact_relationships (fact_id_1, fact_id_2, co_occurrence_count, source_conversation_id)
-                VALUES (?, ?, 1, ?)
-                ON CONFLICT(fact_id_1, fact_id_2) DO UPDATE SET
-                    co_occurrence_count = co_occurrence_count + 1
-            """, (id1, id2, conv_id))
+            _link_pair(conn, fact_ids[i], fact_ids[j], conv_id)
+
+
+def _link_pair(conn, a: str, b: str, conv_id: str):
+    id1, id2 = sorted([a, b])
+    conn.execute("""
+        INSERT INTO fact_relationships (fact_id_1, fact_id_2, co_occurrence_count, source_conversation_id)
+        VALUES (?, ?, 1, ?)
+        ON CONFLICT(fact_id_1, fact_id_2) DO UPDATE SET
+            co_occurrence_count = co_occurrence_count + 1
+    """, (id1, id2, conv_id))
 
 
 def embed_fact(fact_id: str, fact_text: str, category: str, collection, model,
@@ -3224,7 +3525,9 @@ def embed_fact(fact_id: str, fact_text: str, category: str, collection, model,
 def mark_turn_conversation_extracted(conn, conv_id: str) -> None:
     """Clear the importer's needs_extraction mark after a successful turn-mode
     extraction. The caller commits. A database without import_state (a turn table
-    written some other way) has nothing to clear."""
+    written some other way) has nothing to clear. The chunk runner calls
+    chunk_ledger.mark_extraction_state instead, which leaves a conversation with a quarantined
+    chunk marked partial."""
     try:
         conn.execute("UPDATE import_state SET needs_extraction = 0 WHERE conversation_id = ?",
                      (conv_id,))
@@ -3243,8 +3546,8 @@ def _turn_conversations_to_process(conn, source_filter: str = None) -> list:
       every fresh import, so on its own it cannot mean "grown"; grown is
       re-imported AFTER the last extraction (imported_at > processed_at). An
       errored conversation is therefore not retried here (use --retry-errors).
-    - A conversation with a recorded failed chunk (extraction_chunks_failed) comes back,
-      flagged `retry`: unless it also grew, only its failed chunks are called again.
+    - A conversation with a pending or failed chunk in the ledger (extraction_chunks) comes
+      back, flagged `retry`; the ledger plan runs only its chunks that are not done.
     - Conversations whose turns hold nothing citable (no own-voice turn outside a
       fork/resume copy: harness children, tool-only sessions) are not selected. They
       could never yield a fact, and returning them made `--limit N` spend its N on
@@ -3256,9 +3559,8 @@ def _turn_conversations_to_process(conn, source_filter: str = None) -> list:
     grown = ("(s.needs_extraction = 1 AND s.imported_at > e.processed_at)"
              if has_state else "0")
     join = "LEFT JOIN import_state s ON c.id = s.conversation_id" if has_state else ""
-    # A conversation with a recorded failed chunk comes back too, for that chunk alone.
-    retry = (f"EXISTS (SELECT 1 FROM {FAILED_CHUNKS_TABLE} f WHERE f.conversation_id = c.id)"
-             if failed_chunks_table_exists(conn) else "0")
+    # A conversation with a pending or failed chunk comes back too, for those chunks.
+    retry = _cl.open_sql("c") if _cl.table_exists(conn) else "0"
     sql = f"""
         SELECT c.id, c.title, c.created_at, c.message_count, c.source,
                CASE WHEN e.conversation_id IS NOT NULL AND {grown} THEN 1 ELSE 0 END AS grown,
@@ -3321,7 +3623,7 @@ def get_conversations_to_process(conn, limit: int = None, conv_id: str = None,
         """, (conv_id,)).fetchall()
     elif conv_ids is not None:
         done = ({r[0] for r in conn.execute("SELECT conversation_id FROM extraction_log")}
-                - failed_chunk_conversations(conn))
+                - _cl.open_conversations(conn))
         found = {r[0]: r for r in conn.execute(
             "SELECT id, title, created_at, message_count, source FROM conversations "
             f"WHERE id IN ({','.join('?' * len(conv_ids))})", list(conv_ids)).fetchall()}             if conv_ids else {}
@@ -3606,13 +3908,16 @@ def _should_warn_low_fact_count(total_facts: int, errors: int, *, total_chars: i
 def run_extraction(limit: int = None, conv_id: str = None,
                     identity_only: bool = False, source_filter: str = None,
                     retry_errors: bool = False, document_mode: bool = False,
-                    conv_ids: list = None):
+                    conv_ids: list = None, review_reason: str = None):
     """Main extraction pipeline.
     D-048: identity_only mode extracts personal identity facts from project conversations.
     S68: document_mode treats text as document corpus (patents, papers, reports).
     source_filter: restrict to conversations from a specific source (e.g. 'claude_code').
     retry_errors: clear errored entries and re-process those conversations.
-    conv_ids: extract exactly these conversations (a pilot sample), in one run."""
+    conv_ids: extract exactly these conversations (a pilot sample), in one run.
+    review_reason (turn contract): why a named conversation should be re-extracted. A named
+    conversation that is already extracted is NOT re-extracted: it is recorded in the review
+    backlog (`baselayer chunks list --reviews`) with this reason, for a case-by-case review."""
     if document_mode:
         mode_label = "Document Corpus Extraction (S68)"
     elif identity_only:
@@ -3715,6 +4020,10 @@ def run_extraction(limit: int = None, conv_id: str = None,
         # Refuses before any model call if it holds vectors not stamped V.
         if turn_mode:
             assert_fresh_for_turn_contract(conn, fact_collection)
+            migrated = _cl.ensure_ledger(conn)   # the chunk ledger (and its migration)
+            if migrated:
+                print(f"  Chunk ledger: migrated {migrated} failed chunk(s) from "
+                      f"{_cl.OLD_FAILED_TABLE}")
 
         # Get conversations to process
         # D-048: identity_only mode uses source_filter to target project conversations
@@ -3726,9 +4035,21 @@ def run_extraction(limit: int = None, conv_id: str = None,
                                                       retry_errors=retry_errors,
                                                       conv_ids=conv_ids)
         total = len(conversations)
+        if turn_mode and conv_ids:
+            # Named but already extracted (every chunk settled): not re-extracted, flagged.
+            done = ({r[0] for r in conn.execute("SELECT conversation_id FROM extraction_log")}
+                    - _cl.open_conversations(conn))
+            for cid in dict.fromkeys(conv_ids):
+                if cid in done:
+                    flag_for_review(conn, cid, review_reason, "conv_ids")
+        if turn_mode and conv_id:
+            for conv in conversations:
+                conv["named"], conv["review_reason"] = True, review_reason
 
         if total == 0:
             print("\nNo conversations to process (all already done, or none found).")
+            if turn_mode:
+                ledger_exit_gate(conn)
             return
 
         # D-021: Load user corrections to guard against re-extracting wrong facts
@@ -3873,14 +4194,42 @@ def run_extraction(limit: int = None, conv_id: str = None,
             print(f"\nERROR: {turn_record.c['conversations_without_turns']} conversations have no "
                   f"rows in the turn table; they were not extracted. See the run record.")
             raise SystemExit(2)
-        if turn_record is not None and errors:
-            n_open = turn_record.c["chunks_failed_open"]
-            print(f"\nERROR: {errors} extraction error(s): {n_open} failed chunk(s) recorded "
-                  f"for retry, {errors - n_open} conversation(s) failed outright. Nothing a "
-                  f"failed chunk would have produced is stored; the next run retries the "
-                  f"failed chunks (extraction_chunks_failed) and --retry-errors the failed "
-                  f"conversations. See the run record.")
-            raise SystemExit(1)
+        if turn_mode:
+            ledger_exit_gate(conn)
+
+
+def ledger_exit_gate(conn) -> None:
+    """End of a turn-contract extraction: exit 1 while any chunk is pending or failed (they are
+    retried by the next run), after saying so. Quarantined chunks do not fail the extraction,
+    but they are listed: `baselayer run` refuses to author over them without --accept-gaps.
+    The model backlog (done work not made by the configured model) gets one line; it never
+    fails the extraction and nothing re-runs it."""
+    notice = _cl.backlog_notice(conn, _extraction_model_name())
+    if notice:
+        print(f"\n{notice}")
+    counts = _cl.status_counts(conn)
+    if counts["quarantined"]:
+        convs = len({g["conversation_id"] for g in _cl.coverage_gaps(conn)})
+        print(f"\nWARNING: {counts['quarantined']} chunk(s) in {convs} conversation(s) are "
+              f"QUARANTINED: no fact was extracted from them and they are not retried "
+              f"automatically; those conversations are marked partial, not extracted. "
+              f"`baselayer chunks list --review` lists each with why it failed; "
+              f"`baselayer chunks retry <block_id>` requeues one. `baselayer run` authors over "
+              f"them only with --accept-gaps; every authored artifact states them in a "
+              f"coverage_gaps manifest beside it.")
+    n_open = counts["pending"] + counts["failed"]
+    if n_open:
+        access = sum(1 for r in _cl.list_rows(conn, status="failed")
+                     if (r["last_error"] or "").startswith(("access:", "unclassified:")))
+        print(f"\nERROR: {counts['failed']} failed and {counts['pending']} pending chunk(s) in "
+              f"the chunk ledger ({_cl.LEDGER_TABLE}). Nothing they would have produced is "
+              f"stored. The next run (or `batch-extract --process --resume`) runs only them; "
+              f"`baselayer chunks list --status open` lists them. See the run record.")
+        if access:
+            print(f"  {access} of the failed chunk(s) last failed on API access (network, "
+                  f"timeout, rate limit, server error, auth, expired batch), not on content: "
+                  f"that never counts toward quarantine.")
+        raise SystemExit(1)
 
 
 def _run_turn_loop(conversations, conn, fact_collection, embed_model, *, corrections,
@@ -3903,19 +4252,13 @@ def _run_turn_loop(conversations, conn, fact_collection, embed_model, *, correct
     try:
         for i, conv in enumerate(conversations):
             _conv_tok = _CURRENT_CONVERSATION.set(conv["id"])
-            open_before = record.c["chunks_failed_open"]
+            open_before = record.c["chunks_failed_open"] + record.c["chunks_quarantined"]
             try:
-                if conv.get("retry") and not conv.get("grown"):
-                    # only the recorded failed chunks; the rest are already stored
-                    n, _left = retry_failed_chunks(conv, conn, fact_collection, embed_model,
-                                                   stamps=stamps, record=record,
-                                                   referent=referent, corrections=corrections,
-                                                   identity_only=identity_only)
-                else:
-                    n = process_turn_conversation(conv, conn, fact_collection, embed_model,
-                                                  stamps=stamps, record=record,
-                                                  referent=referent, corrections=corrections,
-                                                  identity_only=identity_only)
+                # The ledger plan decides what runs: chunks not done, never a done one.
+                n = process_turn_conversation(conv, conn, fact_collection, embed_model,
+                                              stamps=stamps, record=record,
+                                              referent=referent, corrections=corrections,
+                                              identity_only=identity_only)
             except SpendCeilingExceeded as e:
                 record.notes.append(f"spend ceiling: {e}")
                 raise
@@ -3925,7 +4268,8 @@ def _run_turn_loop(conversations, conn, fact_collection, embed_model, *, correct
                 errors += 1
             else:
                 total_facts += n
-            errors += record.c["chunks_failed_open"] - open_before
+            errors += (record.c["chunks_failed_open"] + record.c["chunks_quarantined"]
+                       - open_before)
             if (i + 1) % BATCH_SIZE == 0 or i == total - 1:
                 elapsed = time.time() - start_time
                 print(f"  [{i+1}/{total}] Facts: {total_facts} | Errors: {errors} | "
@@ -4113,11 +4457,18 @@ def show_stats():
 def main():
     parser = argparse.ArgumentParser(description="Fact Extraction Pipeline (AUDN)")
     parser.add_argument("--limit", type=int, help="Limit number of conversations to process")
-    parser.add_argument("--conversation", type=str, help="Process a single conversation by ID")
+    parser.add_argument("--conversation", type=str, help="Process a single conversation by ID. "
+                        "Turn contract: an already extracted conversation is not re-extracted; "
+                        "the request is recorded in the review backlog "
+                        "(`baselayer chunks list --reviews`)")
+    parser.add_argument("--reason", type=str, default=None,
+                        help="With --conversation: why it should be re-extracted, recorded with "
+                             "the review backlog entry")
     parser.add_argument("--stats", action="store_true", help="Show extraction statistics")
     parser.add_argument("--reset", action="store_true",
                         help="DESTRUCTIVE full extraction reset: deletes extraction-sourced "
-                             "facts, the extraction log and fact relationships, and drops the "
+                             "facts, the extraction log, the chunk ledger and fact "
+                             "relationships, and drops the "
                              "fact vector collection (user corrections survive). Prefer building "
                              "into a fresh corpus directory.")
     parser.add_argument("--identity-only", action="store_true",
@@ -4150,6 +4501,9 @@ def main():
         with contextlib.closing(get_db()) as conn:
             with conn:
                 conn.execute("DELETE FROM extraction_log")
+                # The chunk ledger goes with the log: a done row left behind would make the
+                # next run skip its chunk while its facts are deleted below.
+                _cl.clear(conn)
                 # D-021: Protected reset — only clear extraction-sourced facts
                 # User corrections and user-direct facts survive the wipe
                 deleted = conn.execute("""
@@ -4181,7 +4535,7 @@ def main():
         run_extraction(limit=args.limit, conv_id=args.conversation,
                        identity_only=args.identity_only, source_filter=args.source,
                        retry_errors=args.retry_errors,
-                       document_mode=args.document_mode)
+                       document_mode=args.document_mode, review_reason=args.reason)
 
 
 if __name__ == "__main__":

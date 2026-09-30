@@ -48,7 +48,9 @@ All commands invoked as `baselayer <subcommand>`. Source of truth: [`src/baselay
 | `baselayer provenance --claim A1` | Trace a specification claim back to its supporting facts. |
 | `baselayer verify --layer all` | Run the four-check provenance audit on authored claims. |
 | `baselayer verify-spec <spec_dir> --label L --corpus C --out O` | Read-only post-specification verification: citation resolution, per-fact voice, re-gating of every evidence span. Dry run by default; no model is called unless `--run-model`. |
+| `baselayer consolidate <spec_dir> --out O [--grouping G --categories C]` | Mechanical, no model: the served form of a finished spec (always-on claims in full, trigger categories whose lines name claim ids, an index JSON for pulling claims), a duplicate mapping, and 14 checks. Reads the spec dir, writes only `--out`. The judged inputs (duplicate verdicts, trigger grouping, categories) come from `python -m baselayer.consolidation.build judge\|group\|categorize`, which calls a model (API priced and capped, or `claude -p`). `docs/core/CONSOLIDATION.md`. |
 | `baselayer checkpoint extraction` | Quality gate after extraction. Reports only; no `--fix` flag exists. |
+| `baselayer chunks list\|retry\|quarantine\|ack-model` | The chunk ledger of a turn-contract extraction: list chunks by status, requeue failed or quarantined ones, quarantine one. `list --review` shows every quarantined chunk with why it failed plus requests to re-extract a finished conversation; `list --backlog` shows done work made by another extraction model, which nothing re-runs (`ack-model` records that it was seen). `baselayer run` does not author over quarantined chunks without `--accept-gaps`; authored artifacts state them in a `coverage_gaps*.json` manifest beside them. |
 | `baselayer forget --all` | Soft-delete all active facts. Confirm before running. Not a reset: the extraction log is kept. |
 | `baselayer journal` | Guided prompts when the user has no conversation history. |
 
@@ -105,6 +107,7 @@ Once registered, the next Claude Code session loads two resources and seven tool
 | `src/baselayer/voice.py`, `turns.py`, `turn_import.py`, `import_config.py` | Turn-contract import: detectors, the turn table, per-source builders, the local config loader. |
 | `src/baselayer/turn_contract.py` | Turn-contract extraction: chunking, rendering, the gate, the run record. |
 | `src/baselayer/verification/` | `verify-spec`, read-only post-specification verification. |
+| `src/baselayer/consolidation/` | `consolidate`: one module per stage, JSON in and JSON out, each stamped. |
 | `docs/core/` | Architecture, decisions, design principles. Read on demand, not at session start. |
 | `docs/internal/` | Internal plans (refactor plans, agent-facing reviews, runbooks). Exists only in the private working copy; not tracked in this repo. |
 | `examples/` | Live example specifications (Franklin, Buffett, Douglass, Roosevelt, Wollstonecraft, Marks, patents). |

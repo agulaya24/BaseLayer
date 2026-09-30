@@ -107,6 +107,7 @@ Run in order and report what you find:
 | `baselayer provenance --claim` | Trace a specification claim back to its supporting facts.                                |
 | `baselayer verify --layer all` | Run the four-check provenance audit on authored claims.                                  |
 | `baselayer checkpoint <stage>` | Quality gate after a pipeline stage. `--fix` applies corrections.                        |
+| `baselayer chunks list`        | Turn-contract chunk ledger: chunks by status (`retry` requeues, `quarantine` parks one; `--review` quarantined chunks with why and re-extract requests; `--backlog` done work made by another model, `ack-model` records it was seen). |
 | `baselayer forget --all`       | Soft-delete all active facts. Confirm before running.                                    |
 | `baselayer serve enable`       | Resume MCP spec serving (writes `~/.baselayer/serving_enabled = 1`).                     |
 | `baselayer serve disable`      | Pause MCP spec serving without restart (writes 0). Mid-session safe.                     |

@@ -1,16 +1,18 @@
 """
 A turn-contract chunk whose extraction call fails (an API error after retries, a refusal, an
 unparseable or schema-invalid reply, a part that truncates again after re-chunking) is
-recorded as FAILED, never as done:
+recorded as FAILED in the chunk ledger (`extraction_chunks`), never as done:
 
 - the good chunks of the conversation are still stored;
-- the failed chunk is written to `extraction_chunks_failed` (in the same transaction), and on
-  the batch path its custom_id is not marked in `extraction_chunks_done`;
+- the failed chunk's ledger row is `failed` (on the batch path its result is consumed: the row,
+  not `extraction_chunks_done`, says the chunk is not done, and --resume calls it again rather
+  than re-reading the same reply);
 - the run reports the true error count and exits non-zero, after its run record (and batch
   state) are written;
 - the next run, and `--process --resume`, retry ONLY the failed chunk.
 
-Sequential and batch turn paths. No API calls: fake clients only.
+Sequential and batch turn paths. No API calls: fake clients only. Ported from the
+`extraction_chunks_failed` table to the ledger on 2026-09-29.
 """
 
 import json
@@ -68,12 +70,16 @@ def _setup(env, monkeypatch):
 
 
 def _failed_rows(env):
+    """The ledger's failed (and quarantined) chunks, with `reason` = last_error."""
     c = env.get_db()
     try:
-        rows = [dict(r) for r in c.execute("SELECT * FROM extraction_chunks_failed")]
+        rows = [dict(r) for r in c.execute(
+            "SELECT * FROM extraction_chunks WHERE status IN ('failed', 'quarantined')")]
     except Exception:
         rows = []
     c.close()
+    for r in rows:
+        r["reason"] = r["last_error"]
     return rows
 
 
@@ -234,15 +240,14 @@ def _done(benv):
 
 
 @pytest.mark.parametrize("kind", ["errored", "garbage", "not_a_list"])
-def test_batch_failed_result_is_recorded_not_marked_done_and_exits_nonzero(benv, monkeypatch,
-                                                                         kind):
+def test_batch_failed_result_is_recorded_failed_and_exits_nonzero(benv, monkeypatch, kind):
     ids = _submit(benv, monkeypatch)
     benv.batches.results_for = _batch_results(benv, bad=ids[0], kind=kind)
     with pytest.raises(SystemExit) as ei:
         benv.be.run_process()
     assert ei.value.code == 1
-    assert _done(benv) == set(ids[1:])                  # the failed custom_id is not done
-    rows = _failed_rows(benv)
+    assert _done(benv) == set(ids)                      # every result is consumed ...
+    rows = _failed_rows(benv)                           # ... the ledger says which failed
     assert len(rows) == 1 and rows[0]["path"] == "batch"
     assert _objects(benv) == ALL4[1:]
     st = _state(benv)                                   # saved before the exit

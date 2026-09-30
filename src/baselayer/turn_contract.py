@@ -878,7 +878,7 @@ class ExtractionRunRecord:
         self.usage_calls = []     # one usage_entry per billed API call (usage_entry)
         self.rechunked = []       # one entry per chunk re-chunked after a max_tokens stop
         self.density = []         # one row per conversation: citable chars, facts after the gate
-        self.failed_chunks = []   # one entry per failed chunk this run left recorded for retry
+        self.failed_chunks = []   # one entry per chunk this run left failed or quarantined
         self.notes = []
 
     def add_gate(self, g: GateResult):
@@ -947,11 +947,20 @@ class ExtractionRunRecord:
         if c.get("chunks_retried"):
             lines.append(f"  failed chunks retried {c['chunks_retried']} | recovered "
                          f"{c.get('chunks_recovered', 0)}")
+        if c.get("chunks_skipped_done") or c.get("conversations_pre_ledger"):
+            lines.append(f"  chunk ledger: {c.get('chunks_skipped_done', 0)} done chunk(s) not "
+                         f"called again | {c.get('conversations_pre_ledger', 0)} conversation(s) "
+                         f"extracted before the ledger, counted done")
         if c.get("chunks_failed_open"):
-            convs = len({f["conversation_id"] for f in d["failed_chunks"]})
+            convs = len({f["conversation_id"] for f in d["failed_chunks"]
+                         if f.get("status", "failed") == "failed"})
             lines.append(f"  FAILED chunks {c['chunks_failed_open']} in {convs} conversation(s): "
-                         f"not stored, recorded in extraction_chunks_failed, retried by the next "
-                         f"run (listed in the record)")
+                         f"not stored, recorded failed in the chunk ledger (extraction_chunks), "
+                         f"retried by the next run (listed in the record)")
+        if c.get("chunks_quarantined"):
+            lines.append(f"  QUARANTINED chunks {c['chunks_quarantined']}: failed their retries "
+                         f"or can no longer be rebuilt; not retried automatically "
+                         f"(`baselayer chunks list --status quarantined`)")
         if d["response_failures"]:
             lines.append("  unusable responses: "
                          + ", ".join(f"{k} {v}" for k, v in sorted(d["response_failures"].items())))

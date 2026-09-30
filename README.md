@@ -58,6 +58,28 @@ prototype outside this repository. A sharded layer can therefore repeat a patter
 - **The gate** is code, not the prompt. It rejects any fact whose spans are missing, name a
   non-own turn, do not match the turn's text, or are too short or too long. Every rejection is
   counted by reason in a per-run record.
+- **The chunk ledger** (`extraction_chunks`) makes every chunk its own checkpoint, sequential and
+  batch: its facts, its row and the conversation's logged count commit together. A done chunk is
+  never called again, a failed one is retried by the next run, and one that fails its two retries
+  (or can no longer be rebuilt) is quarantined. Only content failures (truncated, unparseable,
+  refused, input rejected) count toward that; an API access failure (network, timeout, 429, 5xx,
+  auth, an expired batch) leaves the chunk failed and retryable and never quarantines it.
+  `baselayer chunks list|retry|quarantine|ack-model` shows and moves them. Extraction exits 1
+  while any chunk is pending or failed, and `baselayer run` does not author over quarantined
+  chunks unless given `--accept-gaps`. A conversation with a quarantined chunk is marked partial,
+  not extracted. Quarantined chunks are stated beside every authored artifact, never in its text:
+  `baselayer run`/`author`, `distill` and `author-from-package` (with `--db`) write a
+  `coverage_gaps*.json` manifest stamped with the run id, and `baselayer chunks list --review`
+  lists each with why it failed. A corpus extracted before the ledger counts as done.
+- **The model is recorded, never acted on.** Every ledger row records the extraction model that
+  settled it; work extracted before that takes its model from its facts' `extraction_model`
+  stamps (listed as mixed when they disagree, `unknown` when none carries one). A model change
+  re-runs nothing: done work made by another model is a backlog (`baselayer chunks list
+  --backlog`), announced in one line at the end of each run and acknowledged with `baselayer
+  chunks ack-model`. Naming an already extracted conversation (`python -m
+  baselayer.extract_facts --conversation ID --reason ...`) or its legacy block (`baselayer chunks
+  retry`) re-extracts nothing; the request goes on the review backlog (`baselayer chunks list
+  --review`).
 
 Layers:
 
@@ -95,6 +117,10 @@ baselayer compose                         # optional: a unified prose brief from
 ```
 
 `baselayer run` stops after the layers (and the traceability step); it does not compose a brief.
+Under the turn contract it also stops before authoring while the chunk ledger holds quarantined
+chunks, unless given `--accept-gaps` (`baselayer chunks list --review` lists them, with why each
+failed). The gaps are then stated in `coverage_gaps_<spec_run_id>.json` beside the layers, and each
+layer's frontmatter points to it; the layer text is unchanged.
 
 Experimental distillation path (billed runs need the rate table confirmed and a spend ceiling;
 `<table date>` is `RATES_AS_OF` in `src/baselayer/distillation/spend.py`):

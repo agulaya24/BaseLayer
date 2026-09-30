@@ -776,7 +776,9 @@ def _main():
                          "(recorded per claim as gate_added_citations); any other unfound quote "
                          "loses its quote marks. Off by default.")
     ap.add_argument("--db", default=None,
-                    help="the corpus memory.db the packages were built from (--quote-gate)")
+                    help="the corpus memory.db the packages were built from (--quote-gate; "
+                         "also read, read-only, for the coverage gaps manifest: without it "
+                         "the coverage gaps manifest says the chunk ledger was not checked)")
     _spend.add_rate_args(ap)
     _spend.add_spend_args(ap)
     a = ap.parse_args()
@@ -867,6 +869,41 @@ def _main():
     print("SPEND CEILING: $%.4f, checked before every call and every re-ask" % ceiling,
           flush=True)
 
+    # Set-aside (quarantined) chunks are STATED beside the layers, never inside them (design
+    # decision 2026-09-29), written before any call. Read from --db (read-only); without it the
+    # manifest says the ledger was not read, so an unknown is never reported as zero. The id
+    # carries no clock: it hashes the packages and the gaps, so an unchanged state reproduces
+    # it and a changed ledger shows as a different id. Each stamp points at
+    # coverage_gaps_<id>.json, which is never overwritten by a different state, because a
+    # resumed run reuses an authored layer without rewriting its stamp;
+    # coverage_gaps.json is the latest copy.
+    import hashlib
+    from baselayer import chunk_ledger as _cl
+    if a.db:
+        _gc = _cl.read_only(a.db)
+        try:
+            gm = _cl.gaps_manifest(_gc, run_id=None, producer="author_from_package",
+                                   output=a.outdir)
+        finally:
+            _gc.close()
+    else:
+        gm = _cl.gaps_manifest(None, run_id=None, producer="author_from_package",
+                               output=a.outdir)
+    gm["packages"] = [{"layer": lay, "input_hash": [(pk.get("stamp") or {}).get("input_hash")
+                                                    for pk in parts]} for lay, parts in groups]
+    gaps_run_id = hashlib.sha256(json.dumps(
+        [gm["packages"], gm["checked"], gm["gaps"]], sort_keys=True).encode("utf-8")
+        ).hexdigest()[:16]
+    gm["run_id"] = gaps_run_id
+    gaps_name = "coverage_gaps_%s.json" % gaps_run_id
+    _cl.write_manifest(os.path.join(a.outdir, gaps_name), gm)
+    _cl.write_manifest(os.path.join(a.outdir, "coverage_gaps.json"), gm)
+    gaps_fields = {"coverage_gaps_manifest": gaps_name,
+                   "coverage_gaps_count": gm["count"], "coverage_gaps_run_id": gaps_run_id}
+    print("COVERAGE GAPS: %s (%s beside the layers, not in them)"
+          % ("%d quarantined chunk(s)" % gm["count"] if gm["checked"]
+             else "NOT CHECKED, pass --db to read the chunk ledger", gaps_name), flush=True)
+
     def _write_stamp(name, **fields):
         """<outdir>/<name>.stamp.json beside the artifact it describes. It used to exist only
         as a line on stdout, which is gone the moment the terminal is."""
@@ -876,7 +913,7 @@ def _main():
                                 effort=a.effort, rates_per_mtok=[ri, ro],
                                 spend_estimate_usd=round(est, 6), spend_ceiling_usd=ceiling,
                                 rates_source=rates["source"], rates_as_of=rates["as_of"],
-                                **fields)
+                                **gaps_fields, **fields)
         u = st.get("usage") or {}
         st["cost_usd"] = (u.get("input_tokens", 0) / 1e6 * ri
                           + u.get("output_tokens", 0) / 1e6 * ro)

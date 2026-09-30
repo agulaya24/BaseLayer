@@ -1599,8 +1599,33 @@ def finish_tree(a, cl, run):
                        encoding="utf-8"), indent=1)
         print("tree archived          : %s" % canon)
     except Exception as e:
+        home = None
         print("WARNING: tree NOT archived to the corpus (%s). The --out copy is the only "
               "record and it may be scratch." % e)
+
+    # Set-aside (quarantined) chunks are STATED beside the tree, never inside it (design
+    # decision 2026-09-29): a gaps manifest stamped with this run id, next to --out and next to the
+    # archived tree. The corpus database is opened read-only.
+    try:
+        from baselayer import chunk_ledger as _cl
+        _gc = _cl.read_only(a.db)
+        try:
+            gm = _cl.gaps_manifest(_gc, run_id=rid, producer="distill",
+                                   output=os.path.basename(a.out))
+        finally:
+            _gc.close()
+        gm["layer"] = a.layer
+        targets = [os.path.splitext(a.out)[0] + ".coverage_gaps.json"]
+        if home:
+            targets.append(os.path.join(home, "coverage_gaps_%s_%s.json" % (a.layer, rid)))
+        for t in targets:
+            _cl.write_manifest(t, gm)
+        print("coverage gaps manifest : %d quarantined chunk(s)%s -> %s"
+              % (gm["count"], "" if gm["ledger_present"] else " (no chunk ledger)",
+                 targets[-1]))
+    except Exception as e:
+        print("WARNING: coverage gaps manifest NOT written (%s). This tree's set-aside chunks "
+              "are not stated anywhere; read `baselayer chunks list --review`." % e)
 
     disp = {}
     for d in leaves:

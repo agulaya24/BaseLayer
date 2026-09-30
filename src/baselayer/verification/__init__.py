@@ -12,6 +12,8 @@ Layout:
     raters        the rater interface: fake (tests), claude -p (subscription), API (explicit)
     model_checks  prompts, task builders and interpretation for model-judged checks
     pricing       dated price table and the pre-run estimate
+    checks        modular checks, one module each, one result shape (corrections, occasions,
+                  time_split, integrity, and the back-check slot); chosen with --checks
     report        one JSON and one markdown report per spec
     run           orchestration and the `baselayer verify-spec` entry point
 

@@ -371,7 +371,17 @@ already finished and counts only its own repairs.
 
 Other resume options are separate and unrelated: `--checkpoint` and `--resume-from` on sequential
 `distill.py`, `--resume-step3` on `situation_first.py`, and `batch-extract --process --resume` on
-the extraction side. The study harness `convergence.py` has its own `--dry-run` and `--resume <batch id>`.
+the extraction side, where every chunk is its own checkpoint in the chunk ledger
+(`docs/core/TURN_CONTRACT.md`). Distillation reads the facts that exist: it does not refuse a corpus
+whose ledger holds quarantined chunks (only `baselayer run` does). It states them instead, beside
+its output and never inside it: `distill` / `distill_batch` write `<out>.coverage_gaps.json` and
+`coverage_gaps_<layer>_<run_id>.json` beside the archived tree, and `author-from-package` writes
+`coverage_gaps_<id>.json` (and `coverage_gaps.json`, the latest copy) beside the layers, the id a
+hash of the packages and the gaps (from `--db`, opened read-only; without it the manifest says
+the ledger was not checked), with a pointer, count and run id in each layer stamp. Each manifest
+lists every quarantined chunk (conversation, block id, chunk key, why it failed, error text,
+attempts, model) and the conversations extracted only in part. `baselayer chunks list --review`
+shows the same from the corpus. The study harness `convergence.py` has its own `--dry-run` and `--resume <batch id>`.
 
 ## Design tests (off by default)
 

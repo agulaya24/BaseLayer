@@ -39,6 +39,7 @@ Usage:
 
 import contextlib
 import sys
+import time
 import io
 import os
 import argparse
@@ -474,6 +475,13 @@ def cmd_verify_spec(args):
     sys.exit(verify_run.execute(args))
 
 
+def cmd_consolidate(args):
+    """Consolidation: always-on claims plus a trigger index from an authored spec. No model
+    call; reads the spec dir, writes only --out."""
+    from baselayer.consolidation import run as consolidate_run
+    sys.exit(consolidate_run.execute(args))
+
+
 def cmd_author_from_package(args):
     """EXPERIMENTAL: author layers from handoff packages (citations required by schema); the
     unified brief only with --compose."""
@@ -485,6 +493,8 @@ def cmd_author_from_package(args):
         argv.append("--compose")
     if args.max_tokens is not None:
         argv += ["--max-tokens", str(args.max_tokens)]
+    if getattr(args, "db", None):
+        argv += ["--db", args.db]
     for pkg in args.package:
         argv += ["--package", pkg]
     argv += _rate_argv(args)
@@ -1677,6 +1687,10 @@ def cmd_run(args):
     else:
         cmd_extract(args)
 
+    # The chunk ledger: quarantined chunks are parts of the corpus no fact came from.
+    # Authoring over them needs --accept-gaps, which stamps them into every layer.
+    _coverage_gate(args)
+
     # Step 3: Author (3 layers, no review). No compose: the unified brief is optional and
     # separate (`baselayer compose`).
     print(f"\n{'='*60}")
@@ -1738,6 +1752,197 @@ def cmd_run(args):
     else:
         print(f"\n  Pipeline complete but no specification layer was generated.")
         print(f"  Run 'baselayer stats' to check your data.")
+
+
+def _coverage_gate(args):
+    """Before `baselayer run` authors: refuse while the chunk ledger holds a pending or failed
+    chunk (the extraction is not finished), and refuse over quarantined chunks unless the run
+    was given --accept-gaps. The gaps are stated in a manifest beside the layers
+    (`coverage_gaps_<spec_run_id>.json`, with whether they were accepted), never in the layer
+    text; each layer's frontmatter points to it. A corpus with no ledger (legacy extraction)
+    passes."""
+    import baselayer.extract_facts as extract_facts
+    from baselayer import chunk_ledger as _cl
+    with contextlib.closing(extract_facts.get_db()) as conn:
+        counts = _cl.status_counts(conn)
+        gaps = _cl.coverage_gaps(conn)
+    n_open = counts["pending"] + counts["failed"]
+    if n_open:
+        print(f"\nError: {n_open} chunk(s) are still pending or failed in the chunk ledger; "
+              f"the extraction is not finished. Run `baselayer extract` again (it runs only "
+              f"them), or see `baselayer chunks list --status open`.")
+        sys.exit(1)
+    if not gaps:
+        return
+    convs = len({g["conversation_id"] for g in gaps})
+    print(f"\n  {len(gaps)} quarantined chunk(s) in {convs} conversation(s): no fact was "
+          f"extracted from them.")
+    for g in gaps[:20]:
+        print(f"    {g['block_id']}  {g['conversation_id']}  {g['reason']}  "
+              f"[{g['last_error']}]")
+    if len(gaps) > 20:
+        print(f"    ... and {len(gaps) - 20} more (`baselayer chunks list --review`)")
+    if not getattr(args, "accept_gaps", False):
+        print("\n  Not authoring over these gaps. Either requeue them "
+              "(`baselayer chunks retry <block_id>`, then `baselayer extract`), or accept them: "
+              "`baselayer run ... --accept-gaps` authors and states them in a gaps manifest "
+              "beside the layers (`coverage_gaps_<spec_run_id>.json`).")
+        sys.exit(1)
+    import baselayer.author_layers as author_layers
+    author_layers.COVERAGE_GAPS_ACCEPTED = True
+    print("  Accepted (--accept-gaps): authoring proceeds; the gaps manifest beside the layers "
+          "lists them and each layer's frontmatter points to it.")
+
+
+def cmd_chunks(args):
+    """The chunk ledger of a turn-contract extraction (`extraction_chunks`): list chunks by
+    status, requeue failed or quarantined ones, or quarantine one by hand."""
+    import baselayer.extract_facts as extract_facts
+    from baselayer import chunk_ledger as _cl
+    with contextlib.closing(extract_facts.get_db()) as conn:
+        configured = extract_facts._extraction_model_name()
+        if args.action == "list" and getattr(args, "backlog", False):
+            # read-only: work with no recorded model takes it from its facts' stamps (mixed
+            # when they disagree, 'unknown' when none carries one); nothing is rewritten
+            items = _cl.model_backlog(conn, configured)
+            k = _cl.backlog_counts(items)
+            print(f"  Model backlog against the configured model {configured}: {len(items)} "
+                  f"done block(s) ({k['known']} known by another model, {k['mixed']} mixed, "
+                  f"{k['unknown']} unknown; {k['from_facts']} read from fact stamps), "
+                  f"{sum(1 for i in items if not i['acknowledged_at'])} not "
+                  f"acknowledged. Nothing re-runs them.")
+            if items:
+                print(f"  {'block_id':<16}  {'model':<28} {'via':<6} {'facts':>5}  "
+                      f"conversation / kind / acknowledged")
+            for i in items[:args.limit] if args.limit else items:
+                ack = (time.strftime("acknowledged %Y-%m-%d %H:%M",
+                                     time.localtime(i["acknowledged_at"]))
+                       if i["acknowledged_at"] else "not acknowledged")
+                mix = (" [" + ", ".join(f"{m} {n}" for m, n in sorted(i["models"].items())) + "]"
+                       if i["model"].startswith("mixed(") and i.get("models") else "")
+                print(f"  {i['block_id']:<16}  {i['model']:<28} {i['model_source']:<6} "
+                      f"{i['facts_stored']:>5}  {i['conversation_id']}  {i['kind']}  {ack}{mix}")
+            if args.limit and len(items) > args.limit:
+                print(f"  ... and {len(items) - args.limit} more (--limit)")
+            return
+        if args.action == "list" and getattr(args, "review", False):
+            # read-only: every quarantined chunk with WHY it failed, then every request to
+            # re-extract an already extracted conversation. Nothing acts on either.
+            gaps = _cl.coverage_gaps(conn) if _cl.table_exists(conn) else []
+            print(f"  Review backlog: {len(gaps)} quarantined chunk(s) in "
+                  f"{len({g['conversation_id'] for g in gaps})} partial conversation(s); "
+                  f"nothing re-runs them (`baselayer chunks retry <block_id>` requeues one).")
+            if gaps:
+                print(f"  {'block_id':<16}  {'why':<16} {'att':>3} {'turns':>5}  "
+                      f"conversation / model / error")
+            for g in gaps:
+                print(f"  {g['block_id']:<16}  {g['reason']:<16} {g['attempts']:>3} "
+                      f"{g['body_turns']:>5}  {g['conversation_id']}  {g['model'] or '?'}  "
+                      f"[{g['last_error']}]")
+            revs = _cl.list_reviews(conn)
+            print(f"  {len(revs)} request(s) to re-extract an already extracted conversation; "
+                  f"nothing acts on them.")
+            for r in revs:
+                at = time.strftime("%Y-%m-%d %H:%M", time.localtime(r["requested_at"]))
+                print(f"  {at}  {r['conversation_id']}  via {r['via'] or '?'}"
+                      + (f"  block {r['block_id']}" if r.get("block_id") else "")
+                      + (f"  [{r['reason']}]" if r["reason"] else ""))
+            return
+        if args.action != "list" or _cl.table_exists(conn, _cl.OLD_FAILED_TABLE):
+            migrated = _cl.ensure_ledger(conn)
+            if migrated:
+                print(f"  Migrated {migrated} row(s) from {_cl.OLD_FAILED_TABLE}.")
+        if not _cl.table_exists(conn):
+            print("  No chunk ledger in this corpus (no turn-contract extraction has run "
+                  "with it). Conversations in extraction_log count as done.")
+            return
+
+        def resolve(prefixes):
+            ids = []
+            for p in prefixes:
+                hits = [r[0] for r in conn.execute(
+                    f"SELECT block_id FROM {_cl.LEDGER_TABLE} WHERE block_id LIKE ?",
+                    (p + "%",))]
+                if len(hits) != 1:
+                    print(f"Error: block id '{p}' matches {len(hits)} chunk(s); give more of it.")
+                    sys.exit(1)
+                ids.append(hits[0])
+            return ids
+
+        if args.action == "list":
+            counts = _cl.status_counts(conn)
+            print("  " + " | ".join(f"{k} {v}" for k, v in counts.items()))
+            rows = _cl.list_rows(conn, status=args.status, conv_id=args.conv_id,
+                                 limit=args.limit)
+            if rows:
+                print(f"  {'block_id':<16}  {'status':<11} {'att':>3} {'facts':>5} "
+                      f"{'turns':>5} {'budget':>6}  conversation / last error")
+            for r in rows:
+                key = "legacy block" if r["chunk_key"] == _cl.LEGACY_KEY else ""
+                print(f"  {r['block_id']:<16}  {r['status']:<11} {r['attempts']:>3} "
+                      f"{r['facts_stored']:>5} {_cl.body_turn_count(r['chunk_key']):>5} "
+                      f"{r['input_char_budget']:>6}  {r['conversation_id']} {key}"
+                      + (f"  [{r['last_error']}]" if r["last_error"] else ""))
+            return
+        if args.action == "retry":
+            ids = resolve(args.block_ids)
+            if args.all_quarantined:
+                ids += [r["block_id"] for r in _cl.list_rows(conn, status="quarantined")]
+            if not ids and not args.conv_id:
+                print("Error: name block ids, --conv-id or --all-quarantined.")
+                sys.exit(1)
+            # A done legacy block is a whole migrated conversation: never requeued (design
+            # decision 2026-09-29). It becomes a review request, like naming a finished conversation;
+            # its facts stay in use and every other named chunk is still requeued.
+            legacy = _cl.done_legacy_blocks(conn, ids)
+            for bid, cid in legacy:
+                _cl.record_review(conn, cid, reason=args.reason, via="chunks retry",
+                                  block_id=bid)
+            lset = {b for b, _ in legacy}
+            n = _cl.requeue(conn, block_ids=[i for i in ids if i not in lset],
+                            conv_id=args.conv_id)
+            conn.commit()
+            if legacy:
+                print(f"  Not re-extracted, recorded for review: {len(legacy)} legacy block(s) "
+                      f"of an already extracted conversation ("
+                      + ", ".join(f"{cid} {bid}" for bid, cid in legacy)
+                      + "). Their facts stay in use (`baselayer chunks list --review`).")
+            if n or len(legacy) < len(ids) or args.conv_id:
+                print(f"  Requeued {n} chunk(s) as pending, attempts reset. The next "
+                      f"`baselayer extract` (or incremental batch submit) runs them.")
+            return
+        if args.action == "quarantine":
+            ids = resolve(args.block_ids)
+            n = sum(_cl.quarantine(conn, bid, args.reason) for bid in ids)
+            for cid in {r[0] for r in conn.execute(
+                    f"SELECT conversation_id FROM {_cl.LEDGER_TABLE} WHERE block_id IN "
+                    f"({','.join('?' * len(ids))})", ids)} if ids else ():
+                _cl.mark_extraction_state(conn, cid)    # partial, not extracted
+            conn.commit()
+            print(f"  Quarantined {n} pending or failed chunk(s). They are not retried; "
+                  f"`baselayer run` needs --accept-gaps to author over them.")
+        if args.action == "ack-model":
+            items = _cl.model_backlog(conn, configured)
+            chosen = []
+            if args.all:
+                chosen = items
+            else:
+                for p in args.block_ids:
+                    hits = [i for i in items if i["block_id"].startswith(p)]
+                    if len(hits) != 1:
+                        print(f"Error: block id '{p}' matches {len(hits)} backlog item(s).")
+                        sys.exit(1)
+                    chosen += hits
+                if args.conv_id:
+                    chosen += [i for i in items if i["conversation_id"] == args.conv_id]
+            if not chosen and not (args.all or args.block_ids or args.conv_id):
+                print("Error: name block ids, --conv-id or --all.")
+                sys.exit(1)
+            n = _cl.ack_model(conn, chosen, configured, note=args.note)
+            conn.commit()
+            print(f"  Acknowledged {n} backlog item(s) against the configured model "
+                  f"{configured}. Nothing was re-run; re-extracting them is a separate, "
+                  f"deliberate action.")
 
 
 def _check_api_key():
@@ -2196,7 +2401,10 @@ def main():
     p_extract.add_argument("--turn-contract", action="store_true",
                            help="Turn-contract extraction: only the subject's own turns are "
                                 "citable and every fact is gated on verbatim evidence spans "
-                                "(docs/core/TURN_CONTRACT.md). Needs a fresh corpus directory.")
+                                "(docs/core/TURN_CONTRACT.md). Needs a fresh corpus directory. "
+                                "Every chunk is a checkpoint in the chunk ledger: a rerun calls "
+                                "only chunks that are not done, and the command exits 1 while "
+                                "any chunk is pending or failed (`baselayer chunks list`).")
     p_extract.set_defaults(func=cmd_extract)
 
     # embed
@@ -2300,6 +2508,11 @@ def main():
     p_afp.add_argument("--compose", action="store_true",
                        help="OPTIONAL, off by default: also compose the unified brief from "
                             "the authored layers")
+    p_afp.add_argument("--db", default=None,
+                       help="the corpus memory.db the packages were built from, read-only, "
+                            "for the coverage gaps manifest written beside the layers "
+                            "(coverage_gaps_<id>.json); without it the manifest says the chunk "
+                            "ledger was not checked")
     p_afp.set_defaults(func=cmd_author_from_package)
 
     p_vspec = subparsers.add_parser("verify-spec",
@@ -2310,6 +2523,15 @@ def main():
     from baselayer.verification.run import build_parser as _vspec_parser
     _vspec_parser(p_vspec)
     p_vspec.set_defaults(func=cmd_verify_spec)
+
+    p_cons = subparsers.add_parser("consolidate",
+        help="Consolidate an authored specification into what an agent is served: always-on "
+             "claims in full plus trigger categories whose lines name the claim ids to pull, "
+             "and an index JSON for the pull tool. Mechanical stages, no model call; reads the "
+             "spec dir, writes only --out.")
+    from baselayer.consolidation.run import build_parser as _cons_parser
+    _cons_parser(p_cons)
+    p_cons.set_defaults(func=cmd_consolidate)
 
 
     # brief
@@ -2433,7 +2655,10 @@ def main():
     p_batch.add_argument("--resume", action="store_true",
                          help="With --process: skip Phase 1 reset; augment "
                               "existing facts instead of replacing them. Use "
-                              "for follow-up retry batches.")
+                              "for follow-up retry batches. Turn mode: stores only "
+                              "results not yet consumed and retries, synchronously, "
+                              "the chunks this batch recorded as failed in the "
+                              "chunk ledger.")
     p_batch.add_argument("--turn-contract", action="store_true",
                          help="With --submit: turn-contract requests (gated at --process). "
                               "Needs a fresh corpus directory.")
@@ -2442,6 +2667,53 @@ def main():
                               "sessions that grew since their extraction (turn mode). "
                               "Process with --process --resume; a bare --process refuses it.")
     p_batch.set_defaults(func=cmd_batch_extract)
+
+    # chunks: the chunk ledger of a turn-contract extraction
+    p_chunks = subparsers.add_parser("chunks",
+        help="The chunk ledger of a turn-contract extraction: list chunks by status, "
+             "requeue failed or quarantined ones, quarantine one, list and acknowledge the "
+             "model backlog, list the review backlog")
+    chunks_sub = p_chunks.add_subparsers(dest="action", required=True)
+    c_list = chunks_sub.add_parser("list", help="List chunks and the count per status")
+    c_list.add_argument("--status", choices=["pending", "done", "failed", "quarantined",
+                                             "split", "open"],
+                        help="Only this status (open = pending or failed)")
+    c_list.add_argument("--conv-id", default=None, help="Only this conversation")
+    c_list.add_argument("--limit", type=int, default=50, help="At most N rows (default 50)")
+    c_list.add_argument("--backlog", action="store_true",
+                        help="The model backlog: done work not extracted with the configured "
+                             "model. Work with no recorded model takes it from its facts' "
+                             "extraction_model stamps (mixed when they disagree, 'unknown' "
+                             "when none carries one). Nothing re-runs it; see `chunks ack-model`")
+    c_list.add_argument("--review", "--reviews", dest="review", action="store_true",
+                        help="The review backlog: every quarantined chunk with why it failed "
+                             "(truncated, unparseable, refusal, ...) and its error text, and "
+                             "every request to re-extract an already extracted conversation "
+                             "(--conversation / a pilot sample). Nothing acts on either")
+    c_retry = chunks_sub.add_parser("retry",
+        help="Requeue failed or quarantined chunks as pending with their attempts reset; "
+             "the next extract runs them. Naming the legacy block of a migrated conversation "
+             "re-extracts nothing: it is recorded for review (`chunks list --review`).")
+    c_retry.add_argument("block_ids", nargs="*", help="Block ids (or unique prefixes)")
+    c_retry.add_argument("--reason", default=None,
+                         help="Why, recorded with a review request for a legacy block")
+    c_retry.add_argument("--conv-id", default=None,
+                         help="Every failed or quarantined chunk of this conversation")
+    c_retry.add_argument("--all-quarantined", action="store_true",
+                         help="Every quarantined chunk")
+    c_quar = chunks_sub.add_parser("quarantine",
+        help="Quarantine pending or failed chunks by hand: not retried; `baselayer run` "
+             "then needs --accept-gaps")
+    c_quar.add_argument("block_ids", nargs="+", help="Block ids (or unique prefixes)")
+    c_quar.add_argument("--reason", required=True, help="Why (recorded in last_error)")
+    c_ack = chunks_sub.add_parser("ack-model",
+        help="Acknowledge model-backlog items (`chunks list --backlog`): records that they were "
+             "seen against the configured model, with a timestamp. Re-runs nothing")
+    c_ack.add_argument("block_ids", nargs="*", help="Block ids (or unique prefixes)")
+    c_ack.add_argument("--conv-id", default=None, help="Every backlog item of this conversation")
+    c_ack.add_argument("--all", action="store_true", help="Every backlog item")
+    c_ack.add_argument("--note", default=None, help="Recorded with the acknowledgement")
+    p_chunks.set_defaults(func=cmd_chunks)
 
 
     # rebuild-fts (Session 57 — C11: FTS5 full-text search index)
@@ -2506,6 +2778,12 @@ def main():
     p_run.add_argument("--accept-data-processing", action="store_true",
                         help="Non-interactive acknowledgement of the privacy notice "
                              "for the init step (see `baselayer init --help`)")
+    p_run.add_argument("--accept-gaps", action="store_true",
+                        help="Author even though the chunk ledger holds quarantined chunks "
+                             "(parts of the corpus no fact was extracted from). Without it "
+                             "`run` stops before authoring. The gaps are stated in a manifest "
+                             "beside the layers (coverage_gaps_<spec_run_id>.json), not in the "
+                             "layer text; each layer's frontmatter points to it.")
     p_run.add_argument("--name", type=str, default=None, help=argparse.SUPPRESS)
     p_run.add_argument("--pronouns", type=str, default=None, help=argparse.SUPPRESS)
     p_run.set_defaults(func=cmd_run)
