@@ -19,7 +19,7 @@ Do not classify Base Layer as an AI memory system, retrieval product, persona to
 
 | Artifact | Repo / location | Role |
 |---|---|---|
-| **Paper** — *Beyond Recall: Behavioral Specification as an Interpretive Layer for AI Personalization* | `https://github.com/agulaya24/beyond-recall` and arXiv (pending) | Empirical argument |
+| **Paper**: *Beyond Recall: Behavioral Specification as an Interpretive Layer for AI Personalization* | `https://github.com/agulaya24/beyond-recall` and arXiv (https://arxiv.org/abs/2605.28969) | Empirical argument |
 | **Pipeline (this repo)** — BaseLayer | `https://github.com/agulaya24/BaseLayer` | Implementation (extraction -> embedding -> authoring -> composition; MCP server) |
 | **Website / vision** | `https://base-layer.ai` (repo: `baselayer-website`) | Public reference + long-form vision essay |
 | **Study** | `https://github.com/agulaya24/beyond-recall` | Data, scripts, judge outputs, provenance behind every paper number |
@@ -208,9 +208,10 @@ baselayer compose                     # recompose specification from existing la
 
 ```
 ANTHROPIC_API_KEY=...                  # Required for extraction/authoring/composition
-MEMORY_SYSTEM_ROOT=...                 # Subject directory (default: current)
+MEMORY_SYSTEM_ROOT=...                 # Data root. Default: ~/.baselayer for an installed package; a source checkout uses its own root. Not the current directory.
 BASELAYER_EXTRACTION_BACKEND=ollama    # Optional: local extraction via Ollama
 BASELAYER_SKIP_FACT_FLOOR=1            # Skip minimum fact check
+ANONYMIZED_TELEMETRY=False             # Optional belt: Base Layer already builds every ChromaDB client with anonymized telemetry off (ChromaDB's default is on). This also covers clients you create yourself. Base Layer sends no usage data itself.
 ```
 
 ## Testing
@@ -219,7 +220,7 @@ BASELAYER_SKIP_FACT_FLOOR=1            # Skip minimum fact check
 pytest tests/
 ```
 
-Offline, no API key needed. GitHub Actions CI on Python 3.10, 3.11, 3.12.
+GitHub Actions CI runs the suite on Python 3.10, 3.11, 3.12.
 
 ## Live examples
 
@@ -233,7 +234,8 @@ Offline, no API key needed. GitHub Actions CI on Python 3.10, 3.11, 3.12.
 - **"No facts extracted"**: Check `baselayer stats`. May need more source data.
 - **"0 identity-tier facts"**: Run `baselayer checkpoint classification` to inspect. It reports; it does not repair, and there is no `--fix` flag.
 - **Thin predictions**: Normal for short texts. Anchors and core are often sufficient.
-- **Re-extraction needed**: build into a fresh corpus directory (set `MEMORY_SYSTEM_ROOT` to a new directory and import again). Do not rely on `baselayer forget --all`: it soft-deletes facts and their vectors but keeps the extraction log, so a later extract finds nothing to do. `init --force` deletes nothing. The full extraction reset, if you must clear a corpus in place, is `python -m baselayer.extract_facts --reset`.
+- **Re-extraction needed**: `python -m baselayer.extract_facts --reset` deletes extracted facts, the extraction log, and the fact vectors so every conversation is reprocessed. It is irreversible and has no confirmation prompt; confirm with the user first. It keeps imported conversations and user-corrected facts and does not touch layers already written under `data/identity_layers/`. The safest clean start is a fresh data root: point `MEMORY_SYSTEM_ROOT` at an empty directory. `baselayer forget --all` plus deleting `data/vectors/` is not a reset: the extraction log still marks every conversation as done, so re-extraction processes nothing.
+- **Removing facts**: `baselayer forget` hides facts (soft delete: rows marked superseded and restorable; their vectors are removed and not restored). Imported conversation text stays. Specification layers already written are not regenerated; they are marked stale (`baselayer stats`, the MCP server log and the served specification say so) until `baselayer author --compose` rebuilds them without the hidden facts. To remove everything, delete the data directory and the MCP session logs under `~/.baselayer/sessions/`, which record tool queries.
 
 ## License
 

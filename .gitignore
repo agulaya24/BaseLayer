@@ -178,14 +178,7 @@ data/*_source/
 
 # Personal/private subject data (NEVER commit)
 roman_memory/
-aarik*/
 memory_system_v4/
-
-# Personal eval data (contains subject name references)
-docs/eval/temporal_stability_aarik/
-docs/eval/*_aarik*
-scripts/experiments/temporal_stability_aarik.py
-src/baselayer/experiments/temporal_stability_aarik.py
 
 # Seed data with passwords
 data/seeds/
@@ -195,7 +188,6 @@ docs/archive/analysis/
 docs/archive/versions/
 gpu_experiment_results/
 logs/
-**/temporal_stability_aarik*
 
 # Subject source data and scraping artifacts
 data/*_source/
@@ -205,7 +197,6 @@ data/*_archive*
 # All subject environments
 subjects/
 tensions_all.json
-docs/eval/**/temporal_stability_aarik/
 
 # Scraping scripts (contain subject details — never commit)
 scrape_*.py
@@ -274,3 +265,6 @@ scripts/extract_voice_bank.py
 
 # Local import config (exclusion list, allowlist, subject labels): personal data, never tracked
 data/import_config.json
+
+# Built served specifications (personal data)
+data_served_build/

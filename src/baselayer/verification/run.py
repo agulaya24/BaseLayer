@@ -17,7 +17,6 @@ import hashlib
 import json
 import math
 import shutil
-import subprocess
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -82,18 +81,15 @@ def _file_sig(db: Path) -> tuple:
     return tuple(out)
 
 
-def _git_stamp() -> dict:
-    here = Path(__file__).resolve().parent
-    try:
-        commit = subprocess.run(["git", "-C", str(here), "rev-parse", "HEAD"], capture_output=True, text=True, timeout=10).stdout.strip()
-        dirty = bool(subprocess.run(["git", "--no-optional-locks", "-C", str(here), "status", "--porcelain", "--", "."], capture_output=True, text=True,
-                                    timeout=10).stdout.strip())
-    except Exception:
-        commit, dirty = None, None
+def _git_stamp(code_file=None) -> dict:
+    # The same whole-tree state every other stage stamps (turn_contract.git_tree_state); this
+    # used to check only this module's own directory, so it could read clean on a dirty tree.
     # Repo-relative (turn contract §7): an absolute path writes the operator's home directory
     # into every report.
-    from baselayer.turn_contract import code_path_of
-    return {"git_commit": commit or None, "code_dirty": dirty, "code_path": code_path_of(__file__)}
+    from baselayer.turn_contract import code_path_of, git_tree_state
+    code_file = code_file or __file__
+    commit, dirty = git_tree_state(code_file)
+    return {"git_commit": commit, "code_dirty": dirty, "code_path": code_path_of(code_file)}
 
 
 # ---------------------------------------------------------------- task execution

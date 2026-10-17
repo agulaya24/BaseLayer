@@ -9,6 +9,12 @@ file there, so any stage can be rerun alone or replaced by another implementatio
 writes the same file. No stage calls a model. The only directory written is --out, which
 may not overlap the spec dir, an input file, or any Base Layer data directory.
 Exit 1 when the checks stage runs and any check fails.
+
+Without --grouping the triggers are identity triggers, and without --categories there is one flat
+category: package defaults standing in for the model-built inputs. Such a run passes every check
+(they verify structure, not content), so it is flagged instead: `fallback` in triggers.json and
+categories.json and in their stamp params, `degraded` in index.json and checks.json, and a DEGRADED
+line in the summary.
 """
 from __future__ import annotations
 
@@ -26,8 +32,9 @@ from . import overlap as ov_mod
 from . import render as render_mod
 from . import spec as spec_mod
 from . import triggers as trig_mod
-from .common import (canonical, file_sha256, guard_out, make_stamp, new_run_id, payload_hash, read_json,
-                     sha256_text, write_json, write_text_atomic)
+from .common import (CATEGORIES_FALLBACK, TRIGGERS_FALLBACK, canonical, degraded_line, degraded_reasons,
+                     file_sha256, guard_out, make_stamp, new_run_id, payload_hash, read_json, sha256_text,
+                     write_json, write_text_atomic)
 
 FILES = {"claims": "claims.json", "overlap": "overlap.json", "dedupe": "dedupe.json",
          "always_on": "always_on.json", "triggers": "triggers.json", "categories": "categories.json",
@@ -54,7 +61,8 @@ def build_parser(p: argparse.ArgumentParser) -> argparse.ArgumentParser:
     g.add_argument("--dedupe-map", help="basis=external: {\"source_to_group\": {claim: group}}")
     g = p.add_argument_group("always-on")
     g.add_argument("--always-on-rule", choices=("literal", "fire_rate", "explicit"), default="literal")
-    g.add_argument("--always-on-phrases", help="rule=literal: ';'-separated opening phrases (default: the pre-registered rule)")
+    g.add_argument("--always-on-phrases", help="rule=literal: ';'-separated opening phrases (default: phrases for a condition that applies "
+                        "to essentially every exchange)")
     g.add_argument("--fire-rates", help="rule=fire_rate: {\"rates\": {claim: rate}}")
     g.add_argument("--fire-threshold", type=float, default=0.80)
     g.add_argument("--always-on-claims", help="rule=explicit: comma list of claim ids")
@@ -168,11 +176,14 @@ def stage_always_on(ctx: Ctx):
 def stage_triggers(ctx: Ctx):
     grouping = read_json(ctx.ext["grouping"]) if "grouping" in ctx.ext else None
     doc = trig_mod.build(ctx.load("claims"), ctx.load("always_on"), grouping)
+    doc["fallback"] = None if grouping else TRIGGERS_FALLBACK
     inputs = _hashes(ctx, "claims", "always_on")
     inputs.update(ctx.ext_hash("grouping"))
-    ctx.write("triggers", "triggers", doc, inputs, {"grouping": "file" if grouping else "identity"})
+    ctx.write("triggers", "triggers", doc, inputs, {"grouping": "file" if grouping else "identity",
+                                                    "fallback": grouping is None})
     s = doc["stats"]
-    return f"{s['triggers']} triggers, {s['edges']} edges, {s['claims_on_2plus_triggers']} claims on 2+ triggers"
+    return (f"{s['triggers']} triggers, {s['edges']} edges, {s['claims_on_2plus_triggers']} claims on 2+ triggers"
+            + ("; FALLBACK identity grouping (no --grouping)" if grouping is None else ""))
 
 
 def stage_categories(ctx: Ctx):
@@ -180,12 +191,15 @@ def stage_categories(ctx: Ctx):
     assignment = read_json(ctx.ext["categories"]) if "categories" in ctx.ext else None
     doc = cat_mod.build(ctx.load("claims"), ctx.load("triggers"), assignment,
                         thin_claims=a.thin_claims, thin_facts=a.thin_facts)
+    doc["fallback"] = None if assignment else CATEGORIES_FALLBACK
     inputs = _hashes(ctx, "claims", "triggers")
     inputs.update(ctx.ext_hash("categories"))
     ctx.write("categories", "categories", doc, inputs, {"assignment": "file" if assignment else "flat",
-                                                        "thin_claims": a.thin_claims, "thin_facts": a.thin_facts})
+                                                        "thin_claims": a.thin_claims, "thin_facts": a.thin_facts,
+                                                        "fallback": assignment is None})
     return (f"{len(doc['categories'])} categories, empty {doc['empty_categories'] or 'none'}, "
-            f"thin {doc['thin_categories'] or 'none'}")
+            f"thin {doc['thin_categories'] or 'none'}"
+            + ("; FALLBACK one flat category (no --categories)" if assignment is None else ""))
 
 
 def stage_render(ctx: Ctx):
@@ -195,15 +209,19 @@ def stage_render(ctx: Ctx):
     dd = ctx.load("dedupe", required=False)
     text, index = render_mod.build(cd, aod, td, catd, dd, subject=a.subject, possessive=a.possessive,
                                    template_overrides=over)
+    index["degraded"] = degraded_reasons(td, catd)
     names = ["claims", "always_on", "triggers", "categories"] + (["dedupe"] if dd is not None else [])
     inputs = _hashes(ctx, *names)
     inputs.update(ctx.ext_hash("templates"))
-    params = {"subject": a.subject, "possessive": a.possessive, "template_overrides": bool(over)}
+    params = {"subject": a.subject, "possessive": a.possessive, "template_overrides": bool(over),
+              "degraded": index["degraded"]}
     ctx.write("render", "index", index, inputs, params)
     write_text_atomic(ctx.out / SERVED, text)
     st = make_stamp("render", Path(render_mod.__file__), inputs, params, ctx.run_id)
+    # The deliverable's own stamp says it too: reading only served.txt and this file must not show
+    # a clean run when the triggers or categories were package defaults.
     st.update({"served_sha256": sha256_text(text), "served_chars": len(text), "served_file": SERVED,
-               "line_endings": "LF"})
+               "line_endings": "LF", "degraded": index["degraded"]})
     write_json(ctx.out / SERVED_STAMP, st)
     return f"served text {len(text)} chars, sha256 {sha256_text(text)[:16]}"
 
@@ -215,13 +233,16 @@ def stage_checks(ctx: Ctx):
     served = sp.read_bytes().decode("utf-8") if sp.exists() else None
     sst = read_json(ctx.out / SERVED_STAMP) if (ctx.out / SERVED_STAMP).exists() else None
     res = checks_mod.run(ctx.spec, docs, served, sst)
+    # Structure can pass while the content is a fallback: say which, beside the count.
+    res["degraded"] = degraded_reasons(docs["triggers"], docs["categories"])
     inputs = {FILES[n]: payload_hash(d) for n, d in docs.items() if d is not None}
     if served is not None:
         inputs[SERVED] = sha256_text(served)
     ctx.write("checks", "checks", res, inputs, {})
     print(checks_mod.format_checks(res))
     return f"{res['n_checks'] - len(res['failed'])}/{res['n_checks']} checks pass" + \
-        (f"; FAILED {res['failed']}" if res["failed"] else "")
+        (f"; FAILED {res['failed']}" if res["failed"] else "") + \
+        (f"; {degraded_line(res['degraded'])}" if res["degraded"] else "")
 
 
 RUNNERS = {"claims": stage_claims, "overlap": stage_overlap, "dedupe": stage_dedupe, "always_on": stage_always_on,
@@ -264,6 +285,10 @@ def execute(args) -> int:
         print(f"  {s}: {msg}")
         if s == "checks" and "FAILED" in msg:
             failed = True
+    reasons = degraded_reasons(ctx.load("triggers", required=False), ctx.load("categories", required=False))
+    if reasons:
+        # Printed last as well, so a run read from its tail cannot be taken for the briefed one.
+        print(f"consolidate run {ctx.run_id}: {degraded_line(reasons)}.")
     return 1 if failed else 0
 
 

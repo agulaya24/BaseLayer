@@ -128,3 +128,39 @@ def guard_out(out: Path, protected: list[Path]) -> None:
             raise ValueError(f"--out {out} is inside the served data directory {served}")
     except ImportError:
         pass
+
+
+# ---------------------------------------------------------------- degraded (fallback) mode
+TRIGGERS_FALLBACK = ("identity grouping: no --grouping file was supplied, so each distinct whole "
+                     "Active_When condition is its own trigger (no clauses, no grouping)")
+CATEGORIES_FALLBACK = ("one flat category: no --categories assignment was supplied, so every "
+                       "trigger sits in a single category named Situations")
+FLAT_METHOD = "none supplied: one flat category"
+
+
+def degraded_reasons(triggers_doc: dict | None, categories_doc: dict | None) -> list[str]:
+    """Why a consolidation is a fallback build, or [] when it is not.
+
+    Package defaults stand in for the model-built inputs (`build group`, `build categorize`):
+    identity triggers and one flat category. The checks verify structure, not content, so such a
+    run passes every check; this is the flag that says it is not the briefed consolidation.
+    Read from the explicit `fallback` field and, for output written before that field existed,
+    from the markers it always carried (triggers `source`, categories `method`, stage params),
+    so an older degraded run is not read as clean because a field is absent."""
+    out = []
+    t = triggers_doc or {}
+    tparams = (t.get("stamp") or {}).get("params") or {}
+    if t.get("fallback") or tparams.get("fallback") is True or t.get("source") == "identity" \
+            or tparams.get("grouping") == "identity":
+        out.append(t.get("fallback") or TRIGGERS_FALLBACK)
+    c = categories_doc or {}
+    cparams = (c.get("stamp") or {}).get("params") or {}
+    if c.get("fallback") or cparams.get("fallback") is True or c.get("method") == FLAT_METHOD \
+            or cparams.get("assignment") == "flat":
+        out.append(c.get("fallback") or CATEGORIES_FALLBACK)
+    return out
+
+
+def degraded_line(reasons: list[str]) -> str:
+    """The printed form. Never contains 'FAILED': a degraded run is flagged, not failed."""
+    return "DEGRADED (package defaults, not the model-built inputs): " + "; ".join(reasons)

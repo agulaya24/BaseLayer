@@ -51,7 +51,7 @@ def load(paths):
     return out
 
 
-def assemble(trees, min_runs=None, allow_planted=False):
+def assemble(trees, min_runs=None, allow_planted=False, allow_failed_leaves=False):
     """Build the package. `min_runs` defaults to a strict majority of the trees given.
 
     AT n=1 THE MAJORITY RULE DEGENERATES AND THE "VERIFIED" LABEL BECOMES VACUOUS.
@@ -87,6 +87,18 @@ def assemble(trees, min_runs=None, allow_planted=False):
             "REFUSED: %d facts in these trees come from planted pilot sessions ('%s'). A pilot "
             "corpus is not for distillation; pass allow_planted / --allow-planted only for a "
             "pilot's own checks." % (n_planted, _PLANTED_PREFIX))
+    # A leaf the model could not finish is stored as an empty node marked _parse_failed. Its
+    # facts reach no lane, so packaging it drops them with one log line as the only signal
+    # (design decision 2026-10-16: one failed 50-fact leaf left 1% of a corpus out of one layer). Refuse, unless the
+    # caller says so, and carry the count in the stamp either way.
+    failed = [(lf.get("_chunk"), int(lf.get("_n") or 0)) for t in trees
+              for lf in (t.get("leaves") or []) if lf.get("_parse_failed")]
+    if failed and not allow_failed_leaves:
+        raise SystemExit(
+            "REFUSED: %d failed leaf/leaves could not be parsed, holding %d facts that would be "
+            "silently absent from this package: %s. Repair them (distill_batch --resume) or "
+            "pass allow_failed_leaves / --allow-failed-leaves to package without them."
+            % (len(failed), sum(n for _, n in failed), [c for c, _ in failed]))
     # One turn-contract version across every tree, or none (contract §7). A tree written before
     # stamps carried the version counts as unversioned, so it cannot be pooled with a gated one.
     try:
@@ -108,7 +120,8 @@ def assemble(trees, min_runs=None, allow_planted=False):
                       "tree_content_hash": h} for t, h in zip(trees, tree_hashes)],
         facts_input_hashes_agree=len({t.get("stamp", {}).get("input_hash")
                                       for t in trees}) == 1,
-        planted_facts_included=n_planted)
+        planted_facts_included=n_planted,
+        failed_leaves=len(failed), facts_in_failed_leaves=sum(n for _, n in failed))
 
     # THEMES: a FLAT UNION TAGGED BY SOURCE RUN. Deliberately NOT de-duplicated.
     #
@@ -336,6 +349,9 @@ def main():
     ap.add_argument("--min-runs", type=int, default=None)
     ap.add_argument("--allow-planted", action="store_true",
                     help="PILOT CORPORA ONLY: accept trees distilled from planted sessions")
+    ap.add_argument("--allow-failed-leaves", action="store_true",
+                    help="package trees that hold _parse_failed leaves; their facts are absent "
+                         "and the count is stamped (failed_leaves, facts_in_failed_leaves)")
     ap.add_argument("--shard-token-budget", type=int,
                     default=int(os.environ.get("BASELAYER_LEAF_PAYLOAD_CEILING", "400000")),
                     help="tokens of rendered evidence one author request may carry (default "
@@ -344,7 +360,8 @@ def main():
                          "manifest naming the shard files written beside it.")
     a = ap.parse_args()
     trees = load(a.trees)
-    pkg = assemble(trees, a.min_runs, allow_planted=a.allow_planted)
+    pkg = assemble(trees, a.min_runs, allow_planted=a.allow_planted,
+                   allow_failed_leaves=a.allow_failed_leaves)
     shards = shard(trees, pkg, a.shard_token_budget)
     if len(shards) > 1:
         stem = os.path.splitext(a.out)[0]

@@ -499,7 +499,7 @@ Ask someone who knows the subject well (partner, close friend, long-time colleag
 
 #### 4D: Prediction Verification (Longitudinal)
 
-The PREDICTIONS layer makes specific behavioral claims: "When experiencing multiple concurrent frustrations, individual setbacks compound into systemic despair." These are testable over time.
+The PREDICTIONS layer makes specific behavioral claims: "When several plans stall at once, the person stops all of them for a week." These are testable over time.
 
 **Protocol:**
 1. Extract every prediction from the PREDICTIONS layer

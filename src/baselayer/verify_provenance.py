@@ -194,7 +194,8 @@ def _get_chroma_facts_collection():
         return None
 
     if _chroma_client is None:
-        _chroma_client = chromadb.PersistentClient(path=str(VECTORS_DIR))
+        from baselayer.config import get_chroma_client as _chroma_client_for
+        _chroma_client = _chroma_client_for(VECTORS_DIR)
 
     try:
         _chroma_facts_collection = _chroma_client.get_collection("memory_facts")

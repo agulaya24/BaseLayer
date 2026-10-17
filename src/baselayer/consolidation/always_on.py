@@ -2,11 +2,11 @@
 
 Rules (parameter `rule`):
     literal     a claim is standing when its Active_When condition opens with one of
-                `phrases` (case-insensitive, whole words). The default phrases are the
-                pre-registered textual rule of the 2026-09-28 trigger eval: "conditions
-                whose text reads Always / All communication / Any communication / Any
-                message / Any written message / Task requests across any domain /
-                Nearly all replies".
+                `phrases` (case-insensitive, whole words). The default phrases express one
+                rule: a condition that applies to essentially every exchange ("Always /
+                All communication / Any communication / Any message / Any written message /
+                In every exchange / Any request, in any domain / Almost every reply").
+                `--always-on-phrases` replaces the list.
     fire_rate   a claim is standing when its measured fire rate is >= `threshold` in a
                 rates file ({"rates": {claim id: float}}), default 0.80. One rate per
                 claim: the 9/28 pre-registered measured rule needed >= 0.80 from an arm AND from
@@ -21,9 +21,10 @@ from __future__ import annotations
 import re
 
 DEFAULT_PHRASES = ("Always", "All communication", "Any communication", "Any message", "Any written message",
-                   "Task requests across any domain", "Nearly all replies")
-RULE_TEXT = ("conditions whose text reads Always / All communication / Any communication / Any message / "
-             "Any written message / Task requests across any domain / Nearly all replies")
+                   "In every exchange", "Any request, in any domain", "Almost every reply")
+RULE_TEXT = ("conditions that apply to essentially every exchange: the text opens with Always / All communication / "
+             "Any communication / Any message / Any written message / In every exchange / Any request, in any domain / "
+             "Almost every reply")
 
 
 def literal_match(condition: str, phrases=DEFAULT_PHRASES) -> str | None:

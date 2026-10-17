@@ -12,12 +12,21 @@ model can propose but never write text into the output:
      the checks stage runs (K08). A split that fails either test falls back to the
      whole condition (`*`), which always passes, and the fallback is recorded.
      A condition returned as one clause is recorded as `*`.
+     Split rule (grouper/2): split only between situations that can each occur on their
+     own; never inside a list of objects, verbs or qualifiers that completes one
+     situation ("giving water, feed or shade to a seedling" is one situation, not
+     three). The prompt says so, and a mechanical guard backs it: every piece must be a
+     standalone situation by `standalone()` (three or more words, or two words one of
+     which is a verb form ending in -ing or -ed). A split with any piece that fails is
+     kept whole, and the model's proposal is recorded beside the reason.
   2. GROUP. Every clause (whole conditions included) is listed once under a neutral id,
      shuffled by `seed`. The model groups the lines that name the same situation and
      picks, for each group, the member line whose wording names it. The reply is ids
      only, so a trigger's wording is a member's clause verbatim by construction. A line
      the reply leaves out becomes its own trigger, a repeated line keeps its first
-     placement, and a wording that is not a member falls back to the first member; each
+     placement, and a wording that is not a member falls back to the first member; a
+     wording whose text sits, as whole words, strictly inside another member's line is
+     narrower than that member, so the wording moves to the longest such member. Each
      repair is recorded. Many-to-many follows from step 1: a claim whose condition was
      split has one edge per clause.
 
@@ -33,7 +42,7 @@ from .backends import CallRunner, parse_json
 from .checks import uncovered
 from .triggers import WHOLE
 
-TEMPLATE = "grouper/1 (split: exact-substring clauses; group: ids only)"
+TEMPLATE = "grouper/3 (grouper/2 with a neutral split-rule example, design decision 2026-10-17)"
 MAX_TOKENS = 32000
 
 SPLIT_HEAD = """Below are {n} conditions. Each one says when a piece of advice about one person applies. Do not use any tool; answer directly from the text.
@@ -42,7 +51,9 @@ For each condition, list the distinct situations it names, as clauses.
 
 Rules:
 - Copy each clause EXACTLY from its condition: one contiguous run of the condition's characters, with the same spelling, capitalisation and punctuation. Do not rephrase, abbreviate, reorder, or join pieces that are not next to each other.
-- Split only where the condition names situations that can occur separately (for example "When drafting emails or reviewing contracts" names two). A condition that names one situation is returned as one clause, the whole condition.
+- Split only between situations that can each occur on their own, each of which could stand as a complete condition by itself (for example "When drafting emails or reviewing contracts" names two). A condition that names one situation is returned as one clause, the whole condition.
+- Never split inside a list of objects, verbs or qualifiers that completes one situation. The items of such a list share one head ("giving", "reviewing any", "mentions of") and none of them is a situation without it. "Before giving water, feed or shade to a seedling" is ONE situation: return it whole, never "Before giving water" / "feed" / "shade to a seedling". "When reviewing any email, report, message or proposal" is ONE situation: return it whole.
+- Every clause you return must read as a situation on its own. A clause that is only a noun or a list item ("time", "report", "the budget") means the split is wrong: return the condition whole.
 - Together, a condition's clauses must cover every word of it that carries meaning. Connecting words such as "and", "or", "when", "any" may be left out.
 
 Return STRICT JSON only, one key per condition id:
@@ -89,6 +100,39 @@ def locate(cond: str, clause: str) -> str | None:
     return None
 
 
+# ---------------------------------------------------------------- the standalone guard
+MIN_WORDS = 3
+NOT_VERB_FORMS = {"thing", "something", "anything", "everything", "nothing", "during", "morning", "evening"}
+NOT_STANDALONE = "a piece is not a standalone situation"
+
+
+def _words(text: str) -> list[str]:
+    return re.findall(r"[A-Za-z0-9][A-Za-z0-9'\-]*", text)
+
+
+def _verb_form(w: str) -> bool:
+    w = w.lower()
+    return len(w) > 4 and w not in NOT_VERB_FORMS and (w.endswith("ing") or w.endswith("ed"))
+
+
+def standalone(piece: str) -> bool:
+    """Whether a split piece can name a situation by itself: MIN_WORDS (3) or more words,
+    or exactly two words one of which is a verb form ending in -ing or -ed ("pruning
+    hedges", "When watering"). One word never passes.
+
+    Why these numbers: on the claims this was calibrated on, every one-word piece the
+    model produced was a list item cut from a shared head, and the two-word pieces split
+    by kind: a verb with its object is a situation ("repotting seedlings"), a bare noun
+    phrase is the object of a head that stayed in another piece ("the budget"). The
+    -ing / -ed test is the cheapest signal that a piece carries its own verb. It is a
+    backstop for the prompt, not a parser: a three-word list item ("an unclear term")
+    still passes, and a noun ending in -ing ("seedling trays") counts as a verb form."""
+    w = _words(piece)
+    if len(w) >= MIN_WORDS:
+        return True
+    return len(w) == 2 and any(_verb_form(x) for x in w)
+
+
 def accept_split(cond: str, proposed) -> tuple[list[str] | None, str | None]:
     """(clauses or ["*"], fallback reason). Clauses are slices of the stripped condition."""
     c = cond.strip()
@@ -108,7 +152,22 @@ def accept_split(cond: str, proposed) -> tuple[list[str] | None, str | None]:
         return [WHOLE], None if got else "no clauses returned"
     if uncovered(c, got):
         return [WHOLE], "clauses leave a content-bearing span uncovered"
+    if not all(standalone(s) for s in got):
+        return [WHOLE], NOT_STANDALONE
     return got, None
+
+
+def _fold(text: str) -> str:
+    return re.sub(r"\s+", " ", text.strip().lower()).rstrip(".,;: ")
+
+
+def narrower(wording: str, member: str) -> bool:
+    """True when the wording sits strictly inside the member's line as whole words, case
+    and space folded: the trigger line would then name less than that member does. This
+    is the only form of "narrower" a mechanical rule can decide. A wording narrower in
+    meaning but not in text needs a model judge, which is not built."""
+    w, m = _fold(wording), _fold(member)
+    return bool(w) and w != m and re.search(r"(?<![a-z0-9])" + re.escape(w) + r"(?![a-z0-9])", m) is not None
 
 
 def _slug(text: str, used: set) -> str:
@@ -169,6 +228,7 @@ class ModelTriggerGrouper:
         ([(member line ids, wording line id)], repairs); every line is in exactly one group."""
         prompt, kid = self.group_prompt(lines)
         n_lines = len(kid)
+        text = dict(lines)
 
         def gparse(text):
             p = parse_json(text)
@@ -183,7 +243,7 @@ class ModelTriggerGrouper:
         if got is None:
             raise RuntimeError("trigger grouper: the group call failed after retries; no grouping written")
         seen, groups, repairs = set(), [], {"missing_lines": [], "repeated_lines": [], "unknown_ids": [],
-                                           "wording_not_member": 0}
+                                           "wording_not_member": 0, "wording_narrower_than_member": []}
         for g in got["parsed"]["groups"]:
             if not isinstance(g, dict):
                 continue
@@ -202,6 +262,11 @@ class ModelTriggerGrouper:
             if w not in mem:
                 repairs["wording_not_member"] += 1
                 w = mem[0]
+            wider = [m for m in mem if narrower(text[kid[w]], text[kid[m]])]
+            if wider:
+                to = max(wider, key=lambda m: (len(text[kid[m]]), -mem.index(m)))
+                repairs["wording_narrower_than_member"].append({"from": kid[w], "to": kid[to]})
+                w = to
             groups.append(([kid[m] for m in mem], kid[w]))
         for k in kid:
             if k not in seen:
@@ -229,14 +294,15 @@ class ModelTriggerGrouper:
         scalls = self.split_calls(cl)
         sres = self.runner.run([{k: c[k] for k in ("key", "prompt", "max_tokens", "parse")} for c in scalls],
                                meta={"builder": "group", "step": "split"})
-        splits, fallbacks = {}, {}
+        splits, fallbacks, proposed = {}, {}, {}
         for c in scalls:
             got = sres.get(c["key"])
             for s, cid in c["sid"].items():
                 if got is None:
                     splits[cid], why = [WHOLE], "split call failed"
                 else:
-                    splits[cid], why = accept_split(cmap[cid]["active_when"], got["parsed"].get(s))
+                    proposed[cid] = got["parsed"].get(s)
+                    splits[cid], why = accept_split(cmap[cid]["active_when"], proposed[cid])
                 if why:
                     fallbacks[cid] = why
         # ---- step 2: group
@@ -266,9 +332,11 @@ class ModelTriggerGrouper:
         triggers = [{"key": t["key"], "wording_source": t["wording_source"], "members": t["members"]} for t in out]
         n_split = sum(1 for v in splits.values() if v != [WHOLE])
         self.report = {
-            "splits": {cid: splits[cid] for cid in cmap}, "split_fallbacks": fallbacks, "group_repairs": repairs,
+            "splits": {cid: splits[cid] for cid in cmap}, "split_fallbacks": fallbacks,
+            "split_proposed": {cid: proposed.get(cid) for cid in cmap}, "group_repairs": repairs,
             "stats": {"claims": len(cl), "always_on_excluded": len(ao & set(c["id"] for c in claims)),
                       "claims_split": n_split, "clauses": len(lines), "split_fallbacks": len(fallbacks),
+                      "split_rejected_not_standalone": sum(1 for v in fallbacks.values() if v == NOT_STANDALONE),
                       "triggers": len(triggers), "edges": sum(len(t["members"]) for t in triggers),
                       "singleton_triggers": sum(1 for t in triggers if len({m["claim"] for m in t["members"]}) == 1)},
         }

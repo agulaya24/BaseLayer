@@ -528,6 +528,9 @@ def test_run_stops_before_authoring_and_the_accepted_gaps_are_stamped(env, monke
     monkeypatch.setattr(cli, "cmd_extract", lambda a: calls.append("extract"))
     monkeypatch.setattr(cli, "cmd_author", lambda a: calls.append("author"))
     monkeypatch.setattr(cli, "_run_traceability", lambda: calls.append("trace"))
+    # `run` imports on every call since main's 85e8cbc; this test is about what follows import.
+    monkeypatch.setattr(cli, "cmd_import", lambda a: None)
+    monkeypatch.setattr(cli, "_conversation_counts", lambda db: (1, 0))
     monkeypatch.setattr("baselayer.config.DATABASE_FILE", env.db)
     args = types.SimpleNamespace(file=str(f), yes=True, document_mode=False, limit=None,
                                  accept_gaps=False)

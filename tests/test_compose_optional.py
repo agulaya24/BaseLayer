@@ -88,6 +88,9 @@ def test_run_authors_the_layers_and_does_not_compose(monkeypatch, tmp_path):
     monkeypatch.setattr(cli, "_check_api_key", lambda: None)
     monkeypatch.setattr(cli, "cmd_estimate", lambda a: None)
     monkeypatch.setattr(cli, "cmd_extract", lambda a: None)
+    # `run` imports on every call since main's 85e8cbc; this test is about what follows import.
+    monkeypatch.setattr(cli, "cmd_import", lambda a: None)
+    monkeypatch.setattr(cli, "_conversation_counts", lambda db: (1, 0))
     monkeypatch.setattr(cli, "cmd_author", lambda a: seen.setdefault("compose", a.compose))
     monkeypatch.setattr(cli, "_run_traceability", lambda: seen.setdefault("trace", True))
 

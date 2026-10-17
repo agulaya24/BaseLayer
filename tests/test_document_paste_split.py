@@ -216,14 +216,14 @@ def test_crlf_document_inside_dictated_text_leaves_before_dictation_is_scored():
 
 
 EARLY_ASSISTANT = (
-    "Here is a review of the week. Monday went well because you waited for the trend to "
-    "confirm before committing capital, and you kept most of it in reserve until the second "
-    "hour. Tuesday was also disciplined: you identified a choppy open and stood aside rather "
-    "than forcing entries. Wednesday gave back an early gain because you anticipated a "
-    "reversal too soon, and the lesson there is to let the position work until a signal "
-    "actually changes. Thursday was the best day, with no morning trades because nothing "
-    "aligned. Friday broke the rule about trading only when every timeframe agrees, and "
-    "losses were not cut quickly enough. Overall the week shows good capital control with "
+    "Here is a review of the week. Monday went well because you waited for the soil to "
+    "warm before sowing the beans, and you kept most of the seed in reserve until the second "
+    "week. Tuesday was also disciplined: you identified a waterlogged bed and stood aside rather "
+    "than forcing the planting. Wednesday lost an early batch because you expected the "
+    "frost to lift too soon, and the lesson there is to let the cold frame work until the forecast "
+    "actually changes. Thursday was the best day, with no morning watering because nothing "
+    "needed it. Friday broke the rule about watering only when every bed is dry, and "
+    "weeds were not pulled quickly enough. Overall the week shows good care of the plot with "
     "one lapse that cost more than the other four days earned."
 )
 

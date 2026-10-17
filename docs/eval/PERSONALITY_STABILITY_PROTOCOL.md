@@ -42,7 +42,7 @@
 | Runs per cell | 5 |
 | Calls per condition per subject | 4 temps x 10 prompts x 5 runs = 200 |
 | Total calls per subject | 3 conditions x 200 = 600 |
-| Subjects | 2 (Franklin, Aarik) |
+| Subjects | 2 (Franklin, the author) |
 | **Total API calls** | **1,200** |
 
 ### Model
@@ -204,16 +204,16 @@ This assumes max output length. Actual cost likely lower (~$6-8) since most resp
 - **Why:** Historical figure with massive training data contamination. If the brief stabilizes responses even for a subject the model already "knows," it demonstrates anchoring power beyond what the model's prior provides.
 - **Risk:** The model's existing Franklin knowledge may reduce C1 variance artificially, making the brief's marginal effect harder to detect. This is a conservative choice — any effect found is robust.
 
-### Subject 2: Aarik
+### Subject 2: the author
 
 - **Brief source:** `memory_system_v4/` environment, existing V4 brief.
-- **Why:** Private individual with no training data presence. The model has no prior on Aarik's personality. This is the clean test — any stabilization must come from the brief alone.
+- **Why:** Private individual with no training data presence. The model has no prior on the author's personality. This is the clean test — any stabilization must come from the brief alone.
 - **Risk:** Privacy. Responses will be stored locally. No data leaves the local machine beyond the API call itself.
 - **Mitigation:** Anonymize the brief before injection (existing anonymization layer in `author_layers.py`). Store results in a non-committed local directory.
 
 ### Cross-Subject Analysis
 
-Comparing Franklin vs Aarik results tests whether training data contamination interacts with brief stabilization. If the brief matters MORE for Aarik (unknown to the model) than Franklin (well-known), this suggests the brief fills a knowledge gap rather than merely reinforcing existing priors. Both outcomes are interesting.
+Comparing Franklin vs author results tests whether training data contamination interacts with brief stabilization. If the brief matters MORE for the author (unknown to the model) than Franklin (well-known), this suggests the brief fills a knowledge gap rather than merely reinforcing existing priors. Both outcomes are interesting.
 
 ---
 

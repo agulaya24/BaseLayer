@@ -199,3 +199,9 @@ def load_import_config(path: str | os.PathLike | None = None) -> ImportConfig:
     if not isinstance(d, dict):
         raise ValueError(f"import config {path}: top level must be an object")
     return config_from_dict(d, str(path))
+
+
+def configured_canaries(path: str | os.PathLike | None = None) -> tuple:
+    """The injection canaries of the local import config (`canary_strings`), read at call time.
+    Empty when nothing is configured: the package ships none (see DEFAULT_CANARIES)."""
+    return tuple(load_import_config(path).canary_strings)

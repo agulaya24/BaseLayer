@@ -3,6 +3,7 @@
 Runs only when BASELAYER_CONSOLIDATION_ACCEPTANCE names a JSON file:
 
     {"spec_dir": "...", "grouping": "...", "categories": "...", "subject": "...", "possessive": "...",
+     "always_on_phrases": "<optional: ';'-separated opening phrases, when the run used other than the defaults>",
      "expected_sha256": "<sha256 of the served text, UTF-8, LF>",
      "expected_trigger_categories": "<optional: a prototype trigger index whose categories must be recomputed>"}
 
@@ -30,7 +31,8 @@ def test_reproduces_served_text(tmp_path):
     out = tmp_path / "out"
     args = crun.build_parser(argparse.ArgumentParser()).parse_args(
         [cfg["spec_dir"], "--out", str(out), "--grouping", cfg["grouping"], "--categories", cfg["categories"],
-         "--subject", cfg["subject"], "--possessive", cfg.get("possessive", "their")])
+         "--subject", cfg["subject"], "--possessive", cfg.get("possessive", "their")]
+        + (["--always-on-phrases", cfg["always_on_phrases"]] if cfg.get("always_on_phrases") else []))
     assert crun.execute(args) == 0
     assert read_json(out / "checks.json")["passed"]
     assert sha256_bytes((out / "served.txt").read_bytes()) == cfg["expected_sha256"]

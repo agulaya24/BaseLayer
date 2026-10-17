@@ -27,7 +27,7 @@ REQUIRED = ("turn_contract_version", "model", "prompt_hash", "input_hash", "git_
 
 FACTS = [
     ("aaaaaaaa-0000-4000-8000-000000000001", "They write the plan before they write code.", V),
-    ("bbbbbbbb-0000-4000-8000-000000000002", "They ask for two options, never a spectrum.", V),
+    ("bbbbbbbb-0000-4000-8000-000000000002", "They ask for two options, never a long list.", V),
     ("cccccccc-0000-4000-8000-000000000003", "They keep a dated backup before any rewrite.", V),
 ]
 

@@ -423,8 +423,8 @@ def test_always_on_literal_rule():
         {"id": "X1", "active_when": "Any message, especially drafts."},
         {"id": "X2", "active_when": "Any messages about gardening."},
         {"id": "X3", "active_when": "Anything about money."},
-        {"id": "X4", "active_when": "nearly all replies to them."},
-        {"id": "X5", "active_when": "Task requests across any domain."},
+        {"id": "X4", "active_when": "almost every reply, even short ones."},
+        {"id": "X5", "active_when": "Any request, in any domain."},
         {"id": "X6", "active_when": "When wintering, always."},
     ]}
     assert always_on.build(cd)["claims"] == ["X1", "X4", "X5"]

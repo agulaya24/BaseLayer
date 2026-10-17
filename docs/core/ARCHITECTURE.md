@@ -202,7 +202,7 @@ Why this replaced the old author step:
 - The shipped author reads a SQL selection capped at 15 facts per category (`MAX_FACTS_PER_CATEGORY`, `author_layers.py:307`). Measured, that discards about 65% of the CORE layer's corpus, and it cuts by sort position rather than importance. This cap appears in none of the recorded decisions. Distillation gives every fact a recorded verdict instead.
 
 Where it lives:
-- In this repository, as the subpackage `src/baselayer/distillation/`: `distill.py`, `assemble.py`, `author_from_package.py`, plus `distill_batch.py` (all layers' leaves in one batch submission, module-only), `quote_gate.py` (optional check of quoted phrases at the author), `spend.py` (rate table, estimates, spend ceiling), the design test `situation_first.py` (module-only) and the study harness `convergence.py`. Post-authoring consolidation of near-duplicate claims is not in the package; it exists only as a prototype outside this repository. CLI: `baselayer distill`, `baselayer assemble`, `baselayer author-from-package`. Detail doc: `docs/core/DISTILLATION.md`. Reference run records: `data/distillation_reference/`.
+- In this repository, as the subpackage `src/baselayer/distillation/`: `distill.py`, `assemble.py`, `author_from_package.py`, plus `distill_batch.py` (all layers' leaves in one batch submission, module-only), `quote_gate.py` (optional check of quoted phrases at the author), `spend.py` (rate table, estimates, spend ceiling), the design test `situation_first.py` (module-only) and the study harness `convergence.py`. Post-authoring consolidation is the subpackage `src/baselayer/consolidation/` (`baselayer consolidate`, design decision 2026-10-17): an always-on set, a duplicate grouping and a trigger index built from an authored specification with no model call (model-built grouping and categories are optional inputs; serving into an agent session is not in this package; `docs/core/CONSOLIDATION.md`). CLI: `baselayer distill`, `baselayer assemble`, `baselayer author-from-package`. Detail doc: `docs/core/DISTILLATION.md`. Reference run records: `data/distillation_reference/`.
 
 Data access:
 - Distillation reads this project's database directly (opened read-only). It requires `memory_facts` with the fields `id`, `fact_text`, `predicate`, `category`, and `superseded_by`. No adapter is needed.
@@ -421,21 +421,19 @@ The shipped audit is a strong data-quality check, not a causal-traceability guar
 
 ## Model Roles
 
-| Model | Step | Role | Typical Cost |
-|-------|------|------|-------------|
-| **Haiku 4.5** (API) | Extract | Structured fact extraction, 46 constrained predicates | ~$0.10-0.50/corpus |
-| **MiniLM-L6-v2** (local) | Embed | 384-dim vectors for search, verify, and vector provenance fallback | $0 |
-| **Sonnet 4.6** (API) | Author (static path, `baselayer author`) | Three-layer generation | ~$0.05-0.15 |
-| **Opus 4.6** (API) | Compose / review (static path) | Compress 3 layers into specification | ~$0.05-0.15 |
-| **Sonnet 5** (API) | Distill (`baselayer distill` default) | Leaves per chunk of facts | scales with call count |
-| **Opus 5** (API; Opus 5.5 via `--model`) | Author from package (`author-from-package` default) | Layers and brief from handoff packages, mandatory citations | per layer |
+| Model | Step | Role | Runs |
+|-------|------|------|------|
+| **Haiku 4.5** (API) | Extract | Structured fact extraction, 46 constrained predicates | Model API |
+| **MiniLM-L6-v2** (local) | Embed | 384-dim vectors for search, verify, and vector provenance fallback | Local |
+| **Sonnet 4.6** (API) | Author (static path, `baselayer author`) | Three-layer generation | Model API |
+| **Opus 4.6** (API) | Compose / review (static path) | Compress 3 layers into specification | Model API |
+| **Sonnet 5** (API) | Distill (`baselayer distill` default) | Leaves per chunk of facts | Model API |
+| **Opus 5** (API; Opus 5.5 via `--model`) | Author from package (`author-from-package` default) | Layers and brief from handoff packages, mandatory citations | Model API |
+| **Pure code** | Serve | Load and serve final specification via MCP | Local |
 
 Model ids are set in `config.py` for the static path and as argparse defaults for the distillation path. Read them there; this table is a summary and can drift.
-| **Pure code** | Serve | Load and serve final specification via MCP | $0 |
 
-Total cost per subject includes only the shipped 5-step pipeline. The current authoring architecture, Interpretive Distillation, ships in this repository as `baselayer.distillation` and is experimental; its cost scales with call count and is documented in `distill.py`'s cost notes (a large corpus is hours and tens of dollars per layer).
-
-**Total cost per subject:** ~$0.30 to $2.00 depending on corpus size. `baselayer estimate` previews exact cost before spending anything.
+**Cost:** `baselayer estimate` computes its extraction figure from your imported text; the authoring and composition figures it prints are fixed values that do not scale with the corpus. Actual cost depends on text volume and provider pricing, so treat the estimate as a rough guide, not a budget. Interpretive Distillation, the experimental authoring path in `baselayer.distillation`, makes many more model calls than the shipped author; its cost scales with call count, so read `distill.py`'s cost notes before running it.
 
 **Local extraction option:** Set `BASELAYER_EXTRACTION_BACKEND=ollama` to run extraction through a local model (`config.py` sets `LLM_MODEL = "qwen2.5:14b"`; an earlier note here named Mistral 7B and did not match the code). Authoring and composition still require Claude API.
 
@@ -564,7 +562,7 @@ memory_system/
 |       +-- core_v4.md
 |       +-- predictions_v4.md
 |       +-- brief_v5_clean.md         # The specification (primary artifact)
-+-- tests/                             # offline test suite: `pytest tests -q`
++-- tests/                             # test suite
 +-- docs/
 |   +-- core/                          # Architecture, decisions, principles
 |   +-- eval/                          # Benchmarks, ablation studies, eval frameworks

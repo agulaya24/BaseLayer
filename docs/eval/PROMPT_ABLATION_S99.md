@@ -2,7 +2,7 @@
 
 ## Problem Statement
 
-Identity models were skewing toward dominant topics in the source data. Subject S's V2 opened with prediction markets as his "epistemic spine" (74/1,478 facts = 5%, but the authoring model treated them as core identity). Aarik's model was dominated by trading patterns. The V1 models were better because they captured WHO a person is — how they reason, how they operate — not WHAT they write or think about.
+Identity models were skewing toward dominant topics in the source data. Subject S's V2 opened with prediction markets as his "epistemic spine" (74/1,478 facts = 5%, but the authoring model treated them as core identity). The author's model was dominated by one domain's patterns. The V1 models were better because they captured WHO a person is — how they reason, how they operate — not WHAT they write or think about.
 
 Root cause: the authoring prompts (~1,000 words each) had no guard against topic-specific positions being elevated to identity axioms, and contained ~700 words of accumulated ceremonial instructions from 98 sessions.
 
@@ -49,7 +49,7 @@ Subject: Subject S
 | J: Hybrid | Cherry-picked best from all + caps |
 
 ### Round 3: Prediction Skew Fix (4 variants, predictions only)
-Subject: Aarik (366 core facts, 98 prediction facts, heavy trading skew)
+Subject: the author (366 core facts, 98 prediction facts, heavy single-domain skew)
 
 | Variant | Description |
 |---------|-------------|
@@ -59,7 +59,7 @@ Subject: Aarik (366 core facts, 98 prediction facts, heavy trading skew)
 | H4: Neutral first | "Describe pattern in domain-neutral language first" |
 
 ### Round 4: Framing Test (3 conditions × 3 layers = 9 runs)
-Subject: Aarik
+Subject: the author
 
 | Condition | Description |
 |-----------|-------------|
@@ -97,26 +97,26 @@ Subject: Aarik
 
 **H is the clear winner.** Hard caps (8-10 axioms, 800-1000w core, 6-8 predictions) produce the most concise output without losing quality. The "psychological precision" instruction from E and "failure modes" from D are both retained.
 
-### Round 3: Prediction Skew Fix (Aarik's Trading Data)
+### Round 3: Prediction Skew Fix (the Author's Dominant-Domain Data)
 
-| Variant | Trading terms | Output words |
+| Variant | Dominant-domain terms | Output words |
 |---------|--------------|-------------|
 | H base | 12 | 1,177 |
 | H2: Detection balance | 9 | 1,002 |
 | **H3: Domain suppression** | **0** | **1,004** |
 | H4: Neutral first | 8 | 1,468 |
 
-**H3 (detection balance + domain suppression) eliminates trading skew entirely.** 90 words of additional instruction. The domain suppression cap ("no single domain in >2 predictions") is the load-bearing addition.
+**H3 (detection balance + domain suppression) eliminates the single-domain skew entirely.** 90 words of additional instruction. The domain suppression cap ("no single domain in >2 predictions") is the load-bearing addition.
 
 ### Round 4: Framing Test
 
-| Condition | Total | Trading | Core words |
+| Condition | Total | Dominant domain | Core words |
 |-----------|-------|---------|-----------|
 | **H3** | **3,384** | **5** | **777** |
 | H5: Abstraction | 4,580 | 8 | 1,025 |
 | H6: Spec | 3,944 | 2 | 944 |
 
-**H3 remains the best all-rounder.** Tightest total (3,384w), tightest core (777w). H6 ("behavioral specification") produced the lowest trading count (2) but at 17% more total output. H5 ("abstraction/invariants") actually increased both output and trading — the framing invited more elaboration without better filtering.
+**H3 remains the best all-rounder.** Tightest total (3,384w), tightest core (777w). H6 ("behavioral specification") produced the lowest dominant-domain count (2) but at 17% more total output. H5 ("abstraction/invariants") increased both total output and the dominant-domain count: the framing invited more elaboration without better filtering.
 
 The "operating guide" framing in H3 is not just a label — it produces more directive, more concise output than "behavioral specification" or "find the invariants." The model interprets "guide" as "be actionable and brief" and "specification" as "be comprehensive."
 
@@ -146,7 +146,7 @@ H3 = H base (C structure + D interaction failure modes + E psychological depth +
 
 - **All 28 Wave 1/2/3 subjects** reverted to V1. Version history cleared.
 - **15 Wave 4/5 subjects** live with flawed prompts. Version history cleared.
-- **Paul Graham** — V1, never upgraded.
+- **Subject C** (an essay corpus): V1, never upgraded.
 - **6 subjects** not yet seeded.
 - **43 total subjects need H3 re-run** before V2 push.
 - H3 prompts NOT YET adopted in `author_layers.py` — pending this review.
@@ -164,9 +164,9 @@ H3 = H base (C structure + D interaction failure modes + E psychological depth +
 All test outputs in `prompt_ablation_results/`:
 - Round 1: `{A_control,B_stripped,C_stripped_guard,D_minimal,E_ultra}_{anchors,core,predictions}.md`
 - Round 2: `{F_c_plus_interactions,G_c_plus_depth,H_combined_capped,I_d_capped,J_hybrid}_{anchors,core,predictions}.md`
-- Round 3: `{H_base,H2_balance,H3_suppress,H4_neutral}_aarik_preds.md`
-- Round 4: `{H3,H5_abstraction,H6_spec}_aarik_{anchors,core,predictions}.md`
-- Aarik H baseline: `H_aarik_{anchors,core,predictions}.md`
+- Round 3: `{H_base,H2_balance,H3_suppress,H4_neutral}_author_preds.md`
+- Round 4: `{H3,H5_abstraction,H6_spec}_author_{anchors,core,predictions}.md`
+- Author H baseline: `H_author_{anchors,core,predictions}.md`
 
 ## Cost
 

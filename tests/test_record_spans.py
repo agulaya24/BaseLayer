@@ -267,10 +267,10 @@ ALPHA_PINS = [
     ("sold 40 at 1.20 then 25 at 1.35 later", 5 / 9, "prose"),
 ]
 DATED_PINS = [
-    ("3/02 trading review", 2 / 3, "record"),
+    ("3/02 harvest review", 2 / 3, "record"),
     ("3/02 sold 40 at 1.20 and kept the rest for overnight", 8 / 11, "record"),
-    ("3/02 reviewed the trades", 0.75, "prose"),                # the tie: strict <
-    ("3/02 reviewed all the trades", 0.8, "prose"),
+    ("3/02 reviewed the crops", 0.75, "prose"),                # the tie: strict <
+    ("3/02 reviewed all the crops", 0.8, "prose"),
 ]
 
 

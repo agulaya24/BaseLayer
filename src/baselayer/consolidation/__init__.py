@@ -1,4 +1,4 @@
-"""Consolidation: turn an authored specification into what an agent is served.
+"""Consolidation: turn an authored specification into a served form.
 
 Runs after authoring. Reads the authored layer JSON (anchors, core, predictions) and
 writes only into an output directory. No stage calls a model. Three separate builders
@@ -8,7 +8,8 @@ through a pluggable backend, and each writes a file a hand-made input could repl
 
 Every stage is a function from JSON files to one JSON file, runnable alone and
 replaceable, and every output carries a stamp (code sha, inputs hash, parameters,
-run id). The raw layers stay the record: no stage rewrites claim text.
+run id). The raw layers stay the record: no stage rewrites claim text. Serving the
+output into an agent session is not in this package.
 
 Stages, in execution order (file in, file out):
 

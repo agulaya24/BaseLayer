@@ -155,7 +155,7 @@ Where `hallucination_penalty` = 10 - hallucination score (so more hallucination 
 ## Execution Plan
 
 ### Setup
-1. Select a subject with rich data (Aarik primary, Marks as validation)
+1. Select a subject with rich data (the author primary, Marks as validation)
 2. Prepare the 5 context payloads per condition
 3. Verify token counts per condition are within budget
 4. Set up scoring spreadsheet

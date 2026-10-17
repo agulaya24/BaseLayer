@@ -30,7 +30,7 @@ The test is whether the citation chain is valid, not whether the text is verbati
 
 ## Corrected Final Results
 
-| Condition | Franklin | Buffett | Aarik | Average |
+| Condition | Franklin | Buffett | Author | Average |
 |---|---|---|---|---|
 | C28 (cannot predict + temporal) | 88 | 83 | 82 | 84.3 |
 | C29 (relational + agency) | 72 | 84 | 84 | 80.0 |

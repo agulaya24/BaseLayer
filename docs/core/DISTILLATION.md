@@ -400,14 +400,16 @@ shows the same from the corpus. The study harness `convergence.py` has its own `
   situation. `--route-cap` bounds each situation and every cut is recorded. The default predictions
   path does not read any of this.
 
-## Not in this package: consolidation
+## After authoring: consolidation
 
 A sharded layer is the concatenation of its shards' claims. Shards see disjoint evidence, so the
 same pattern can be written once per shard, and the three blind layer authors can also restate one
-another. Nothing in this package merges those claims. A post-authoring consolidation stage
-(grouping claims by evidence overlap and trigger, merging with every source claim mapped, and
-mechanical checks that nothing was lost) exists only as a prototype outside this repository. It is
-not shipped, not tested here, and not called by any command.
+another. `baselayer consolidate` (design decision 2026-10-17) runs after authoring and builds, from
+the authored specification and with no model call, an always-on set, a duplicate grouping and a
+trigger index, with mechanical checks that no claim text changed and no fact id was lost. Duplicates
+are recorded as a mapping: no claim is merged or rewritten, and the layer files are unchanged. The
+model-built trigger grouping and category assignment are optional inputs. Serving the result into
+an agent session is not in this package. Detail: `docs/core/CONSOLIDATION.md`.
 
 ## Limits
 
@@ -447,7 +449,7 @@ before the first leaf and records the measured payload on the tree; it no longer
 dropped, and writes a manifest; `author_from_package.py` authors each shard separately and
 concatenates the claims. The layer files are not collapsed across shards, so they can hold near
 duplicates; compose, when asked for with `--compose`, reads all of them when it writes the brief
-(see "Not in this package: consolidation").
+(see "After authoring: consolidation").
 
 **Subjects.** Distillation reads only facts whose subject is the person (`subject = 'user'`);
 the rest are counted on the tree. `--include-other-subjects` admits them, labelled as being about

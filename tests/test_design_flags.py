@@ -73,7 +73,7 @@ def test_default_author_render_is_unchanged(capsys):
 # ------------------------------------------------------------------ T1: spans to leaves
 
 SPANS = {"aaaaaaaa": ["i always write the plan first", "plan, then code, no exceptions"],
-         "bbbbbbbb": ["give me two options not a spectrum", "two paths", "three", "four"]}
+         "bbbbbbbb": ["give me two options not a long list", "two paths", "three", "four"]}
 
 
 def test_t1_prompt_shows_each_fact_spans_verbatim_and_counts_the_cap():

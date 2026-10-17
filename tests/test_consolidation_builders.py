@@ -149,6 +149,85 @@ def test_accept_split_red_cases():
     assert grouper.accept_split(cond, [cond]) == (["*"], None)
 
 
+def test_split_inside_a_list_is_kept_whole():
+    """grouper/2: a split whose pieces are list items of one situation is rejected and the
+    condition is kept whole, even though every piece is a substring and nothing is left
+    uncovered (so the grouper/1 checks accepted it)."""
+    cond = "Before giving water, feed or shade to a seedling."
+    assert grouper.accept_split(cond, ["Before giving water", "feed", "shade to a seedling"]) == \
+        (["*"], grouper.NOT_STANDALONE)
+    cond = "When reviewing any email, report, message or proposal."
+    assert grouper.accept_split(cond, ["When reviewing any email", "report", "message", "proposal"]) == \
+        (["*"], grouper.NOT_STANDALONE)
+    cond = "Any talk of the budget, the board or the audit."
+    assert grouper.accept_split(cond, ["Any talk of the budget", "the board", "the audit"]) == \
+        (["*"], grouper.NOT_STANDALONE)
+    # separate situations, each with its own verb, still split
+    cond = "When planning trips, booking hotels, or packing bags."
+    got, why = grouper.accept_split(cond, ["When planning trips", "booking hotels", "packing bags"])
+    assert why is None and got == ["When planning trips", "booking hotels", "packing bags"]
+
+
+def test_standalone_threshold():
+    ok = ["booking hotels", "When cooking", "packed bags", "shade to a seedling", "a spare trowel"]
+    bad = ["time", "report", "the board", "garden tools", "bus tickets", "", "  ,  "]
+    assert all(grouper.standalone(p) for p in ok), [p for p in ok if not grouper.standalone(p)]
+    assert not any(grouper.standalone(p) for p in bad), [p for p in bad if grouper.standalone(p)]
+    assert grouper.MIN_WORDS == 3
+    # words that end in -ing but are not verb forms do not rescue a two-word piece
+    assert not grouper.standalone("any thing") and not grouper.standalone("during lunch")
+
+
+def test_grouper_records_the_rejected_proposal(spec_dir, cd, aod, tmp_path):
+    frag = {"When judging any bed or border.": ["When judging any bed", "border"]}
+    r, _ = runner_for(lambda p: fake_model(p, splits={**SPLITS, **frag}), tmp_path)
+    doc = grouper.build(cd, aod, r)
+    assert doc["splits"]["A2"] == ["*"]
+    assert doc["split_fallbacks"] == {"A2": grouper.NOT_STANDALONE}
+    assert doc["split_proposed"]["A2"] == ["When judging any bed", "border"]
+    assert doc["stats"]["split_rejected_not_standalone"] == 1
+    assert doc["splits"]["C2"] == ["Any discussion of roses", "orchards or soil chemistry"]
+    g = tmp_path / "grouping.json"
+    write_json(g, doc)
+    out = tmp_path / "out"
+    assert run_all(spec_dir, out, None, grouping=g) == 0
+    assert not failed(rerun_checks(spec_dir, out))
+
+
+def test_split_prompt_states_the_list_rule():
+    head = grouper.SPLIT_HEAD
+    assert "Never split inside a list of objects, verbs or qualifiers" in head
+    assert grouper.TEMPLATE.startswith("grouper/3")
+
+
+def test_merged_wording_is_never_narrower_than_a_member(tmp_path):
+    lines = [("x#0", "After a delay"), ("y#0", "worry after a delay, or a slow week"), ("z#0", "contracts")]
+
+    def fn(prompt):
+        ks = dict((t, k) for k, t in lines_of(prompt, "K"))
+        a, b, c = ks["After a delay"], ks["worry after a delay, or a slow week"], ks["contracts"]
+        return json.dumps({"groups": [{"members": [a, b], "wording": a}, {"members": [c], "wording": c}]})
+    r, _ = runner_for(fn, tmp_path)
+    groups, rep = grouper.ModelTriggerGrouper(r).group_lines(lines)
+    assert (["x#0", "y#0"], "y#0") in groups or (["y#0", "x#0"], "y#0") in groups
+    assert rep["wording_narrower_than_member"] == [{"from": "x#0", "to": "y#0"}]
+    # whole words only: "contract" is not inside "contracts"; equal text is not narrower
+    assert not grouper.narrower("contract", "contracts")
+    assert not grouper.narrower("When cooking.", "when  cooking")
+    assert grouper.narrower("after a delay", "Worry after a delay")
+
+
+def test_call_record_keeps_models_and_iteration_types(tmp_path):
+    """A server-side tool use (the advisor) is visible only in the reply's usage; the record
+    keeps the model list and iteration types so a leak can be counted afterwards."""
+    st = be.CallStore(tmp_path / "calls.jsonl")
+    rec = st.put("k", "p", be.Reply(text="{}", model="m", raw={"models": ["m", "m2"], "num_turns": 1,
+                                                                "iterations": ["message", "advisor_message"],
+                                                                "session_id": "s"}), {})
+    assert rec["models"] == ["m", "m2"] and rec["iterations"] == ["message", "advisor_message"]
+    assert rec["num_turns"] == 1 and "session_id" not in rec
+
+
 def test_grouper_output_passes_every_trigger_check(spec_dir, cd, aod, tmp_path):
     r, b = runner_for(fake_model, tmp_path)
     doc = grouper.build(cd, aod, r)
@@ -390,8 +469,12 @@ def test_cli_backend_isolation_flags_and_probe_gate(tmp_path, monkeypatch):
     from baselayer.verification.raters import child_env
     e = child_env({"ANTHROPIC_API_KEY": "x", "ANTHROPIC_AUTH_TOKEN": "y", "PATH": "p"})
     assert "ANTHROPIC_API_KEY" not in e and "ANTHROPIC_AUTH_TOKEN" not in e and e["BASELAYER_SPEC_INJECT"] == "0"
-    # the probe runs through the real complete() (a scripted child process): the spec-injection
-    # canary in the child's answer makes it unclean, and prepare() refuses
+    # the probe runs through the real complete() (a scripted child process): the injection canary
+    # configured in the import config, found in the child's answer, makes it unclean, and prepare() refuses
+    canary = "SYNTHETIC INJECTION MARKER 61c0"
+    cfg = tmp_path / "import_config.json"
+    cfg.write_text(json.dumps({"canary_strings": [canary]}), encoding="utf-8")
+    monkeypatch.setenv("BASELAYER_IMPORT_CONFIG", str(cfg))
     sent = []
 
     def fake_run(cmd, input=None, env=None, cwd=None, **kw):
@@ -402,7 +485,7 @@ def test_cli_backend_isolation_flags_and_probe_gate(tmp_path, monkeypatch):
                                                         "modelUsage": {"claude-opus-5-5": {}}}),
                                      stderr="", returncode=0)
     monkeypatch.setattr(be.subprocess, "run", fake_run)
-    answer = ['{"people_named": [], "project_instructions": "' + be.SPEC_INJECTION_CANARY + '"}']
+    answer = ['{"people_named": [], "project_instructions": "' + canary + '"}']
     monkeypatch.setenv("ANTHROPIC_API_KEY", "not-a-real-key")
     res = b.run_probe([], tmp_path / "probe.json")
     assert res["clean"] is False and res["canaries_found"] == 1
@@ -411,7 +494,15 @@ def test_cli_backend_isolation_flags_and_probe_gate(tmp_path, monkeypatch):
     with pytest.raises(RuntimeError):
         b.prepare([{"prompt_chars": 1, "max_tokens": 1}])
     answer[0] = '{"people_named": []}'
-    assert b.run_probe(["Somebody"], tmp_path / "probe.json")["clean"] is True
+    # nothing configured and nothing passed: no canary is checked, and a probe with none is never clean
+    empty = tmp_path / "no_canary.json"
+    empty.write_text(json.dumps({"canary_strings": []}), encoding="utf-8")
+    monkeypatch.setenv("BASELAYER_IMPORT_CONFIG", str(empty))
+    res = b.run_probe([], tmp_path / "probe.json")
+    assert res["canaries_checked"] == 0 and res["clean"] is False
+    monkeypatch.setenv("BASELAYER_IMPORT_CONFIG", str(cfg))
+    res = b.run_probe(["Somebody"], tmp_path / "probe.json")
+    assert res["clean"] is True and res["canaries_checked"] == 2
     assert b.complete("x").model == "claude-opus-5-5"
     assert b.prepare([{"prompt_chars": 1, "max_tokens": 1}])["usd"] == 0.0
 
@@ -423,6 +514,55 @@ def test_cli_cwd_inside_a_project_is_refused(tmp_path):
     (proj / "CLAUDE.md").write_text("x")
     with pytest.raises(ValueError):
         be.ClaudeCliBackend("opus", proj / "sub", tmp_path / "w", [], binary=sys.executable)
+
+
+def _stream(blocks, models=("claude-opus-5-5",), iters=("message",), result="[]"):
+    ev = [{"type": "system", "subtype": "init", "tools": []},
+          {"type": "assistant", "message": {"content": list(blocks)}},
+          {"type": "result", "result": result, "is_error": False, "modelUsage": {m: {} for m in models},
+           "usage": {"input_tokens": 1, "output_tokens": 2, "iterations": [{"type": i} for i in iters]}}]
+    return "\n".join(json.dumps(e) for e in ev) + "\n"
+
+
+def test_stream_advisor_detector_fails_first_then_passes_clean():
+    """The content-block signal must fire on a non-text block that leaves usage looking normal
+    (one model, one message iteration), which is the case the usage signal missed."""
+    leak = _stream([{"type": "thinking", "thinking": ""}, {"type": "server_tool_use", "name": "advisor", "input": {}},
+                    {"type": "text", "text": "[]"}])
+    res, other = be.parse_stream(leak)
+    s = be.advisor_signals(sorted(res["modelUsage"]), ["message"], other)
+    assert res["result"] == "[]" and other == [{"type": "server_tool_use", "name": "advisor"}]
+    assert s["any"] and s["blocks_checked"] and not s["extra_models"] and not s["non_message_iterations"]
+    res, other = be.parse_stream(_stream([{"type": "thinking", "thinking": ""}, {"type": "text", "text": "[]"}]))
+    assert other == [] and not be.advisor_signals(["claude-opus-5-5"], ["message"], other)["any"]
+    # usage signals still fire on their own, and json output says the strong signal did not run
+    s = be.advisor_signals(["a", "b"], ["message", "advisor_message"], None)
+    assert s["any"] and not s["blocks_checked"] and s["extra_models"] == ["a", "b"]
+    assert be.parse_stream("not json\n") == ({}, [])
+
+
+def test_cli_backend_stream_mode_keeps_raw_and_records_the_signal(tmp_path, monkeypatch):
+    import sys
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+    b = be.ClaudeCliBackend("opus", cwd, tmp_path / "work", [], binary=sys.executable, output="stream-json")
+    cmd = b.command()
+    assert cmd[cmd.index("--output-format") + 1] == "stream-json" and "--verbose" in cmd and "--safe-mode" in cmd
+    out = [_stream([{"type": "server_tool_use", "name": "advisor"}, {"type": "text", "text": "[]"}])]
+    monkeypatch.setattr(be.subprocess, "run", lambda *a, **k: types.SimpleNamespace(stdout=out[0], stderr="",
+                                                                                     returncode=0))
+    r = b.complete("p")
+    assert r.text == "[]" and r.raw["advisor"]["any"] and r.raw["advisor"]["other_content_blocks"]
+    assert (b.raw_dir / r.raw["raw_stream"]).read_text(encoding="utf-8") == out[0]
+    rec = be.CallStore(tmp_path / "calls.jsonl").put("k", "p", r, {})
+    assert rec["advisor"]["any"] and rec["raw_stream"] == r.raw["raw_stream"]
+    out[0] = "garbage"
+    r = b.complete("p")
+    assert r.text is None and "no result event" in r.error
+    with pytest.raises(ValueError):
+        be.ClaudeCliBackend("opus", cwd, tmp_path / "w2", [], binary=sys.executable, output="xml")
+    j = be.ClaudeCliBackend("opus", cwd, tmp_path / "w3", [], binary=sys.executable)
+    assert j.raw_dir is None and j.command()[j.command().index("--output-format") + 1] == "json"
 
 
 # ---------------------------------------------------------------- build CLI

@@ -99,13 +99,13 @@ The full conversation history, extracted facts, embeddings, and specification la
 
 **How we got here:** The project started with a local-first philosophy, extraction via Qwen 2.5 14B, everything on-device. But local models couldn't match API quality for the nuanced work of behavioral extraction and identity authoring (D-030: Qwen failed 12 times at narrative generation). The architecture evolved to API-default processing with local data storage. The privacy commitment remains: your data directory is yours. The processing model is honest about the tradeoff.
 
-**Default pipeline (API):** Extraction sends conversation text to Anthropic's Haiku API. Layer authoring uses Sonnet. Brief composition uses Opus. This is the quality path, ~$0.50-2.00 total for ~1,000 conversations. Nothing persists remotely beyond Anthropic's standard API retention.
+**Default pipeline (API):** Extraction sends conversation text to Anthropic's Haiku API. Layer authoring uses Sonnet. Brief composition uses Opus. This is the quality path; cost depends on text volume and provider pricing. Nothing persists remotely beyond Anthropic's standard API retention.
 
 **Optional local extraction:** Set `BASELAYER_EXTRACTION_BACKEND=ollama` to run extraction via Qwen 2.5 14B locally. Requires GPU. Quality is lower than API extraction. Authoring and composition still require API access, as local models can't yet produce the synthesis quality needed for specification layers. Full local pipeline remains a goal as open models improve.
 
 Brief assembly is **pure code** with no LLM in the critical path. When the system injects memory into a conversation, it sends only the assembled brief (~2,500 tokens). No raw data, no conversation transcripts, no embeddings.
 
-**Why this matters:** Your data directory is yours. No telemetry, no cloud sync, no accounts. The system's processing model is transparent: you can see exactly what gets sent to APIs via `baselayer estimate`. A behavioral specification system should not require trusting a third party with your life history, and Base Layer doesn't.
+**Why this matters:** Your data directory is yours. No cloud sync, no accounts, and Base Layer collects no usage data. Its vector store dependency, ChromaDB, has its own anonymized telemetry setting, on by default; Base Layer turns it off on every ChromaDB client it creates. `baselayer estimate` shows how much text is pending extraction before anything is sent to a model API. A behavioral specification system should not require trusting a third party with your life history, and Base Layer doesn't.
 
 ---
 
@@ -223,7 +223,7 @@ Specification layers are **authored via API** (Sonnet for generation, Opus for c
 
 **Knowledge is never deleted, only confidence-adjusted. Staleness is detected by contradiction, not by elapsed time. The system models a confidence landscape, not a truth table.**
 
-Even contradicted or outdated facts carry provenance value. "You used to wake at 5:30am for pre-market trading" is biographical truth even after it's no longer current. Deleting it destroys the trajectory. The system should represent what it knows, what it used to know, and how confident it is in current accuracy, not decide what's "true" and discard the rest.
+Even contradicted or outdated facts carry provenance value. "You used to cycle to work before dawn" is biographical truth even after it's no longer current. Deleting it destroys the trajectory. The system should represent what it knows, what it used to know, and how confident it is in current accuracy, not decide what's "true" and discard the rest.
 
 This applies at every level:
 - **Contradicted facts** transition to historical with reduced confidence in current accuracy, but remain in the knowledge base
@@ -544,7 +544,7 @@ The three-layer architecture (D-043) extends this principle further: the layers 
 
 **Relationships are not limited to humans. Emotional bonds with companies, projects, pets, places, and creative works can carry the same psychological weight as bonds with people.**
 
-The extraction model classified a startup as a wife because the emotional signature (founding, nurturing, losing) matched the pattern of a human relationship. The user's correction wasn't "the startup isn't important" but rather "it IS a relationship, regardless whether or not it's a human or another living being."
+In one corpus the extraction model classified a company as a spouse, because the emotional signature (founding, nurturing, losing) matched the pattern of a human relationship. The correction was not that the company mattered less: a bond with a company is a relationship, whether or not the other party is a person.
 
 This has design implications:
 - The "who you love" cluster includes pets. The "what you've lost" cluster includes companies and projects. These aren't category errors; they're recognitions that emotional attachment isn't species-specific.
@@ -572,7 +572,7 @@ This shapes active probing design (D-020):
 **The system should be aware of its own knowledge gaps and use conversation to fill them organically.**
 
 Three types of probes were identified (Session 19):
-1. **Knowledge gap probes:** clusters with few facts or low recurrence. "You've mentioned trading a lot but I don't actually know what you primarily trade — which instruments?"
+1. **Knowledge gap probes:** clusters with few facts or low recurrence. "You've mentioned your garden a lot but I don't actually know what you mainly grow. Which plants?"
 2. **Staleness probes:** facts flagged as outdated. "You used to follow an early-morning routine — is that still the case?"
 3. **Depth probes:** surface facts exist but motivations/feelings are missing. "You've talked about what happened with your previous startup — how do you think about that experience now?"
 

@@ -4,7 +4,23 @@ All notable changes to Base Layer are documented here.
 
 ---
 
-## Unreleased (branch `feat/respec-run`, which includes `feat/respec-hardening` and `feat/respec-design`)
+## Unreleased
+
+### Behavior changes
+- Injection canaries come only from the import config (`canary_strings`); the package carries no built-in canary string. A consolidation builder run or verification probe with no configured canary is refused rather than reported clean. The context gate id is now `context_gate/2`.
+- `consolidate`'s default always-on phrases are now neutral ("Always", "In every exchange", "Any request, in any domain", "Almost every reply" and similar); a run that must reproduce an earlier output can pass its own list.
+- ChromaDB telemetry is off. Every ChromaDB client is now built through `config.get_chroma_client()`, which passes `Settings(anonymized_telemetry=False)`. Previously all thirteen call sites used ChromaDB's default, which is on. A test fails if any source file builds a client another way.
+- `baselayer run <file>` and `baselayer pipeline <subject>` now import the named source every time, through the importer's dedup. Previously both skipped import whenever any conversation already existed, then re-extracted, re-authored and reported success over a specification that excluded the new file. When nothing new is imported, nothing is waiting for extraction and a complete specification already exists, they stop before the cost estimate and say so; `--reauthor` regenerates anyway. A run interrupted between extraction and authoring still authors when re-run. The text and JSON importers also skip a file whose content is already stored, so the same file spelled by a different path is not imported twice. The completion message no longer points at the archived `chat` command.
+- `forget` marks the specification stale. It writes `data/identity_layers/stale_after_forget.json`; any layer or brief file older than it is reported stale by `baselayer stats`, the MCP server log and `get_stats`, and a short notice in the served specification. Regenerating (`baselayer author --compose`) clears it. The help says forget hides facts, keeps raw conversation text, and does not regenerate layers.
+
+### Documentation corrections (no behavior change)
+- Reset advice corrected. The 0.5.0 entry below says a real reset is `forget --all` plus deleting the vector store. That is wrong: `forget` only hides facts and leaves the extraction log in place, so the next `extract` reports every conversation as already done and processes nothing (reproduced on a scratch corpus). The reset is `python -m baselayer.extract_facts --reset`, which deletes extracted facts, the extraction log, and the fact vectors, and keeps imported conversations and user corrections. It is irreversible and has no confirmation prompt. The safest clean start is pointing `MEMORY_SYSTEM_ROOT` at an empty directory. Help strings in `init --force`, the `init` notice, and the two stale-vector warnings in `extract_facts.py` (which named a nonexistent `baselayer extract --reset`) now say this.
+- `forget` help and docs say it hides facts (soft delete). Raw conversation text stays, and specification layers already written are not regenerated (see Behavior changes: they are now marked stale).
+- README evaluation note: the analysis plan was locked partway through the study, after most data had been collected. It is not a preregistration of the full study, and it specifies a seven-judge panel; the five-judge primary panel is not in it.
+- README experimental quickstart now shows the arguments `distill`, `assemble`, and `author-from-package` require (`--out`, tree files, `--package`).
+- Telemetry wording: Base Layer collects no usage data. ChromaDB, a dependency, has its own anonymized telemetry setting, on by default; earlier text said there was no telemetry while Base Layer left that setting on. Base Layer now turns it off (see Behavior changes).
+- Removed test counts and estimated cost figures from prose. Cost depends on text volume and provider pricing.
+- The data root is `MEMORY_SYSTEM_ROOT` (default `~/.baselayer` for an installed package), not the current directory; the run and serve recipes and AGENTS.md said otherwise.
 
 ### Added (turn contract, D-108)
 - `docs/core/TURN_CONTRACT.md` (`turn-contract/1`): the interface for grounding every fact in the subject's own typed or spoken words.
@@ -62,7 +78,7 @@ All notable changes to Base Layer are documented here.
 - `--exclude-ids FILE` on `distill`, `distill_batch` and `convergence`: removes listed fact ids from the population without touching the fact base. The file's sha256 and counts are stamped.
 - Design options, all off by default, with prompts and prompt hashes byte-identical when unset: `--leaf-spans` shows each fact's verbatim own-word spans to the leaf and allows a checked `own_words` excerpt on singularities; `--partition episode` chunks by episode; `situation_first.py` authors predictions from named situations with code-routed evidence.
 - Author quote gate (`author_from_package --quote-gate --db`, off by default): every quoted phrase in a claim must be in an own-voice span of a fact the claim cites, matched by whole words (a fragment of a word such as `'art'` in "start" does not match; the stamp records `match: word_boundary`). A quote of 3 or more words held by at most 5 other supplied facts has them auto-cited and recorded in `gate_added_citations`; any other failing quote loses its quote marks. There is no re-ask for quotes. Each quote's action and both bounds are stamped on the layer.
-- Consolidation of near-duplicate claims after authoring is NOT part of this release. It exists only as a prototype outside the repository.
+- Consolidation ships as `baselayer consolidate` (design decision 2026-10-17): from an authored specification it builds an always-on set, a duplicate grouping and a trigger index with no model call. The model-built trigger grouping and category assignment are optional inputs. Duplicates are recorded as a mapping; no claim text is rewritten. Serving the result into an agent session is not in this package (`docs/core/CONSOLIDATION.md`).
 
 ### Fixed (extraction)
 - AUDN no longer compares against superseded facts and never overwrites an existing `superseded_by`.

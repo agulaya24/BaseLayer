@@ -44,8 +44,12 @@ claude-opus-5-5`). The static `baselayer author` path is separate and configured
 Every billed distillation or authoring run prints an estimate first and refuses to start without a
 spend ceiling at or above it. Detail and the full option list: `docs/core/DISTILLATION.md`.
 
-Not in this package: merging near-duplicate claims after authoring (consolidation) exists only as a
-prototype outside this repository. A sharded layer can therefore repeat a pattern once per shard.
+Consolidation ships as `baselayer consolidate` (design decision 2026-10-17). From an authored
+specification it builds an always-on set, a duplicate grouping and a trigger index, with no model
+call; the model-built trigger grouping and category assignment are optional inputs. Duplicates are
+recorded as a mapping and no claim text is rewritten, so a sharded layer can still repeat a pattern
+once per shard in the layer files. Serving the result into an agent session is not in this package.
+Detail: `docs/core/CONSOLIDATION.md`.
 
 **The turn contract** (`docs/core/TURN_CONTRACT.md`, opt-in with `BASELAYER_TURN_CONTRACT=1` or
 `baselayer extract --turn-contract`) is how a specification is kept to the person's own words.
@@ -166,16 +170,16 @@ Read auditable as: what is cited can be checked. It does not mean everything is 
 - Corpus limits: The corpus is self-report. No third-party observation enters. There is no time axis. Changes over time are not recorded. The extractor only sees text. Tone, body language, and physical habit are absent.
 - Scope of effect: It helps most where the model knows the person least. On a well-known public figure it often adds little.
 - Operational notes:
-  - Rebuild into a fresh corpus directory, never a reset one. `baselayer forget --all` keeps the extraction log, so a later extract finds nothing to do, and `init --force` deletes nothing. If an existing corpus must be cleared, the full extraction reset is `python -m baselayer.extract_facts --reset`. Stale vectors left behind by a partial clear cause over-deduplication.
+  - Re-extracting from the same files without clearing prior state can leave stale vectors that cause over-deduplication. For a clean re-extraction run `python -m baselayer.extract_facts --reset`. It is irreversible and asks no confirmation: it deletes extracted facts, the extraction log, and the fact vectors, and keeps imported conversations and user-corrected facts. The safest clean start is a fresh data root: point `MEMORY_SYSTEM_ROOT` at an empty directory. `baselayer forget --all` plus deleting `data/vectors/` is not a reset, because the extraction log still marks every conversation as done.
   - Document mode asserts the subject is the document. Use it for documents only, not people.
   - Not on PyPI. Install from source.
   - Costs and run times vary with API pricing and corpus size.
 
 ## What it looks like
 
-An excerpt from a real specification authored from about 1,900 conversations:
+An excerpt from the specification authored from Benjamin Franklin's public-domain autobiography (full example in `examples/franklin/`):
 
-He operates from an uncompromising need for logical coherence that manifests as immediate challenge to any inconsistency, in systems, arguments, or his own positions. When he encounters a gap between stated beliefs and actual behavior, he treats it as personal failure requiring accountability rather than understanding, taking extreme ownership of every outcome while maintaining clear causal links between actions and results. This isn't philosophical posturing but lived practice: in trading, he waits for multiple confirming signals before entries, implements overlapping safety mechanisms through fixed dollar loss limits and systematic stop losses, yet struggles with the gap between knowing these rules and executing them consistently during early morning sessions when his energy is highest but discipline most vulnerable.
+He operates from an unshakeable conviction that every action must serve the collective good before individual advantage, evaluating proposals by their public benefit rather than personal gain. This foundational belief shapes his approach to innovation: he refuses patents and personal profit from inventions, viewing knowledge as communal property that advances through shared discovery. His identity as an American with interests distinct from British authority reinforces this collective orientation, as he sees colonial self-determination as another expression of serving the people rather than proprietary interests.
 
 There are no questionnaires or forms. More examples at the link above.
 
@@ -206,11 +210,13 @@ lose retrieval.
 
 The layers are markdown files on disk. Open them. Delete what is wrong. Rewrite what is close. Add what your writing never said. The MCP server reads them from disk on each run.
 
+`baselayer forget` hides facts: it marks them superseded and removes their vectors. It is a soft delete: the fact rows stay in the database and can be restored; the removed vectors are not. Imported conversation text is not removed. Specification layers already written are not regenerated, so they can still carry claims built from hidden facts until you run `baselayer author --compose`. Until then they are marked stale: `baselayer stats`, the MCP server log and the served specification say so. To remove everything, delete the data directory and the MCP session logs under `~/.baselayer/sessions/`, which record tool queries.
+
 Facts do not carry their own significance. Editing is where judgement enters. The artefact is text so you can apply it.
 
 ## What we tested
 
-We evaluated on 14 historical subjects with public-domain autobiographies. A five-judge primary panel and a seven-judge sensitivity panel scored responses under a pre-registered plan. Full results are on the site and in the Beyond Recall paper (https://arxiv.org/abs/2605.28969).
+We evaluated on 14 historical subjects with public-domain autobiographies. A five-judge primary panel and a seven-judge sensitivity panel scored responses. An analysis plan was locked partway through the study, after most data had been collected (https://github.com/agulaya24/beyond-recall/blob/master/docs/ANALYSIS_PLAN_LOCK.md). It fixes the aggregation rule and the primary tests; it is not a preregistration of the full study. The lock specifies a seven-judge panel; the five-judge primary panel is not in it. Full results are on the site and in the Beyond Recall paper (https://arxiv.org/abs/2605.28969).
 
 - Direction reproduces across response models and battery-generation models. Absolute magnitudes are panel-dependent.
 - Given a response, a judge can tell which specification produced it 51.6% of the time from the reasoning, and 13.4% from the decision alone. Chance is 11.1%. The reasoning carries the signal.
@@ -229,7 +235,9 @@ Specifications change how decisions are argued in every situation tested. They c
 
 ## Privacy
 
-Database, vectors, facts, and the specification live on your machine. There is no cloud sync, no accounts, and no telemetry. Extraction and authoring can call a model API if you configure one. Provider retention policies apply. Anthropic’s policy is here: https://www.anthropic.com/policies/privacy.
+Database, vectors, facts, and the specification live on your machine. There is no cloud sync and there are no accounts. Extraction and authoring can call a model API if you configure one. Provider retention policies apply. Anthropic’s policy is here: https://www.anthropic.com/policies/privacy. The first embedding run downloads the embedding model from Hugging Face.
+
+Base Layer does not collect usage data or send any to the project. Its vector store dependency, ChromaDB, has its own anonymized product telemetry setting, on by default. Base Layer builds every ChromaDB client with `Settings(anonymized_telemetry=False)`, so it is off for everything Base Layer runs. If you create ChromaDB clients in your own code, pass the same setting or set `ANONYMIZED_TELEMETRY=False` in the environment.
 
 The artefact is local-first, model-agnostic, and portable.
 
@@ -247,7 +255,7 @@ Docs:
 - ROADMAP.md
 - docs/eval: evaluation frameworks and results
 
-Pre-1.0. The offline test suite runs with `pytest tests -q`.
+Pre-1.0.
 
 ## Reproducibility
 

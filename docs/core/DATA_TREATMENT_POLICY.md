@@ -375,7 +375,8 @@ the subject. A fact with the subject in its object slot and as its subject is re
   configurable, but an unknown config key raises instead of being ignored.
 - **Injection canaries** (`canary_strings`, none shipped): a session whose hook context
   carries a configured marker is flagged `injection_canary`. The flag does not change any
-  row's class.
+  row's class. The same configured markers are what the consolidation builders' context
+  probe and the verification context gate refuse on; with none configured they check no canary.
 
 ## 12. Not yet configurable, and what adding it would take
 

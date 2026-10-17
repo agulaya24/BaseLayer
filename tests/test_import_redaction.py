@@ -81,7 +81,7 @@ def test_unterminated_private_key_is_masked():
 
 @pytest.mark.parametrize("text", [
     "commit 7400c38 and 30e3509ab12cd34ef567890abcdef1234567890a",
-    "session 0596584a-7748-4b7b-a3e9-cc54dc3ebdf5",
+    "session 7e1d2c3b-1234-4abc-8def-0123456789ab",
     "epoch ms 1727200000000 and 1727200000004",
     "dated 2026-09-24 and 2026-09-24T10:11:12Z",
     "max_tokens=4096 and token_count: 123456",
@@ -183,7 +183,7 @@ def test_chatgpt_import_masks_secrets(env, tmp_path):
 
 
 def test_db_copy_import_masks_secrets_and_keeps_redacted_copy_precedence(env, tmp_path):
-    sid = "0596584a-0000-4000-8000-000000000001"
+    sid = "7e1d2c3b-0000-4000-8000-000000000001"
     text = f"please rotate {ANT} tonight before the demo"
     a = make_db(tmp_path / "a.db", {sid: [("user", text), ("assistant", "ok")]})
     b = make_db(tmp_path / "b.db", {sid: [("user", "please rotate [REDACTED_KEY] tonight "
@@ -196,7 +196,7 @@ def test_db_copy_import_masks_secrets_and_keeps_redacted_copy_precedence(env, tm
 
 
 def test_db_copy_secret_in_the_only_copy_is_masked(env, tmp_path):
-    sid = "0596584a-0000-4000-8000-000000000002"
+    sid = "7e1d2c3b-0000-4000-8000-000000000002"
     a = make_db(tmp_path / "a.db", {sid: [("user", f"the key is {OAI} use it"),
                                           ("assistant", f"Using {OAI}.")]})
     RI.import_db_copies(env.conn, [("a", a)], [env_hist(tmp_path)])

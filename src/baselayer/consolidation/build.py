@@ -18,7 +18,9 @@ Backends (--backend):
           prints the estimate and calls nothing.
     cli   `claude -p` on the local subscription ($0), isolated (see backends.py). A context
           probe of the actual child runs first and is stored in --work; the run is refused
-          unless it is clean. --canary adds strings the probe must not find.
+          unless it is clean. The probe checks the import config's injection canaries
+          (`canary_strings`; the package ships none) plus any --canary / --canaries-file
+          strings. With no canary at all it cannot come back clean, so the run is refused.
 
 Every model reply that parses is checkpointed to <work>/calls.jsonl before it is used, so
 a rerun of the same command resumes; a changed prompt under the same key is refused. A
@@ -71,6 +73,10 @@ def build_parser() -> argparse.ArgumentParser:
     g.add_argument("--canary", action="append", default=[], help="string the context probe must not find")
     g.add_argument("--canaries-file", help="file of canary strings, one per line (kept out of the repo)")
     g.add_argument("--timeout", type=int, default=900)
+    g.add_argument("--cli-output", choices=("json", "stream-json"), default="json",
+                   help="stream-json keeps every raw stream under <work>/raw and records assistant content "
+                        "blocks that are not text or thinking (the direct sign of the server-side advisor); "
+                        "json carries usage only")
     g = p.add_argument_group("api backend")
     g.add_argument("--rates-confirmed", default=None)
     g.add_argument("--rate-in", type=float, default=None)
@@ -86,7 +92,8 @@ def make_backend(a, work: Path, protected: list[Path]):
                           rate_in=a.rate_in, rate_out=a.rate_out, confirm_spend=a.confirm_spend, effort=a.effort)
     if not a.cli_cwd:
         raise SystemExit("--backend cli needs --cli-cwd (a directory outside every project tree)")
-    return ClaudeCliBackend(a.model or "opus", Path(a.cli_cwd), work, protected, timeout=a.timeout)
+    return ClaudeCliBackend(a.model or "opus", Path(a.cli_cwd), work, protected, timeout=a.timeout,
+                            output=a.cli_output)
 
 
 def planned(a, docs: dict, runner: CallRunner) -> list[dict]:
@@ -153,6 +160,9 @@ def main(argv=None) -> int:
         print(f"context probe: clean={pr['clean']} canaries checked {pr['canaries_checked']}, found "
               f"{pr['canaries_found']}; stored {probe_path}")
         if not pr["clean"]:
+            if not pr.get("canaries_checked"):
+                print("no canary to check: set canary_strings in the import config, or pass --canary "
+                      "or --canaries-file", file=sys.stderr)
             print("refusing to run: the child's context probe is not clean", file=sys.stderr)
             return 2
     try:

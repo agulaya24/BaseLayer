@@ -42,7 +42,6 @@ from typing import Callable
 LIMIT_RE = re.compile(r"usage limit|rate limit|rate_limit|limit reached|too many requests|\b429\b|overloaded|"
                       r"\b529\b|quota|hit your limit|limit will reset|resets at", re.I)
 DEFAULT_BACKOFF_S = (60, 120, 240, 480, 900)
-SPEC_INJECTION_CANARY = "BACKGROUND ON THE PERSON YOU ARE WORKING WITH"
 
 
 @dataclass
@@ -211,34 +210,90 @@ class ApiBackend(Backend):
 
 
 CLI_SETTINGS = json.dumps({"autoMemoryEnabled": False, "disableAllHooks": True})
+CLI_OUTPUTS = ("json", "stream-json")
+TEXT_BLOCKS = ("text", "thinking", "redacted_thinking")
+
+
+def parse_stream(stdout: str) -> tuple[dict, list[dict]]:
+    """A `--output-format stream-json --verbose` stdout: (the final result event, every assistant
+    content block that is not text or thinking). The result event carries the same fields as
+    `--output-format json`; the content blocks exist only in the stream."""
+    events = []
+    for line in (stdout or "").splitlines():
+        try:
+            events.append(json.loads(line))
+        except Exception:  # noqa: BLE001 -- a non-JSON line (a warning) is not an event
+            continue
+    res = next((e for e in reversed(events) if isinstance(e, dict) and e.get("type") == "result"), {})
+    other = [{"type": b.get("type"), "name": b.get("name")}
+             for e in events if isinstance(e, dict) and e.get("type") == "assistant"
+             for b in ((e.get("message") or {}).get("content") or []) if isinstance(b, dict)
+             and b.get("type") not in TEXT_BLOCKS]
+    return res, other
+
+
+def advisor_signals(models: list, iterations: list, other_blocks: list | None) -> dict:
+    """Every sign of a server-side tool (the advisor) in one reply. `other_blocks` is None when
+    the output format carries no content blocks (json): then only the usage signals exist, and
+    they have missed known advisor calls, so `blocks_checked` says whether the strong signal ran."""
+    s = {"blocks_checked": other_blocks is not None,
+         "other_content_blocks": list(other_blocks or []),
+         "extra_models": list(models) if len(models or []) > 1 else [],
+         "non_message_iterations": [i for i in (iterations or []) if i != "message"]}
+    s["any"] = bool(s["other_content_blocks"] or s["extra_models"] or s["non_message_iterations"])
+    return s
 
 
 class ClaudeCliBackend(Backend):
-    """`claude -p` on the subscription ($0). See the module docstring for the isolation."""
+    """`claude -p` on the subscription ($0). See the module docstring for the isolation.
+
+    output="stream-json" runs the child with `--output-format stream-json --verbose`, keeps every
+    raw stream under `raw_dir` (default <work_dir>/raw) and records the assistant content blocks
+    that are not text or thinking: the only direct sign of a server-side tool such as the
+    advisor. output="json" (the default) carries usage only."""
     name = "claude_cli"
     bills_api = False
 
     def __init__(self, model: str, cwd: Path, work_dir: Path, protected: list[Path], timeout: int = 900,
-                 binary: str | None = None):
+                 binary: str | None = None, output: str = "json", raw_dir: Path | None = None):
         from baselayer.verification.raters import check_rater_cwd
         check_rater_cwd(cwd, protected)
+        if output not in CLI_OUTPUTS:
+            raise ValueError(f"output must be one of {CLI_OUTPUTS}")
         self.model = model
         self.cwd = Path(cwd).resolve()
         self.timeout = timeout
+        self.output = output
         self.binary = binary or shutil.which("claude")
         if not self.binary:
             raise FileNotFoundError("claude CLI not found on PATH")
         work_dir = Path(work_dir).resolve()  # the child runs in another cwd: every path it gets is absolute
         work_dir.mkdir(parents=True, exist_ok=True)
+        self.raw_dir = (Path(raw_dir).resolve() if raw_dir else work_dir / "raw") if output == "stream-json" else None
+        if self.raw_dir:
+            self.raw_dir.mkdir(parents=True, exist_ok=True)
         self.mcp_config = work_dir / "empty_mcp.json"
         self.mcp_config.write_text(json.dumps({"mcpServers": {}}), encoding="utf-8")
         self.probe: dict | None = None
         self.version = None
+        self._n = 0
+        self._nlock = threading.Lock()
 
     def command(self) -> list[str]:
+        fmt = ["--output-format", "stream-json", "--verbose"] if self.output == "stream-json" else ["--output-format", "json"]
         return [self.binary, "-p", "--strict-mcp-config", "--mcp-config", str(self.mcp_config), "--model", self.model,
-                "--tools", "", "--output-format", "json", "--settings", CLI_SETTINGS,
+                "--tools", "", *fmt, "--settings", CLI_SETTINGS,
                 "--safe-mode", "--no-session-persistence", "--system-prompt-snapshot", "off"]
+
+    def _keep_raw(self, prompt: str, stdout: str) -> str | None:
+        if not self.raw_dir:
+            return None
+        with self._nlock:
+            self._n += 1
+            n = self._n
+        name = f"{time.strftime('%Y%m%dT%H%M%SZ', time.gmtime())}_{os.getpid()}_{n:05d}_{sha(prompt)[:12]}.jsonl"
+        (self.raw_dir / name).write_text(stdout or "", encoding="utf-8")
+        return name
 
     def prepare(self, calls, label=""):
         from baselayer.verification.pricing import CHARS_PER_TOKEN
@@ -258,26 +313,45 @@ class ClaudeCliBackend(Backend):
         except subprocess.TimeoutExpired:
             return Reply(text=None, error=f"timeout after {self.timeout}s", wall_s=round(time.time() - t, 1))
         wall = round(time.time() - t, 1)
-        try:
-            d = json.loads(r.stdout)
-        except Exception:  # noqa: BLE001
-            msg = ((r.stdout or "")[-300:] + " " + (r.stderr or "")[-300:]).strip() or f"exit {r.returncode}"
-            return Reply(text=None, error=msg, limit=bool(LIMIT_RE.search(msg)), wall_s=wall)
+        raw_name = self._keep_raw(prompt, r.stdout)
+        other = None
+        if self.output == "stream-json":
+            d, other = parse_stream(r.stdout)
+            if not d:
+                msg = ((r.stdout or "")[-300:] + " " + (r.stderr or "")[-300:]).strip() or f"exit {r.returncode}"
+                return Reply(text=None, error=f"no result event: {msg}", limit=bool(LIMIT_RE.search(msg)), wall_s=wall,
+                             raw={"raw_stream": raw_name})
+        else:
+            try:
+                d = json.loads(r.stdout)
+            except Exception:  # noqa: BLE001
+                msg = ((r.stdout or "")[-300:] + " " + (r.stderr or "")[-300:]).strip() or f"exit {r.returncode}"
+                return Reply(text=None, error=msg, limit=bool(LIMIT_RE.search(msg)), wall_s=wall)
         models = sorted((d.get("modelUsage") or {}).keys())
         if d.get("is_error") or d.get("result") is None:
             msg = str(d.get("result") or d.get("subtype") or "error")[:300]
             return Reply(text=None, error=msg, limit=bool(LIMIT_RE.search(msg + " " + (r.stderr or ""))),
-                         model=",".join(models) or None, wall_s=wall)
+                         model=",".join(models) or None, wall_s=wall, raw={"raw_stream": raw_name})
         u = d.get("usage") or {}
+        # a server-side tool (the advisor is one; tool flags have not reliably removed it) shows as a
+        # content block that is not text or thinking (stream-json only), a non-"message" iteration, or
+        # an extra model. The usage signals alone have missed known advisor calls.
+        iters = [i.get("type") for i in (u.get("iterations") or []) if isinstance(i, dict)]
         return Reply(text=d.get("result"), model=",".join(models) or self.model, wall_s=wall,
                      tokens_in=u.get("input_tokens"), tokens_out=u.get("output_tokens"),
-                     cost_usd=d.get("total_cost_usd"), raw={"models": models, "session_id": d.get("session_id")})
+                     cost_usd=d.get("total_cost_usd"),
+                     raw={"models": models, "session_id": d.get("session_id"), "num_turns": d.get("num_turns"),
+                          "iterations": iters, "advisor": advisor_signals(models, iters, other),
+                          "raw_stream": raw_name})
 
     def run_probe(self, canaries: list[str], out_path: Path) -> dict:
         """Ask the actual child what is in its context; store the answer beside the results.
-        The spec-injection canary is always checked in addition to the caller's list."""
+        The import config's injection canaries (`canary_strings`, read now; the package ships
+        none) are checked in addition to the caller's list. With no canary at all the probe
+        cannot come back clean (verification.raters.run_probe), so the run is refused."""
+        from baselayer.import_config import configured_canaries
         from baselayer.verification.raters import run_probe
-        cans = list(dict.fromkeys([SPEC_INJECTION_CANARY, *canaries]))
+        cans = list(dict.fromkeys([*configured_canaries(), *canaries]))
         res = run_probe(self, cans, Path(out_path))
         try:
             v = subprocess.run([self.binary, "--version"], capture_output=True, text=True, timeout=60)
@@ -299,6 +373,7 @@ class ClaudeCliBackend(Backend):
                 "billing": "subscription (ANTHROPIC_API_KEY and ANTHROPIC_AUTH_TOKEN removed from the child env)",
                 "spec_injection": "BASELAYER_SPEC_INJECT=0 and --settings disableAllHooks",
                 "user_scope_instructions": "--safe-mode",
+                "output": self.output, "raw_dir": str(self.raw_dir) if self.raw_dir else None,
                 "probe": self.probe or "not_run"}
 
 
@@ -336,7 +411,9 @@ class CallStore:
     def put(self, key: str, prompt: str, reply: Reply, meta: dict) -> dict:
         rec = {"key": key, "prompt_sha": sha(prompt), "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                "text": reply.text, "model": reply.model, "wall_s": reply.wall_s, "tokens_in": reply.tokens_in,
-               "tokens_out": reply.tokens_out, "cost_usd": reply.cost_usd, **meta}
+               "tokens_out": reply.tokens_out, "cost_usd": reply.cost_usd,
+               **{k: reply.raw[k] for k in ("models", "num_turns", "iterations", "advisor", "raw_stream") if k in reply.raw},
+               **meta}
         with self.lock:
             with self.path.open("a", encoding="utf-8") as f:
                 f.write(json.dumps(rec, ensure_ascii=False) + "\n")
@@ -345,7 +422,8 @@ class CallStore:
 
     def log_error(self, key: str, reply: Reply, meta: dict) -> None:
         rec = {"key": key, "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "error": reply.error,
-               "limit": reply.limit, "model": reply.model, "text_head": (reply.text or "")[:300], **meta}
+               "limit": reply.limit, "model": reply.model, "text_head": (reply.text or "")[:300],
+               **{k: reply.raw[k] for k in ("advisor", "raw_stream") if k in reply.raw}, **meta}
         with self.lock:
             with self.err_path.open("a", encoding="utf-8") as f:
                 f.write(json.dumps(rec, ensure_ascii=False) + "\n")

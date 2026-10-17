@@ -1,4 +1,4 @@
-> **STATUS: SUPERSEDED (2026-05-07).** This document captures the activation-matching serving-layer design from Session 102 (2026-04-07). Two later findings made the activation-matching half obsolete: (a) embedding-based pre-routing failed in live testing (see SERVING_LAYER_PLAN.md, Step 5; router killed); (b) v0.4.0 inlines the full structural specification into `memory://specification`, removing the need for any pre-LLM activation gate. Was not formally deployed. The fact-retrieval and correction-gate sections remain useful as reference for future work but are not load-bearing for the live system. Counterfactual-diff measurement work continues in the dogfood logger. Safe to archive.
+> **STATUS: SUPERSEDED (2026-05-07).** This document captures the activation-matching serving-layer design from Session 102 (2026-04-07). Two later findings made the activation-matching half obsolete: (a) embedding-based pre-routing failed in live testing (router removed); (b) v0.4.0 inlines the full structural specification into `memory://specification`, removing the need for any pre-LLM activation gate. Was not formally deployed. The fact-retrieval and correction-gate sections remain useful as reference for future work but are not load-bearing for the live system. Counterfactual-diff measurement work continues in the dogfood logger. Safe to archive.
 
 # Serving Layer — Specification Activation
 
@@ -186,7 +186,7 @@ CREATE TABLE fact_corrections (
 - Implement embedding-based activation matching for core modes and predictions.
 - Anchors always injected.
 - No fact retrieval (layer items only).
-- Test on Aarik's specification with 20 sample prompts across different domains.
+- Test on one consenting person's specification with 20 sample prompts across different domains.
 - Measure: does the right mode activate? Does the right prediction fire?
 
 ### Phase 2: Fact Retrieval + Correction Gate

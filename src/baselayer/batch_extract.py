@@ -24,6 +24,7 @@ import time
 import uuid
 import argparse
 import os
+import re
 from pathlib import Path
 from datetime import datetime
 
@@ -200,6 +201,43 @@ def _build_conv_text(messages):
     return conv_text
 
 
+# The Message Batches API refuses a custom_id that is not 1-64 characters of [A-Za-z0-9_-],
+# and refuses the WHOLE batch with a 400 when one request carries such an id. Text-file
+# conversation ids are `textfile_<stem>_<8hex>`, so any filename stem over ~46 characters, or
+# with a dot or space in it, made an id the API refused (one document corpus, found 2026-10-05: 40 of 215).
+CUSTOM_ID_RE = re.compile(r"[A-Za-z0-9_-]{1,64}")
+
+
+class BatchRequestError(ValueError):
+    """A batch request the API would refuse, caught before any client exists."""
+
+
+def _safe_custom_id(preferred: str, block_id: str) -> str:
+    """`preferred` when the API accepts it as is, else `blk_<block_id>`.
+
+    block_id is the chunk ledger row's id (16 hex of a sha256 over conversation, chunk key,
+    budget and turn bound), so the fallback is unique per row and API-safe; chunk_map, not the
+    id's text, maps it back to its conversation. Valid ids are unchanged byte for byte."""
+    return preferred if CUSTOM_ID_RE.fullmatch(preferred) else f"blk_{block_id}"
+
+
+def _check_custom_ids(requests) -> None:
+    """Refuse, before submit, any id the API would refuse or any repeated id (chunk_map is a
+    dict, so a repeated id would also have silently overwritten one chunk's entry)."""
+    bad = [r["custom_id"] for r in requests if not CUSTOM_ID_RE.fullmatch(r["custom_id"])]
+    if bad:
+        raise BatchRequestError(
+            f"{len(bad)} custom_id(s) the Batches API would refuse (1-64 chars of "
+            f"[A-Za-z0-9_-]); first: {bad[0]!r}. Nothing was submitted.")
+    seen, dup = set(), []
+    for r in requests:
+        if r["custom_id"] in seen:
+            dup.append(r["custom_id"])
+        seen.add(r["custom_id"])
+    if dup:
+        raise BatchRequestError(f"duplicate custom_id(s) {dup[:3]}; nothing was submitted.")
+
+
 def _build_request_for_conv(custom_id, prompt, model, max_tokens, temperature, json_instruction):
     """Build a single batch request dict."""
     return {
@@ -326,11 +364,15 @@ def _turn_requests_for_conversation(conn, conv_id, conv_title, source, *, stamps
         base_chunk = (w.parent_id is None and w.key[2] == 0
                       and w.key[1] == base["input_char_budget"])
         if base_chunk:
-            custom_id = conv_id if ch.total == 1 else f"{conv_id}__c{ch.index}of{ch.total}"
+            preferred = conv_id if ch.total == 1 else f"{conv_id}__c{ch.index}of{ch.total}"
         else:
-            custom_id = f"{conv_id}__b{w.block_id[:12]}"
-            if len(custom_id) > 64:       # the API's custom_id limit; chunk_map maps it back
-                custom_id = f"blk_{w.block_id}"
+            preferred = f"{conv_id}__b{w.block_id[:12]}"
+        # One scheme for both branches: an id the API would refuse (too long, or a character
+        # outside [A-Za-z0-9_-]) is sent as blk_<block_id>; chunk_map maps it back.
+        custom_id = _safe_custom_id(preferred, w.block_id)
+        if custom_id in chunk_map:
+            raise BatchRequestError(f"custom_id {custom_id!r} built twice ({conv_id}); "
+                                    f"nothing was submitted.")
         chunk_map[custom_id] = {
             "parent_conv_id": conv_id,
             "chunk_idx": ch.index,
@@ -553,6 +595,11 @@ def run_submit(document_mode=False, skip_extracted=False, turn_contract=None):
     # function printed Haiku 3 rates for months). Price a run from current
     # published rates and the pilot's measured tokens.
     print(f"  Requests to submit: {len(requests)}")
+
+    # Before any client exists: the $0 preflight traps at client construction, so a check
+    # placed after it (or left to the API) is one the preflight cannot see. The legacy path
+    # has no ledger block id to fall back to, so there an over-long id is refused, not renamed.
+    _check_custom_ids(requests)
 
     client = _get_anthropic_client()
     print(f"\nSubmitting batch to Anthropic API...")
@@ -1138,7 +1185,8 @@ def run_process(resume=False):
         # Clear ChromaDB on fresh run
         try:
             import chromadb
-            chroma_client = chromadb.PersistentClient(path=str(VECTORS_DIR))
+            from baselayer.config import get_chroma_client as _chroma_client_for
+            chroma_client = _chroma_client_for(VECTORS_DIR)
             try:
                 chroma_client.delete_collection("memory_facts")
                 print("  ChromaDB memory_facts collection cleared.")
@@ -1149,7 +1197,8 @@ def run_process(resume=False):
     else:
         try:
             import chromadb
-            chroma_client = chromadb.PersistentClient(path=str(VECTORS_DIR))
+            from baselayer.config import get_chroma_client as _chroma_client_for
+            chroma_client = _chroma_client_for(VECTORS_DIR)
         except ImportError:
             print("  ChromaDB not available — skipping vector operations.")
 
@@ -1375,10 +1424,11 @@ def main():
                    turn_contract=True if args.turn_contract else None)
     elif args.status:
         run_status()
-    elif args.process:
-        run_process(resume=False)
-    elif args.resume:
-        run_process(resume=True)
+    elif args.process or args.resume:
+        # `--process --resume` resumes (as `baselayer batch-extract --process --resume` does).
+        # Testing --process first used to drop --resume and run the resetting process, which
+        # deletes every extracted fact: the flag typed to avoid the reset caused it.
+        run_process(resume=args.resume)
     else:
         parser.print_help()
 

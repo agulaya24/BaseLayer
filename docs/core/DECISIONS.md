@@ -1,7 +1,7 @@
 # Decision Log
 ## Personal AI Memory System
 
-Every design decision is recorded here with reasoning. This is the "why" behind the system. If a session ever needs to restart, this file plus `ARCHITECTURE.md` and `PROGRESS.md` gives full context.
+Every design decision is recorded here with reasoning. This is the "why" behind the system. If a session ever needs to restart, this file plus `ARCHITECTURE.md` gives full context.
 
 ---
 
@@ -417,13 +417,13 @@ Per the current naming canon (Phase A, 2026-05-06): the canonical artifact is th
 **Decision:** Stick with Qwen 2.5 14B for all memory operations. Tested four models head-to-head on informed significance scoring; Qwen 2.5 offers the best balance of quality, speed, and JSON reliability.
 
 **Test methodology:**
-- 5 topics of varying importance (E46 M3, Options Trading, AI Memory, Cooking, Fitness)
+- 5 topics of varying importance from one test corpus (a car, a hobby, AI Memory, Cooking, Fitness)
 - Each model given the same data-informed prompt with recurrence + depth metrics
 - Measured: score accuracy, JSON reliability, response time
 
 **Test results:**
 
-| Model | E46 M3 | Trading | AI Mem | Cooking | Fitness | Speed | JSON |
+| Model | Car | Hobby | AI Mem | Cooking | Fitness | Speed | JSON |
 |-------|--------|---------|--------|---------|---------|-------|------|
 | Qwen 2.5 14B (blind) | 5 | 8 | 9 | 7 | 7 | ~5s | Good |
 | **Qwen 2.5 14B (informed)** | **6** | **9** | **9** | **6** | **5** | **~5s** | **Good** |
@@ -432,15 +432,15 @@ Per the current naming canon (Phase A, 2026-05-06): the canonical artifact is th
 | Hermes 2 Pro 7B (informed) | 5 | 7 | 7 | 6 | 5 | ~2.5s | Perfect |
 
 **Why Qwen 2.5 14B wins:**
-- **Quality:** Correctly separates high-importance topics (Trading=9, AI Memory=9) from low ones (Fitness=5). Only Qwen 3 scored slightly higher (10s), but the difference is marginal.
+- **Quality:** Correctly separates high-importance topics (Hobby=9, AI Memory=9) from low ones (Fitness=5). Only Qwen 3 scored slightly higher (10s), but the difference is marginal.
 - **Speed:** ~5s per query. For batch processing 1,800+ conversations, this means ~2.5 hours vs Qwen 3's ~15 hours. Practical vs impractical.
 - **JSON reliability:** Consistently valid JSON output without needing workarounds.
-- **The data matters more than the model:** The D-015 data-informed approach was the real improvement. Blind→Informed shifted scores significantly (Fitness 7→5, Trading 8→9). All models benefited equally from better data — the scoring formula does the heavy lifting, not the model.
+- **The data matters more than the model:** The D-015 data-informed approach was the real improvement. Blind→Informed shifted scores significantly (Fitness 7→5, Hobby 8→9). All models benefited equally from better data — the scoring formula does the heavy lifting, not the model.
 
 **Alternatives considered:**
 - Qwen 3 14B → rejected for batch work (5-8x slower, parsing issues with thinking mode, marginal quality gain)
 - Hermes 2 Pro 7B → rejected (best JSON and fastest, but 7B brain too weak — capped at 7 for everything, couldn't distinguish core interests from minor ones)
-- Llama 3.1 8B → rejected (under-scores important topics — gave Trading only 7 despite 264 conversations)
+- Llama 3.1 8B → rejected (under-scores important topics — gave the hobby topic only 7 despite 264 conversations)
 - Using different models for different tasks → rejected for now (unnecessary complexity, revisit if Qwen 2.5 proves insufficient for specific tasks)
 
 **Note:** Qwen 3 14B remains installed for potential future use in the live pipeline where single-query latency (~20s) is acceptable. Hermes 2 Pro also installed as a fallback for pure JSON extraction tasks if needed.
@@ -516,7 +516,7 @@ Per the current naming canon (Phase A, 2026-05-06): the canonical artifact is th
 4. **Single mentions weighted same as 200+ mentions** — a self-rating from one conversation treated equally to a skill discussed across 264+ conversations
 5. **No temporal awareness** — an interest from months ago presented as current; a current interest underrepresented
 6. **Negatives not surfaced** — negative traits exist in data but weren't organized into profile
-7. **Correction propagation required** — the user's key insight: "if I bring it up once that something is wrong, that should be rectified for all future conversations"
+7. **Correction propagation required** — a correction stated once must hold in every later conversation, without being repeated
 
 **What this means for the improvement re-run:**
 - Entity resolution needed (who is the fact about?)
@@ -732,7 +732,6 @@ The Collective reviewed the identity profile structure and design principles. Fo
 
 **Artifacts:**
 - Updated: `docs/DESIGN_PRINCIPLES.md` (D-023 expanded, Principle 3 rewritten, Principle 6 layered, new Narrative Coherence principle, 2 new anti-patterns)
-- Updated: `docs/PROGRESS.md`
 
 **Status:** Active — permanent review mechanism
 
@@ -1448,7 +1447,7 @@ However, Claude Code sessions contain genuinely useful knowledge about how the u
 
 **Why this is non-black-box:** Step 1 (candidate generation) is LLM synthesis and therefore probabilistic. But steps 2-5 provide empirical, auditable validation. The axiom generates predictions about what other facts should and should NOT exist, and the system checks. That's falsifiable — the whole point.
 
-**Tested empirically:** Anchor 5 negation search ("analysis within a decision context that didn't change the decision, valued anyway") returned zero strong matches against 1,421 identity/conviction facts. The closest hit ("Values the perspective offered by AI, even when it doesn't always reach the right conclusions") was about valuing AI interaction process, not about valuing indecisive analysis. Results actively supported the axiom rather than challenging it.
+**Tested empirically:** Anchor 5 negation search ("analysis within a decision context that didn't change the decision, valued anyway") returned zero strong matches against 1,421 identity/conviction facts. The closest hit, a fact about valuing an AI's perspective even when its conclusions are wrong, was about valuing AI interaction process, not about valuing indecisive analysis. Results actively supported the axiom rather than challenging it.
 
 **Implications for external user pipeline:** This protocol can run without human intervention for the clear cases (steps 1-4). The Collective handles the ambiguous middle (step 5). A three-stage review process (initial gen → Collective first pass → user feedback) maps directly: steps 1-4 produce the initial generation, step 5 is the Collective first pass, user feedback handles anything the Collective couldn't resolve.
 
@@ -2055,7 +2054,7 @@ Anchoring destroys this signal by making v2 artificially similar to v1. Blind ge
 | D-070 | Faithfulness gate advisory-only — S68 Collective finding: auto-removal caused false positives (deleted [THIN DATA] markers, subject names). Gate now reports but does not auto-remove. Quality gate gap-fill also removed. | Quality | Active |
 | D-071 | Patent corpus case study — 30 US patents across 10 tech domains → 670 facts → 572 active → 499 identity → 3 layers (ANCHORS 76.75, CORE 83.25, PREDICTIONS 75) → unified brief 7,463 chars. Opus review: 8/10 impressiveness, 9/10 cross-domain synthesis. Cost: ~$2.78. N=8 proof. | Validation | Active |
 | D-072 | BCB-0.1 benchmark suite — 5 metrics (CR, SRS, DRS, CMCS, VRI) with Collective-designed implementation specs. CR (99.98%) and SRS (96.6%) computed from existing eval. DRS/CMCS/VRI specs complete, implementation pending. Pre-release requirement. Total cost ~$12.76/subject. | Evaluation | Active (PRE-RELEASE) |
-| D-073 | Provenance-traced evaluation replaces judge-scored dimensions — 4 mechanical layers (Brief Activation, Provenance Coverage, Reasoning Chain Reconstruction, Priority Ordering). $0 cost, human-auditable, no LLM judge dependency. Archived: EVAL_FRAMEWORK.md, EVAL_PROMPT_REDESIGN.md, TRUE_BLIND_EVAL_FRAMEWORK.md, EXTENDED_EVAL_PROTOCOL.md. | Evaluation | Active |
+| D-073 | Provenance-traced evaluation replaces judge-scored dimensions: 4 mechanical layers (Brief Activation, Provenance Coverage, Reasoning Chain Reconstruction, Priority Ordering). $0 cost, human-auditable, no LLM judge dependency. Archived: EVAL_FRAMEWORK.md, EVAL_PROMPT_REDESIGN.md. | Evaluation | Active |
 | D-074 | C2 (raw facts) as true evaluation baseline — C1 vs C5c tests "more info vs less info" (obvious). C2 vs C5c tests "given the same information, does compression produce better reasoning?" This is the real experiment. | Evaluation | Active |
 | D-075 | Brief structure: WHO + HOW + WHERE IT BREAKS — Current brief describes WHO (behavioral patterns) but lacks HOW (reasoning model with hierarchy/priority) and WHERE IT BREAKS (failure modes, blind spots). Three-layer structure proposed for composition step. | Architecture | Candidate |
 | D-076 | Dissenting opinion benchmark — Build brief from judge's prior opinions, predict held-out dissent reasoning, compare to actual text. Natural ground truth, novel situations guaranteed. Tests reasoning prediction (not outcome prediction). Novel contribution — no published work predicts HOW someone argues. | Evaluation | Candidate |
@@ -2110,7 +2109,7 @@ Anchoring destroys this signal by making v2 artificially similar to v1. Blind ge
 **Status:** Tested — pending integration
 **Category:** Architecture / Provenance
 
-**Problem:** Opus compose step injects pre-training knowledge for famous subjects despite "DERIVE ONLY FROM INPUT" constraint and anonymization. Full contamination scan across 11 subjects found: Franklin 18 ungrounded claims, Buffett 9, Marks 9, Roosevelt 8, Aarik 7 (+ 1 inverted), Subject B 7, Patent 5, Douglass 4, Wollstonecraft 1, Base Layer 0, Paul Graham 0. ~25% contamination rate for famous subjects. One inverted claim (Aarik: brief said opposite of source).
+**Problem:** Opus compose step injects pre-training knowledge for famous subjects despite "DERIVE ONLY FROM INPUT" constraint and anonymization. Full contamination scan across 11 subjects found: Franklin 18 ungrounded claims, Buffett 9, Marks 9, Roosevelt 8, the author 7 (+ 1 inverted), Subject B 7, Patent 5, Douglass 4, Wollstonecraft 1, Base Layer 0, Subject C 0. ~25% contamination rate for famous subjects. One inverted claim (the author's brief said the opposite of its source).
 
 **Root cause:** Opus infers subject identity from contextual signatures (printing + Philadelphia → Franklin) despite anonymization. Once recognized, pre-training biographical knowledge floods the output indistinguishably from input-derived content. Prompt constraints are probabilistic, not reliable — Paul Graham was clean (high overlap between extracted data and pre-training), Franklin was not (large delta).
 
@@ -2220,8 +2219,6 @@ Anchoring destroys this signal by making v2 artificially similar to v1. Blind ge
 - Expand Twin-2K to measure interaction: Wrong tool — Twin-2K is forced-choice identification, not open-ended interaction
 - A/B test with real users: Premature — need internal signal first
 - Self-reported satisfaction survey: Too subjective, no mechanical grounding
-
-**Spec:** `docs/eval/INTERACTION_QUALITY_TEST_SPEC.md`
 
 ---
 

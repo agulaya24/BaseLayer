@@ -3873,8 +3873,8 @@ def _should_warn_stale_vectors(vector_count: int, log_count: int) -> bool:
 
 
 # Low-yield warning threshold, in facts per 10,000 characters of extracted message
-# text. Derived 2026-08-18 from a survey of every extraction database on disk
-# (186 DBs under corpora/ and subjects/; 29 were person-mode full extractions with
+# text. Derived 2026-08-18 from a survey of the maintainer's extraction databases
+# (the person-mode full extractions with
 # intact message text. Document-mode corpora are excluded because this guard never
 # runs in document mode, and DBs with purged message text are excluded as
 # unmeasurable). Healthy person-mode yields span 2.33-68.9 facts/10K chars; the
@@ -3979,7 +3979,8 @@ def run_extraction(limit: int = None, conv_id: str = None,
             from sentence_transformers import SentenceTransformer
 
             embed_model = SentenceTransformer(EMBEDDING_MODEL)
-            client = chromadb.PersistentClient(path=str(VECTORS_DIR))
+            from baselayer.config import get_chroma_client as _chroma_client_for
+            client = _chroma_client_for(VECTORS_DIR)
 
             # Create or get facts collection
             try:
@@ -4012,8 +4013,9 @@ def run_extraction(limit: int = None, conv_id: str = None,
                 print("\n" + "!" * 60)
                 print(f"  WARNING: {_stale_vectors} fact vectors present but extraction_log is empty.")
                 print("  AUDN will likely dedup new facts against these stale vectors (NOOP),")
-                print("  producing far fewer facts than expected. Run `baselayer extract --reset`")
-                print("  (clears SQLite + ChromaDB) before re-extracting.")
+                print("  producing far fewer facts than expected. Run")
+                print("  `python -m baselayer.extract_facts --reset` (clears extracted facts, the")
+                print("  extraction log and the fact vectors; irreversible) before re-extracting.")
                 print("!" * 60)
 
         # Second half of the preflight: the vector store, now that it is open.
@@ -4185,7 +4187,8 @@ def run_extraction(limit: int = None, conv_id: str = None,
             print(f"  ({total_chars:,} chars of message text = {total_facts / total_chars * 10000:.1f} facts/10K chars;")
             print(f"  every healthy extraction measured yields {LOW_YIELD_WARN_PER_10K}+/10K).")
             print("  This is the signature of a silent failure. Likely causes:")
-            print("    - stale ChromaDB vectors making AUDN NOOP new facts (run --reset)")
+            print("    - stale ChromaDB vectors making AUDN NOOP new facts")
+            print("      (run `python -m baselayer.extract_facts --reset`)")
             print("    - input text flattened (lost paragraph breaks), collapsing to one chunk")
             print("  Verify the fact count before running author/compose on this data.")
             print("!" * 60)
@@ -4466,11 +4469,11 @@ def main():
                              "the review backlog entry")
     parser.add_argument("--stats", action="store_true", help="Show extraction statistics")
     parser.add_argument("--reset", action="store_true",
-                        help="DESTRUCTIVE full extraction reset: deletes extraction-sourced "
-                             "facts, the extraction log, the chunk ledger and fact "
-                             "relationships, and drops the "
-                             "fact vector collection (user corrections survive). Prefer building "
-                             "into a fresh corpus directory.")
+                        help="Irreversible, no confirmation prompt: delete extracted facts, "
+                             "fact relationships, the extraction log, the chunk ledger and the memory_facts "
+                             "vector collection so every conversation is reprocessed. Keeps "
+                             "imported conversations and user-corrected facts. Does not touch "
+                             "specification layers already written.")
     parser.add_argument("--identity-only", action="store_true",
                         help="D-048: Extract only identity-relevant facts from project conversations "
                              "(strips code/tools, keeps user directives and behavioral patterns)")
@@ -4519,7 +4522,8 @@ def main():
         # D-022: Also clear ChromaDB memory_facts collection (prevent ghost embeddings)
         try:
             import chromadb
-            client = chromadb.PersistentClient(path=str(VECTORS_DIR))
+            from baselayer.config import get_chroma_client as _chroma_client_for
+            client = _chroma_client_for(VECTORS_DIR)
             try:
                 client.delete_collection("memory_facts")
                 print("ChromaDB memory_facts collection cleared.")

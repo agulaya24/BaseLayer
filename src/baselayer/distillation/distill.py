@@ -579,9 +579,21 @@ def call_json(cl, model, prompt, maxtok, label, stats, first=None):
         stats["parse_fail"].append(label)
         if stop == "max_tokens":
             stats["truncated"].append(label)
+            # 🚨 THINKING SHARES max_tokens ON 5-GENERATION MODELS. Design decision 2026-10-16: a leaf
+            # spent the whole 16,000 on thinking and returned EMPTY text twice, because this
+            # retry re-sent the same ceiling and "emit fewer themes" does not shrink thinking.
+            # A truncated reply is retried with room to finish (tests/test_failed_leaf_gates.py).
+            maxtok = max(maxtok, REPAIR_MAX_TOKENS)
+        # A complete reply can still be invalid: quoting the person's words that themselves contain
+        # double quotes, unescaped (design decision 2026-10-17: one leaf did this twice when the
+        # retry said only "not valid JSON"). Name the parser's error and the escaping rule.
+        why = "" if stop == "max_tokens" else parse_error(txt)
         rep = (prompt + "\n\nYour previous reply was not valid JSON"
                + (" and was CUT OFF by the output limit, so emit FEWER themes but keep every "
-                  "singularity and contradiction." if stop == "max_tokens" else ".")
+                  "singularity and contradiction." if stop == "max_tokens" else
+                  (" (%s). Inside a JSON string, escape every double quotation mark as \\\" , "
+                   "including any inside the person's quoted words; keep the words verbatim."
+                   % why if why else "."))
                + " Return ONLY the JSON object, complete and closed.")
         txt, i, o, stop = call(cl, model, rep, maxtok)
         stats["in"] += i
@@ -614,6 +626,11 @@ def call_json(cl, model, prompt, maxtok, label, stats, first=None):
 
 
 DISPOSITIONS = ("theme", "singular", "not_load_bearing")
+
+# Output ceiling for the one retry after a truncated reply (call_json). Twice the leaf ceiling:
+# leaf replies measured on one 5,065-fact build ran 2,476-15,841 output tokens when they finished, with
+# thinking an estimated ~80% of it, so a reply cut at 16,000 needs headroom, not a shorter ask.
+REPAIR_MAX_TOKENS = 32000
 
 
 def validate(d, ids=None, spans=None):
@@ -778,6 +795,18 @@ def validate(d, ids=None, spans=None):
         st["own_words"] = st.get("own_words", 0) + n_bad
         d["_stripped"] = st
     return bad
+
+
+def parse_error(t):
+    """The JSON parser's own message and location for a reply parse() rejects, for the retry prompt."""
+    m = re.search(r"\{.*\}", t or "", re.S)
+    if not m:
+        return "no JSON object found"
+    try:
+        json.loads(m.group(0))
+        return ""
+    except json.JSONDecodeError as e:
+        return "%s at line %d column %d" % (e.msg, e.lineno, e.colno)
 
 
 def parse(t):

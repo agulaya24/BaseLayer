@@ -23,7 +23,7 @@ This study was also motivated by a specific finding: Base Layer's V4 compose pro
 - **Dependent variable:** Behavioral pattern agreement rate
 - **Source material:** Same raw conversation transcripts (anonymized)
 - **Condition:** Blind -- neither assessor sees the other's output
-- **Suggested subjects:** 2-3 subjects with existing Base Layer briefs (e.g., Aarik's data if consented, or synthetic subjects with known ground truth)
+- **Suggested subjects:** 2-3 subjects with existing Base Layer briefs (e.g., the author's data if consented, or synthetic subjects with known ground truth)
 
 ### Why This Design
 

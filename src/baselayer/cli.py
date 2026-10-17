@@ -30,9 +30,9 @@ Usage:
     baselayer stats                         Show database statistics
     baselayer search <query>                Search facts by keyword or semantics
     baselayer review                        Review and correct facts interactively
-    baselayer forget --fact ID              Soft-delete a specific fact by ID
-    baselayer forget --conversation ID      Soft-delete all facts from a conversation
-    baselayer forget --all                  Soft-delete ALL facts (requires confirmation)
+    baselayer forget --fact ID              Hide (soft-delete) a specific fact by ID
+    baselayer forget --conversation ID      Hide (soft-delete) all facts from a conversation
+    baselayer forget --all                  Hide (soft-delete) ALL facts (requires confirmation)
     baselayer estimate                      Estimate API cost for extraction
     baselayer rebuild-fts                    Rebuild FTS5 full-text search index
 """
@@ -96,10 +96,11 @@ def cmd_init(args):
         # init_database.py has zero DROP and zero DELETE: --force re-runs CREATE TABLE IF NOT
         # EXISTS and removes nothing.
         print("Use --force to re-run initialization. It does NOT delete anything.")
-        print("For a clean rebuild, build into a fresh corpus directory (set MEMORY_SYSTEM_ROOT).")
-        print("`baselayer forget --all` is not a reset: it keeps the extraction log, so a later")
-        print("extract finds nothing to do. The full extraction reset (facts, extraction log and")
-        print("fact vectors) is `python -m baselayer.extract_facts --reset`.")
+        print("For a clean re-extraction: `python -m baselayer.extract_facts --reset`")
+        print("(irreversible: deletes extracted facts, the extraction log and the fact vectors;")
+        print("keeps conversations and user corrections). Safest: point MEMORY_SYSTEM_ROOT at")
+        print("an empty directory. `forget --all` plus deleting data/vectors/ is NOT a reset:")
+        print("the extraction log still marks every conversation as done.")
         return
 
     # --- Privacy disclosure ---
@@ -733,6 +734,8 @@ def cmd_stats(args):
 
         print()
 
+    _print_stale_spec_warning()
+
 
 def cmd_search(args):
     """Search facts by keyword or semantic similarity."""
@@ -755,7 +758,8 @@ def _delete_vectors(fact_ids):
         return 0
 
     try:
-        client = chromadb.PersistentClient(path=str(VECTORS_DIR))
+        from baselayer.config import get_chroma_client as _chroma_client_for
+        client = _chroma_client_for(VECTORS_DIR)
         collection = client.get_collection("memory_facts")
     except Exception as e:
         # Collection doesn't exist — nothing to delete
@@ -844,21 +848,64 @@ def cmd_forget(args):
 
         # Soft-delete in SQLite
         now = time.time()
+        hidden = 0
         with conn:
             for fid in fact_ids:
-                conn.execute(
+                cur = conn.execute(
                     "UPDATE memory_facts SET superseded_by = 'user_forget', updated_at = ?"
                     " WHERE id = ? AND superseded_by IS NULL",
                     (now, fid),
                 )
+                hidden += cur.rowcount
 
         # Delete vectors from ChromaDB
         vectors_removed = _delete_vectors(fact_ids)
 
-        print(f"\n  Soft-deleted {len(fact_ids)} fact(s).")
+        print(f"\n  Hid {hidden} fact(s) (soft-delete).")
         print(f"  Removed {vectors_removed} vector(s) from ChromaDB.")
-        print(f"  Facts are hidden but not permanently deleted.")
-        print(f"  They can be recovered by clearing the superseded_by field.")
+        print(f"  Facts are hidden, not permanently deleted. The fact rows can be recovered")
+        print(f"  by clearing the superseded_by field; the removed vectors are not restored.")
+        print(f"  Raw conversation text is NOT removed: the messages these facts were")
+        print(f"  extracted from remain in the database.")
+
+    if hidden:
+        _mark_spec_stale_after_forget(hidden, mode)
+
+
+def _mark_spec_stale_after_forget(hidden, mode):
+    """Record the forget and tell the user which specification files it leaves stale."""
+    from baselayer.config import IDENTITY_LAYERS_DIR
+    from baselayer.spec_staleness import record_forget, stale_files, default_spec_files
+
+    record_forget(IDENTITY_LAYERS_DIR, hidden, mode, files=default_spec_files())
+    stale = stale_files(default_spec_files(), IDENTITY_LAYERS_DIR)
+    if stale:
+        print(f"\n  WARNING: your specification is now stale. It was authored before this")
+        print(f"  forget and was not regenerated, so it may still contain claims drawn from")
+        print(f"  the hidden facts. The MCP server keeps serving it; the specification")
+        print(f"  resource and any server started from now on carry a stale notice (a server")
+        print(f"  already running built its instructions at startup, so restart it).")
+        print(f"  Stale: {', '.join(f.name for f in stale)}")
+        print(f"  Regenerate it with: baselayer author --compose")
+    else:
+        print(f"\n  No authored specification exists yet, so none is stale.")
+
+
+def _print_stale_spec_warning():
+    from baselayer.config import IDENTITY_LAYERS_DIR
+    from baselayer.spec_staleness import stale_files, default_spec_files, read_marker
+
+    stale = stale_files(default_spec_files(), IDENTITY_LAYERS_DIR)
+    if not stale:
+        return
+    marker = read_marker(IDENTITY_LAYERS_DIR) or {}
+    n = marker.get("facts_forgotten")
+    count = f"{n} fact(s)" if n else "Facts"
+    print(f"  WARNING: specification is stale. {count} were hidden with `baselayer forget`")
+    print(f"  after these files were written: {', '.join(f.name for f in stale)}.")
+    print(f"  They may still carry claims drawn from the hidden facts. Regenerate with:")
+    print(f"    baselayer author --compose")
+    print()
 
 
 def cmd_provenance(args):
@@ -1312,7 +1359,8 @@ def _run_traceability():
     print("  5b. Checking embeddings...")
     try:
         import chromadb
-        client = chromadb.PersistentClient(path=str(VECTORS_DIR))
+        from baselayer.config import get_chroma_client as _chroma_client_for
+        client = _chroma_client_for(VECTORS_DIR)
         try:
             collection = client.get_collection("memory_facts")
             db_count = conn.execute("SELECT COUNT(*) FROM memory_facts").fetchone()[0]
@@ -1495,14 +1543,11 @@ def cmd_pipeline(args):
         from baselayer.init_database import init_database
         init_database(SUBJ_DB_FILE)
 
-    # Step 1: Import
-    _conn = _sql.connect(str(SUBJ_DB_FILE))
-    _existing = _conn.execute("SELECT COUNT(*) FROM conversations").fetchone()[0]
-    _conn.close()
-
-    if _existing > 0 and not v2_mode:
-        print(f"  {_existing} conversations already imported. Skipping import.")
-    elif source_dir and source_dir.exists():
+    # Step 1: Import, always, through the importer's dedup. This used to skip import
+    # whenever any conversation existed (outside --v2), so files added to the source
+    # directory were never imported while the run still re-extracted and re-authored.
+    total_before, _ = _conversation_counts(SUBJ_DB_FILE)
+    if source_dir and source_dir.exists():
         print(f"\n  Step 1: Importing from {source_dir.name}...")
         # Create a minimal args object for cmd_import
         class _ImportArgs:
@@ -1514,6 +1559,15 @@ def cmd_pipeline(args):
         cmd_import(_ImportArgs())
     else:
         print(f"  No source directory — skipping import.")
+
+    total_after, pending = _conversation_counts(SUBJ_DB_FILE)
+    # --v2 clears extraction first, so everything is pending and the run always proceeds.
+    if not _should_continue_after_import(
+            total_after - total_before, pending, total_after,
+            source_dir.name if source_dir else subject_id,
+            getattr(args, "reauthor", False),
+            rerun_hint=f"baselayer pipeline {subject_id} --reauthor"):
+        return
 
     # Step 2: Extract (batch API — 50% cheaper, ~1hr turnaround)
     print(f"\n  Step 2: Extracting facts (batch API)...")
@@ -1613,6 +1667,63 @@ def cmd_pipeline(args):
 _IMPORT_TO_STORED_SOURCE = {"text": "text_file"}
 
 
+def _conversation_counts(db_path):
+    """(total conversations, conversations not yet extracted) in one database."""
+    import sqlite3 as _sql
+    with contextlib.closing(_sql.connect(str(db_path))) as conn:
+        total = conn.execute("SELECT COUNT(*) FROM conversations").fetchone()[0]
+        pending = conn.execute(
+            "SELECT COUNT(*) FROM conversations"
+            " WHERE id NOT IN (SELECT conversation_id FROM extraction_log)"
+        ).fetchone()[0]
+    return total, pending
+
+
+def _specification_complete():
+    """True when the three layers and the served brief all exist (config read at call time)."""
+    import baselayer.config as cfg
+    return all(f.exists() for f in (cfg.ANCHORS_LAYER_FILE, cfg.CORE_LAYER_FILE,
+                                    cfg.PREDICTIONS_LAYER_FILE, cfg.UNIFIED_BRIEF_FILE))
+
+
+def _should_continue_after_import(new, pending, total, source_label, reauthor, rerun_hint):
+    """Decide whether a one-command run proceeds past import, and say why either way.
+
+    Proceeds when the import added conversations, when earlier conversations are still
+    waiting for extraction (for example a run cancelled at the cost prompt), when no
+    complete specification exists yet (a previous run was interrupted or failed after
+    extraction), or when the caller asked for --reauthor. Otherwise nothing has changed
+    since the last specification was built, so extraction would do nothing and authoring
+    would spend API budget to regenerate the same inputs. Stop, and say so, before the
+    cost estimate.
+    """
+    if total == 0:
+        print(f"\n  Nothing was imported from {source_label}, and the database has no"
+              f" conversations. Stopping before extraction; no API budget was spent.")
+        return False
+    if new > 0:
+        print(f"\n  Imported {new} new conversation(s) from {source_label} ({total} total).")
+        return True
+    if pending > 0:
+        print(f"\n  Nothing new imported from {source_label}. {pending} conversation(s)"
+              f" imported earlier have not been extracted yet; continuing with those.")
+        return True
+    if not _specification_complete():
+        print(f"\n  Nothing new imported from {source_label}, but no complete specification"
+              f" exists yet (an earlier run stopped after extraction); authoring it now.")
+        return True
+    if reauthor:
+        print(f"\n  Nothing new imported from {source_label}. --reauthor given;"
+              f" regenerating the specification from the existing {total} conversation(s).")
+        return True
+    print(f"\n  Nothing new imported from {source_label}: its content is already in the"
+          f" database ({total} conversation(s), all extracted).")
+    print(f"  Stopping before extraction and authoring, so no API budget was spent.")
+    print(f"  To regenerate the specification from the existing data anyway:")
+    print(f"    {rerun_hint}")
+    return False
+
+
 def cmd_run(args):
     """One-command pipeline (4 steps): import -> extract -> author -> traceability.
 
@@ -1645,18 +1756,23 @@ def cmd_run(args):
     else:
         print(f"\n  Database exists. Skipping init.")
 
-    # Step 1: Import (skip if conversations already exist — prevents duplication on re-run)
-    import sqlite3 as _sql
-    _conn = _sql.connect(str(DATABASE_FILE))
-    _existing = _conn.execute("SELECT COUNT(*) FROM conversations").fetchone()[0]
-    _conn.close()
-    if _existing > 0:
-        print(f"\n  {_existing} conversations already imported. Skipping import.")
-    else:
-        print(f"\n{'='*60}")
-        print(f"  Step 1/4: Importing data")
-        print(f"{'='*60}\n")
-        cmd_import(args)
+    # Step 1: Import, ALWAYS, through the importer's own dedup (conversation id, plus
+    # content for text and JSON files). This used to skip import whenever any
+    # conversation existed, so a second `run` with a new file never imported it, then
+    # re-authored (API spend) and printed "Done" over a specification that excluded the
+    # file the user named. Re-running on an unchanged file is safe: nothing is inserted.
+    print(f"\n{'='*60}")
+    print(f"  Step 1/4: Importing data")
+    print(f"{'='*60}\n")
+    total_before, _ = _conversation_counts(DATABASE_FILE)
+    cmd_import(args)
+    total_after, pending = _conversation_counts(DATABASE_FILE)
+    new = total_after - total_before
+
+    if not _should_continue_after_import(new, pending, total_after, file_path,
+                                         getattr(args, "reauthor", False),
+                                         rerun_hint=f"baselayer run {file_path} --reauthor"):
+        return
 
     # Cost estimate + confirm
     print(f"\n{'='*60}")
@@ -1747,7 +1863,6 @@ def cmd_run(args):
         print(f"\n  Next steps:")
         print(f"    View full brief:  cat {brief_path}")
         print(f"    Add to Claude:    claude mcp add --transport stdio base-layer -- baselayer-mcp")
-        print(f"    Interactive chat:  baselayer chat")
         print(f"    Review facts:     baselayer review")
     else:
         print(f"\n  Pipeline complete but no specification layer was generated.")
@@ -2348,16 +2463,17 @@ def main():
     # THIS FLAG DOES NOT DELETE ANYTHING AND THE OLD HELP SAID IT DID.
     # init_database.py is CREATE TABLE IF NOT EXISTS throughout: zero DROP, zero DELETE.
     # A user reaching for --force wants a clean rebuild; what they get is a no-op, and the
-    # re-extraction behind it then reports "all already done", which reads as success.
-    # `forget --all` plus deleting data/vectors/ is NOT a reset either: it leaves
-    # extraction_log, which the extractor's pending-conversation query joins on, so the
-    # re-extract again finds nothing to do. Build into a fresh corpus directory; the full
-    # in-place reset is `python -m baselayer.extract_facts --reset`.
+    # re-extraction behind it then reports "all already done", which reads as success. A real
+    # reset is `python -m baselayer.extract_facts --reset`, which deletes extracted facts, the
+    # extraction log and the memory_facts vector collection. `forget --all` plus deleting
+    # data/vectors/ is NOT a reset: forget only hides facts and leaves extraction_log intact,
+    # so the next extract reports "all already done" and processes nothing (reproduced
+    # 2026-09-27 on a scratch corpus).
     p_init.add_argument("--force", action="store_true",
                         help="Re-run initialization. NOT destructive: no tables are dropped and "
-                             "no rows deleted. For a clean rebuild use a fresh corpus directory; "
-                             "the full extraction reset is `python -m baselayer.extract_facts "
-                             "--reset`.")
+                             "no rows deleted. For a clean re-extraction use "
+                             "`python -m baselayer.extract_facts --reset` (irreversible), or "
+                             "point MEMORY_SYSTEM_ROOT at an empty directory.")
     p_init.add_argument("--accept-data-processing", action="store_true",
                         help="Non-interactive acknowledgement of the privacy notice "
                              "(conversation text is sent to the Anthropic API during "
@@ -2591,13 +2707,28 @@ def main():
     p_search.set_defaults(func=cmd_search)
 
     # forget
-    p_forget = subparsers.add_parser("forget", help="Soft-delete facts (by ID, conversation, or all)")
+    p_forget = subparsers.add_parser(
+        "forget",
+        help="Hide facts (soft delete, by ID, conversation, or all). Raw conversation text "
+             "stays; specification layers already written are not regenerated (they are "
+             "marked stale).",
+        description="Hide facts by marking them superseded and removing their vectors. "
+                    "This is a soft delete: the fact rows stay in the database and can be "
+                    "restored; the removed vectors are not. Raw conversation text is not "
+                    "removed: the imported messages the facts came from stay in the database. "
+                    "Specification layers already written are not regenerated, so a served "
+                    "specification can still carry claims built from hidden facts until you "
+                    "run `baselayer author --compose`. After a forget they are marked stale, "
+                    "and `baselayer stats` and the MCP server say so. To remove everything, "
+                    "delete the data directory and the MCP session logs under "
+                    "~/.baselayer/sessions/, which record tool queries.")
     p_forget.add_argument("--fact", type=str, metavar="ID",
-                          help="Delete a specific fact by its ID")
+                          help="Hide a specific fact by its ID")
     p_forget.add_argument("--conversation", type=str, metavar="ID",
-                          help="Delete all facts from a conversation ID")
+                          help="Hide all facts extracted from a conversation ID (its raw text stays)")
     p_forget.add_argument("--all", action="store_true",
-                          help="Delete ALL active facts (requires confirmation)")
+                          help="Hide ALL active facts (requires confirmation). Not a reset: "
+                               "re-extraction still skips conversations already processed.")
     p_forget.set_defaults(func=cmd_forget)
 
     # provenance (S56 — trace layer claims to source facts)
@@ -2745,6 +2876,8 @@ def main():
         help="V2 mode: snapshot, clear, re-extract with expanded corpus")
     p_pipeline.add_argument("--yes", "-y", action="store_true",
         help="Skip confirmation prompts")
+    p_pipeline.add_argument("--reauthor", action="store_true",
+        help="Regenerate the specification even when the source adds nothing new")
     p_pipeline.set_defaults(func=cmd_pipeline)
 
     # run: THE ENTRY POINT FOR A NEW USER, and NOT legacy.
@@ -2770,6 +2903,10 @@ def main():
                         help="Use document extraction mode (for papers, books, patents)")
     p_run.add_argument("--subject", type=str,
                         help="Subject name for document mode tiering")
+    p_run.add_argument("--reauthor", action="store_true",
+                        help="Regenerate the specification even when the file adds nothing new. "
+                             "Without it, a run that imports nothing new and has nothing waiting "
+                             "for extraction stops before any API spend.")
     # Needed by sub-commands but not directly used
     p_run.add_argument("--force", action="store_true", help=argparse.SUPPRESS)
     p_run.add_argument("--limit", type=int, default=None, help=argparse.SUPPRESS)

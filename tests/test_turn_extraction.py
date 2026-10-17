@@ -92,7 +92,7 @@ class FakeCollection:
 class FakeClient:
     collection = None
 
-    def __init__(self, path=None):
+    def __init__(self, path=None, settings=None):   # config.get_chroma_client passes settings
         pass
 
     def get_collection(self, name):

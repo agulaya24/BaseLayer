@@ -25,9 +25,9 @@ When you generate user-facing text in this repo (commit messages, doc edits, blo
 - No GTM language ("beats", "crushes", "outperforms", "wins"). Scientific framing only.
 - Canonical terms: "interpretive layer" and "specification" body-primary. "Behavioral specification" on first mention. Do not use "behavioral compression" or "identity model" in new prose.
 - No marketing prose. Action-first. Direct.
-- Aarik wrote the project. He does not write code; he architects and directs. Write for an audience of one technical product owner.
+- Write for a technical product owner: someone who directs the architecture and evaluates results, rather than someone who reads every line of code.
 
-The voice constraints exist as user-memory entries (e.g. `feedback_no_em_dashes.md`). Do not duplicate their contents here; just follow them.
+The same constraints are kept in the maintainer's private agent notes. Follow the list above.
 
 ## Commands an AI agent should know
 
@@ -35,9 +35,9 @@ All commands invoked as `baselayer <subcommand>`. Source of truth: [`src/baselay
 
 | Command | One-liner |
 |---|---|
-| `baselayer init` | Initialize a fresh database in the current subject directory. |
+| `baselayer init` | Initialize a fresh database under the data root (`MEMORY_SYSTEM_ROOT`; not the current directory). |
 | `baselayer import <file>` | Import ChatGPT/Claude export, journal, text file, or directory. |
-| `baselayer estimate` | Preview API cost before extraction. |
+| `baselayer estimate` | Rough preview of API cost. The extraction figure is computed from the imported text; the authoring and composition figures are fixed values. |
 | `baselayer extract` | Extract facts via Haiku 4.5 (46 constrained predicates, AUDN lifecycle). Add `--turn-contract` to ground every fact in the subject's own turns (see below). |
 | `baselayer embed` | Generate ChromaDB vectors for provenance tracing. |
 | `baselayer author --layer all` | Author anchors, core, and predictions layers (Sonnet 4.6). |
@@ -51,7 +51,7 @@ All commands invoked as `baselayer <subcommand>`. Source of truth: [`src/baselay
 | `baselayer consolidate <spec_dir> --out O [--grouping G --categories C]` | Mechanical, no model: the served form of a finished spec (always-on claims in full, trigger categories whose lines name claim ids, an index JSON for pulling claims), a duplicate mapping, and 14 checks. Reads the spec dir, writes only `--out`. The judged inputs (duplicate verdicts, trigger grouping, categories) come from `python -m baselayer.consolidation.build judge\|group\|categorize`, which calls a model (API priced and capped, or `claude -p`). `docs/core/CONSOLIDATION.md`. |
 | `baselayer checkpoint extraction` | Quality gate after extraction. Reports only; no `--fix` flag exists. |
 | `baselayer chunks list\|retry\|quarantine\|ack-model` | The chunk ledger of a turn-contract extraction: list chunks by status, requeue failed or quarantined ones, quarantine one. `list --review` shows every quarantined chunk with why it failed plus requests to re-extract a finished conversation; `list --backlog` shows done work made by another extraction model, which nothing re-runs (`ack-model` records that it was seen). `baselayer run` does not author over quarantined chunks without `--accept-gaps`; authored artifacts state them in a `coverage_gaps*.json` manifest beside them. |
-| `baselayer forget --all` | Soft-delete all active facts. Confirm before running. Not a reset: the extraction log is kept. |
+| `baselayer forget --all` | Hide (soft-delete) all active facts. Raw text stays and written layers are not regenerated. Not a reset. Confirm before running. |
 | `baselayer journal` | Guided prompts when the user has no conversation history. |
 
 For long-form usage details and step-by-step pipeline structure, see [`AGENTS.md`](AGENTS.md). Do not invent commands. If a flag does not appear in `cli.py`, it does not exist.
@@ -103,7 +103,7 @@ Once registered, the next Claude Code session loads two resources and seven tool
 | `src/baselayer/config.py` | Constants, paths, database singletons. Also the extraction predicate vocabulary: `CONSTRAINED_PREDICATES`, 46 constrained predicates (45 behavioral plus an `unknown` fallback). |
 | `src/baselayer/verify_provenance.py` | The four-check verifier. |
 | `lexicon_schema.yaml` | Element-type schema for authored specification containers (axiom, prediction, context_mode, meta_section) plus provenance syntax. Not the predicate vocabulary; that lives in `config.py`. |
-| `tests/` | Offline test suite. `pytest tests -q` runs it all; no API key needed. |
+| `tests/` | The test suite. `pytest tests/` runs it. |
 | `src/baselayer/voice.py`, `turns.py`, `turn_import.py`, `import_config.py` | Turn-contract import: detectors, the turn table, per-source builders, the local config loader. |
 | `src/baselayer/turn_contract.py` | Turn-contract extraction: chunking, rendering, the gate, the run record. |
 | `src/baselayer/verification/` | `verify-spec`, read-only post-specification verification. |
@@ -129,11 +129,11 @@ When writing new prose, use "specification" and "interpretive layer". Do not rei
 
 ## Things NOT to do
 
-- **Do not run destructive commands without confirmation.** `baselayer forget --all` soft-deletes facts. `python -m baselayer.extract_facts --reset` deletes extracted facts, the extraction log and the fact vectors. (`baselayer init --force` re-runs initialization and deletes nothing; it is not a reset.) If the user did not explicitly request the action, ask first.
+- **Do not run destructive commands without confirmation.** `baselayer forget --all` hides every active fact. `python -m baselayer.extract_facts --reset` permanently deletes extracted facts, the extraction log, and the fact vectors, with no confirmation prompt of its own. `baselayer init --force` re-runs initialization (it drops nothing). If the user did not explicitly request the action, ask first.
 - **Do not invent commands or flags.** If a flag is not in `cli.py`, it does not exist. Read the source before running anything you have not run before.
 - **Do not POST to unknown endpoints.** Read the route handler first. The S101 incident wiped tracking data for 48 subjects because an agent called a cleanup endpoint without reading it.
 - **Do not modify `lexicon_schema.yaml` or `CONSTRAINED_PREDICATES` casually.** `lexicon_schema.yaml` governs the element types of authored layers; `CONSTRAINED_PREDICATES` in `config.py` governs extraction, and predicate changes invalidate stored facts under the AUDN lifecycle. Read [`docs/core/ARCHITECTURE.md`](docs/core/ARCHITECTURE.md) and the extraction code first.
-- **Do not re-extract into a used corpus directory.** Build into a fresh one (set `MEMORY_SYSTEM_ROOT` to a new directory). Old vectors cause AUDN to return NOOP, and `baselayer forget --all` does not clear the extraction log, so a later extract finds nothing to do. `init --force` deletes nothing. If a corpus must be cleared in place, the full extraction reset is `python -m baselayer.extract_facts --reset`, which is destructive: confirm first.
+- **Do not re-extract without clearing both SQLite and ChromaDB.** Old vectors cause AUDN to return NOOP and you get 12-42 facts instead of 200+. `python -m baselayer.extract_facts --reset` deletes extracted facts, the extraction log, and the fact vectors so every conversation is reprocessed. It is irreversible and has no confirmation prompt; confirm with the user first. It keeps imported conversations and user-corrected facts and does not touch layers already written under `data/identity_layers/`. The safest clean start is a fresh data root: point `MEMORY_SYSTEM_ROOT` at an empty directory. `baselayer forget --all` plus deleting `data/vectors/` is not a reset: the extraction log still marks every conversation as done, so re-extraction processes nothing.
 - **Do not run the pipeline without the cost-estimate gate.** Use `baselayer run` (which gates by default) or run `baselayer estimate` before `baselayer extract`.
 - **Do not use the `brief` or `chat` subcommands for new work.** Both are archived. Use `compose` for the V4 unified specification.
 - **Do not retry the same failing approach more than twice.** Diagnose and redesign. If extraction returns zero facts twice, stop and read `extract_facts.py`.

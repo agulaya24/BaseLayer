@@ -727,24 +727,42 @@ def prompt_hash(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
 
 
-def git_commit_of(path) -> str:
-    """HEAD of the checkout that holds `path`, with '-dirty' when src/ has
-    uncommitted changes. Returns 'unknown' rather than raising: a missing git
-    must not stop a run, but it must be visible in the stamp."""
+def git_tree_state(path) -> tuple:
+    """(HEAD, dirty) of the checkout that holds `path`: the one helper every stage's stamp uses.
+
+    `dirty` is True when the WHOLE working tree differs from HEAD (modified, staged or untracked,
+    ignored files excluded), whichever file inside it asks. It used to be scoped to the asking
+    file's own directory, so for one tree the extraction stamp (src/baselayer/) read '-dirty'
+    and the layer stamps (src/baselayer/distillation/) read clean (found 2026-10-05).
+    HEAD is None when git or the checkout is unavailable; dirty is None when the state could
+    not be read. Never raises."""
     d = str(Path(path).resolve().parent)
     try:
         head = subprocess.run(["git", "-C", d, "rev-parse", "HEAD"], capture_output=True,
                               text=True, timeout=10)
         if head.returncode != 0:
-            return "unknown"
+            return None, None
         commit = head.stdout.strip()
-        dirty = subprocess.run(["git", "-C", d, "status", "--porcelain", "--", "."],
-                               capture_output=True, text=True, timeout=10)
-        if dirty.returncode == 0 and dirty.stdout.strip():
-            commit += "-dirty"
-        return commit
+        top = subprocess.run(["git", "-C", d, "rev-parse", "--show-toplevel"],
+                             capture_output=True, text=True, timeout=10)
+        if top.returncode != 0:
+            return commit, None
+        st = subprocess.run(["git", "--no-optional-locks", "-C", top.stdout.strip(),
+                             "status", "--porcelain"], capture_output=True, text=True, timeout=30)
+        return commit, (bool(st.stdout.strip()) if st.returncode == 0 else None)
     except (OSError, subprocess.SubprocessError):
+        return None, None
+
+
+def git_commit_of(path) -> str:
+    """HEAD of the checkout that holds `path`, with '-dirty' when the working tree has
+    uncommitted or untracked changes (git_tree_state). Returns 'unknown' rather than raising:
+    a missing git must not stop a run, but it must be visible in the stamp. A tree whose state
+    could not be read gets '-state-unknown', never a silent clean."""
+    head, dirty = git_tree_state(path)
+    if head is None:
         return "unknown"
+    return head + ("-dirty" if dirty else "-state-unknown" if dirty is None else "")
 
 
 def code_path_of(path) -> str:
@@ -1042,8 +1060,9 @@ ARTIFACT_STAMP_VERSION = "artifact-stamp/1"
 def artifact_stamp(kind: str, *, code_file, model=None, prompt_hash=None, input_hash=None,
                    turn_contract_version=None, **extra) -> dict:
     """The contract §7 stamp for a derived artifact. `code_path` is repo-relative
-    (never absolute); `git_commit` carries '-dirty' when the code file's own
-    directory has uncommitted changes. `model` and `prompt_hash` are None for a
+    (never absolute); `git_commit` carries '-dirty' when the working tree has
+    uncommitted or untracked changes (git_tree_state, the same rule every stage
+    stamps with). `model` and `prompt_hash` are None for a
     mechanical step that runs no model."""
     d = {
         "stamp_version": ARTIFACT_STAMP_VERSION,
