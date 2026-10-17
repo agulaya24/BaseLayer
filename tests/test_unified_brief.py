@@ -249,12 +249,12 @@ class TestExtractRequiredTerms:
         from baselayer.agent_pipeline import extract_required_terms
         layers = {
             "anchors": "",
-            "core": "**Trading Context:** He trades.\n**Creative/Hobby Context:** Cooking and gaming.\n**Personal/Family Context:** Navigate carefully.",
+            "core": "**Garden Context:** He gardens.\n**Creative/Hobby Context:** Cooking and gaming.\n**Personal/Family Context:** Navigate carefully.",
             "predictions": "",
         }
         result = extract_required_terms(layers)
         kw_terms = [t[0] for t in result.get("core_keywords", [])]
-        assert "trading" in kw_terms
+        assert "garden" in kw_terms
         assert "creative/hobby" in kw_terms
         assert "personal/family" in kw_terms
 
@@ -315,7 +315,7 @@ class TestVerifyBriefCompleteness:
     def test_detects_missing_context_mode(self):
         from baselayer.agent_pipeline import verify_brief_completeness
         required = {"core_keywords": [("creative/hobby", "CORE context mode: 'Creative/Hobby'")]}
-        brief = "He works in trading and startups."
+        brief = "He works in gardening and carpentry."
         gaps = verify_brief_completeness(brief, required)
         assert len(gaps) == 1
         assert "Creative/Hobby" in gaps[0]
@@ -431,9 +431,9 @@ class TestParseClaimsFromLayer:
     def test_parses_anchors_claims(self):
         from baselayer.verify_provenance import parse_claims_from_layer
         text = """
-**A1. COHERENCE**
-If your response contains internal inconsistency, flag it before presenting.
-Active when: they point out contradictions.
+**A1. TIDY LOGS**
+If a watering log shows an inconsistency, flag it before presenting.
+Active when: they point out a missing entry.
 
 **A2. INTEGRITY**
 Don't validate intentions without examining follow-through.
@@ -448,12 +448,12 @@ Active when: they describe someone saying one thing but doing another.
     def test_parses_predictions_claims(self):
         from baselayer.verify_provenance import parse_claims_from_layer
         text = """
-**P1. CONFIRMATION-BEFORE-COMMITMENT**: When facing uncertain situations → waits for multiple confirming signals
-Detection: Trading (waits for range breaks); Professional (clarifies goals)
+**P1. WAIT-FOR-THE-WEATHER**: When the season is uncertain → waits for multiple confirming signals
+Detection: Gardening (waits for the last frost); Professional (clarifies goals)
 Directive: Present multiple supporting data points.
 
-**P2. STRUCTURE-OVER-SPONTANEITY**: When presented with open-ended situations → imposes systematic frameworks
-Detection: Trading (uses fixed dollar loss limits); Personal (prioritizes control)
+**P2. PLAN-THE-BEDS**: When presented with an empty plot → draws a planting plan first
+Detection: Gardening (keeps a fixed watering schedule); Personal (labels every shelf)
 Directive: Lead with systematic approaches.
 """
         claims = parse_claims_from_layer("PREDICTIONS", text)
@@ -473,11 +473,11 @@ Directive: Lead with systematic approaches.
         from baselayer.verify_provenance import parse_claims_from_layer
         text = """
 **M1. COMMUNICATION APPROACH**
-They prioritize understanding why systems work over following them blindly.
+They like to learn why a plant thrives before copying someone's method.
 Deliver information directly and efficiently with no fluff.
 
-**C1. TRADING CONTEXT**
-Extreme ownership mindset with rigorous risk management through fixed limits.
+**C1. GARDEN CONTEXT**
+Keeps a detailed log of every bed, with a fixed limit on watering per week.
 """
         claims = parse_claims_from_layer("CORE", text)
         assert len(claims) == 2
@@ -619,7 +619,7 @@ class TestClaimParsingDirectiveStrip:
     def test_strips_directive_lines(self):
         from baselayer.verify_provenance import parse_claims_from_layer
         layer_text = """**P1. TEST-PATTERN**: When triggered
-Detection: Shows up in trading and cooking
+Detection: Shows up in gardening and cooking
 Directive: Tell the AI to do something specific
 provenance: [F-001, F-002]"""
         claims = parse_claims_from_layer("PREDICTIONS", layer_text)

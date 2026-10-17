@@ -29,7 +29,7 @@ All tests run offline. No API key needed for testing.
 ```
 src/baselayer/          # Core package
   config.py             # Constants, paths, predicates (start here)
-  cli.py                # CLI entry point (28 subcommands)
+  cli.py                # CLI entry point (`baselayer --help` lists the subcommands)
   extract_facts.py      # Step 2: Fact extraction (Haiku API or Ollama)
   author_layers.py      # Step 4: Three-layer specification authoring
   agent_pipeline.py     # Step 5: Specification composition

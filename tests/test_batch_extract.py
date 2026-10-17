@@ -79,8 +79,16 @@ class TestBatchStatePersistence:
 # _BUILD_CONV_TEXT
 # ============================================================
 
+@pytest.mark.legacy
 class TestBuildConvText:
-    """Test conversation text building from messages."""
+    """LEGACY PATH ONLY: conversation text as "Role: text" lines, windowed by
+    characters. This is what a corpus WITHOUT a turn table still gets.
+
+    The turn-contract path never builds this text: it chunks whole turns,
+    labels only the subject's own turns as citable and gates every fact
+    (tests/test_turn_contract.py, test_turn_extraction.py,
+    test_turn_batch_extract.py). These assertions are kept deliberately, as the
+    specification of the legacy path, and do not describe turn-contract output."""
 
     def test_basic_building(self):
         from baselayer.batch_extract import _build_conv_text

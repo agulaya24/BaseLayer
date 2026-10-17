@@ -14,6 +14,13 @@ Four tests:
    batch requests with the right chunk_info per request.
 4. _upsert_extraction_log accumulates facts_extracted across chunks instead of
    overwriting (so a multi-chunk conversation reports the total fact count).
+
+Tests 1-3 specify the LEGACY path (character windows over "User:/Assistant:"
+text), which still runs for a corpus without a turn table. They are kept on
+purpose. The same principle on the turn-contract path is tested at the end of
+this file (TestTurnPathContentPreservation): every word of the subject's own
+turns reaches the model verbatim, whole turns are never cut except an oversize
+turn into contiguous segments, and non-citable text keeps the per-source rule.
 """
 
 import pytest
@@ -109,6 +116,7 @@ class TestProjectConversationContentPreservation:
     """Sentinels in user-message bodies survive through abstraction and windowing.
     Sentinels inside code blocks, tool tags, and long assistant turns are absent."""
 
+    @pytest.mark.legacy
     def test_abstraction_preserves_user_content_no_truncation(self):
         from baselayer.extract_facts import _abstract_project_conversation
 
@@ -129,6 +137,7 @@ class TestProjectConversationContentPreservation:
         assert SENTINELS["asst_long"] not in abstracted, \
             "Long assistant message body must be reduced to first line (D-048)"
 
+    @pytest.mark.legacy
     def test_chunking_preserves_sentinels_across_windows(self):
         from baselayer.extract_facts import (
             _abstract_project_conversation, _chunk_text_for_extraction
@@ -159,6 +168,7 @@ class TestStandardPathSingleLongMessage:
     """A short conversation containing one long message must trigger the
     chunking path so [:1500] truncation never applies."""
 
+    @pytest.mark.legacy
     def test_long_single_message_triggers_chunking(self):
         from baselayer.extract_facts import extract_facts_from_conversation
 
@@ -524,3 +534,47 @@ class TestHasTieredFactsThreshold:
         conn = _make_facts_db(tmp_path)
         conn.commit()
         assert _has_tiered_facts(conn) is False
+
+
+
+class TestTurnPathContentPreservation:
+    """Turn-contract path: the 2026-05-17 principle restated for turns.
+
+    Nothing the subject typed or spoke is dropped before the model call: an
+    oversize own turn is split into contiguous segments whose concatenation is
+    the turn, and each segment is offered as citable. Code inside an OWN turn is
+    kept verbatim (the gate compares quotes against exactly this text); the
+    D-048 abbreviation applies to non-citable turns only."""
+
+    def _turns(self):
+        from baselayer.turn_contract import Turn
+        own = _make_long_user_msg(SENTINELS["mid"])
+        own = SENTINELS["early"] + " " + own + " ```" + SENTINELS["code"] + "``` " + SENTINELS["late"]
+        long_asst = SENTINELS["asst_long"] + " " + ("assistant detail. " * 80)
+        return [
+            Turn("c:0", "c", "subject", "own_typed", own),
+            Turn("c:1", "c", "assistant", "assistant", long_asst),
+            Turn("c:2", "c", "assistant", "assistant", SENTINELS["asst_short"]),
+            Turn("c:3", "c", "subject", "own_dictated", SENTINELS["deep"]),
+        ]
+
+    def test_every_own_word_reaches_a_chunk_verbatim(self):
+        from baselayer.extract_facts import build_turn_chunks
+        turns = self._turns()
+        chunks = build_turn_chunks(turns, "claude_code", 5000)
+        assert len(chunks) > 1
+        own_segments = "".join(p.text for ch in chunks for p in ch.body if p.turn.turn_id == "c:0")
+        assert own_segments == turns[0].text
+        bodies = "\n".join(ch.rendered_body for ch in chunks)
+        for key in ("early", "mid", "late", "code", "deep"):
+            assert SENTINELS[key] in bodies, key
+        assert SENTINELS["asst_short"] in bodies
+        # a long assistant turn is abbreviated to its first line (D-048), not dropped
+        assert SENTINELS["asst_long"] in bodies and "assistant detail. " * 20 not in bodies
+
+    def test_every_chunk_holding_own_text_offers_it_as_citable(self):
+        from baselayer.extract_facts import build_turn_chunks
+        for ch in build_turn_chunks(self._turns(), "claude_code", 5000):
+            for p in ch.body:
+                if p.turn.citable:
+                    assert p.turn.turn_id in ch.alias_to_turn.values()

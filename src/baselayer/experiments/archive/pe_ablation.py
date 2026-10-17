@@ -36,7 +36,7 @@ SONNET = "claude-sonnet-4-20250514"
 ALL_SUBJECTS = [
     "C:/Users/user/Anthropic/subjects/franklin_memory",
     "C:/Users/user/Anthropic/subjects/buffett_memory",
-    "C:/Users/user/Anthropic/memory_system_v4",  # Aarik
+    "C:/Users/user/Anthropic/memory_system_v4",  # the author
 ]
 
 # ============================================================================

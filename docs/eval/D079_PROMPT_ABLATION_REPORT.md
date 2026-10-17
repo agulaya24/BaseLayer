@@ -9,7 +9,7 @@
 
 ## Abstract
 
-We conducted a 30-condition prompt ablation study to determine the optimal method for composing behavioral briefs — short documents that compress a person's behavioral patterns into a form an LLM can use to adapt its interactions. The study tested architectural choices (single-pass vs. multi-stage), prompt content (what instructions to include), structural decisions (how to organize the output), and evaluation rubric design (what to optimize for). Three subjects were used: Benjamin Franklin (historical, document-derived), Warren Buffett (public figure, document-derived), and Aarik (the system's creator, conversation-derived). Key findings: single-pass Opus outperforms multi-stage architectures, false positive warnings are load-bearing but prone to fabrication, rubric awareness is the strongest meta-strategy, and epistemic calibration — explicitly marking what the system cannot predict — is the study's novel contribution to AI personalization. The winning condition (C28: rubric awareness + temporal markers + "cannot predict" gaps) scored 87.0/90 average across subjects.
+We conducted a 30-condition prompt ablation study to determine the optimal method for composing behavioral briefs — short documents that compress a person's behavioral patterns into a form an LLM can use to adapt its interactions. The study tested architectural choices (single-pass vs. multi-stage), prompt content (what instructions to include), structural decisions (how to organize the output), and evaluation rubric design (what to optimize for). Three subjects were used: Benjamin Franklin (historical, document-derived), Warren Buffett (public figure, document-derived), and the author (the system's creator, conversation-derived). Key findings: single-pass Opus outperforms multi-stage architectures, false positive warnings are load-bearing but prone to fabrication, rubric awareness is the strongest meta-strategy, and epistemic calibration — explicitly marking what the system cannot predict — is the study's novel contribution to AI personalization. The winning condition (C28: rubric awareness + temporal markers + "cannot predict" gaps) scored 87.0/90 average across subjects.
 
 ---
 
@@ -33,7 +33,7 @@ Session 78 research established that shorter briefs (~1,000-2,500 chars) outperf
 
 | Parameter | Value |
 |---|---|
-| Subjects | Franklin, Buffett, Aarik |
+| Subjects | Franklin, Buffett, the author |
 | Conditions | 30 (C0-C30) |
 | Briefs generated | ~90 |
 | Compose model | claude-opus-4-20250514 |
@@ -66,7 +66,7 @@ Each condition was run on all three subjects. Briefs were scored by Collective r
 
 - **Benjamin Franklin:** Historical figure. Source layers derived from autobiography via document-mode extraction. High axiom density, strong tension patterns, no live conversation data.
 - **Warren Buffett:** Public figure. Source layers derived from shareholder letters and interviews. Systematic thinker with coherent investment philosophy. High internal consistency.
-- **Aarik:** System creator. Source layers derived from 80+ sessions of conversation history. Highest data density, most complex behavioral signature, and the only subject with ground-truth validation available.
+- **Author:** System creator. Source layers derived from 80+ sessions of conversation history. Highest data density, most complex behavioral signature, and the only subject with ground-truth validation available.
 
 ---
 
@@ -121,7 +121,7 @@ Key changes: Traceability + Faithfulness merged into Provenance. Actionability u
 
 **Finding 1 — C26 wins.** Rubric awareness remains the strongest meta-strategy.
 
-**Finding 2 — Different people need different formats.** C27 produced: tension-centered (Franklin), system-coherence (Buffett), imperative-structured (Aarik). Reviewers confirmed appropriateness.
+**Finding 2 — Different people need different formats.** C27 produced: tension-centered (Franklin), system-coherence (Buffett), imperative-structured (the author). Reviewers confirmed appropriateness.
 
 **Finding 3 — "Cannot predict" is the top improvement suggestion.** Across all Round 6 reviews, the most consistent recommendation was to include explicit epistemic gaps.
 
@@ -129,7 +129,7 @@ Key changes: Traceability + Faithfulness merged into Provenance. Actionability u
 
 Three conditions integrated research-identified gaps into the C26 base:
 
-| Condition | Description | Franklin | Buffett | Aarik | **Average** |
+| Condition | Description | Franklin | Buffett | Author | **Average** |
 |---|---|---|---|---|---|
 | **C28** | C26 + cannot predict + temporal | 89 | 86 | 86 | **87.0** |
 | C29 | C26 + relational + agency | 73 | 68 | 87 | 76.0 |
@@ -143,11 +143,11 @@ Detailed C28 scoring breakdown:
 |---|---|---|---|---|---|
 | Franklin | 30/30 | 30/30 | 20/20 | 9/10 | 89/90 |
 | Buffett | 29/30 | 29/30 | 19/20 | 9/10 | 86/90 |
-| Aarik | 27/30 | 30/30 | 20/20 | 9/10 | 86/90 |
+| Author | 27/30 | 30/30 | 20/20 | 9/10 | 86/90 |
 
 **Finding 1 — C28 is the production candidate.** Adding "cannot predict" and temporal awareness to the rubric-aware prompt produced the highest scores across all 30 conditions. The additions are small (2 paragraphs in the prompt) but high-leverage.
 
-**Finding 2 — C29 has a faithfulness problem.** The relational context + agency prompt caused FP fabrication on 2 of 3 subjects: Buffett C29 got P3=3/10 (fabricated FP warnings), Franklin C29 got E1=0/10 (missing FPs entirely). The relational prompt competes with faithfulness as an optimization target. However, Aarik C29 scored 87 — the prompt works when source layers have richer relational data.
+**Finding 2 — C29 has a faithfulness problem.** The relational context + agency prompt caused FP fabrication on 2 of 3 subjects: Buffett C29 got P3=3/10 (fabricated FP warnings), Franklin C29 got E1=0/10 (missing FPs entirely). The relational prompt competes with faithfulness as an optimization target. However, the author's C29 scored 87 — the prompt works when source layers have richer relational data.
 
 **Finding 3 — C30 is worse than C28 despite being a superset.** C30 included ALL research integrations (temporal + relational + agency + cannot predict). At 85.3 avg, it trails C28 by 1.7 points. More instructions create more competing optimization targets. Focused additions outperform comprehensive ones.
 
@@ -292,9 +292,9 @@ Based on C28 (study winner at 87.0/90):
 
 ## 9. Future Work
 
-1. **Temporal stability on conversation data.** Original temporal study used Franklin (autobiography) and Marks (memos). Rerun on Aarik's GPT conversations (linear conversation history) to test whether findings generalize to conversational data.
+1. **Temporal stability on conversation data.** Original temporal study used Franklin (autobiography) and Marks (memos). Rerun on the author's GPT conversations (linear conversation history) to test whether findings generalize to conversational data.
 
-2. **Human evaluation.** Have Aarik and domain experts rate C28 briefs for real-world utility vs. rubric-scored quality.
+2. **Human evaluation.** Have the author and domain experts rate C28 briefs for real-world utility vs. rubric-scored quality.
 
 3. **Rubric weight ablation.** Test alternative weight distributions (e.g., Behavioral Change at 4x).
 
@@ -306,7 +306,7 @@ Based on C28 (study winner at 87.0/90):
 
 ## Appendix A: Full Score Table (New Rubric, Rounds 6-7)
 
-| Condition | Franklin | Buffett | Aarik | Average |
+| Condition | Franklin | Buffett | Author | Average |
 |---|---|---|---|---|
 | C24 (epistemic loop) | - | - | - | 71.0 |
 | C25 (compressed) | - | - | - | < C24 |

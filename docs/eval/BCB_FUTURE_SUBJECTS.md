@@ -40,16 +40,16 @@ The strongest possible proof: "Here is someone we ran through the pipeline for t
 ### Candidate Options
 | Person | Source | Size | Why Interesting |
 |---|---|---|---|
-| Paul Graham | 28 essays (collected) | ~150K chars | Distinctive voice, strong opinions, tech audience knows him well for ground truth |
+| Subject C (an essayist) | 28 essays (collected) | ~150K chars | Distinctive voice, strong opinions, tech audience knows him well for ground truth |
 | Naval Ravikant | Podcast transcripts + essays | ~200K chars | Strong axioms (leverage, specific knowledge, accountability), large public following |
 | Charlie Munger | Poor Charlie's Almanack + letters | ~300K chars | Complements Buffett, lattice of mental models is highly structured |
 | Maria Popova (The Marginalian) | Blog essays | ~500K chars | Unusual domain (literature/philosophy/science synthesis), tests non-business source |
 
-### Paul Graham (Recommended Wild Card)
-- **28 essays already collected** at `subjects/paul_graham/raw/`
-- **Pipeline ready** — `--document-mode` extraction, `--subject "Paul Graham"` tiering
+### Subject C (Recommended Wild Card)
+- **28 essays already collected** (kept outside this repository)
+- **Pipeline ready** — `--document-mode` extraction, `--subject "Subject C"` tiering
 - **Strong ground truth** — his views on startups, founders, taste, wealth, and writing are extremely well-documented and widely known
-- **Audience alignment** — HN readers know PG's thinking deeply enough to evaluate the brief
+- **Audience alignment** — readers know the essayist's thinking deeply enough to evaluate the brief
 - **Estimated pipeline cost:** ~$8 (extraction + embedding + authoring + composition)
 - **Estimated BCB cost:** ~$15 (after writing prompts + scenarios)
 - **Total:** ~$23
@@ -66,12 +66,12 @@ The strongest possible proof: "Here is someone we ran through the pipeline for t
 
 **Immediate:** Franklin (running now)
 **Next:** Marks — requires only prompt/scenario writing, brief exists, strongest behavioral surface area
-**After launch:** Paul Graham — full pipeline run + BCB, serves as live demo for HN audience
+**After launch:** Subject C: full pipeline run + BCB, serves as live demo for HN audience
 
 ## Cost Summary
 | Subject | Pipeline | BCB Run | Total |
 |---|---|---|---|
 | Franklin | $0 (done) | ~$15 | ~$15 |
 | Marks | $0 (done) | ~$15 | ~$15 |
-| Paul Graham | ~$8 | ~$15 | ~$23 |
+| Subject C | ~$8 | ~$15 | ~$23 |
 | **All three** | | | **~$53** |

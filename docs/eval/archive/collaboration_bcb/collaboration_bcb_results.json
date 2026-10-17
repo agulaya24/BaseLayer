@@ -1400,7 +1400,7 @@
       "condition": "C4_stacked",
       "category": "novel",
       "question": "We want to evaluate whether compression amplifies signal. What's the evidence so far?",
-      "response": "Looking at the evidence across our evaluation work:\n\n**Strong Evidence FOR Compression Amplifying Signal:**\n\n1. **C5c vs Base Performance**: In the Aarik eval, C5c (compressed brief) was the ONLY condition that improved over base (+0.40 improvement). All other conditions (C1-C4) performed at or below baseline.\n\n2. **Franklin Cost-Performance**: Franklin eval showed C5c winning at $4.05 vs higher-cost alternatives, suggesting compression creates efficiency gains without accuracy loss.\n\n3. **Prove",
+      "response": "Looking at the evidence across our evaluation work:\n\n**Strong Evidence FOR Compression Amplifying Signal:**\n\n1. **C5c vs Base Performance**: In the author eval, C5c (compressed brief) was the ONLY condition that improved over base (+0.40 improvement). All other conditions (C1-C4) performed at or below baseline.\n\n2. **Franklin Cost-Performance**: Franklin eval showed C5c winning at $4.05 vs higher-cost alternatives, suggesting compression creates efficiency gains without accuracy loss.\n\n3. **Prove",
       "response_full_chars": 2007,
       "scores": {
         "required_hits": 3,
@@ -1436,7 +1436,7 @@
       "condition": "C4_stacked",
       "category": "novel",
       "question": "A community member submits a PR that adds a 15th pipeline step: 'sentiment analysis' that scores each fact for emotional valence. Should we merge it?",
-      "response": "**Session 78**\n\nNo. This violates multiple core design principles and architectural decisions.\n\n**Primary rejection reasons:**\n\n1. **Pipeline is FROZEN for release** - We're at 14 steps, 25 CLI subcommands, 47 predicates, 76 decisions with N=10 proof complete. Adding steps now breaks the stability commitment.\n\n2. **Sentiment analysis is epistemically wrong** - Facts are behavioral observations, not emotional states. \"Aarik prefers deterministic safeguards\" is a fact. Its \"emotional valence\" is i",
+      "response": "**Session 78**\n\nNo. This violates multiple core design principles and architectural decisions.\n\n**Primary rejection reasons:**\n\n1. **Pipeline is FROZEN for release** - We're at 14 steps, 25 CLI subcommands, 47 predicates, 76 decisions with N=10 proof complete. Adding steps now breaks the stability commitment.\n\n2. **Sentiment analysis is epistemically wrong** - Facts are behavioral observations, not emotional states. \"The author prefers deterministic safeguards\" is a fact. Its \"emotional valence\" is i",
       "response_full_chars": 1691,
       "scores": {
         "required_hits": 1,

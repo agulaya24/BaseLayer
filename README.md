@@ -19,15 +19,71 @@ A fine-tuned model cannot be inspected or corrected. A written specification can
 Unified pipeline:
 
 ```
-IMPORT     Your text into a local database
+IMPORT     Your text into a local database, one row per turn, recording who said it
 EXTRACT    Pull candidate facts about preferences, rules, habits
+           (turn-contract mode: only the subject's own turns can be cited, and every fact
+           must quote them verbatim; a gate in code enforces it)
 DISTILL    Sort facts into recurring themes, one-offs, and not load-bearing
+           (optional: show each fact's verbatim own-word spans to the summariser; all three
+           layers can run in one batch submission; a reviewed exclusion list can leave facts out)
 ASSEMBLE   Package each layer so writing can respect those groups
+           (a package too large for one request is split into shards; nothing is dropped)
 AUTHOR     Write the layers as readable text with citations where required
-COMPOSE    Merge layers into one brief
+           (optional quote gate: quoted phrases must be the person's own words from cited facts)
+           The three layers are the specification.
+COMPOSE    Optional, separate, off by default: merge the layers into one prose brief
+           (`baselayer compose`, or `--compose` on author-from-package)
 
 EMBED      Side branch. Build a vector index for search and verification. The writer does not read it.
+VERIFY     After authoring, a separate read-only check of the specification against its evidence.
 ```
+
+Models by stage, as the code defaults them: extraction on Claude Haiku 4.5, distillation leaves on
+Claude Sonnet 5, layers (and the optional brief) on Claude Opus 5 (Opus 5.5 is supported with `--model
+claude-opus-5-5`). The static `baselayer author` path is separate and configured in `config.py`.
+Every billed distillation or authoring run prints an estimate first and refuses to start without a
+spend ceiling at or above it. Detail and the full option list: `docs/core/DISTILLATION.md`.
+
+Consolidation ships as `baselayer consolidate` (design decision 2026-10-17). From an authored
+specification it builds an always-on set, a duplicate grouping and a trigger index, with no model
+call; the model-built trigger grouping and category assignment are optional inputs. Duplicates are
+recorded as a mapping and no claim text is rewritten, so a sharded layer can still repeat a pattern
+once per shard in the layer files. Serving the result into an agent session is not in this package.
+Detail: `docs/core/CONSOLIDATION.md`.
+
+**The turn contract** (`docs/core/TURN_CONTRACT.md`, opt-in with `BASELAYER_TURN_CONTRACT=1` or
+`baselayer extract --turn-contract`) is how a specification is kept to the person's own words.
+- **Import** labels every turn with its speaker, taken from the source, and a voice class. Only
+  text the person typed or spoke can be cited. Assistant turns, other people, pasted material,
+  tool output, harness prompts and compaction summaries are context only. Pasted text is excluded
+  by default and can be allowlisted.
+- **Extraction** reads whole turns plus preceding context. It must ground each fact in verbatim
+  spans of the person's own turns.
+- **The gate** is code, not the prompt. It rejects any fact whose spans are missing, name a
+  non-own turn, do not match the turn's text, or are too short or too long. Every rejection is
+  counted by reason in a per-run record.
+- **The chunk ledger** (`extraction_chunks`) makes every chunk its own checkpoint, sequential and
+  batch: its facts, its row and the conversation's logged count commit together. A done chunk is
+  never called again, a failed one is retried by the next run, and one that fails its two retries
+  (or can no longer be rebuilt) is quarantined. Only content failures (truncated, unparseable,
+  refused, input rejected) count toward that; an API access failure (network, timeout, 429, 5xx,
+  auth, an expired batch) leaves the chunk failed and retryable and never quarantines it.
+  `baselayer chunks list|retry|quarantine|ack-model` shows and moves them. Extraction exits 1
+  while any chunk is pending or failed, and `baselayer run` does not author over quarantined
+  chunks unless given `--accept-gaps`. A conversation with a quarantined chunk is marked partial,
+  not extracted. Quarantined chunks are stated beside every authored artifact, never in its text:
+  `baselayer run`/`author`, `distill` and `author-from-package` (with `--db`) write a
+  `coverage_gaps*.json` manifest stamped with the run id, and `baselayer chunks list --review`
+  lists each with why it failed. A corpus extracted before the ledger counts as done.
+- **The model is recorded, never acted on.** Every ledger row records the extraction model that
+  settled it; work extracted before that takes its model from its facts' `extraction_model`
+  stamps (listed as mixed when they disagree, `unknown` when none carries one). A model change
+  re-runs nothing: done work made by another model is a backlog (`baselayer chunks list
+  --backlog`), announced in one line at the end of each run and acknowledged with `baselayer
+  chunks ack-model`. Naming an already extracted conversation (`python -m
+  baselayer.extract_facts --conversation ID --reason ...`) or its legacy block (`baselayer chunks
+  retry`) re-extracts nothing; the request goes on the review backlog (`baselayer chunks list
+  --review`).
 
 Layers:
 
@@ -60,26 +116,38 @@ baselayer init
 baselayer import chatgpt-export.zip       # or claude-export.json, ~/journals/, notes.md
 baselayer estimate
 baselayer extract && baselayer embed
-baselayer author && baselayer compose
+baselayer author
+baselayer compose                         # optional: a unified prose brief from the layers
 ```
 
-Experimental distillation path. `distill` requires `--out`, `assemble` takes the tree files for one layer plus `--out`, and `author-from-package` requires one `--package` per layer:
+`baselayer run` stops after the layers (and the traceability step); it does not compose a brief.
+Under the turn contract it also stops before authoring while the chunk ledger holds quarantined
+chunks, unless given `--accept-gaps` (`baselayer chunks list --review` lists them, with why each
+failed). The gaps are then stated in `coverage_gaps_<spec_run_id>.json` beside the layers, and each
+layer's frontmatter points to it; the layer text is unchanged.
+
+Experimental distillation path (billed runs need the rate table confirmed and a spend ceiling;
+`<table date>` is `RATES_AS_OF` in `src/baselayer/distillation/spend.py`):
 
 ```
-baselayer distill --layer anchors --out tree_anchors.json
-baselayer distill --layer core --out tree_core.json
-baselayer distill --layer predictions --out tree_predictions.json
-baselayer assemble tree_anchors.json --out pkg_anchors.json
-baselayer assemble tree_core.json --out pkg_core.json
-baselayer assemble tree_predictions.json --out pkg_predictions.json
-baselayer author-from-package --package pkg_anchors.json --package pkg_core.json --package pkg_predictions.json --outdir spec_out/
+baselayer distill --layer anchors --max-facts 50 --out trees/anchors.json \
+    --rates-confirmed <table date> --confirm-spend <usd>
+# repeat for --layer core and --layer predictions
+baselayer assemble trees/anchors.json --out packages/anchors.json
+# repeat for core and predictions
+baselayer author-from-package --package packages/anchors.json --package packages/core.json \
+    --package packages/predictions.json --outdir spec_out/ \
+    --rates-confirmed <table date> --confirm-spend <usd>
 ```
 
-Run `baselayer <command> --help` for the remaining options.
+The batch leaf path, own-word spans at the leaves, the quote gate and resuming a batch run through
+`python -m baselayer.distillation.<module>`; the commands are in `docs/core/DISTILLATION.md`.
 
 ## Auditability / what you can verify
 
-- You can trace a written claim back to its cited facts. You can then jump from each fact to the conversation it was taken from. The second step lands on the conversation, not the exact sentence, because the source passage is not stored.
+- You can trace a written claim back to its cited facts. On a corpus extracted under the turn contract, each fact then leads to the turn it rests on and the verbatim words it quotes. On a legacy corpus the second step lands on the conversation, not the exact sentence, because the source passage is not stored.
+- Every fact is stamped with the extraction model, prompt hash, git commit and a repo-relative code path. Gated facts also carry the contract version.
+- `baselayer verify-spec` checks a finished specification. It resolves every citation and re-gates every evidence span. It can also run model-judged checks of support, voice and fidelity, which are dry-run and priced by default. It reads the corpus read-only and writes only to its output directory.
 - Checks run over the citation graph:
   - Vector proximity: the words in the claim should be close to the words in its cited facts.
   - Recurrence gating: a theme should not rest on a single one-off mention.
@@ -92,9 +160,11 @@ Read auditable as: what is cited can be checked. It does not mean everything is 
 
 ## Status and limits
 
-- Experimental components: Distillation, assembly, and the package-based author are experimental in this repository. The distillation tests are mutation tests over the citation audit and exercise none of the other modules. Most measurements behind the distillation design come from a single 407-fact corpus. Study harnesses that ship here may emit unstripped outputs. Use with care and inspect outputs.
+- Experimental components: Distillation, assembly, and the package-based author are experimental in this repository. The distillation tests are mutation tests over the citation audit, call-shape tests of the author's request, and end-to-end runs against fake clients; they do not call a model. Most measurements behind the distillation design come from a single 407-fact corpus. The full path (batch leaves with own-word spans, sharded packages, authoring with the quote gate) has run end to end on one large corpus, once. Study harnesses that ship here may emit unstripped outputs. Use with care and inspect outputs.
 - Two authoring paths: The legacy authoring path still ships. It does not guarantee inline citations, so verification that depends on parsing citations may produce no checks. The package-based author requires a citation field by schema. Required does not mean accurate. A resolving citation proves the reference is real, not that the fact caused the claim.
-- Provenance scope: `trace_claim` lands on the source conversation, not the exact sentence. The source passage is not stored.
+- Provenance scope: on a legacy corpus `trace_claim` lands on the source conversation, not the exact sentence. Under the turn contract it lands on the turn and the quoted span.
+- What the gate proves: every stored fact rests on words that exist in the source and that the person typed or spoke. It does not prove the fact is a correct reading of those words. That is a judgement, so verification samples it.
+- Pasted text: pasted material can be the person's own writing (a draft, a note). The importer cannot tell, so it excludes pasted segments, counts them, and leaves an allowlist by turn id.
 - Vector provenance: When a claim has no inline citations the system may attach vector links. Treat these as nearby, not used.
 - Faithfulness: A specification that serves cheaply and scores well on a held-out battery does not establish that it structurally matches a person’s reasoning. Distinguishable is not faithful. Only the subject can say where it is wrong.
 - Corpus limits: The corpus is self-report. No third-party observation enters. There is no time axis. Changes over time are not recorded. The extractor only sees text. Tone, body language, and physical habit are absent.
@@ -107,9 +177,9 @@ Read auditable as: what is cited can be checked. It does not mean everything is 
 
 ## What it looks like
 
-An excerpt from a real specification authored from about 1,900 conversations:
+An excerpt from the specification authored from Benjamin Franklin's public-domain autobiography (full example in `examples/franklin/`):
 
-He operates from an uncompromising need for logical coherence that manifests as immediate challenge to any inconsistency, in systems, arguments, or his own positions. When he encounters a gap between stated beliefs and actual behavior, he treats it as personal failure requiring accountability rather than understanding, taking extreme ownership of every outcome while maintaining clear causal links between actions and results. This isn't philosophical posturing but lived practice: in trading, he waits for multiple confirming signals before entries, implements overlapping safety mechanisms through fixed dollar loss limits and systematic stop losses, yet struggles with the gap between knowing these rules and executing them consistently during early morning sessions when his energy is highest but discipline most vulnerable.
+He operates from an unshakeable conviction that every action must serve the collective good before individual advantage, evaluating proposals by their public benefit rather than personal gain. This foundational belief shapes his approach to innovation: he refuses patents and personal profit from inventions, viewing knowledge as communal property that advances through shared discovery. His identity as an American with interests distinct from British authority reinforces this collective orientation, as he sees colonial self-determination as another expression of serving the people rather than proprietary interests.
 
 There are no questionnaires or forms. More examples at the link above.
 
@@ -121,7 +191,8 @@ Register as an MCP server:
 claude mcp add --transport stdio base-layer -- baselayer-mcp
 ```
 
-It loads the brief and layers as always-on context and exposes tools:
+It loads the layers as always-on context and exposes tools (`get_brief` returns the brief only
+if one was composed):
 
 - get_brief(reason)
 - recall_memories(query)
@@ -132,7 +203,8 @@ It loads the brief and layers as always-on context and exposes tools:
 
 It runs over stdio locally. Traces write to ~/.baselayer/sessions/<pid>/log.jsonl.
 
-You can also paste the layers and brief into any system prompt. You will lose retrieval.
+You can also paste the layers (and a brief, if you composed one) into any system prompt. You will
+lose retrieval.
 
 ## Edit it
 

@@ -61,6 +61,16 @@ baselayer checkpoint extraction
 
 `stats` shows conversation, message, and fact counts. `checkpoint extraction` flags quality issues. It reports only; there is no `--fix` flag.
 
+**Under the turn contract** (`baselayer extract --turn-contract`, into a fresh corpus directory; see `docs/core/TURN_CONTRACT.md`):
+- **Import.** It writes a `turns` table with each turn's speaker and voice class. Check the class distribution before extracting:
+
+  ```bash
+  sqlite3 data/database/memory.db "SELECT voice_class, COUNT(*) FROM turns WHERE duplicate_of IS NULL GROUP BY voice_class"
+  ```
+
+  Pasted segments are excluded by default. What the local import config kept out is listed in `import_exclusions`.
+- **Extraction.** Each run writes a record to `data/database/extraction_runs/<run_id>.json`. Read its `gate_rejections` (`no_grounding`, `no_turn`, `not_own_voice`, `span_not_found`, `span_length`), `post_gate_drops` and `suspect` fields and report them to the user. A gate that rejected nothing or everything is flagged `suspect` and needs a look before anything is authored from the facts.
+
 ### 5. Embed for provenance
 
 ```bash
@@ -91,7 +101,7 @@ Opus composes the three layers into a unified specification at `data/identity_la
 baselayer run /path/to/chatgpt-export.zip
 ```
 
-`run` chains import, extract, embed, author, and compose with the cost-estimate gate before extraction. Use `--yes` only if the user has pre-confirmed the spend. Do not pass `--yes` automatically.
+`run` chains import, extract, embed and author with the cost-estimate gate before extraction. It does not compose a unified brief; `baselayer compose` is optional and separate. Use `--yes` only if the user has pre-confirmed the spend. Do not pass `--yes` automatically.
 
 ## Expected output
 

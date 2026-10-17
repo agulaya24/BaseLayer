@@ -28,10 +28,12 @@ A structured document encoding a person's behavioral patterns across three inter
 The Specification is generated from raw text through a five-step pipeline:
 
 1. **Import.** Multi-source ingest (ChatGPT, Claude, journals, text).
-2. **Extract.** Haiku, 46 constrained predicates. AUDN lifecycle (add, update, delete, noop).
+2. **Extract.** Haiku, 46 constrained predicates. AUDN lifecycle (add, update, delete, noop). Optional turn contract: import records each turn's speaker, only the person's own typed or spoken turns can be cited, and a gate in code stores a fact only if it quotes them verbatim.
 3. **Embed.** MiniLM-L6-v2 local embeddings produce ChromaDB vectors for provenance tracing.
 4. **Author.** Sonnet generates the three layers independently from different fact subsets.
 5. **Compose.** Opus compresses the three layers into the unified Specification.
+
+`baselayer verify-spec` then checks a finished Specification against its evidence, read-only.
 
 ## How the Specification composes with other context
 

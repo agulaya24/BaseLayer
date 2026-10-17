@@ -34,7 +34,7 @@ D-079 ran a 31-condition prompt ablation study to identify what makes briefs bet
 |---------|---------|---------|---------|---------|-------|
 | Franklin | 18 | 16 | 6 | 4 | 44 |
 | Buffett | 16 | 15 | 6 | 4 | 41 |
-| Aarik | 16 | 15 | 6 | 4 | 41 |
+| Author | 16 | 15 | 6 | 4 | 41 |
 | **Avg** | **16.7** | **15.3** | **6.0** | **4.0** | **42.0** |
 
 ### V5 C31 (corrected rubric /90)
@@ -43,7 +43,7 @@ D-079 ran a 31-condition prompt ablation study to identify what makes briefs bet
 |---------|---------|---------|---------|---------|-------|
 | Franklin | 28 | 27 | 19 | 9 | 83 |
 | Buffett | 29 | 28 | 19 | 9 | 85 |
-| Aarik | 28 | 27 | 19 | 9 | 83 |
+| Author | 28 | 27 | 19 | 9 | 83 |
 | **Avg** | **28.3** | **27.3** | **19.0** | **9.0** | **83.7** |
 
 ### Delta
@@ -109,7 +109,7 @@ Opus evaluated all 6 briefs (C28 x 3 subjects + C31 x 3 subjects). C31 was chose
 |---------|--------|------------|
 | Franklin | C31 | High |
 | Buffett | C31 | High |
-| Aarik | C31 | High |
+| Author | C31 | High |
 
 C31 = C28 (rubric awareness + temporal awareness) + format freedom from C27.
 

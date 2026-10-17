@@ -55,6 +55,45 @@ logger.propagate = False
 
 
 # ==========================================================================
+# RESPONSE TEXT: read by block type, never by position
+# ==========================================================================
+
+class ResponseTextError(RuntimeError):
+    """A Messages API response with no usable text: a refusal, or no text block."""
+
+    def __init__(self, reason: str, caller: str = ""):
+        super().__init__(f"{caller or 'api'}: response has no usable text ({reason})")
+        self.reason = reason
+        self.caller = caller
+
+
+def response_text(response, *, caller: str = "") -> str:
+    """Concatenated text of a Messages API response's TEXT blocks.
+
+    Never read the first content block by position: with extended thinking on (the default
+    on the 5-generation models) the first block is a thinking block, which has no
+    `.text`, so a positional read raises or reads the wrong block. Thinking and
+    any other non-text blocks are skipped.
+
+    Raises ResponseTextError on a refusal (the content may be empty) or when no
+    text block is present. A max_tokens stop still returns the text, as a
+    positional read did, but is logged as a warning because the text is truncated.
+    (Extraction has its own stricter reader, extract_facts.response_text, which
+    also refuses a max_tokens stop because truncated JSON is unusable there.)
+    """
+    stop = getattr(response, "stop_reason", None)
+    if stop == "refusal":
+        raise ResponseTextError("refusal", caller)
+    parts = [getattr(b, "text", "") or "" for b in (getattr(response, "content", None) or [])
+             if getattr(b, "type", None) == "text"]
+    if not parts:
+        raise ResponseTextError("no_text", caller)
+    if stop == "max_tokens":
+        logger.warning("%s: response stopped at max_tokens; text is truncated", caller or "api")
+    return "".join(parts)
+
+
+# ==========================================================================
 # ANTHROPIC CLIENT — singleton with retry and timeout
 # ==========================================================================
 

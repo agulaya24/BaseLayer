@@ -83,7 +83,7 @@ def _call_anthropic(prompt: str, model: str, max_tokens: int, temperature: float
     Uses the centralized singleton client from api_client.py with
     retry and timeout support.
     """
-    from baselayer.api_client import call_api
+    from baselayer.api_client import call_api, response_text
 
     resp = call_api(
         model=model,
@@ -94,7 +94,7 @@ def _call_anthropic(prompt: str, model: str, max_tokens: int, temperature: float
     )
 
     return {
-        "text": resp.content[0].text.strip(),
+        "text": response_text(resp, caller="llm_provider.call_llm").strip(),
         "input_tokens": resp.usage.input_tokens,
         "output_tokens": resp.usage.output_tokens,
         "model": model,

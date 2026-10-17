@@ -25,9 +25,9 @@ When you generate user-facing text in this repo (commit messages, doc edits, blo
 - No GTM language ("beats", "crushes", "outperforms", "wins"). Scientific framing only.
 - Canonical terms: "interpretive layer" and "specification" body-primary. "Behavioral specification" on first mention. Do not use "behavioral compression" or "identity model" in new prose.
 - No marketing prose. Action-first. Direct.
-- Aarik wrote the project. He does not write code; he architects and directs. Write for an audience of one technical product owner.
+- Write for a technical product owner: someone who directs the architecture and evaluates results, rather than someone who reads every line of code.
 
-The voice constraints exist as user-memory entries (e.g. `feedback_no_em_dashes.md`). Do not duplicate their contents here; just follow them.
+The same constraints are kept in the maintainer's private agent notes. Follow the list above.
 
 ## Commands an AI agent should know
 
@@ -38,21 +38,25 @@ All commands invoked as `baselayer <subcommand>`. Source of truth: [`src/baselay
 | `baselayer init` | Initialize a fresh database under the data root (`MEMORY_SYSTEM_ROOT`; not the current directory). |
 | `baselayer import <file>` | Import ChatGPT/Claude export, journal, text file, or directory. |
 | `baselayer estimate` | Rough preview of API cost. The extraction figure is computed from the imported text; the authoring and composition figures are fixed values. |
-| `baselayer extract` | Extract facts via Haiku (46 constrained predicates, AUDN lifecycle). |
+| `baselayer extract` | Extract facts via Haiku 4.5 (46 constrained predicates, AUDN lifecycle). Add `--turn-contract` to ground every fact in the subject's own turns (see below). |
 | `baselayer embed` | Generate ChromaDB vectors for provenance tracing. |
-| `baselayer author --layer all` | Author anchors, core, and predictions layers (Sonnet). |
-| `baselayer compose` | Compose unified specification from the three layers (Opus). |
-| `baselayer run <file>` | Full pipeline with cost-gate. Runs `import` -> `extract` -> `embed` -> `author` -> `compose`. |
-| `baselayer brief "<message>"` | Print a context-tailored specification to stdout. |
+| `baselayer author --layer all` | Author anchors, core, and predictions layers (Sonnet 4.6). |
+| `baselayer compose` | Optional, legacy: compose a unified prose brief from the three layers (Opus 4.6). Not run by `baselayer run`. |
+| `baselayer run <file>` | Full pipeline with cost-gate. Runs `import` -> `extract` -> `author`, then embeds in a post-authoring traceability phase. No brief: `compose` is optional and separate. |
 | `baselayer stats` | Database stats: conversations, facts, tier breakdown. |
 | `baselayer search "<query>"` | FTS keyword search across active facts. |
 | `baselayer provenance --claim A1` | Trace a specification claim back to its supporting facts. |
 | `baselayer verify --layer all` | Run the four-check provenance audit on authored claims. |
+| `baselayer verify-spec <spec_dir> --label L --corpus C --out O` | Read-only post-specification verification: citation resolution, per-fact voice, re-gating of every evidence span. Dry run by default; no model is called unless `--run-model`. |
+| `baselayer consolidate <spec_dir> --out O [--grouping G --categories C]` | Mechanical, no model: the served form of a finished spec (always-on claims in full, trigger categories whose lines name claim ids, an index JSON for pulling claims), a duplicate mapping, and 14 checks. Reads the spec dir, writes only `--out`. The judged inputs (duplicate verdicts, trigger grouping, categories) come from `python -m baselayer.consolidation.build judge\|group\|categorize`, which calls a model (API priced and capped, or `claude -p`). `docs/core/CONSOLIDATION.md`. |
 | `baselayer checkpoint extraction` | Quality gate after extraction. Reports only; no `--fix` flag exists. |
+| `baselayer chunks list\|retry\|quarantine\|ack-model` | The chunk ledger of a turn-contract extraction: list chunks by status, requeue failed or quarantined ones, quarantine one. `list --review` shows every quarantined chunk with why it failed plus requests to re-extract a finished conversation; `list --backlog` shows done work made by another extraction model, which nothing re-runs (`ack-model` records that it was seen). `baselayer run` does not author over quarantined chunks without `--accept-gaps`; authored artifacts state them in a `coverage_gaps*.json` manifest beside them. |
 | `baselayer forget --all` | Hide (soft-delete) all active facts. Raw text stays and written layers are not regenerated. Not a reset. Confirm before running. |
 | `baselayer journal` | Guided prompts when the user has no conversation history. |
 
 For long-form usage details and step-by-step pipeline structure, see [`AGENTS.md`](AGENTS.md). Do not invent commands. If a flag does not appear in `cli.py`, it does not exist.
+
+**Turn contract.** `docs/core/TURN_CONTRACT.md`, decision D-108. Import records each turn's speaker and voice class; only the subject's typed or spoken turns can be cited. `extract --turn-contract` gates every fact on verbatim own-voice spans in code, and writes rejection counts by reason (`no_grounding`, `no_turn`, `not_own_voice`, `span_not_found`, `span_length`, `self_object`) to `<corpus>/data/database/extraction_runs/`. Read that record after every run. Facts carry stamps (model, prompt hash, git commit, repo-relative code path, contract version). Build into a fresh corpus directory.
 
 ## MCP server quick-connect
 
@@ -100,6 +104,10 @@ Once registered, the next Claude Code session loads two resources and seven tool
 | `src/baselayer/verify_provenance.py` | The four-check verifier. |
 | `lexicon_schema.yaml` | Element-type schema for authored specification containers (axiom, prediction, context_mode, meta_section) plus provenance syntax. Not the predicate vocabulary; that lives in `config.py`. |
 | `tests/` | The test suite. `pytest tests/` runs it. |
+| `src/baselayer/voice.py`, `turns.py`, `turn_import.py`, `import_config.py` | Turn-contract import: detectors, the turn table, per-source builders, the local config loader. |
+| `src/baselayer/turn_contract.py` | Turn-contract extraction: chunking, rendering, the gate, the run record. |
+| `src/baselayer/verification/` | `verify-spec`, read-only post-specification verification. |
+| `src/baselayer/consolidation/` | `consolidate`: one module per stage, JSON in and JSON out, each stamped. |
 | `docs/core/` | Architecture, decisions, design principles. Read on demand, not at session start. |
 | `docs/internal/` | Internal plans (refactor plans, agent-facing reviews, runbooks). Exists only in the private working copy; not tracked in this repo. |
 | `examples/` | Live example specifications (Franklin, Buffett, Douglass, Roosevelt, Wollstonecraft, Marks, patents). |

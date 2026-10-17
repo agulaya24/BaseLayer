@@ -139,7 +139,7 @@ class TestParserReadsDistillationOutput:
 # 3. RESOLUTION -- 8-hex citation prefixes against full UUIDs
 # ============================================================
 
-FULL_ID = "2dd8cc28-d784-491b-9e0f-987abba44b13"
+FULL_ID = "2dd8cc28-0000-4000-8000-000000000013"
 
 
 @pytest.fixture

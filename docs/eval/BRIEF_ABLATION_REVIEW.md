@@ -68,7 +68,7 @@ Pipeline simplified from 14 steps to 4: Import → Extract → Author → Compos
 
 ## Phase 3: The 31-Condition Prompt Ablation (D-079, S85-S86)
 
-With the pipeline streamlined and the baseline science established, D-079 was the systematic ablation of the composition prompt itself. 31 conditions across 7 rounds, tested on 3 subjects (Franklin, Buffett, Aarik), ~$18.40 total.
+With the pipeline streamlined and the baseline science established, D-079 was the systematic ablation of the composition prompt itself. 31 conditions across 7 rounds, tested on 3 subjects (Franklin, Buffett, the author), ~$18.40 total.
 
 ### Round 1 (C0-C7): Does Architecture Matter?
 
@@ -153,7 +153,7 @@ Three discoveries:
 
 1. **Rubric awareness wins again.** C26, which includes the new rubric in the prompt, led Round 6. Consistent with Round 5 finding.
 
-2. **Different people need different formats.** C27 (no structural prescription) produced tension-centered format for Franklin, system-coherence for Buffett, imperative-structured for Aarik. The model was adapting structure to the subject's behavioral signature. Format becomes signal, not template.
+2. **Different people need different formats.** C27 (no structural prescription) produced tension-centered format for Franklin, system-coherence for Buffett, imperative-structured for the author. The model was adapting structure to the subject's behavioral signature. Format becomes signal, not template.
 
 3. **"Cannot predict" is the top improvement suggestion.** Across every Round 6 review, the most consistent reviewer feedback was: include explicit epistemic gaps — places where the behavioral model breaks down. No brief was doing this.
 
@@ -161,7 +161,7 @@ Three discoveries:
 
 Three conditions integrated research-identified gaps into the C26 base:
 
-| Condition | Description | Franklin | Buffett | Aarik | Average |
+| Condition | Description | Franklin | Buffett | Author | Average |
 |---|---|---|---|---|---|
 | **C28** | C26 + cannot predict + temporal markers | 89 | 86 | 86 | **87.0** |
 | C29 | C26 + relational context + user agency | 73 | 68 | 87 | 76.0 |
@@ -175,7 +175,7 @@ C28's scoring breakdown:
 |---|---|---|---|---|---|
 | Franklin | 30/30 | 30/30 | 20/20 | 9/10 | 89/90 |
 | Buffett | 29/30 | 29/30 | 19/20 | 9/10 | 86/90 |
-| Aarik | 27/30 | 30/30 | 20/20 | 9/10 | 86/90 |
+| Author | 27/30 | 30/30 | 20/20 | 9/10 | 86/90 |
 
 Why C28 beat the more comprehensive C30:
 
@@ -216,7 +216,7 @@ Changed P3 (Faithfulness) and E1 (FP Grounding) to provenance-based evaluation:
 
 The rubric bug had inflated C28 (which omitted FPs) and deflated C31 (which paraphrased them faithfully). After correction:
 
-| Condition | Franklin | Buffett | Aarik | Average |
+| Condition | Franklin | Buffett | Author | Average |
 |---|---|---|---|---|
 | C28 | 88 | 83 | 82 | **84.3** |
 | C29 | 72 | 84 | 84 | 80.0 |
@@ -239,7 +239,7 @@ Opus Collective evaluated all 6 briefs (C28 x 3 subjects + C31 x 3 subjects). C3
 |---|---|---|
 | Franklin | C31 | High |
 | Buffett | C31 | High |
-| Aarik | C31 | High |
+| Author | C31 | High |
 
 Despite being 0.6 points lower on average, C31 won because:
 
@@ -391,7 +391,7 @@ S87     D-080: Collective selects C31 (unanimous)
 
 ## Phase 6: Blind A/B Evaluation — V4 vs V5 on Real Responses (S88)
 
-After the rubric-based evaluation, we ran a 10-question blind A/B test on Aarik — the only subject with ground-truth validation. Each question got two paragraph-length responses: one shaped by V4's voice (9.2K, detail-rich, narrative) and one shaped by V5's voice (4K, compressed, axiom-structured). Aarik picked the better response without knowing which was which.
+After the rubric-based evaluation, we ran a 10-question blind A/B test on the author, the only subject with ground-truth validation. Each question got two paragraph-length responses: one shaped by V4's voice (9.2K, detail-rich, narrative) and one shaped by V5's voice (4K, compressed, axiom-structured). The author picked the better response without knowing which was which.
 
 ### Results
 
@@ -403,7 +403,7 @@ After the rubric-based evaluation, we ran a 10-question blind A/B test on Aarik 
 | Q4 | No traction on launch | Tie | Both nailed "diagnose, don't comfort" — no domain detail needed |
 | Q5 | "It's basically RAG" | V5 (slight) | More decisive framing of pushback |
 | Q6 | Family member asks if you're okay | V4 | Vivid description of an emotional state |
-| Q7 | Trading vs job search | V5 (edge) | Concrete resolution, despite axiom label friction |
+| Q7 | Two competing commitments | V5 (edge) | Concrete resolution, despite axiom label friction |
 | Q8 | Competitor built similar tool | V5 | "First instinct is to audit" — behavioral prediction, not emotional label |
 | Q9 | Senior overrides your rec | V5 | Brevity, asks the right question, doesn't over-predict from one event |
 | Q10 | What should AI NOT do | Tie (V5 edge) | "Tell me what you can't predict about me" sealed it |

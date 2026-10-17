@@ -107,7 +107,8 @@ systems thinker who values rigor and reproducibility above all.
         with patch.object(mcp_server, "UNIFIED_BRIEF_FILE", tmp_path / "nonexistent_brief.md"), \
              patch.object(mcp_server, "UNIFIED_BRIEF_CITED_FILE", tmp_path / "nonexistent_cited.md"):
             result = mcp_server.get_brief("test reason")
-            assert "Unified brief is not present" in result
+            # the brief is optional: its absence is reported, not treated as a defect
+            assert "No unified brief was composed" in result
             assert "baselayer compose" in result
 
 

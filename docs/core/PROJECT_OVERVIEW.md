@@ -112,7 +112,7 @@ EMBED      embed.py                                       side branch, same role
 
 DISTILL runs once per layer (`--layer` takes `anchors`, `core`, or `predictions`), so a full build is three distill runs, three assembles, and one author pass. On a 149-fact corpus: DISTILL took 44 seconds and $0.04, ASSEMBLE 0.1 seconds at no cost, AUTHOR plus COMPOSE 83 seconds and $0.14. $0.18 in total.
 
-Distillation ships in this repository as the experimental subpackage `baselayer.distillation` (`baselayer distill` / `assemble` / `author-from-package`); its test coverage is 10 mutation tests over one audit, so read `docs/core/DISTILLATION.md` before depending on it. This repository still ships the capped author as the default.
+Distillation ships in this repository as the experimental subpackage `baselayer.distillation` (`baselayer distill` / `assemble` / `author-from-package`); its test coverage is mutation tests over one audit plus call-shape tests of the author's request, so read `docs/core/DISTILLATION.md` before depending on it. This repository still ships the capped author as the default.
 
 ---
 
@@ -153,7 +153,7 @@ The original pipeline classified facts across 5 dimensions. Ablation testing (Se
 |---|---|---|---|
 | **Tier 1: Preferences** | Structured preferences for paste-in | Free | Minimal pipeline (extract + classify). Exports formatted preferences for Claude/ChatGPT/Gemini native preference UI. Primary onboarding path. |
 | **Tier 2: Core + Anchors** | Full specification layers | $3-5 per run | Full pipeline through layer authoring. ANCHORS + CORE + PREDICTIONS as injectable markdown. Delivered via MCP or manual paste. |
-| **Tier 3: Full Pipeline** | Open-source self-hosted | Free (BYOS) | Complete pipeline, installed from the git URL, 28 CLI subcommands. User provider choice, full data control. |
+| **Tier 3: Full Pipeline** | Open-source self-hosted | Free (BYOS) | Complete pipeline, installed from the git URL, full CLI. User provider choice, full data control. |
 
 Each layer carries its own guarantees. Anchors are stable across sessions; the model treats them as given. Core is consulted whenever the person is being addressed; it shapes tone and approach. Predictions activate when a situation matches a trigger; they inform what to do, not what to say.
 
@@ -279,8 +279,8 @@ Pre-1.0. The pipeline runs end to end, the MCP server is live, and example speci
 | Item | State |
 |---|---|
 | License | Apache 2.0 |
-| Tests | 470 passed, 6 skipped (2026-08-18) |
-| CLI | `baselayer` with 28 subcommands, including the one-command `baselayer run` pipeline |
+| Tests | Offline suite: `pytest tests -q` (counts are not kept in prose; they went stale in seven places at once) |
+| CLI | `baselayer` (`baselayer --help` lists the subcommands), including the one-command `baselayer run` pipeline |
 | MCP | 2 resources plus 8 tools over stdio (one resource a deprecated alias) |
 | Storage | SQLite + ChromaDB, all local |
 | Extraction | Haiku via Anthropic API; Ollama for fully local extraction |

@@ -2,16 +2,17 @@
 """
 Base Layer CLI — Personal AI Memory System
 
-Pipeline (5 steps): Import -> Extract -> Embed -> Author -> Compose
+Pipeline (4 steps): Import -> Extract -> Embed -> Author. Compose (a unified prose brief
+from the authored layers) is optional and separate: `baselayer compose`.
 
-The 5-step sequence above is the canonical logical order documented in
+The 4-step sequence above is the canonical logical order documented in
 docs/core/ARCHITECTURE.md. The one-command runner `baselayer run` groups embed
-into a post-compose traceability phase together with tiering and verification
+into a post-authoring traceability phase together with tiering and verification
 for efficiency; step-by-step usage (baselayer embed between extract and author)
 runs the logical order directly. Both produce the same final artifacts.
 
 Usage:
-    baselayer run <file> [-y]               One-command pipeline: import > extract > author > compose > traceability
+    baselayer run <file> [-y]               One-command pipeline: import > extract > author > traceability
     baselayer ui                            Local drag-and-drop web interface
     baselayer init                          Initialize a fresh database
     baselayer import <file> [--source X]    Import conversations (chatgpt/claude/journal)
@@ -19,7 +20,7 @@ Usage:
     baselayer extract --identity-only       Extract identity traits from Claude Code sessions
     baselayer embed                         Generate vector embeddings (optional utility)
     baselayer author [--layer X]            Generate the three specification layers (requires Anthropic API key)
-    baselayer compose                       Compose unified specification from deployed layers (Opus API)
+    baselayer compose                       OPTIONAL, legacy: compose a unified brief from the deployed layers (Opus API)
     baselayer brief <message>               Assemble a memory brief for a message
     baselayer chat                          Interactive chat with memory-augmented Claude
     baselayer checkpoint <stage>            Quality gate reports (extraction/all)
@@ -38,6 +39,7 @@ Usage:
 
 import contextlib
 import sys
+import time
 import io
 import os
 import argparse
@@ -344,6 +346,8 @@ def cmd_extract(args):
         argv.extend(["--source", _IMPORT_TO_STORED_SOURCE.get(args.source, args.source)])
     if getattr(args, 'document_mode', False):
         argv.append("--document-mode")
+    if getattr(args, 'turn_contract', False):
+        argv.append("--turn-contract")
     sys.argv = argv
     extract_facts.main()
 
@@ -395,7 +399,10 @@ def cmd_author(args):
 
 
 def cmd_compose(args):
-    """Compose a unified narrative specification from the deployed layers."""
+    """OPTIONAL, legacy: compose a unified narrative brief from the deployed layers.
+
+    Not part of `baselayer run` or `author-from-package` by default. The three layers are the
+    specification; the brief restates them as prose."""
     _check_api_key()
     _check_extraction_complete()
     _check_fact_floor()
@@ -407,6 +414,21 @@ def cmd_compose(args):
     else:
         print(f"\n  Composition failed. Check that layers are deployed.")
         sys.exit(1)
+
+
+def _rate_argv(args):
+    """Forward the distillation rate confirmation and spend confirmation (spend.py) to the
+    module's own argv."""
+    out = []
+    if getattr(args, "rates_confirmed", None):
+        out += ["--rates-confirmed", args.rates_confirmed]
+    if getattr(args, "rate_in", None) is not None:
+        out += ["--rate-in", str(args.rate_in)]
+    if getattr(args, "rate_out", None) is not None:
+        out += ["--rate-out", str(args.rate_out)]
+    if getattr(args, "confirm_spend", None) is not None:
+        out += ["--confirm-spend", str(args.confirm_spend)]
+    return out
 
 
 def cmd_distill(args):
@@ -427,6 +449,11 @@ def cmd_distill(args):
         argv += ["--resume-from", args.resume_from]
     if args.write_provenance:
         argv.append("--write-provenance")
+    if getattr(args, "include_other_subjects", False):
+        argv.append("--include-other-subjects")
+    if getattr(args, "exclude_ids", None):
+        argv += ["--exclude-ids", args.exclude_ids]
+    argv += _rate_argv(args)
     sys.argv = argv
     distill.main()
 
@@ -437,17 +464,41 @@ def cmd_assemble(args):
     argv = ["assemble.py"] + list(args.trees) + ["--out", args.out]
     if args.min_runs is not None:
         argv += ["--min-runs", str(args.min_runs)]
+    if getattr(args, "shard_token_budget", None) is not None:
+        argv += ["--shard-token-budget", str(args.shard_token_budget)]
     sys.argv = argv
     assemble.main()
 
 
+def cmd_verify_spec(args):
+    """Post-specification verification: read-only on the corpus, writes only --out."""
+    from baselayer.verification import run as verify_run
+    sys.exit(verify_run.execute(args))
+
+
+def cmd_consolidate(args):
+    """Consolidation: always-on claims plus a trigger index from an authored spec. No model
+    call; reads the spec dir, writes only --out."""
+    from baselayer.consolidation import run as consolidate_run
+    sys.exit(consolidate_run.execute(args))
+
+
 def cmd_author_from_package(args):
-    """EXPERIMENTAL: author layers plus brief from handoff packages (citations required by schema)."""
+    """EXPERIMENTAL: author layers from handoff packages (citations required by schema); the
+    unified brief only with --compose."""
     _check_api_key()
     from baselayer.distillation import author_from_package
-    argv = ["author_from_package.py", "--outdir", args.outdir, "--model", args.model]
+    argv = ["author_from_package.py", "--outdir", args.outdir, "--model", args.model,
+            "--effort", args.effort]
+    if getattr(args, "compose", False):
+        argv.append("--compose")
+    if args.max_tokens is not None:
+        argv += ["--max-tokens", str(args.max_tokens)]
+    if getattr(args, "db", None):
+        argv += ["--db", args.db]
     for pkg in args.package:
         argv += ["--package", pkg]
+    argv += _rate_argv(args)
     sys.argv = argv
     author_from_package.main()
 
@@ -1273,14 +1324,14 @@ def cmd_journal(args):
         print(f"\n  Next steps:")
         print(f"    1. Extract facts:  baselayer extract")
         print(f"    2. Author layers:  baselayer author")
-        print(f"    3. Compose brief:  baselayer compose")
-        print(f"    4. Start MCP:      baselayer-mcp")
+        print(f"    3. Start MCP:      baselayer-mcp")
+        print(f"    (Optional: 'baselayer compose' adds a unified prose brief.)")
         print(f"\n  Tip: Journal entries are the highest quality input for identity.")
         print(f"  Run 'baselayer journal' again anytime to add more.\n")
 
 
 def _run_traceability():
-    """Post-compose traceability: tier facts, generate embeddings, build provenance, detect tensions.
+    """Post-authoring traceability: tier facts, generate embeddings, build provenance, detect tensions.
 
     These steps don't change the specification output. They build the audit trail
     that makes every claim inspectable. Cost: ~$0.05 per subject (Haiku for tensions).
@@ -1559,7 +1610,10 @@ def cmd_pipeline(args):
         print(f"  No new conversations to extract.")
     else:
         print(f"  Batch extraction did not complete. Status: {state.get('status') if state else 'unknown'}")
-        print(f"  Run 'baselayer batch-extract --status' to check, then '--process' when ready.")
+        # --resume, never a bare --process: this batch was submitted incrementally, and a bare
+        # --process first deletes every extracted fact (batch_extract refuses it).
+        print(f"  Run 'baselayer batch-extract --status' to check, then "
+              f"'baselayer batch-extract --process --resume' when ready.")
 
     # Gates before authoring
     print(f"\n  Checking gates...")
@@ -1671,12 +1725,12 @@ def _should_continue_after_import(new, pending, total, source_label, reauthor, r
 
 
 def cmd_run(args):
-    """One-command pipeline (5 steps): import -> extract -> author -> compose -> traceability.
+    """One-command pipeline (4 steps): import -> extract -> author -> traceability.
 
-    The canonical logical pipeline is Import -> Extract -> Embed -> Author -> Compose.
-    This runner groups embed into the post-compose traceability phase (alongside
-    tiering and verification) for efficiency. Step-by-step usage runs the logical
-    order directly. See docs/core/ARCHITECTURE.md.
+    The canonical logical pipeline is Import -> Extract -> Embed -> Author. This runner
+    groups embed into the post-authoring traceability phase (alongside tiering and
+    verification) for efficiency. It does not compose a unified brief: that is optional
+    and separate (`baselayer compose`). See docs/core/ARCHITECTURE.md.
     """
     from baselayer.config import DATABASE_FILE, database_initialized
 
@@ -1708,7 +1762,7 @@ def cmd_run(args):
     # re-authored (API spend) and printed "Done" over a specification that excluded the
     # file the user named. Re-running on an unchanged file is safe: nothing is inserted.
     print(f"\n{'='*60}")
-    print(f"  Step 1/5: Importing data")
+    print(f"  Step 1/4: Importing data")
     print(f"{'='*60}\n")
     total_before, _ = _conversation_counts(DATABASE_FILE)
     cmd_import(args)
@@ -1737,7 +1791,7 @@ def cmd_run(args):
 
     # Step 2: Extract
     print(f"\n{'='*60}")
-    print(f"  Step 2/5: Extracting facts")
+    print(f"  Step 2/4: Extracting facts")
     print(f"{'='*60}\n")
     if getattr(args, 'document_mode', False):
         import baselayer.extract_facts as extract_facts
@@ -1749,26 +1803,44 @@ def cmd_run(args):
     else:
         cmd_extract(args)
 
-    # Step 3: Author (3 layers, no review)
-    # Step 4: Compose (unified brief)
+    # The chunk ledger: quarantined chunks are parts of the corpus no fact came from.
+    # Authoring over them needs --accept-gaps, which stamps them into every layer.
+    _coverage_gate(args)
+
+    # Step 3: Author (3 layers, no review). No compose: the unified brief is optional and
+    # separate (`baselayer compose`).
     print(f"\n{'='*60}")
-    print(f"  Step 3-4/5: Authoring the three specification layers + composing brief")
+    print(f"  Step 3/4: Authoring the three specification layers")
     print(f"{'='*60}\n")
     args.layer = None
     args.no_citations = False
-    args.compose = True
+    args.compose = False
     cmd_author(args)
 
-    # Step 5: Traceability (tier + embed + provenance + tensions)
+    # Step 4: Traceability (tier + embed + provenance + tensions)
     print(f"\n{'='*60}")
-    print(f"  Step 5/5: Building traceability infrastructure")
+    print(f"  Step 4/4: Building traceability infrastructure")
     print(f"{'='*60}\n")
     _run_traceability()
 
-    # Done — show result
-    from baselayer.config import PROJECT_ROOT
+    # Done: the specification is the three layers. A brief exists only if one was composed
+    # separately (`baselayer compose`).
+    from baselayer.config import PROJECT_ROOT, ANCHORS_LAYER_FILE, CORE_LAYER_FILE, \
+        PREDICTIONS_LAYER_FILE
+    layer_files = [f for f in (ANCHORS_LAYER_FILE, CORE_LAYER_FILE, PREDICTIONS_LAYER_FILE)
+                   if f.exists()]
     brief_path = PROJECT_ROOT / "data" / "identity_layers" / "brief_v5_clean.md"
-    if brief_path.exists():
+    if layer_files:
+        print(f"\n{'='*60}")
+        print(f"  Done! Your specification is ready.")
+        print(f"{'='*60}")
+        for f in layer_files:
+            print(f"  Layer: {f}")
+        print(f"\n  Next steps:")
+        print(f"    Add to Claude:    claude mcp add --transport stdio base-layer -- baselayer-mcp")
+        print(f"    Review facts:     baselayer review")
+        print(f"    Optional brief:   baselayer compose  (a unified prose brief from the layers)")
+    elif brief_path.exists():
         brief_text = brief_path.read_text(encoding="utf-8")
         # Strip YAML header
         if brief_text.startswith("---"):
@@ -1793,8 +1865,199 @@ def cmd_run(args):
         print(f"    Add to Claude:    claude mcp add --transport stdio base-layer -- baselayer-mcp")
         print(f"    Review facts:     baselayer review")
     else:
-        print(f"\n  Pipeline complete but no brief was generated.")
+        print(f"\n  Pipeline complete but no specification layer was generated.")
         print(f"  Run 'baselayer stats' to check your data.")
+
+
+def _coverage_gate(args):
+    """Before `baselayer run` authors: refuse while the chunk ledger holds a pending or failed
+    chunk (the extraction is not finished), and refuse over quarantined chunks unless the run
+    was given --accept-gaps. The gaps are stated in a manifest beside the layers
+    (`coverage_gaps_<spec_run_id>.json`, with whether they were accepted), never in the layer
+    text; each layer's frontmatter points to it. A corpus with no ledger (legacy extraction)
+    passes."""
+    import baselayer.extract_facts as extract_facts
+    from baselayer import chunk_ledger as _cl
+    with contextlib.closing(extract_facts.get_db()) as conn:
+        counts = _cl.status_counts(conn)
+        gaps = _cl.coverage_gaps(conn)
+    n_open = counts["pending"] + counts["failed"]
+    if n_open:
+        print(f"\nError: {n_open} chunk(s) are still pending or failed in the chunk ledger; "
+              f"the extraction is not finished. Run `baselayer extract` again (it runs only "
+              f"them), or see `baselayer chunks list --status open`.")
+        sys.exit(1)
+    if not gaps:
+        return
+    convs = len({g["conversation_id"] for g in gaps})
+    print(f"\n  {len(gaps)} quarantined chunk(s) in {convs} conversation(s): no fact was "
+          f"extracted from them.")
+    for g in gaps[:20]:
+        print(f"    {g['block_id']}  {g['conversation_id']}  {g['reason']}  "
+              f"[{g['last_error']}]")
+    if len(gaps) > 20:
+        print(f"    ... and {len(gaps) - 20} more (`baselayer chunks list --review`)")
+    if not getattr(args, "accept_gaps", False):
+        print("\n  Not authoring over these gaps. Either requeue them "
+              "(`baselayer chunks retry <block_id>`, then `baselayer extract`), or accept them: "
+              "`baselayer run ... --accept-gaps` authors and states them in a gaps manifest "
+              "beside the layers (`coverage_gaps_<spec_run_id>.json`).")
+        sys.exit(1)
+    import baselayer.author_layers as author_layers
+    author_layers.COVERAGE_GAPS_ACCEPTED = True
+    print("  Accepted (--accept-gaps): authoring proceeds; the gaps manifest beside the layers "
+          "lists them and each layer's frontmatter points to it.")
+
+
+def cmd_chunks(args):
+    """The chunk ledger of a turn-contract extraction (`extraction_chunks`): list chunks by
+    status, requeue failed or quarantined ones, or quarantine one by hand."""
+    import baselayer.extract_facts as extract_facts
+    from baselayer import chunk_ledger as _cl
+    with contextlib.closing(extract_facts.get_db()) as conn:
+        configured = extract_facts._extraction_model_name()
+        if args.action == "list" and getattr(args, "backlog", False):
+            # read-only: work with no recorded model takes it from its facts' stamps (mixed
+            # when they disagree, 'unknown' when none carries one); nothing is rewritten
+            items = _cl.model_backlog(conn, configured)
+            k = _cl.backlog_counts(items)
+            print(f"  Model backlog against the configured model {configured}: {len(items)} "
+                  f"done block(s) ({k['known']} known by another model, {k['mixed']} mixed, "
+                  f"{k['unknown']} unknown; {k['from_facts']} read from fact stamps), "
+                  f"{sum(1 for i in items if not i['acknowledged_at'])} not "
+                  f"acknowledged. Nothing re-runs them.")
+            if items:
+                print(f"  {'block_id':<16}  {'model':<28} {'via':<6} {'facts':>5}  "
+                      f"conversation / kind / acknowledged")
+            for i in items[:args.limit] if args.limit else items:
+                ack = (time.strftime("acknowledged %Y-%m-%d %H:%M",
+                                     time.localtime(i["acknowledged_at"]))
+                       if i["acknowledged_at"] else "not acknowledged")
+                mix = (" [" + ", ".join(f"{m} {n}" for m, n in sorted(i["models"].items())) + "]"
+                       if i["model"].startswith("mixed(") and i.get("models") else "")
+                print(f"  {i['block_id']:<16}  {i['model']:<28} {i['model_source']:<6} "
+                      f"{i['facts_stored']:>5}  {i['conversation_id']}  {i['kind']}  {ack}{mix}")
+            if args.limit and len(items) > args.limit:
+                print(f"  ... and {len(items) - args.limit} more (--limit)")
+            return
+        if args.action == "list" and getattr(args, "review", False):
+            # read-only: every quarantined chunk with WHY it failed, then every request to
+            # re-extract an already extracted conversation. Nothing acts on either.
+            gaps = _cl.coverage_gaps(conn) if _cl.table_exists(conn) else []
+            print(f"  Review backlog: {len(gaps)} quarantined chunk(s) in "
+                  f"{len({g['conversation_id'] for g in gaps})} partial conversation(s); "
+                  f"nothing re-runs them (`baselayer chunks retry <block_id>` requeues one).")
+            if gaps:
+                print(f"  {'block_id':<16}  {'why':<16} {'att':>3} {'turns':>5}  "
+                      f"conversation / model / error")
+            for g in gaps:
+                print(f"  {g['block_id']:<16}  {g['reason']:<16} {g['attempts']:>3} "
+                      f"{g['body_turns']:>5}  {g['conversation_id']}  {g['model'] or '?'}  "
+                      f"[{g['last_error']}]")
+            revs = _cl.list_reviews(conn)
+            print(f"  {len(revs)} request(s) to re-extract an already extracted conversation; "
+                  f"nothing acts on them.")
+            for r in revs:
+                at = time.strftime("%Y-%m-%d %H:%M", time.localtime(r["requested_at"]))
+                print(f"  {at}  {r['conversation_id']}  via {r['via'] or '?'}"
+                      + (f"  block {r['block_id']}" if r.get("block_id") else "")
+                      + (f"  [{r['reason']}]" if r["reason"] else ""))
+            return
+        if args.action != "list" or _cl.table_exists(conn, _cl.OLD_FAILED_TABLE):
+            migrated = _cl.ensure_ledger(conn)
+            if migrated:
+                print(f"  Migrated {migrated} row(s) from {_cl.OLD_FAILED_TABLE}.")
+        if not _cl.table_exists(conn):
+            print("  No chunk ledger in this corpus (no turn-contract extraction has run "
+                  "with it). Conversations in extraction_log count as done.")
+            return
+
+        def resolve(prefixes):
+            ids = []
+            for p in prefixes:
+                hits = [r[0] for r in conn.execute(
+                    f"SELECT block_id FROM {_cl.LEDGER_TABLE} WHERE block_id LIKE ?",
+                    (p + "%",))]
+                if len(hits) != 1:
+                    print(f"Error: block id '{p}' matches {len(hits)} chunk(s); give more of it.")
+                    sys.exit(1)
+                ids.append(hits[0])
+            return ids
+
+        if args.action == "list":
+            counts = _cl.status_counts(conn)
+            print("  " + " | ".join(f"{k} {v}" for k, v in counts.items()))
+            rows = _cl.list_rows(conn, status=args.status, conv_id=args.conv_id,
+                                 limit=args.limit)
+            if rows:
+                print(f"  {'block_id':<16}  {'status':<11} {'att':>3} {'facts':>5} "
+                      f"{'turns':>5} {'budget':>6}  conversation / last error")
+            for r in rows:
+                key = "legacy block" if r["chunk_key"] == _cl.LEGACY_KEY else ""
+                print(f"  {r['block_id']:<16}  {r['status']:<11} {r['attempts']:>3} "
+                      f"{r['facts_stored']:>5} {_cl.body_turn_count(r['chunk_key']):>5} "
+                      f"{r['input_char_budget']:>6}  {r['conversation_id']} {key}"
+                      + (f"  [{r['last_error']}]" if r["last_error"] else ""))
+            return
+        if args.action == "retry":
+            ids = resolve(args.block_ids)
+            if args.all_quarantined:
+                ids += [r["block_id"] for r in _cl.list_rows(conn, status="quarantined")]
+            if not ids and not args.conv_id:
+                print("Error: name block ids, --conv-id or --all-quarantined.")
+                sys.exit(1)
+            # A done legacy block is a whole migrated conversation: never requeued (design
+            # decision 2026-09-29). It becomes a review request, like naming a finished conversation;
+            # its facts stay in use and every other named chunk is still requeued.
+            legacy = _cl.done_legacy_blocks(conn, ids)
+            for bid, cid in legacy:
+                _cl.record_review(conn, cid, reason=args.reason, via="chunks retry",
+                                  block_id=bid)
+            lset = {b for b, _ in legacy}
+            n = _cl.requeue(conn, block_ids=[i for i in ids if i not in lset],
+                            conv_id=args.conv_id)
+            conn.commit()
+            if legacy:
+                print(f"  Not re-extracted, recorded for review: {len(legacy)} legacy block(s) "
+                      f"of an already extracted conversation ("
+                      + ", ".join(f"{cid} {bid}" for bid, cid in legacy)
+                      + "). Their facts stay in use (`baselayer chunks list --review`).")
+            if n or len(legacy) < len(ids) or args.conv_id:
+                print(f"  Requeued {n} chunk(s) as pending, attempts reset. The next "
+                      f"`baselayer extract` (or incremental batch submit) runs them.")
+            return
+        if args.action == "quarantine":
+            ids = resolve(args.block_ids)
+            n = sum(_cl.quarantine(conn, bid, args.reason) for bid in ids)
+            for cid in {r[0] for r in conn.execute(
+                    f"SELECT conversation_id FROM {_cl.LEDGER_TABLE} WHERE block_id IN "
+                    f"({','.join('?' * len(ids))})", ids)} if ids else ():
+                _cl.mark_extraction_state(conn, cid)    # partial, not extracted
+            conn.commit()
+            print(f"  Quarantined {n} pending or failed chunk(s). They are not retried; "
+                  f"`baselayer run` needs --accept-gaps to author over them.")
+        if args.action == "ack-model":
+            items = _cl.model_backlog(conn, configured)
+            chosen = []
+            if args.all:
+                chosen = items
+            else:
+                for p in args.block_ids:
+                    hits = [i for i in items if i["block_id"].startswith(p)]
+                    if len(hits) != 1:
+                        print(f"Error: block id '{p}' matches {len(hits)} backlog item(s).")
+                        sys.exit(1)
+                    chosen += hits
+                if args.conv_id:
+                    chosen += [i for i in items if i["conversation_id"] == args.conv_id]
+            if not chosen and not (args.all or args.block_ids or args.conv_id):
+                print("Error: name block ids, --conv-id or --all.")
+                sys.exit(1)
+            n = _cl.ack_model(conn, chosen, configured, note=args.note)
+            conn.commit()
+            print(f"  Acknowledged {n} backlog item(s) against the configured model "
+                  f"{configured}. Nothing was re-run; re-extracting them is a separate, "
+                  f"deliberate action.")
 
 
 def _check_api_key():
@@ -2095,7 +2358,9 @@ def cmd_batch_extract(args):
     import baselayer.batch_extract as batch_extract
 
     if args.submit:
-        batch_extract.run_submit()
+        batch_extract.run_submit(
+            skip_extracted=bool(getattr(args, "incremental", False)),
+            turn_contract=True if getattr(args, "turn_contract", False) else None)
     elif args.status:
         batch_extract.run_status()
     elif args.process:
@@ -2169,6 +2434,12 @@ def cmd_rebuild_fts(args):
         print(f"  The search_facts MCP tool will now use FTS5 for faster lookups.")
 
 
+def _add_rate_args(p):
+    from baselayer.distillation import spend as _spend
+    _spend.add_rate_args(p)
+    _spend.add_spend_args(p)
+
+
 def main():
     # Force UTF-8 stdout/stderr on Windows to prevent UnicodeEncodeError (cp1252)
     import sys as _sys
@@ -2218,7 +2489,8 @@ def main():
     # import
     p_import = subparsers.add_parser("import", help="Import conversation history or text files")
     p_import.add_argument("file", help="Path to export file (.zip, .json) or text file/directory")
-    p_import.add_argument("--source", choices=["chatgpt", "claude_web", "claude_code", "journal", "text"],
+    p_import.add_argument("--source", choices=["chatgpt", "claude_web", "claude_code", "journal", "text",
+                                               "history", "meetings"],
                           help="Source type (auto-detected if omitted)")
     p_import.set_defaults(func=cmd_import)
 
@@ -2233,10 +2505,22 @@ def main():
                            help="LLM backend (default: anthropic)")
     p_extract.add_argument("--identity-only", action="store_true",
                            help="Extract only identity-relevant facts from project conversations (D-048)")
-    p_extract.add_argument("--source", choices=["chatgpt", "claude_code", "claude_web", "journal", "text_file"],
-                           help="Filter to a specific conversation source")
+    p_extract.add_argument("--source", choices=["chatgpt", "claude_code", "claude_code_db_copy",
+                                                "claude_desktop_agent", "claude_code_history",
+                                                "claude_web", "meeting", "journal", "text_file"],
+                           help="Filter to a specific stored conversation source. 'claude_code' "
+                                "selects every source with Claude Code session shape "
+                                "(claude_code, claude_code_db_copy, claude_desktop_agent); name "
+                                "one of those to select it alone")
     p_extract.add_argument("--document-mode", action="store_true",
                            help="Document extraction mode (papers, books, patents)")
+    p_extract.add_argument("--turn-contract", action="store_true",
+                           help="Turn-contract extraction: only the subject's own turns are "
+                                "citable and every fact is gated on verbatim evidence spans "
+                                "(docs/core/TURN_CONTRACT.md). Needs a fresh corpus directory. "
+                                "Every chunk is a checkpoint in the chunk ledger: a rerun calls "
+                                "only chunks that are not done, and the command exits 1 while "
+                                "any chunk is pending or failed (`baselayer chunks list`).")
     p_extract.set_defaults(func=cmd_extract)
 
     # embed
@@ -2250,23 +2534,27 @@ def main():
     p_author.add_argument("--no-citations", action="store_true",
                           help="Disable Citations API (use self-citation fallback)")
     p_author.add_argument("--compose", action="store_true",
-                          help="Chain unified brief composition after layer generation")
+                          help="OPTIONAL: also compose the unified brief after the layers "
+                               "(off by default)")
     p_author.set_defaults(func=cmd_author)
 
-    # compose (S62 — unified brief from deployed layers)
+    # compose (S62: unified brief from deployed layers). Optional and separate: not part of
+    # `run` or `author-from-package` by default.
     p_compose = subparsers.add_parser("compose",
-        help="Compose unified narrative specification from the deployed layers (Opus API)")
+        help="OPTIONAL, legacy: compose a unified prose brief from the deployed layers (Opus "
+             "API). Not run by `baselayer run`; the three layers are the specification.")
     p_compose.set_defaults(func=cmd_compose)
 
     # --- interpretive distillation (EXPERIMENTAL) ---------------------------------
     # Successor authoring path. `author` above stays the shipped default; removing it
-    # is a separate decision. Test coverage on this path is 10 mutation tests over
-    # distill.py's citation audit and nothing else; distill_batch.py and convergence.py
-    # (script-only, not exposed here) do not strip fabricated ids from their output.
+    # is a separate decision. Test coverage on this path is mutation tests over distill.py's
+    # citation audit and ledger metrics plus call-shape tests of author_from_package's
+    # request, plus end-to-end runs against fake clients. distill_batch.py (module-only,
+    # not exposed here) strips like distill.py; convergence.py (script-only) does not.
     p_distill = subparsers.add_parser("distill",
         help="EXPERIMENTAL: distill every fact into an auditable tree, one run per "
-             "layer. Successor to `author`; coverage is 10 mutation tests over the "
-             "citation audit, most measurements from one 407-fact corpus.")
+             "layer. Successor to `author`; coverage is mutation tests over the "
+             "citation audit, most measurements from one small corpus.")
     p_distill.add_argument("--db", default=None,
                            help="SQLite corpus (default: this project's memory.db), opened read-only")
     p_distill.add_argument("--out", required=True, help="where to write the tree JSON")
@@ -2288,29 +2576,78 @@ def main():
     p_distill.add_argument("--write-provenance", action="store_true",
                            help="persist root citations to layer_claim_provenance. WRITES to "
                                 "the corpus db; off by default.")
+    _add_rate_args(p_distill)
+    p_distill.add_argument("--include-other-subjects", action="store_true",
+                           help="admit facts whose subject is not the person, labelled as "
+                                "context about someone else (excluded by default, counted "
+                                "either way)")
+    p_distill.add_argument("--exclude-ids", default=None, metavar="FILE",
+                           help="leave these fact ids out of the distillation population (JSON "
+                                "list or one id per line; full uuid or 8-char prefix). The file's "
+                                "sha256 and counts are stamped into the tree.")
     p_distill.set_defaults(func=cmd_distill)
 
     p_assemble = subparsers.add_parser("assemble",
         help="EXPERIMENTAL: stratify distillation trees into one handoff package per "
-             "layer (no API calls). No test exercises this module.")
+             "layer (no API calls).")
     p_assemble.add_argument("trees", nargs="+", help="tree JSONs from `baselayer distill`, same layer")
     p_assemble.add_argument("--out", required=True, help="where to write the package JSON")
     p_assemble.add_argument("--min-runs", type=int, default=None,
                             help="runs a singularity must appear in to count as verified "
                                  "(default: 3, or n_runs when fewer)")
+    p_assemble.add_argument("--shard-token-budget", type=int, default=None,
+                            help="tokens of rendered evidence one author request may carry "
+                                 "(default BASELAYER_LEAF_PAYLOAD_CEILING or 400000); over it "
+                                 "the package is split into shards and --out is a manifest")
     p_assemble.set_defaults(func=cmd_assemble)
 
     p_afp = subparsers.add_parser("author-from-package",
-        help="EXPERIMENTAL: author layers and brief from handoff packages; every claim "
-             "must cite fact ids (strict schema). No test exercises this module. "
+        help="EXPERIMENTAL: author layers from handoff packages (the unified brief only "
+             "with --compose); every claim "
+             "must cite fact ids (strict schema). Tests run it end to end against a "
+             "scripted fake client; no test calls the API. "
              "Successor to `author`, which remains the shipped path.")
+    _add_rate_args(p_afp)
     p_afp.add_argument("--package", action="append", required=True,
                        help="handoff package json; repeat once per layer")
     p_afp.add_argument("--outdir", required=True)
     p_afp.add_argument("--model", default="claude-opus-5",
                        help="authoring+compose. Compose is 0.24%% of pipeline cost, so the "
                             "best model here is effectively free.")
+    p_afp.add_argument("--effort", default="high",
+                       choices=["low", "medium", "high", "xhigh", "max"],
+                       help="output_config.effort (default high; Opus 5.5 would otherwise "
+                            "default to medium)")
+    p_afp.add_argument("--max-tokens", type=int, default=None,
+                       help="per-call ceiling for layers; compose gets 1.5x. Thinking counts "
+                            "toward it.")
+    p_afp.add_argument("--compose", action="store_true",
+                       help="OPTIONAL, off by default: also compose the unified brief from "
+                            "the authored layers")
+    p_afp.add_argument("--db", default=None,
+                       help="the corpus memory.db the packages were built from, read-only, "
+                            "for the coverage gaps manifest written beside the layers "
+                            "(coverage_gaps_<id>.json); without it the manifest says the chunk "
+                            "ledger was not checked")
     p_afp.set_defaults(func=cmd_author_from_package)
+
+    p_vspec = subparsers.add_parser("verify-spec",
+        help="Verify an authored specification against its corpus: citations, voice, "
+             "duplicates, triggers (deterministic) and, with --run-model, model-judged "
+             "support, voice, fidelity, cross-claim relations and contradiction reads. "
+             "Read-only on the corpus; writes only --out. Default is a priced dry run.")
+    from baselayer.verification.run import build_parser as _vspec_parser
+    _vspec_parser(p_vspec)
+    p_vspec.set_defaults(func=cmd_verify_spec)
+
+    p_cons = subparsers.add_parser("consolidate",
+        help="Consolidate an authored specification into what an agent is served: always-on "
+             "claims in full plus trigger categories whose lines name the claim ids to pull, "
+             "and an index JSON for the pull tool. Mechanical stages, no model call; reads the "
+             "spec dir, writes only --out.")
+    from baselayer.consolidation.run import build_parser as _cons_parser
+    _cons_parser(p_cons)
+    p_cons.set_defaults(func=cmd_consolidate)
 
 
     # brief
@@ -2449,8 +2786,65 @@ def main():
     p_batch.add_argument("--resume", action="store_true",
                          help="With --process: skip Phase 1 reset; augment "
                               "existing facts instead of replacing them. Use "
-                              "for follow-up retry batches.")
+                              "for follow-up retry batches. Turn mode: stores only "
+                              "results not yet consumed and retries, synchronously, "
+                              "the chunks this batch recorded as failed in the "
+                              "chunk ledger.")
+    p_batch.add_argument("--turn-contract", action="store_true",
+                         help="With --submit: turn-contract requests (gated at --process). "
+                              "Needs a fresh corpus directory.")
+    p_batch.add_argument("--incremental", action="store_true",
+                         help="With --submit: only conversations not yet extracted, plus "
+                              "sessions that grew since their extraction (turn mode). "
+                              "Process with --process --resume; a bare --process refuses it.")
     p_batch.set_defaults(func=cmd_batch_extract)
+
+    # chunks: the chunk ledger of a turn-contract extraction
+    p_chunks = subparsers.add_parser("chunks",
+        help="The chunk ledger of a turn-contract extraction: list chunks by status, "
+             "requeue failed or quarantined ones, quarantine one, list and acknowledge the "
+             "model backlog, list the review backlog")
+    chunks_sub = p_chunks.add_subparsers(dest="action", required=True)
+    c_list = chunks_sub.add_parser("list", help="List chunks and the count per status")
+    c_list.add_argument("--status", choices=["pending", "done", "failed", "quarantined",
+                                             "split", "open"],
+                        help="Only this status (open = pending or failed)")
+    c_list.add_argument("--conv-id", default=None, help="Only this conversation")
+    c_list.add_argument("--limit", type=int, default=50, help="At most N rows (default 50)")
+    c_list.add_argument("--backlog", action="store_true",
+                        help="The model backlog: done work not extracted with the configured "
+                             "model. Work with no recorded model takes it from its facts' "
+                             "extraction_model stamps (mixed when they disagree, 'unknown' "
+                             "when none carries one). Nothing re-runs it; see `chunks ack-model`")
+    c_list.add_argument("--review", "--reviews", dest="review", action="store_true",
+                        help="The review backlog: every quarantined chunk with why it failed "
+                             "(truncated, unparseable, refusal, ...) and its error text, and "
+                             "every request to re-extract an already extracted conversation "
+                             "(--conversation / a pilot sample). Nothing acts on either")
+    c_retry = chunks_sub.add_parser("retry",
+        help="Requeue failed or quarantined chunks as pending with their attempts reset; "
+             "the next extract runs them. Naming the legacy block of a migrated conversation "
+             "re-extracts nothing: it is recorded for review (`chunks list --review`).")
+    c_retry.add_argument("block_ids", nargs="*", help="Block ids (or unique prefixes)")
+    c_retry.add_argument("--reason", default=None,
+                         help="Why, recorded with a review request for a legacy block")
+    c_retry.add_argument("--conv-id", default=None,
+                         help="Every failed or quarantined chunk of this conversation")
+    c_retry.add_argument("--all-quarantined", action="store_true",
+                         help="Every quarantined chunk")
+    c_quar = chunks_sub.add_parser("quarantine",
+        help="Quarantine pending or failed chunks by hand: not retried; `baselayer run` "
+             "then needs --accept-gaps")
+    c_quar.add_argument("block_ids", nargs="+", help="Block ids (or unique prefixes)")
+    c_quar.add_argument("--reason", required=True, help="Why (recorded in last_error)")
+    c_ack = chunks_sub.add_parser("ack-model",
+        help="Acknowledge model-backlog items (`chunks list --backlog`): records that they were "
+             "seen against the configured model, with a timestamp. Re-runs nothing")
+    c_ack.add_argument("block_ids", nargs="*", help="Block ids (or unique prefixes)")
+    c_ack.add_argument("--conv-id", default=None, help="Every backlog item of this conversation")
+    c_ack.add_argument("--all", action="store_true", help="Every backlog item")
+    c_ack.add_argument("--note", default=None, help="Recorded with the acknowledgement")
+    p_chunks.set_defaults(func=cmd_chunks)
 
 
     # rebuild-fts (Session 57 — C11: FTS5 full-text search index)
@@ -2497,7 +2891,8 @@ def main():
     # The two are not versions of each other: `pipeline` is the internal multi-subject driver,
     # `run` is the single-corpus entry point. Neither replaces the other.
     p_run = subparsers.add_parser("run",
-        help="One-command pipeline from a FILE: import > extract > author > compose. "
+        help="One-command pipeline from a FILE: import > extract > author (the unified "
+             "brief is optional and separate: `baselayer compose`). "
              "Start here if you have an export to process.")
     p_run.add_argument("file", help="Path to export file (.zip, .json) or text file/directory")
     p_run.add_argument("--source", choices=["chatgpt", "claude_web", "claude_code", "journal", "text"],
@@ -2520,6 +2915,12 @@ def main():
     p_run.add_argument("--accept-data-processing", action="store_true",
                         help="Non-interactive acknowledgement of the privacy notice "
                              "for the init step (see `baselayer init --help`)")
+    p_run.add_argument("--accept-gaps", action="store_true",
+                        help="Author even though the chunk ledger holds quarantined chunks "
+                             "(parts of the corpus no fact was extracted from). Without it "
+                             "`run` stops before authoring. The gaps are stated in a manifest "
+                             "beside the layers (coverage_gaps_<spec_run_id>.json), not in the "
+                             "layer text; each layer's frontmatter points to it.")
     p_run.add_argument("--name", type=str, default=None, help=argparse.SUPPRESS)
     p_run.add_argument("--pronouns", type=str, default=None, help=argparse.SUPPRESS)
     p_run.set_defaults(func=cmd_run)

@@ -100,6 +100,19 @@ def init_database(db_path=None):
             predicate TEXT,
             object_text TEXT,
             qualifier TEXT,
+            -- Turn contract (docs/core/TURN_CONTRACT.md). NULL on facts extracted
+            -- before the contract; a gated fact carries all of them.
+            source_turn_id TEXT,
+            evidence_spans TEXT,          -- JSON [{turn_id, span, voice_class}, ...]
+            inferred INTEGER,             -- 1 = extractor declared an interpretation
+            voice_class TEXT,             -- voice of source_turn_id
+            turn_contract_version TEXT,
+            extraction_model TEXT,
+            extraction_prompt_hash TEXT,
+            git_commit TEXT,
+            code_path TEXT,               -- repo-relative, never absolute
+            practice TEXT,                -- practice the cited turns are bounded to (turns.practice)
+            grounding TEXT,               -- prose | record_only (turn contract §5)
             FOREIGN KEY (source_conversation_id) REFERENCES conversations(id)
         );
 
@@ -300,6 +313,10 @@ def init_database(db_path=None):
         """)
 
         conn.commit()
+
+        # Turn contract tables (docs/core/TURN_CONTRACT.md): written by import.
+        from baselayer.turns import ensure_turn_tables
+        ensure_turn_tables(conn)
 
         # Verify — exclude sqlite internals and FTS5 shadow tables
         tables = conn.execute(

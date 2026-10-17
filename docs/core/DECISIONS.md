@@ -1,7 +1,7 @@
 # Decision Log
 ## Personal AI Memory System
 
-Every design decision is recorded here with reasoning. This is the "why" behind the system. If a session ever needs to restart, this file plus `ARCHITECTURE.md` and `PROGRESS.md` gives full context.
+Every design decision is recorded here with reasoning. This is the "why" behind the system. If a session ever needs to restart, this file plus `ARCHITECTURE.md` gives full context.
 
 ---
 
@@ -113,6 +113,7 @@ Per the current naming canon (Phase A, 2026-05-06): the canonical artifact is th
 | D-084 | Textual TUI Dashboard | Active | dashboard_textual.py replaces Rich dashboard.py. Sortable, scrollable, tier display, auto-refresh |
 | D-085 | Magic Link Authentication | Deployed | Single-use 64-char hex tokens, 7-day expiry, Redis-backed. Auto-auth on first click, password fallback |
 | D-086 | Percepta Computational Testing | In Progress (S97) | Overnight GPU benchmark testing Percepta paper claims across 10 local models, 20 tasks |
+| D-108 | Turn Contract: Facts Grounded in the Subject's Own Words | Built (not yet run on a real corpus) | Speaker and voice class at import, turn-bounded extraction with a code gate on verbatim own-voice spans, per-fact stamps, verification as its own read-only module, fresh corpus directory per build. See docs/core/TURN_CONTRACT.md |
 
 ---
 
@@ -416,13 +417,13 @@ Per the current naming canon (Phase A, 2026-05-06): the canonical artifact is th
 **Decision:** Stick with Qwen 2.5 14B for all memory operations. Tested four models head-to-head on informed significance scoring; Qwen 2.5 offers the best balance of quality, speed, and JSON reliability.
 
 **Test methodology:**
-- 5 topics of varying importance (E46 M3, Options Trading, AI Memory, Cooking, Fitness)
+- 5 topics of varying importance from one test corpus (a car, a hobby, AI Memory, Cooking, Fitness)
 - Each model given the same data-informed prompt with recurrence + depth metrics
 - Measured: score accuracy, JSON reliability, response time
 
 **Test results:**
 
-| Model | E46 M3 | Trading | AI Mem | Cooking | Fitness | Speed | JSON |
+| Model | Car | Hobby | AI Mem | Cooking | Fitness | Speed | JSON |
 |-------|--------|---------|--------|---------|---------|-------|------|
 | Qwen 2.5 14B (blind) | 5 | 8 | 9 | 7 | 7 | ~5s | Good |
 | **Qwen 2.5 14B (informed)** | **6** | **9** | **9** | **6** | **5** | **~5s** | **Good** |
@@ -431,15 +432,15 @@ Per the current naming canon (Phase A, 2026-05-06): the canonical artifact is th
 | Hermes 2 Pro 7B (informed) | 5 | 7 | 7 | 6 | 5 | ~2.5s | Perfect |
 
 **Why Qwen 2.5 14B wins:**
-- **Quality:** Correctly separates high-importance topics (Trading=9, AI Memory=9) from low ones (Fitness=5). Only Qwen 3 scored slightly higher (10s), but the difference is marginal.
+- **Quality:** Correctly separates high-importance topics (Hobby=9, AI Memory=9) from low ones (Fitness=5). Only Qwen 3 scored slightly higher (10s), but the difference is marginal.
 - **Speed:** ~5s per query. For batch processing 1,800+ conversations, this means ~2.5 hours vs Qwen 3's ~15 hours. Practical vs impractical.
 - **JSON reliability:** Consistently valid JSON output without needing workarounds.
-- **The data matters more than the model:** The D-015 data-informed approach was the real improvement. Blind→Informed shifted scores significantly (Fitness 7→5, Trading 8→9). All models benefited equally from better data — the scoring formula does the heavy lifting, not the model.
+- **The data matters more than the model:** The D-015 data-informed approach was the real improvement. Blind→Informed shifted scores significantly (Fitness 7→5, Hobby 8→9). All models benefited equally from better data — the scoring formula does the heavy lifting, not the model.
 
 **Alternatives considered:**
 - Qwen 3 14B → rejected for batch work (5-8x slower, parsing issues with thinking mode, marginal quality gain)
 - Hermes 2 Pro 7B → rejected (best JSON and fastest, but 7B brain too weak — capped at 7 for everything, couldn't distinguish core interests from minor ones)
-- Llama 3.1 8B → rejected (under-scores important topics — gave Trading only 7 despite 264 conversations)
+- Llama 3.1 8B → rejected (under-scores important topics — gave the hobby topic only 7 despite 264 conversations)
 - Using different models for different tasks → rejected for now (unnecessary complexity, revisit if Qwen 2.5 proves insufficient for specific tasks)
 
 **Note:** Qwen 3 14B remains installed for potential future use in the live pipeline where single-query latency (~20s) is acceptable. Hermes 2 Pro also installed as a fallback for pure JSON extraction tasks if needed.
@@ -515,7 +516,7 @@ Per the current naming canon (Phase A, 2026-05-06): the canonical artifact is th
 4. **Single mentions weighted same as 200+ mentions** — a self-rating from one conversation treated equally to a skill discussed across 264+ conversations
 5. **No temporal awareness** — an interest from months ago presented as current; a current interest underrepresented
 6. **Negatives not surfaced** — negative traits exist in data but weren't organized into profile
-7. **Correction propagation required** — the user's key insight: "if I bring it up once that something is wrong, that should be rectified for all future conversations"
+7. **Correction propagation required** — a correction stated once must hold in every later conversation, without being repeated
 
 **What this means for the improvement re-run:**
 - Entity resolution needed (who is the fact about?)
@@ -731,7 +732,6 @@ The Collective reviewed the identity profile structure and design principles. Fo
 
 **Artifacts:**
 - Updated: `docs/DESIGN_PRINCIPLES.md` (D-023 expanded, Principle 3 rewritten, Principle 6 layered, new Narrative Coherence principle, 2 new anti-patterns)
-- Updated: `docs/PROGRESS.md`
 
 **Status:** Active — permanent review mechanism
 
@@ -1447,7 +1447,7 @@ However, Claude Code sessions contain genuinely useful knowledge about how the u
 
 **Why this is non-black-box:** Step 1 (candidate generation) is LLM synthesis and therefore probabilistic. But steps 2-5 provide empirical, auditable validation. The axiom generates predictions about what other facts should and should NOT exist, and the system checks. That's falsifiable — the whole point.
 
-**Tested empirically:** Anchor 5 negation search ("analysis within a decision context that didn't change the decision, valued anyway") returned zero strong matches against 1,421 identity/conviction facts. The closest hit ("Values the perspective offered by AI, even when it doesn't always reach the right conclusions") was about valuing AI interaction process, not about valuing indecisive analysis. Results actively supported the axiom rather than challenging it.
+**Tested empirically:** Anchor 5 negation search ("analysis within a decision context that didn't change the decision, valued anyway") returned zero strong matches against 1,421 identity/conviction facts. The closest hit, a fact about valuing an AI's perspective even when its conclusions are wrong, was about valuing AI interaction process, not about valuing indecisive analysis. Results actively supported the axiom rather than challenging it.
 
 **Implications for external user pipeline:** This protocol can run without human intervention for the clear cases (steps 1-4). The Collective handles the ambiguous middle (step 5). A three-stage review process (initial gen → Collective first pass → user feedback) maps directly: steps 1-4 produce the initial generation, step 5 is the Collective first pass, user feedback handles anything the Collective couldn't resolve.
 
@@ -2054,11 +2054,12 @@ Anchoring destroys this signal by making v2 artificially similar to v1. Blind ge
 | D-070 | Faithfulness gate advisory-only — S68 Collective finding: auto-removal caused false positives (deleted [THIN DATA] markers, subject names). Gate now reports but does not auto-remove. Quality gate gap-fill also removed. | Quality | Active |
 | D-071 | Patent corpus case study — 30 US patents across 10 tech domains → 670 facts → 572 active → 499 identity → 3 layers (ANCHORS 76.75, CORE 83.25, PREDICTIONS 75) → unified brief 7,463 chars. Opus review: 8/10 impressiveness, 9/10 cross-domain synthesis. Cost: ~$2.78. N=8 proof. | Validation | Active |
 | D-072 | BCB-0.1 benchmark suite — 5 metrics (CR, SRS, DRS, CMCS, VRI) with Collective-designed implementation specs. CR (99.98%) and SRS (96.6%) computed from existing eval. DRS/CMCS/VRI specs complete, implementation pending. Pre-release requirement. Total cost ~$12.76/subject. | Evaluation | Active (PRE-RELEASE) |
-| D-073 | Provenance-traced evaluation replaces judge-scored dimensions — 4 mechanical layers (Brief Activation, Provenance Coverage, Reasoning Chain Reconstruction, Priority Ordering). $0 cost, human-auditable, no LLM judge dependency. Archived: EVAL_FRAMEWORK.md, EVAL_PROMPT_REDESIGN.md, TRUE_BLIND_EVAL_FRAMEWORK.md, EXTENDED_EVAL_PROTOCOL.md. | Evaluation | Active |
+| D-073 | Provenance-traced evaluation replaces judge-scored dimensions: 4 mechanical layers (Brief Activation, Provenance Coverage, Reasoning Chain Reconstruction, Priority Ordering). $0 cost, human-auditable, no LLM judge dependency. Archived: EVAL_FRAMEWORK.md, EVAL_PROMPT_REDESIGN.md. | Evaluation | Active |
 | D-074 | C2 (raw facts) as true evaluation baseline — C1 vs C5c tests "more info vs less info" (obvious). C2 vs C5c tests "given the same information, does compression produce better reasoning?" This is the real experiment. | Evaluation | Active |
 | D-075 | Brief structure: WHO + HOW + WHERE IT BREAKS — Current brief describes WHO (behavioral patterns) but lacks HOW (reasoning model with hierarchy/priority) and WHERE IT BREAKS (failure modes, blind spots). Three-layer structure proposed for composition step. | Architecture | Candidate |
 | D-076 | Dissenting opinion benchmark — Build brief from judge's prior opinions, predict held-out dissent reasoning, compare to actual text. Natural ground truth, novel situations guaranteed. Tests reasoning prediction (not outcome prediction). Novel contribution — no published work predicts HOW someone argues. | Evaluation | Candidate |
 | D-077 | Provenance-informed review + regeneration — Two prongs: (1) Feed citation provenance (claim → source fact mapping) into Collective review prompt so all 4 personas can verify faithfulness at claim level. (2) Feed fact usage statistics (cited vs uncited count) into regeneration prompts — D-053 safe because no prior output text is shown. Closes the gap where provenance was generated but never consumed downstream. | Quality | Active |
+| D-108 | Turn contract: every fact grounded in verbatim spans of the subject's own typed or spoken turns, enforced by a gate in code at extraction; speaker and voice class recorded at import; per-fact stamps; verification as a separate read-only module; builds into a fresh corpus directory. See docs/core/TURN_CONTRACT.md. | Architecture | Built, not yet run on a real corpus |
 
 ---
 
@@ -2108,7 +2109,7 @@ Anchoring destroys this signal by making v2 artificially similar to v1. Blind ge
 **Status:** Tested — pending integration
 **Category:** Architecture / Provenance
 
-**Problem:** Opus compose step injects pre-training knowledge for famous subjects despite "DERIVE ONLY FROM INPUT" constraint and anonymization. Full contamination scan across 11 subjects found: Franklin 18 ungrounded claims, Buffett 9, Marks 9, Roosevelt 8, Aarik 7 (+ 1 inverted), Subject B 7, Patent 5, Douglass 4, Wollstonecraft 1, Base Layer 0, Paul Graham 0. ~25% contamination rate for famous subjects. One inverted claim (Aarik: brief said opposite of source).
+**Problem:** Opus compose step injects pre-training knowledge for famous subjects despite "DERIVE ONLY FROM INPUT" constraint and anonymization. Full contamination scan across 11 subjects found: Franklin 18 ungrounded claims, Buffett 9, Marks 9, Roosevelt 8, the author 7 (+ 1 inverted), Subject B 7, Patent 5, Douglass 4, Wollstonecraft 1, Base Layer 0, Subject C 0. ~25% contamination rate for famous subjects. One inverted claim (the author's brief said the opposite of its source).
 
 **Root cause:** Opus infers subject identity from contextual signatures (printing + Philadelphia → Franklin) despite anonymization. Once recognized, pre-training biographical knowledge floods the output indistinguishably from input-derived content. Prompt constraints are probabilistic, not reliable — Paul Graham was clean (high overlap between extracted data and pre-training), Franklin was not (large delta).
 
@@ -2218,8 +2219,6 @@ Anchoring destroys this signal by making v2 artificially similar to v1. Blind ge
 - Expand Twin-2K to measure interaction: Wrong tool — Twin-2K is forced-choice identification, not open-ended interaction
 - A/B test with real users: Premature — need internal signal first
 - Self-reported satisfaction survey: Too subjective, no mechanical grounding
-
-**Spec:** `docs/eval/INTERACTION_QUALITY_TEST_SPEC.md`
 
 ---
 
@@ -2357,3 +2356,39 @@ Anchoring destroys this signal by making v2 artificially similar to v1. Blind ge
 **Decision:** Any study comparing behavioral spec performance must include a wrong-spec condition (C2c) — a different subject's spec applied to the target's questions. This controls for "any framework helps" vs "the right framework helps." The model cannot be told whose spec it is — prompt says "your user" for both correct and wrong spec.
 **Evidence:** S104 — C2c (Franklin's spec on Hamerton's questions) scored 2.21 vs C2a (correct spec) 2.77 vs C5 (baseline) 1.41. Wrong spec > no spec, but correct spec > wrong spec. All three are publishable findings.
 **Status:** Active. Required in Franklin replication and SCOTUS study.
+
+### D-108: Turn Contract: Facts Grounded in the Subject's Own Words (2026-09-24)
+
+**Status:** Built on `feat/respec-hardening`, not yet run on a real corpus. Turn mode is opt-in (`BASELAYER_TURN_CONTRACT=1` or `extract --turn-contract`); the legacy path is unchanged and remains the default.
+**Category:** Architecture
+**Numbering:** D-097 to D-107 exist on unmerged experimental branches. This entry starts at D-108 so the numbers cannot collide if those ever merge.
+
+**Decision:** A person's specification rests only on words that person typed or spoke. The rule is enforced by code at extraction, not by the prompt. The interface is `docs/core/TURN_CONTRACT.md` (`turn-contract/1`):
+
+1. **Import writes a turn table.** One row per turn, or per segment when a subject turn contains pasted material. Each row carries a `speaker` taken from the source's own role or speaker field and a `voice_class`. Only `own_typed` and `own_dictated` can be cited. `assistant`, `other_person`, `pasted`, `compaction_summary`, `tool_result`, `harness_prompt` and `queued_command` are context. Every non-own class names the deterministic `detector` that assigned it. Pasted segments are excluded by default and can be allowlisted by turn id. Fork and resume copies are kept as context and marked `duplicate_of` their owner session.
+2. **Extraction reads whole turns.** Chunks are built from whole turns, with preceding turns attached as read-only context. Only own-voice turns carry a citable alias in the prompt.
+3. **A gate outside every exception handler** stores a fact only if every evidence span meets all of these conditions:
+   - it names an own-voice turn in the chunk;
+   - it is a verbatim substring of that turn after whitespace and quote normalisation;
+   - it is within length bounds (default 3 words to 400 characters).
+   Rejections are counted per reason (`no_grounding`, `no_turn`, `not_own_voice`, `span_not_found`, `span_length`). They are written to a per-run record, which flags a gate that rejected nothing or everything.
+4. **Every fact is stamped** with the contract version, extraction model, prompt hash, git commit and a repo-relative code path. A fact is gated if and only if its contract version is set, so mode is a property of the row, not of the database schema.
+5. **Verification is its own read-only module** (`baselayer verify-spec`, `docs/core/VERIFY_SPEC.md`). It runs once after authoring and never feeds back into it. It re-gates every span of every gated fact and verifies legacy facts at conversation level.
+6. **Every build goes into a fresh corpus directory.** Turn-mode extraction refuses a database or vector store holding any fact not stamped with its version. The reset commands are not the supported path. `forget --all` keeps the extraction log, so a later extract finds nothing to do; the full extraction reset is `python -m baselayer.extract_facts --reset`.
+
+**Turn-mode defaults.** Each applies in turn mode only:
+- the D-048 contamination filter is off, because the span gate replaces it;
+- the dynamic fact cap defaults on;
+- `MIN_MESSAGES_FOR_EXTRACTION` does not apply;
+- conversations the importer re-marked after growing are extracted again.
+
+**Why:** Before this, a fact record kept only a conversation id. Once extraction had run, nothing could tell whether a fact came from the subject or from the assistant's side of the conversation. Hand audits of extracted facts found assistant-sourced and pasted material among them, and the specification's cited evidence inherited it. A prompt instruction cannot enforce provenance, and a gate in code can.
+
+**What the gate does not prove:** that a fact is a correct reading of its spans. That is a judgement, so verification samples it and does not gate it. It is the same split as the authoring citation gate: mandatory is not the same as accurate.
+
+**Amendment note:** the span-length condition and the row-value mode rule were added to `turn-contract/1` in place, before any fact had been extracted under that version. No stored artifact carries the earlier reading.
+
+**Alternatives considered:**
+- Prompt-only grounding. Rejected: it cannot be verified after the fact.
+- A model-judged speaker filter at extraction time. Rejected: it adds a billed, probabilistic step where the source already records the speaker.
+- Resetting an existing corpus. Rejected: every reset command found leaves some state behind. A fresh directory has none.
