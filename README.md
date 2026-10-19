@@ -6,24 +6,61 @@
 
 [base-layer.ai](https://www.base-layer.ai) · [Paper](https://arxiv.org/abs/2605.28969) · [Research](https://www.base-layer.ai/research) · [Dataset](https://huggingface.co/datasets/agulaya24/beyond-recall)
 
-If something represents you, it has to know what it means to represent you. A person can write
-that down themselves, or it can be derived from what they have written. Base Layer does the
-second, as text the person can read, check and correct.
+If something represents you, it has to know what it means to represent you. You can write that down yourself, or it can be derived from what you have written. Base Layer does the second.
 
-Memory gives an agent recall: what you said. It does not give the agent how you read those facts:
-what you count as evidence, what you treat as settled, where you refuse a tradeoff. Facts do not
-carry their own significance. An agent without that reading has not forgotten something about
-you; it never knew it.
+Base Layer is an open-source pipeline: it takes a person's own writing and produces a **specification**, plain-text claims about how that person reasons, communicates and decides, which an agent reads before acting for them. The claims describe how the person interprets facts, not only the facts: what they count as evidence, what they treat as settled, where they refuse a tradeoff.
 
-Base Layer takes a person's own writing and produces a **specification**: plain-text claims about
-how that person reasons, communicates and decides, which an agent reads before acting for them.
-In the cited build every claim cites the facts it rests on and every fact quotes the person's own
-words, so each claim can be traced to the words it came from.
+In the main method, the cited build, every claim cites the facts it rests on, and every fact quotes the person's own words. You can see what any claim rests on and correct it where it is wrong.
 
-This README is written for people and for the agents working for them. If you are an agent, start
-with [Using it with an agent](#using-it-with-an-agent) and [AGENTS.md](AGENTS.md).
+If you are an agent, start with [Using it with an agent](#using-it-with-an-agent) and [AGENTS.md](AGENTS.md).
 
-## What this is
+## How it works
+
+Each step leaves an output you can inspect and a check that guards it. These are the steps of the
+cited build, in order. A turn is one message. The leaf stage is `distill`: one model call per chunk
+of facts.
+
+| step | what you get | what it protects against |
+|---|---|---|
+| import | each turn labelled with its speaker and voice (typed or dictated by the person, the AI, another person, pasted text), from the source's own role field | other people's words, or the AI's, read as the person's |
+| import | secrets with a recognisable shape (keys, tokens, card numbers) replaced by `[REDACTED:<kind>]` and counted | secrets stored, or sent to a model |
+| extract | facts drawn only from the person's own turns, each carrying its evidence spans (the person's exact words), checked in code against the turn | facts the person never said |
+| extract | a stamp on every fact (model, prompt hash, code commit, contract version), a run record (rejections by reason, API usage, anything suspect) and a chunk ledger | not knowing what made a fact; parts of the corpus skipped without notice |
+| filter | each fact judged against its source as supported, stretch (says more than its quote) or not supported, with confirmed unsupported facts left out. **Not yet in this repository**; `distill --exclude-ids` takes its list | facts that say more than their quote |
+| filter | stretch facts sorted by kind (generalised, added detail, reported, truncation), each kind with its own check. **Not yet in this repository** | a stretch read as plain support |
+| distill | one counted verdict for every fact: part of a recurring theme, a one-off kept word for word, or not load-bearing | facts dropped unread |
+| distill | contradictions between facts, which the model is told to carry forward unresolved | a conflict averaged away |
+| distill | cited ids that were not in the input removed, and a one-off with an invented id dropped whole; a coverage gaps manifest for each layer | invented citations; hidden gaps |
+| author | every claim cites the facts it rests on: a strict schema, and when any claim is left with no valid id the layer is requested again | claims with no evidence |
+| author | an `Active when` condition a claim can carry; the model is told that every prediction must name a concrete situation | a claim applied in every situation |
+| author | claims the model is told to mark CONTESTED where the evidence disagrees, keeping both sides | a model choosing a side the person never chose |
+| author | with the quote gate (off by default; `--quote-gate` on `python -m baselayer.distillation.author_from_package`, not on the `baselayer` command), every quoted phrase checked against the cited facts' spans; a phrase not found loses its quote marks | words put in the person's mouth |
+| author | a stamp per layer: model, effort, tokens over every attempt, rates, cost, code commit | not knowing what wrote a layer, or what it cost |
+| verify-spec | free checks: citations resolve, evidence spans and quotes are still found in their turns, voice, duplicate claims, identical conditions, claims that rest partly on records rather than the person's prose | citations or quotes broken after authoring; a claim resting on records, not the person's words |
+| verify-spec | free checks with their own inputs: overturned statements returning, predictions resting on too few separate occasions, contested sides that separate by date | a correction undone; a habit inferred from one day; change over time read as contradiction |
+| verify-spec | model-judged checks, priced and sent only with `--run-model`: how well each cited fact supports its claim, voice, fidelity to the turn, contradictions and tensions between claims, and each apparent contradiction read in its source context | claims their facts do not support; contradictions nobody examined |
+| verify-spec | a claim back-check by separate research judges (scope, reliance on stretch facts). **Not yet in this repository**; `--backcheck-results` reads its results | claims that reach past their evidence |
+| consolidate | duplicate-claim groups, by shared evidence by default (a model judge is a separate step, `python -m baselayer.consolidation.build judge`), never rewriting a claim | one idea served twice |
+| consolidate | the always-on set: by default, claims whose condition applies to every exchange. A rule by measured fire rate reads rates from outside; the measurement is **not yet in this repository** | standing claims buried among situational ones |
+| consolidate | the trigger index, each trigger naming the claims to read, written as `served.txt` and `index.json`. By default each whole condition is one trigger and the run is flagged DEGRADED; a grouping file from `python -m baselayer.consolidation.build group` splits conditions into situation clauses, exact substrings of them | a claim never reached, or read outside its situation |
+| consolidate | 14 integrity checks: claim text and fact ids unchanged, every claim reachable, served text matching its hash | consolidation altering or losing a claim |
+
+Extraction runs on Claude Haiku 4.5, the leaf stage on Claude Sonnet 5, and authoring on Claude
+Opus 5 by default. Each line is in this repository unless it says otherwise.
+
+Today the cited build is eight commands, not one, and it is not yet served to an agent
+automatically: `consolidate` writes files you put in a system prompt by hand
+([Using it with an agent](#using-it-with-an-agent)).
+
+**`baselayer run`** is the older, quicker pipeline. It is one command, and its result is served to
+Claude Code over MCP (Model Context Protocol) today. It makes far fewer checks. Extraction does not require the person's
+own words unless `BASELAYER_TURN_CONTRACT=1` is set. Claude Sonnet 4.6 writes the three layers in
+three separate calls, each from a selection of facts made by code and capped in size, so on a
+large corpus each call reads a small share of the facts. Claims may cite facts but need not, and
+there is no verification or consolidation step. Afterwards each claim is linked to the facts
+nearest it in meaning, which shows that a fact is related, not that the writer used it.
+
+## What a specification contains
 
 A specification has three layers:
 
@@ -32,8 +69,8 @@ A specification has three layers:
 - **CORE**: how they communicate, and the context to read them in.
 - **PREDICTIONS**: given a kind of situation, how they are likely to respond.
 
-It is plain text, so it can be read, disputed and corrected. Every claim has an id and can say when it applies. One claim, from the
-specification built from Zitkala-Sa's *American Indian Stories* (1921, public domain):
+Every claim has an id and can say when it applies. One claim, from the specification built from
+Zitkala-Sa's *American Indian Stories* (1921, public domain):
 
 > **P15 TOLERANT TO PEOPLE HARSH TO SYSTEMS.** Their severity is aimed at institutions and at
 > settler power in the aggregate, not at individuals in front of them: in face-to-face
@@ -59,53 +96,6 @@ What it is not:
   describes says it is them.
 - **Not a portrait for the person.** It is written for the agent working for them; the person reads
   it to correct it.
-
-## How it works
-
-The cited build is how Base Layer is meant to make a specification, in six steps. Each step has a
-rule; [How to check it](#how-to-check-it) sets out which are enforced in code and which are
-instructions to the model.
-
-1. **Import.** The text goes into a local SQLite database, one row per turn (one message),
-   labelled with who said it from the source's own role field, so the AI's words are not read as
-   the person's; text the person pasted in is detected and set aside by default. Secrets with a
-   recognisable shape (keys, tokens, card numbers) are replaced by `[REDACTED:<kind>]`.
-2. **Extract: own words only.** Claude Haiku 4.5 draws short facts from the person's own turns
-   only. Each fact quotes the words it rests on, and a check in code drops any fact whose quote
-   is not in that turn.
-3. **Distill: every fact considered.** Instead of writing from a selection, every fact gets one of
-   three verdicts (folded into a theme, a one-off kept word for word, or not load-bearing), and
-   code counts that none is missing. The model is told to carry contradictions between facts forward
-   unresolved. This is the leaf stage (each model call on a chunk of facts is a leaf), on Claude
-   Sonnet 5; `assemble` then packages each layer's results without a model call.
-4. **Author: citations required.** Claude Opus 5 writes each layer by default. Code requires every
-   claim to cite the facts it rests on: an id that was not in the input is removed, and when any
-   claim is left with no valid id the layer is requested again. The
-   model is told to mark a claim CONTESTED where the evidence disagrees with itself and to keep
-   both sides. Each claim can carry an `Active when` condition; predictions are told to name a
-   concrete situation.
-5. **Verify.** `verify-spec` re-checks every citation and quote against the database at no cost.
-   Checks that a model judges, such as whether the cited facts support the claim, are priced and
-   sent only with `--run-model`.
-6. **Consolidate.** `consolidate` groups duplicate claims by shared evidence without rewriting
-   any, picks the always-on claims, and builds an index of situations from the `Active when`
-   conditions, each naming the claims to read when it applies. Fourteen integrity checks confirm that no claim text or fact id changed and that every claim can be reached.
-
-Extraction and authoring stamp what they made with the model that made it, and with the code
-commit when run from a clone of the repository (`unknown` for a pip install). Extraction and
-distillation write down any part of the corpus they did not cover.
-
-Today the cited build is eight commands, not one, and it is not yet served to an agent
-automatically: `consolidate` writes files you put in a system prompt by hand
-([Using it with an agent](#using-it-with-an-agent)).
-
-**`baselayer run`** is the older, quicker pipeline. It is one command, and its result is served to
-Claude Code over MCP (Model Context Protocol) today. It makes far fewer checks. Extraction does not require the person's
-own words unless `BASELAYER_TURN_CONTRACT=1` is set. Claude Sonnet 4.6 writes the three layers in
-three separate calls, each from a selection of facts made by code and capped in size, so on a
-large corpus each call reads a small share of the facts. Claims may cite facts but need not, and
-there is no verification or consolidation step. Afterwards each claim is linked to the facts
-nearest it in meaning, which shows that a fact is related, not that the writer used it.
 
 ## Quick start
 
@@ -156,35 +146,6 @@ with yours, and register that server inside one project only:
 
 Base Layer is pre-1.0 (version 0.5.0) and not on PyPI; the `baselayer` name there belongs to
 another project.
-
-## What you get
-
-**From the cited build**, in the folders the commands in
-[docs/PIPELINE.md](docs/PIPELINE.md#14-the-cited-build-end-to-end) name:
-
-- **The specification** (`spec/`): for each layer a readable `<layer>.md`, the same claims as
-  `<layer>.json`, and a stamp with the model, effort, tokens, cost and (from a clone) code commit, plus a
-  coverage gaps manifest.
-- **The fact database:** every fact with the person's words it quotes, the turn they came from,
-  and a stamp of the model, prompt and code that made it; a run record of what extraction
-  rejected and why.
-- **The leaf trees:** every fact's verdict, counted, and the contradictions carried forward.
-- **A verification report** (`verify/`) from `verify-spec`.
-- **What to serve** (`served/`): `served.txt`, the always-on claims in full plus one line per
-  situation naming the claims to read, and `index.json`, each claim's full text, fact ids and
-  contested note.
-
-**From `baselayer run`**, served to Claude Code today:
-
-- **Three layer files**, `anchors_v4.md`, `core_v4.md` and `predictions_v4.md` in
-  `data/identity_layers/`, each claim with an id; ANCHORS claims carry an `Active when` line and
-  PREDICTIONS a `When ...` trigger. Earlier generated versions are kept in `history/`.
-- **The fact database:** every fact with its relation type, its source conversation and a vector,
-  searchable over MCP.
-- **Links from each claim to the facts nearest it in meaning**, each labelled with how it was made
-  (`baselayer provenance`).
-- **A tension count:** up to 30 Claude Haiku 4.5 calls check pairs of facts for tension; the count
-  is printed, not stored.
 
 ## What it costs
 
@@ -243,9 +204,8 @@ How an agent should read it:
 
 ## How to check it
 
-A claim can be checked only if it cites its facts. In the cited build every claim cites its
-facts and every fact quotes the person, so a reader can follow a claim back to the words it came
-from, and `verify-spec` re-checks that those citations and quotes still hold.
+To check a cited build, follow a claim's fact ids to the words they quote, and run `verify-spec`,
+which re-checks every citation and quote against the database at no cost.
 
 ### What is checked by code, and what is a model's reading
 
@@ -257,9 +217,7 @@ from, and `verify-spec` re-checks that those citations and quotes still hold.
 | author | every claim cites facts; with the quote gate, every quoted phrase is in a cited fact's quote | how each claim is worded |
 | verify-spec | citations resolve; quotes still match the source | with `--run-model`: whether the cited facts support the claim |
 
-The quote gate is off by default and runs only through
-`python -m baselayer.distillation.author_from_package --quote-gate`; the measured builds used it.
-The quote check shows that a fact's evidence is text from a turn the source attributes to the
+The measured builds used the quote gate. The quote check shows that a fact's evidence is text from a turn the source attributes to the
 person, not that the fact reads it correctly.
 
 `baselayer run` lets the writer cite facts but does not require it, and links every claim to the
