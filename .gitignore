@@ -34,6 +34,10 @@ data/identity_layers/
 # matching a BLANK line. It was a false positive. Trust `git add -An`.
 data/identity_layers_*/
 
+# Distillation trees archived beside the corpus by `distill` (and its run ledger and gaps
+# manifests). In a clone the data root is the clone, and trees carry the person's own words.
+data/distillation/
+
 # Exported data files
 data/*.csv
 data/*.json

@@ -17,6 +17,7 @@ Changes on `main` after 0.5.0. `pyproject.toml` still reports 0.5.0, and there i
 - The notices after `forget` (the `forget` output and help, `stats`, the MCP `get_stats` text and server log, and the marker file's note) now say to regenerate the layers with `baselayer author`, and that `--compose` only rebuilds the optional brief. They said `baselayer author --compose`, though any re-author clears the marker for the layers it rewrites.
 - The privacy notice `init` prints links https://www.anthropic.com/legal/privacy; the old /policies/privacy address returns 404.
 - `distill`: when the tree cannot be archived beside the corpus, the run ledger (`distill_runs.jsonl`) is written beside `--out`. It used to raise `TypeError` at the very end, after every billed call, losing the ledger row.
+- `.gitignore` now covers `data/distillation/`. In a clone the data root is the clone itself, and `distill` archives its trees (which carry the person's own words), run ledger and gaps manifests there; a planted file under it used to stage with `git add -A`.
 
 ### Behavior changes
 - Injection canaries come only from the import config (`canary_strings`); the package carries no built-in canary string. A consolidation builder run or verification probe with no configured canary is refused rather than reported clean. The context gate id is now `context_gate/2`.
