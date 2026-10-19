@@ -1866,10 +1866,11 @@ def finish_tree(a, cl, run):
     # clone appended the user's rows to the distill_runs.jsonl SHIPPED IN THIS REPO: their run
     # history mixed into the reference data, and a `git diff` full of their corpus. The archive
     # directory is where the rest of the trace already lives.
-    try:
-        led = os.path.join(home, "distill_runs.jsonl")
-    except NameError:
-        led = os.path.join(os.path.dirname(os.path.abspath(a.out)), "distill_runs.jsonl")
+    # `home` is None when archiving failed (the except branch above), and os.path.join(None, ...)
+    # raises TypeError, not NameError: the run then crashed after every billed call and the
+    # ledger row was lost. Fall back to the --out directory in that case.
+    led = (os.path.join(home, "distill_runs.jsonl") if home
+           else os.path.join(os.path.dirname(os.path.abspath(a.out)), "distill_runs.jsonl"))
     with open(led, "a", encoding="utf-8") as f:
         f.write(json.dumps(row) + "\n")
     print("ledger -> %s" % led)

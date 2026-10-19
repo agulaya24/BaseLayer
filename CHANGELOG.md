@@ -16,6 +16,7 @@ Changes on `main` after 0.5.0. `pyproject.toml` still reports 0.5.0, and there i
 - MCP `trace_claim` now shows, under each linked fact, up to three of the fact's evidence spans (the person's own quoted words, with the turn id) and a count of any more. Only facts extracted under the turn contract carry spans; on a database without the `evidence_spans` column, or for a fact without spans, the output is as before (fact, tier, recurrence, link method, source conversation title).
 - The notices after `forget` (the `forget` output and help, `stats`, the MCP `get_stats` text and server log, and the marker file's note) now say to regenerate the layers with `baselayer author`, and that `--compose` only rebuilds the optional brief. They said `baselayer author --compose`, though any re-author clears the marker for the layers it rewrites.
 - The privacy notice `init` prints links https://www.anthropic.com/legal/privacy; the old /policies/privacy address returns 404.
+- `distill`: when the tree cannot be archived beside the corpus, the run ledger (`distill_runs.jsonl`) is written beside `--out`. It used to raise `TypeError` at the very end, after every billed call, losing the ledger row.
 
 ### Behavior changes
 - Injection canaries come only from the import config (`canary_strings`); the package carries no built-in canary string. A consolidation builder run or verification probe with no configured canary is refused rather than reported clean. The context gate id is now `context_gate/2`.
