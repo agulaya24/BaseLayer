@@ -263,6 +263,18 @@ class TestCallApi:
         kwargs = self.mock_client.messages.create.call_args[1]
         assert kwargs["temperature"] == 0
 
+    @pytest.mark.parametrize("model", ["claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5",
+                                       "claude-opus-4-8", "claude-fable-5-1"])
+    def test_no_temperature_sent_to_a_model_that_rejects_sampling(self, model):
+        """5-generation models (and Fable, Mythos, Opus 4.7/4.8) 400 on temperature; the
+        detect_contradictions and llm_provider callers pass temperature=0 to whatever model
+        is configured, so the filter belongs here, not in each caller."""
+        from baselayer.api_client import call_api
+        self.mock_client.messages.create.return_value = self._make_response()
+        call_api(model=model, messages=[{"role": "user", "content": "hi"}], temperature=0)
+        kwargs = self.mock_client.messages.create.call_args[1]
+        assert not {"temperature", "top_p", "top_k"} & set(kwargs)
+
     def test_default_max_tokens(self):
         from baselayer.api_client import call_api
         self.mock_client.messages.create.return_value = self._make_response()

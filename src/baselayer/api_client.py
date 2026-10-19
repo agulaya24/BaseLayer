@@ -159,7 +159,8 @@ def call_api(
         messages: List of message dicts [{"role": "user", "content": "..."}].
         system: Optional system prompt string.
         max_tokens: Maximum tokens in response (default 4096).
-        temperature: Sampling temperature (default 0).
+        temperature: Sampling temperature (default 0). Omitted for a model that rejects
+            sampling parameters (config.model_rejects_sampling).
         timeout: Per-request timeout override in seconds. If None, uses client default.
         caller: Optional string identifying the calling script/function for logs.
 
@@ -178,12 +179,17 @@ def call_api(
     max_retries = 3
     base_delay = 1.0  # seconds
 
+    # A model that removed sampling parameters (every 5-generation model, Fable, Mythos,
+    # Opus 4.7 / 4.8) returns a 400 on any temperature, so it is omitted there and the
+    # model default applies. Callers pass temperature for whatever model is configured.
+    from baselayer.config import model_rejects_sampling
     kwargs = {
         "model": model,
         "max_tokens": max_tokens,
-        "temperature": temperature,
         "messages": messages,
     }
+    if not model_rejects_sampling(model):
+        kwargs["temperature"] = temperature
     if system:
         kwargs["system"] = system
     if timeout:
