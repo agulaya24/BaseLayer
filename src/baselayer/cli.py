@@ -360,11 +360,10 @@ def cmd_extract(args):
 
 
 def cmd_embed(args):
-    """Generate vector embeddings for facts and messages.
+    """Embed every imported message into the ChromaDB `messages` collection.
 
-    NOTE: embed.py is an optional utility from the pre-simplified pipeline.
-    It is no longer part of the default 4-step pipeline (Import -> Extract -> Author -> Compose).
-    Run directly: python scripts/embed.py
+    `baselayer search` reads that collection. Fact vectors (`memory_facts`) are written
+    during extraction, not here.
     """
     import baselayer.embed as embed
     sys.argv = ["embed.py"]
@@ -1738,10 +1737,10 @@ def _should_continue_after_import(new, pending, total, source_label, reauthor, r
 def cmd_run(args):
     """One-command pipeline (4 steps): import -> extract -> author -> traceability.
 
-    The canonical logical pipeline is Import -> Extract -> Embed -> Author. This runner
-    groups embed into the post-authoring traceability phase (alongside tiering and
-    verification) for efficiency. It does not compose a unified brief: that is optional
-    and separate (`baselayer compose`). See docs/core/ARCHITECTURE.md.
+    Fact vectors are written during extraction. The traceability step tiers facts, runs an
+    embedding check, builds vector provenance and checks facts for tensions. It does not
+    compose a unified brief: that is optional and separate (`baselayer compose`). See
+    docs/PIPELINE.md.
     """
     from baselayer.config import DATABASE_FILE, database_initialized
 
@@ -2535,7 +2534,8 @@ def main():
     p_extract.set_defaults(func=cmd_extract)
 
     # embed
-    p_embed = subparsers.add_parser("embed", help="Generate vector embeddings")
+    p_embed = subparsers.add_parser("embed", help="Embed imported messages for `baselayer search` "
+                                    "(fact vectors are written during extraction)")
     p_embed.set_defaults(func=cmd_embed)
 
     # author

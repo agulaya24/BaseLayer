@@ -7,7 +7,7 @@ Exposes behavioral specifications and fact retrieval to MCP-compatible clients
 Serving architecture (0.4.0):
   Resources (always available, client-controlled):
     memory://specification  CORE + ANCHORS + PREDICTIONS inline plus a manifest
-                            of available tools. Roughly 6K to 8K tokens.
+                            of available tools. Its size depends on the specification.
                             The structural spec is fully present at session start.
     memory://identity       Deprecated alias for memory://specification.
                             Returns identical content. Retained for backward
@@ -451,8 +451,8 @@ def get_specification() -> str:
     Returns the structural specification inline: CORE (communication and
     context modes), ANCHORS (foundational beliefs and reasoning patterns),
     and PREDICTIONS (situation-to-response patterns), plus a brief manifest
-    of supplementary tools. The full inline payload is approximately 6 to
-    8K tokens.
+    of supplementary tools. The size of the inline payload depends on the
+    specification.
 
     Design note (0.4.0). Earlier 0.3.0 split CORE on the resource and
     ANCHORS / PREDICTIONS behind on-demand tools (`get_anchors`,
@@ -791,7 +791,6 @@ def get_brief(reason: str) -> str:
     through my career", "what should I focus on this quarter", "I'm feeling
     stuck, give me some perspective". The unified brief is a connected
     portrait of the user that the structural layers do not replicate.
-    Approximately 3,000 tokens.
 
     Do not call for narrow factual or single-domain questions; CORE plus
     a single targeted layer is usually enough.
