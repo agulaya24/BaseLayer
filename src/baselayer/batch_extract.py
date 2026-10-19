@@ -34,6 +34,7 @@ from datetime import datetime
 from baselayer.config import (
     PROJECT_ROOT, DATABASE_FILE, VECTORS_DIR, EMBEDDING_MODEL,
     EXTRACTION_API_MODEL, EXTRACTION_BACKEND,
+    extraction_sampling_kwargs, extraction_effort_kwargs,
     CONSTRAINED_PREDICATES,
     SCOPE_SOURCE_MAPPING, DEFAULT_SCOPE, is_claude_code_source,
     MIN_MESSAGES_FOR_EXTRACTION,
@@ -245,7 +246,9 @@ def _build_request_for_conv(custom_id, prompt, model, max_tokens, temperature, j
         "params": {
             "model": model,
             "max_tokens": max_tokens,
-            "temperature": temperature,
+            # omitted on a model that 400s on sampling parameters (5-generation)
+            **extraction_sampling_kwargs(model, temperature),
+            **extraction_effort_kwargs(model),
             "messages": [
                 {"role": "user", "content": json_instruction + prompt}
             ],

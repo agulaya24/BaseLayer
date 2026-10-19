@@ -15,6 +15,7 @@ Organization:
 
 import contextlib
 import os
+import re
 import sqlite3
 from pathlib import Path
 
@@ -168,7 +169,33 @@ LLM_MODEL = "qwen2.5:14b"
 # Set via BASELAYER_EXTRACTION_BACKEND env var or change default here.
 
 EXTRACTION_BACKEND = os.environ.get("BASELAYER_EXTRACTION_BACKEND", "anthropic")
-EXTRACTION_API_MODEL = "claude-haiku-4-5-20251001"  # Fast + cheap for extraction
+# BASELAYER_LLM_EXTRACTION is the documented per-role override (LLM_PROVIDER_CONFIG below); it
+# never reached extraction while this was a bare literal. Default unchanged.
+EXTRACTION_API_MODEL = os.environ.get("BASELAYER_LLM_EXTRACTION", "claude-haiku-4-5-20251001")
+
+# Models that reject non-default sampling parameters with a 400 (temperature/top_p/top_k):
+# every 5-generation model, Fable and Mythos, and Opus 4.7 / 4.8. Matched on the id prefix.
+_SAMPLING_REJECTED = re.compile(
+    r"^claude-(?:(?:haiku|sonnet|opus)-5(?:-\d+)?(?:$|[^\d])|opus-4-[78](?:$|[^\d])|fable-|mythos-)")
+
+
+def model_rejects_sampling(model: str) -> bool:
+    return bool(_SAMPLING_REJECTED.match((model or "").lower()))
+
+
+def extraction_sampling_kwargs(model: str, temperature: float) -> dict:
+    """{"temperature": t} for a model that takes it, {} for one that 400s on it."""
+    return {} if model_rejects_sampling(model) else {"temperature": temperature}
+
+
+def extraction_effort_kwargs(model: str) -> dict:
+    """BASELAYER_EXTRACTION_EFFORT, sent only to models that take effort (the same set that
+    rejects sampling; Haiku 4.5 400s on effort). Unset: nothing is sent and the model default
+    applies (medium on Haiku 5.5)."""
+    effort = os.environ.get("BASELAYER_EXTRACTION_EFFORT")
+    if effort and model_rejects_sampling(model):
+        return {"output_config": {"effort": effort}}
+    return {}
 
 
 # ==========================================================================

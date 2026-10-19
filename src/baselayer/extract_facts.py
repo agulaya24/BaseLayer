@@ -49,6 +49,7 @@ from baselayer.config import (
     MAX_FACTS_PER_CONVERSATION, MIN_MESSAGES_FOR_EXTRACTION,
     VALID_CATEGORIES, VALID_FACT_CLASSES,
     EXTRACTION_BACKEND, EXTRACTION_API_MODEL,
+    extraction_sampling_kwargs, extraction_effort_kwargs,
     SCOPE_SOURCE_MAPPING, DEFAULT_SCOPE, CLAUDE_CODE_SOURCES, is_claude_code_source, source_family,
     CONSTRAINED_PREDICATES,
     EXTRACTION_CAPS,
@@ -1080,8 +1081,15 @@ def usage_calls() -> list:
 
 def _record_usage(response, purpose: str):
     chunk = _CURRENT_CHUNK.get() if purpose == "extract" else None
+    # `model` is the model that ANSWERED (the reply's own field), so the run record cannot
+    # merely echo the setting; `requested_model` is what was configured.
+    blocks = getattr(response, "content", None) or []
     _USAGE_CALLS.append(_tc.usage_entry(
-        getattr(response, "usage", None), purpose=purpose, model=EXTRACTION_API_MODEL, batch=False,
+        getattr(response, "usage", None), purpose=purpose,
+        model=getattr(response, "model", None) or EXTRACTION_API_MODEL,
+        requested_model=EXTRACTION_API_MODEL, batch=False,
+        stop_reason=getattr(response, "stop_reason", None),
+        thinking_blocks=sum(1 for b in blocks if getattr(b, "type", None) == "thinking"),
         conversation_id=_CURRENT_CONVERSATION.get(), at=time.time(), **(chunk or {})))
 
 
@@ -1160,8 +1168,10 @@ def call_anthropic(prompt: str, schema: dict = None, retries: int = MAX_RETRIES,
             response = client.messages.create(
                 model=EXTRACTION_API_MODEL,
                 max_tokens=max_tokens,
-                temperature=0.1,
                 messages=[{"role": "user", "content": json_instruction + prompt}],
+                # temperature 0.1 where the model takes it; omitted where it 400s (5-generation)
+                **extraction_sampling_kwargs(EXTRACTION_API_MODEL, 0.1),
+                **extraction_effort_kwargs(EXTRACTION_API_MODEL),
             )
             _record_usage(response, "audn" if schema is AUDN_SCHEMA else "extract")
             raw = _strip_json_fences(response_text(response))
