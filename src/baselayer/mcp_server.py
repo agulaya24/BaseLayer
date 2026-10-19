@@ -42,7 +42,7 @@ Usage:
   }
 
   # Claude Code:
-  claude mcp add --transport stdio base-layer -- baselayer-mcp
+  claude mcp add --scope user --transport stdio base-layer -- baselayer-mcp
 """
 
 import sys

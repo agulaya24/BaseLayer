@@ -141,7 +141,7 @@ a `layer_claim_provenance` table in **your** database.
 ## Install
 
 Installs with the package: `pip install -e .` from the repository root, then
-`export ANTHROPIC_API_KEY=...`.
+set the `ANTHROPIC_API_KEY` environment variable.
 
 `--partition semantic` additionally needs `scikit-learn` (`pip install -e .[semantic]`;
 `sentence-transformers` and `numpy` are already core dependencies) and downloads an embedding

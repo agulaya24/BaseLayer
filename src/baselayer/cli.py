@@ -1847,7 +1847,7 @@ def cmd_run(args):
         for f in layer_files:
             print(f"  Layer: {f}")
         print(f"\n  Next steps:")
-        print(f"    Add to Claude:    claude mcp add --transport stdio base-layer -- baselayer-mcp")
+        print(f"    Add to Claude:    {_mcp_add_hint()}")
         print(f"    Review facts:     baselayer review")
         print(f"    Optional brief:   baselayer compose  (a unified prose brief from the layers)")
     elif brief_path.exists():
@@ -1872,7 +1872,7 @@ def cmd_run(args):
         print(f"  {'-'*40}")
         print(f"\n  Next steps:")
         print(f"    View full brief:  cat {brief_path}")
-        print(f"    Add to Claude:    claude mcp add --transport stdio base-layer -- baselayer-mcp")
+        print(f"    Add to Claude:    {_mcp_add_hint()}")
         print(f"    Review facts:     baselayer review")
     else:
         print(f"\n  Pipeline complete but no specification layer was generated.")
@@ -2070,12 +2070,24 @@ def cmd_chunks(args):
                   f"deliberate action.")
 
 
+def _mcp_add_hint():
+    """The MCP registration command to print after a build. With the default data root the server is
+    registered for every folder (user scope); with MEMORY_SYSTEM_ROOT set (a build for someone
+    else, or a separate corpus) it is registered for the current project only and told the root."""
+    root = os.environ.get("MEMORY_SYSTEM_ROOT")
+    if root:
+        root = str(Path(root).resolve())
+        return ('claude mcp add --scope local -e "MEMORY_SYSTEM_ROOT=%s" '
+                "--transport stdio base-layer -- baselayer-mcp" % root)
+    return "claude mcp add --scope user --transport stdio base-layer -- baselayer-mcp"
+
+
 def _check_api_key():
     """Check that ANTHROPIC_API_KEY is set."""
     if not os.environ.get("ANTHROPIC_API_KEY"):
         print("Error: ANTHROPIC_API_KEY environment variable not set.")
-        print("Get your key at https://console.anthropic.com/")
-        print("Then: export ANTHROPIC_API_KEY=sk-ant-...")
+        print("Get a key at https://console.anthropic.com/, then set the ANTHROPIC_API_KEY")
+        print("environment variable (shell profile or secrets manager) and open a new shell.")
         sys.exit(1)
 
 
@@ -2610,7 +2622,8 @@ def main():
     p_assemble.add_argument("--out", required=True, help="where to write the package JSON")
     p_assemble.add_argument("--min-runs", type=int, default=None,
                             help="runs a singularity must appear in to count as verified "
-                                 "(default: 3, or n_runs when fewer)")
+                                 "(default: a strict majority of the trees given, n // 2 + 1; "
+                                 "with one tree the verified label is withheld)")
     p_assemble.add_argument("--shard-token-budget", type=int, default=None,
                             help="tokens of rendered evidence one author request may carry "
                                  "(default BASELAYER_LEAF_PAYLOAD_CEILING or 400000); over it "

@@ -43,7 +43,7 @@ All commands invoked as `baselayer <subcommand>`. Source of truth: [`src/baselay
 | `baselayer author --layer all` | Author anchors, core, and predictions layers (Sonnet 4.6). |
 | `baselayer compose` | Optional, legacy: compose a unified prose brief from the three layers (Opus 4.6). Not run by `baselayer run`. |
 | `baselayer distill`, `assemble`, `author-from-package` | The experimental cited path: distillation leaves (Sonnet 5), one package per layer (no model), layers with mandatory citations (Opus 5). `distill` and `author-from-package` print an estimate and refuse to start without `--confirm-spend` or `BASELAYER_SPEND_CEILING_USD`. Always pass `--layer` to `distill`. See [`docs/PIPELINE.md`](docs/PIPELINE.md). |
-| `baselayer run <file>` | Full static pipeline with a cost prompt. Runs `init` if needed -> `import` -> estimate and confirm -> `extract` -> coverage gate -> `author`, then a traceability phase (tier, embed, vector provenance, a tension check on Haiku 4.5). No brief: `compose` is optional and separate. |
+| `baselayer run <file>` | The older, quicker static pipeline in one command, with a cost prompt and far fewer checks than the cited path. Runs `init` if needed -> `import` -> estimate and confirm -> `extract` -> coverage gate -> `author`, then a traceability phase (tier, embed, vector provenance, a tension check on Haiku 4.5). No brief: `compose` is optional and separate. |
 | `baselayer stats` | Database stats: conversations, facts, tier breakdown. |
 | `baselayer search "<query>"` | FTS keyword search across active facts. |
 | `baselayer provenance --claim A1` | Trace a specification claim back to its supporting facts. |
@@ -64,7 +64,7 @@ For long-form usage details and step-by-step pipeline structure, see [`AGENTS.md
 Register the Base Layer MCP server with Claude Code:
 
 ```bash
-claude mcp add --transport stdio base-layer -- baselayer-mcp
+claude mcp add --scope user --transport stdio base-layer -- baselayer-mcp
 ```
 
 Once registered, the next Claude Code session loads two resources and eight tools. The server serves the three layers in `data/identity_layers/` (the `baselayer run` path); it does not serve a cited-path specification or `consolidate` output.

@@ -1,658 +1,640 @@
-# Design Principles & Philosophy
-## Base Layer: The Interpretive Layer Above Memory
-**Updated 2026-03-09 (Session 82)**
+# Design principles
 
-This document captures the core principles and philosophical commitments that guide every decision in this project. These aren't aspirational; they're load-bearing constraints that shape what the system does and doesn't do.
+**Updated 2026-10-19.** This replaces the version of 2026-03-09.
 
----
+These are the principles the pipeline and its checks are built on. Each one has a one-line
+statement, a short reason, where it shows in the code or docs, and its status in the code on
+`main`:
 
-## Foundational Principles
+| status | meaning |
+|---|---|
+| **followed** | the code on `main` does this |
+| **partly followed** | true on one path or for some parts, not others; the line says which |
+| **not followed** | still held as a goal, but the code does not do it today |
+| **designed** | written down, not built in this package |
 
-### 1. Inherent Incompleteness (D-023, expanded D-024)
+Principles that the code no longer follows, or that were replaced, are listed at the end under
+[Retired or replaced](#retired-or-replaced), with the reason. Decision ids (D-nnn) refer to
+[DECISIONS.md](DECISIONS.md). Terms are defined in [../DEFINITIONS.md](../DEFINITIONS.md).
 
-**The system will never have a complete or fully accurate picture of the person it models. Neither will the person. Neither will anyone else.**
+Contents:
 
-This is not a limitation to overcome. It is a permanent, fundamental constraint, and it applies to *all* knowledge of persons, not just the system's. It operates at three distinct levels.
-
-#### Level 1: Information Gaps
-
-People are more than what they say in conversations. They have thoughts they've never shared, experiences that predate the data, things they've forgotten, and things they'd describe differently on a different day. The system's knowledge comes from 1,892 conversations (primary test user) across multiple sources, a tiny, biased slice of a whole person's life. Everything the system "knows" is an inference from conversational behavior, not a verified truth.
-
-This applies at every scale:
-- **Mundane gaps**: hobbies never mentioned, preferences never expressed, daily routines invisible to the system
-- **Misattributions**: facts about others attributed to the user, curiosity mistaken for identity, one-time explorations treated as ongoing interests
-- **Structural blindness**: who you are when you're not talking to an AI, what you think but don't say, how you've changed since the last conversation
-- **Adversarial possibilities**: information could be false, misleading, or planted. The system has no way to independently verify anything
-
-#### Level 2: The Depth That Words Cannot Carry
-
-Beyond information gaps, there is an entire dimension of human experience that cannot be captured through direct conversation, no matter how thorough the data.
-
-There is an emotional depth experienced by humans that no system can fully represent. When a pet is ill, the system can store the fact "user's cat is sick." But it cannot store what that *feels* like — the weight in your chest, the way it colors your entire day, the way it connects to every other time you've loved something fragile. When you love your spouse, the system can record "user's spouse" and tag the relationship as important. But the word "important" doesn't begin to capture what it means for another person to be critical to your entire existence.
-
-This is not a limitation of the system. It is a limitation of language, of data, of any external representation of inner experience. It is, in the most literal sense, the human condition: subjective experience is subjective. No one (not a friend, not a partner, not an AI) can fully inhabit another person's inner world.
-
-The list of things that define a person is, for all intents and purposes, infinite: their upbringing, their relationships, their experiences, their wins, their losses, their trials, their tribulations, their pride, their compassion, their ego, their love, their care, their hate. Every one of these carries emotional weight that the person *lives* but cannot fully *transmit*, not to an AI, not even to another person.
-
-The system must operate with knowledge of this human constraint.
-
-#### Level 3: Three Truths, All Incomplete (D-024)
-
-Incompleteness is not unique to AI systems. It is the boundary condition of all human communication: with the self, with others, and with machines. There are three perspectives on any person, and all three are simultaneously valid and incomplete:
-
-1. **Who you believe you are.** Your self-knowledge is real but not truth. You have privileged access to your own experience, but people are unreliable narrators of their own lives. You may believe you are disciplined while your behavior shows impulsiveness. You may believe you don't care about something you bring up in 40 conversations. Self-knowledge is subjective experience, not objective fact, and the system should respect it as the former without treating it as the latter.
-
-2. **Who other people believe you are.** Friends, colleagues, and family see patterns you can't see from inside. They observe your behavior without access to your intent. Their view is real but filtered through their own biases, their relationship to you, and what you choose to show them.
-
-3. **Who the machine thinks you are.** The system sees patterns across 1,892 conversations (primary test user): recurrence, contradiction, emotional intensity, change over time. It can detect things the person doesn't notice about themselves (topic obsessions, communication patterns, behavioral inconsistencies). But it sees through text only, with no embodied experience, no shared context, and no emotional stake.
-
-These three perspectives can conflict, and **all three can be true at the same time**. The system should not resolve these conflicts by picking a winner. It should hold them in tension, noting when self-report diverges from behavioral evidence, when the machine's interpretation differs from the user's self-concept. Conflicting truths are data, not errors.
-
-#### Temporal Incompleteness
-
-There is no way to quantify the timescales at which a person thinks about their life. "I'm going to start a company" might mean next week or next decade. "I'm a trader" might be a phase or a permanent identity. The system captures temporal *state* (current vs. past) but not temporal *horizon* — the difference between a momentary thought, a seasonal pursuit, a life-arc trajectory, and a core identity trait. A person's relationship to time — how far ahead they think, how they weight the past against the future, whether they see their current chapter as permanent or transitional — is itself a dimension of identity that atomic facts cannot represent.
-
-**Temporal processing is a classification problem, not a time-math problem.** The question is not "how old is this fact?" but "what kind of fact is this, and does time affect its relevance?" Two classes:
-- **Events:** marriage, founding a company, losing a parent, achieving a milestone. These are immutable biographical anchors. They never decay. They accrue meaning over time. The day a previous startup ended means more now than it did when it happened, because of what came after.
-- **States:** current habits, current projects, current location. These describe mutable conditions. They can become outdated, but staleness is detected by **contradiction** (a newer fact conflicts with an older one), not by time elapsed.
-
-**Time is a variable, not a verdict.** Time elapsed can lower confidence in a state-type fact's current accuracy, but it cannot determine relevance or importance. It is one weak signal among many. It informs; it does not decide.
-
-**Silence is not evidence of irrelevance.** The system's data source is conversations. Conversation frequency reflects what someone uses AI for, not what matters to them. A person may never mention their spouse, their pets, their parents, or their health in a technical conversation — that absence carries zero signal about importance. Not mentioning something recently is categorically different from something being less important. The system must not conflate the two. This principle was validated across six philosophy frameworks (Frankfurt, Taylor, Ricoeur, Parfit, Korsgaard, MacIntyre) — all converge on the same conclusion: temporal silence carries no signal about identity significance.
-
-#### The Best Version
-
-There is also the question of the self you could be. Nobody is always their best. But buried in the data, across thousands of conversations, are moments of clarity, discipline, creativity, and wisdom that represent a person at their peak. A system that can identify and surface these patterns doesn't just model who you *are*. It models who you *can be*.
-
-This is not prescriptive ("you should be more like this"). It is informational ("here is what you look like when you're operating at your best"). The difference matters. A mirror that only shows your current state is honest. A mirror that can also show your best state is *useful*, because it gives every future interaction the benefit of knowing what's possible.
-
-#### But Connection Happens Anyway
-
-And yet — humans connect with each other all the time, despite this same limitation. No person has complete access to another person's inner world. Connection between humans is not a product of comprehensive understanding. It's a product of conversation, curiosity, empathy, and a shared understanding of the human experience. Questions asked in good faith. Genuine interest in the answer. The recognition that the other person is experiencing life on the same playing field you are — even though their experience of it is irreducibly their own.
-
-The system can aspire to the same posture. Not omniscience, but genuine curiosity. Not complete understanding, but the effort to understand better. Not access to subjective experience, but respect for the fact that it exists and shapes everything the person says and does.
-
-This is why active probing (D-020) isn't just a data collection mechanism. It's modeled after how a therapist, a biographer, or a thoughtful friend approaches someone. Not as a survey to fill out, but as genuine curiosity about who you are. The system can't feel what you feel. But it can ask, listen, and take what you share seriously.
-
-#### What this means in practice:
-- Confidence is warranted; certainty never is
-- Every fact has a confidence score, and no score should be treated as absolute
-- The correction system (D-021) exists because the system *expects* to be wrong
-- Active probing (D-020) exists because the system *expects* to have gaps
-- Human-in-the-loop review (D-019) exists because only the person can judge accuracy
-- The brief (the composed specification served to AI models) is deliberately compact (~2,000-2,600 tokens, subject to empirical optimization per D-042). A focused approximation is better than a verbose one that gives false confidence
-- The system should treat every fact as a shadow of something deeper that it cannot see
-- Emotional significance cannot be inferred from frequency of mention alone; the things that matter most are sometimes the things hardest to talk about
-- **When self-report conflicts with behavioral evidence, the system holds both**, tagging facts with `perspective` (self_report vs. behavioral vs. inferred) rather than silently resolving the disagreement
-- **The brief should surface the best version, not just the current version**, with peak-state patterns alongside typical behavior
-- **Temporal horizon matters.** A fact about a momentary trade and a fact about a life-arc career direction should not carry equal weight in the identity profile
-
-The goal is *useful* understanding, not *total* understanding. A friend who knows you well still doesn't know everything about you. What makes them a good friend isn't completeness; it's that what they do know is accurate, relevant, and updated when they learn they were wrong. And beyond accuracy, it's that they approach you with the humility of knowing there's always more beneath the surface.
+1. [Foundations](#1-foundations)
+2. [What a specification is](#2-what-a-specification-is)
+3. [Evidence and provenance](#3-evidence-and-provenance)
+4. [Coverage: nothing lost silently](#4-coverage-nothing-lost-silently)
+5. [Checks](#5-checks)
+6. [Cost and change](#6-cost-and-change)
+7. [Retired or replaced](#retired-or-replaced)
 
 ---
 
-### 2. Data Sovereignty (D-002)
+## 1. Foundations
 
-**All personal data is stored on your machine. Processing uses cloud APIs by default; local processing is available but produces lower quality.**
+### 1.1 Respect for the individual
 
-The full conversation history, extracted facts, embeddings, and specification layers are stored locally in SQLite and ChromaDB, never synced to a cloud database, never accessed by third parties.
+**Everything starts at the individual. If a feature serves someone else's interest in a person
+rather than the person, it does not belong in the system.**
 
-**How we got here:** The project started with a local-first philosophy, extraction via Qwen 2.5 14B, everything on-device. But local models couldn't match API quality for the nuanced work of behavioral extraction and identity authoring (D-030: Qwen failed 12 times at narrative generation). The architecture evolved to API-default processing with local data storage. The privacy commitment remains: your data directory is yours. The processing model is honest about the tradeoff.
+- **Why.** This principle generates the others. Provenance exists because claims about a person
+  should be accountable. Corrections exist because the person, not the system, is the authority on
+  themselves. Local storage exists because a person's record is theirs.
+- **Where.** Local-first data and no accounts (README, "Privacy"); corrections
+  ([../CORRECTIONS.md](../CORRECTIONS.md)); a specification is not confirmed: "Models produce the reading. The person it
+  describes must confirm that it represents them." (README, "What a specification contains").
+- **Status.** Followed.
 
-**Default pipeline (API):** Extraction sends conversation text to Anthropic's Haiku API. Layer authoring uses Sonnet. Brief composition uses Opus. This is the quality path; cost depends on text volume and provider pricing. Nothing persists remotely beyond Anthropic's standard API retention.
+### 1.2 Individual first; an organisation is composed from people
 
-**Optional local extraction:** Set `BASELAYER_EXTRACTION_BACKEND=ollama` to run extraction via Qwen 2.5 14B locally. Requires GPU. Quality is lower than API extraction. Authoring and composition still require API access, as local models can't yet produce the synthesis quality needed for specification layers. Full local pipeline remains a goal as open models improve.
+**A specification describes one person. An organisation's view is built from individual ones; it
+is never a substitute for calibrating each person.**
 
-Brief assembly is **pure code** with no LLM in the critical path. When the system injects memory into a conversation, it sends only the assembled brief (~2,500 tokens). No raw data, no conversation transcripts, no embeddings.
+- **Why.** Pooling several people's text through a pipeline built for one person produces a
+  blended person, not an organisation. Calibration per person is the claim the whole project rests
+  on.
+- **Where.** Turn-contract extraction requires the person's names (`subject_names`) and refuses to
+  start without them; distillation reads facts about the person only, by default
+  (`--include-other-subjects` widens it); `--document-mode` is for documents, not people
+  ([../PIPELINE.md](../PIPELINE.md)).
+- **Status.** Followed for individuals. Organisation-level composition is not built.
 
-**Why this matters:** Your data directory is yours. No cloud sync, no accounts, and Base Layer collects no usage data. Its vector store dependency, ChromaDB, has its own anonymized telemetry setting, on by default; Base Layer turns it off on every ChromaDB client it creates. `baselayer estimate` shows how much text is pending extraction before anything is sent to a model API. A behavioral specification system should not require trusting a third party with your life history, and Base Layer doesn't.
+### 1.3 Inherent incompleteness (D-023)
 
----
+**The system will never have a complete picture of the person. Neither will the person, and
+neither will anyone else.**
 
-### 3. Brain-Inspired Architecture (D-001, D-004, D-009)
+- **Why.** People are more than what they write: thoughts never shared, experience that predates
+  the text, things described differently on another day. There are at least three views of a
+  person: who they believe they are, who others believe they are, and what the text shows. All
+  three are real and incomplete. Emotional significance in particular cannot be read from how often
+  something is mentioned.
+- **Where.** README, "Limits and what is not included yet": the corpus is self-report only. Contradictions are carried, not
+  resolved (2.5). Claims are readings to be confirmed (1.5).
+- **Status.** Followed as a stance. Some earlier practical consequences (a confidence score on
+  every fact treated as meaningful, active probing for gaps) are not followed; see
+  [Retired or replaced](#retired-or-replaced).
 
-**The system borrows selectively from how human memory works. Some mappings are genuine design guides; others are useful communication metaphors. We should be honest about which is which.**
+### 1.4 Prediction is the test, not the goal
 
-**Session 79 pipeline ablation study (14 conditions, [results](../eval/ablation/)):** Many of the brain-inspired intermediate processing steps — novelty scoring, significance scoring, tiered classification, contradiction detection, consolidation — were proven ceremonial. The simplified 4-step pipeline (Import → Extract → Author → Compose) scored 87/100 vs the full 14-step brain-inspired pipeline at 83/100. The metaphors were useful for designing the system, but the system outgrew them. What remains load-bearing is the compression itself: raw text → structured facts → three-layer specification → unified brief. The intermediate scoring and classification steps that mirrored hippocampal encoding turned out to add no measurable value.
+**A specification exists to change how an AI interprets and responds to a person. Predicting the
+person's choices is how its accuracy is tested, not what it is for.**
 
-Where the mapping **remains load-bearing:**
-- **Tiered compression** (raw → facts → specification layers → brief) is the core of the pipeline and mirrors complementary learning systems. The compression IS the value. Session 78 (compression saturation experiments) proved that 20% of facts is enough, and that more data hurts.
-- **Three-layer architecture** (ANCHORS / CORE / PREDICTIONS): the insight that identity has distinct layers requiring different synthesis processes. This is the deepest structural commitment and IS load-bearing (C11 three-layer = 87 vs C13 single-layer = 83).
+- **Why.** Memory supplies facts. The specification supplies how this person reads them. A
+  specification that predicted well but changed nothing about how an AI argues and decides would
+  have missed its purpose. The measured result is stated at the size it was found:
+  specifications change how decisions are argued in every situation tested, and change the
+  decision itself in some.
+- **Where.** README, "Research".
+- **Status.** Followed in how the project describes and evaluates itself.
 
-Where the mapping **was useful but proved ceremonial:**
-- **Surprise-driven encoding:** novelty + significance scoring (D-004, D-009, D-015) was designed to mirror dopaminergic prediction error. Ablation showed it adds no measurable value; the extraction step handles signal selection implicitly.
-- **Sleep consolidation:** periodic re-scoring, dedup, and pruning. Proven unnecessary in the simplified pipeline.
-- **Recurrence as identity signal:** recurrence counting and floor thresholds. The authoring step handles importance weighting implicitly from the fact base.
+### 1.5 Distinguishable is not faithful; only the person confirms
 
-**Key implication:** The system's value comes from the compression, not the intermediate processing. Extract the facts, synthesize them into specification layers, compose a brief. The brain metaphors helped design the system but the system proved it doesn't need them to function.
+**Code can show that evidence is real and quoted correctly. It cannot show that a specification is
+a faithful account of the person. Only the person can.**
 
----
+- **Why.** A specification that another model can tell apart from others is distinguishable,
+  which says nothing about whether it is right. The gate proves a fact rests on the person's own
+  words, not that the fact reads them correctly. A citation that resolves proves the reference is
+  real, not that the fact caused the claim.
+- **Where.** README, "How to check it", and its table "What is checked by code, and what is a model's reading". `verify-spec`
+  reports checks and flags; it does not certify fidelity.
+- **Status.** Followed in what the package claims. The tooling to record the person's own
+  confirmations is not built.
 
-### 4. Surprise-Based Writes (D-004, D-009, D-015), PARTIALLY SUPERSEDED
+### 1.6 Data sovereignty (D-002)
 
-**Only store what's novel relative to what you already know.**
+**The person's text, facts and specification stay on their machine. Processing uses a model API,
+and that is said plainly.**
 
-Inspired by Google Titans: events that violate expectations are more memorable. The original system scored every piece of information on novelty (embedding distance) and significance (recurrence + depth).
+- **Why.** A system that models how someone thinks should not require handing their life to a
+  third party beyond the API calls needed to process it.
+- **Where.** README "Privacy"; every ChromaDB client is built with its telemetry off
+  (`config.get_chroma_client()`); `estimate` and the spend guard show what a run will cost before
+  anything is sent; extraction can run on a local model through Ollama.
+- **Status.** Followed.
 
-**Session 79 ablation update:** The scoring, classification, and tiering steps that implemented surprise-based writes were proven ceremonial. The AUDN (Add, Update, Delete, Noop) lifecycle in extraction handles novelty filtering implicitly; the extraction prompt itself decides what's worth extracting vs what's a repeat. The explicit novelty + significance scoring pipeline added no measurable value above what extraction already provides.
+### 1.7 The person is the highest authority on themselves (D-019, D-021)
 
-**What remains valid:** The AUDN deduplication at extraction time IS load-bearing: it prevents the same fact from being stored multiple times. The principle of "don't store redundant information" holds. The implementation of that principle via a separate scoring step does not.
+**When the person corrects the system, the correction wins. What the system observed is kept as
+separate evidence, not discarded.**
 
----
-
-### 4b. Fact Quality as Foundation (D-056, Session 47)
-
-**The quality of every downstream decision (scoring, tiering, retrieval, layer authoring) is bounded by the quality of the extracted facts.**
-
-This sounds obvious, but the system learned it empirically: 57% of extracted facts started with "The user is..." template language, filled with stop words and hedging. When recurrence scoring uses keyword co-occurrence on these facts, generic words like "times", "week", "out" match hundreds of unrelated conversations, inflating recurrence counts by 10-50x. The entire scoring, tiering, and layer authoring pipeline was built on corrupt data because the base layer — the facts themselves — wasn't quality-controlled.
-
-**Frequency is not significance.** Trading's tight feedback loop produces high-frequency conversational data. But a system break and spiral in trading does not mean a life spiral. Recurrence measures conversation frequency, not identity significance. A person's relationship to a domain, what it reveals about how they operate rather than the domain-specific details, is the identity signal. The volume of data is noise.
-
-*S99 Update (D-089):* This principle originally applied at extraction. The S99 prompt ablation proved it applies equally at authoring. A 73-word domain-agnostic guard ("How someone reasons IS identity. What they reason ABOUT is not.") reduced topic skew from 9 mentions to 0. The guard is now implemented in all authoring prompts (H3). See D-089 for details and Principle 13 for the formalized version.
-
-**Canonical form matters.** A fact like "The user is interested in building AI systems" contains 3 content words and 5 stop words. A fact like "Builds AI identity system" contains 4 content words and 0 stop words. The second is more specific, more scorable, and more useful at every downstream stage. Extraction should produce the second form, not the first.
-
-**Quality gates belong between extraction and storage.** Hedging language ("seems to", "likely", "may be"), LLM artifacts ("is someone who"), and low-density facts (lexical density < 0.45) should be rejected or normalized before entering the database. The cost of cleaning dirty data later is always higher than the cost of preventing it at ingestion.
-
-**Implications:**
-- Extraction prompts must produce structured, constrained output: subject/predicate/object with canonical predicates, not free-text sentences
-- Scoring-time normalization (prefix stripping) is a stopgap, not a solution. The real fix is at extraction
-- Every algorithm change in the scoring pipeline requires mandatory re-scoring of all facts, as stale scores propagate through every downstream stage
-
----
-
-### 5. Always-On Specification (D-003, updated D-030/D-033/D-037/D-040/D-041/D-042/D-043)
-
-**A compressed behavioral model is present in every conversation. The AI never has to "look you up."**
-
-The brief (specification layers + themes + episodes) means the AI always has context. Not search-dependent retrieval. Not "let me look that up." Always available, like how a friend doesn't need to google you before responding.
-
-#### Three-Layer Architecture (D-043)
-
-Identity is not monolithic. A person's epistemic commitments, biographical overview, and behavioral patterns are different knowledge types requiring different authoring processes, different fact queries, and different quality criteria. Conflating them produces blocks that are either literary portraits or operational playbooks, but not both.
-
-The specification uses a three-layer architecture, each layer authored independently:
-
-- **EPISTEMIC ANCHORS:** Foundational beliefs the person reasons *from*, not *about*. These are axioms: pre-defined probabilistic certainties for the model. An AI that doesn't know these will waste cycles questioning or establishing what the person considers settled. Always-on in both paste mode and served mode. Validated by cross-scope recurrence (D-044) and falsification (D-045). H3 prompts produce 8-16 axioms per subject with interaction failure modes.
-
-- **CORE (Communication & Operating Guide):** How engagement should shift across contexts. Mode detection (execution vs exploration), context-specific style shifts, narrative orientation, essential biographical context that changes AI behavior. In served mode, context modes are **activation-triggered** — selected based on what's being discussed, not injected wholesale.
-
-- **BEHAVIORAL PREDICTIONS:** "When [situation] → [pattern] → [directive]." Specific situational triggers with behavioral patterns and psychologically precise interaction directives. In served mode, predictions are **situation-triggered** — fired when specific triggers match the incoming prompt. Each includes a false-positive warning to prevent over-application (D-090).
-
-*S100 Update:* The serving layer (SERVING_LAYER_SPEC.md) formalizes the activation model: anchors always-on, core activation-triggered, predictions situation-triggered. This is validated by PersonaFuse (2025) MoE architecture and MDL theory (Moskovitz et al., 2024) which predicts dual-process structure from compression pressure. Activation conditions are authored during layer generation — they are behavioral observations, not routing hints (see `feedback_activation_tags_authoring.md`).
-
-Each layer has its own authoring process because the conflation that arises from writing them together produces either portraits without predictions or playbooks without context. Separation enforces clarity about what kind of knowledge each layer carries.
-
-#### Audience Principle (D-041)
-
-**The audience of the specification is the AI, not the subject. Every sentence must change how the model responds to this person.**
-
-This is a defining philosophical commitment. A specification that describes a person *to* the person is self-portraiture: beautiful, accurate, unusable. A specification that describes a person *to* the AI is an instruction set for behavioral prediction. The test for every sentence: "Does this change how the LM responds?" If not, it doesn't belong in the specification regardless of how true or insightful it is.
-
-Content must satisfy two simultaneous constraints:
-1. **Evidence-grounded (D-040):** Every claim must be inferrable from the fact base. Utility without truth is manipulation.
-2. **LM-actionable (D-041):** Every sentence must change how an AI responds. Truth without utility is self-portraiture.
-
-This resolves the D-037 tension. D-037 prohibited "prescriptions and AI instructions" to prevent prompt-script behavior. But interaction directives grounded in behavioral patterns are valid. They are behavioral data expressed in an actionable format. The valid directive test: a directive is valid if and only if it follows from a behavioral pattern stated in the same block.
-
-#### Behavioral Modeling, Not Fact Retrieval
-
-The specification uses **behavioral predictions**, not fact retrieval. LLMs are probability machines. Raw facts ("likes coffee, works in tech") require the model to infer behavior. Behavioral predictions ("rejects shortcuts that sacrifice quality, even under pressure") skip that inference step entirely. The model directly weights predictions against the current conversation. This reduces the inference chain between context and response.
-
-**Predictions compose.** Orthogonal behavioral predictions combine to produce appropriate responses in situations none of them individually anticipated. Two or three predictions intersecting can generate novel, contextually precise behavior from the model — behavior that was never explicitly described in the specification. This composability is the mechanism by which the system produces responses that feel like genuine understanding rather than retrieval. Measurable via the evaluation protocol: does the model generate contextually appropriate responses that go beyond what any single prediction describes?
-
-The specification functions as a **Markov blanket**, the boundary layer between the person and the AI. The reasoning model can only "see" the user through this membrane. Everything inside (raw facts, embeddings, extraction history) is hidden. The quality of the boundary determines the quality of the interaction, which is why the specification layers receive the largest token allocation in the brief.
-
-#### Authoring Constraints
-
-Specification layers are **authored via API** (Sonnet for generation, Opus for composition), under **blind derivation** (D-040), from raw facts and philosophy frameworks only, with no prior versions, no analysis documents, and no template carry-forward. This prevents the cognitive anchoring that caused 7 successive generations of authored output to converge on 3-4% coverage of the fact base.
-
-**Empirical budget (D-042):** The original 1,500-2,600 token budget was a heuristic that calcified into a constraint. Token allocation is now determined empirically through optimization study: generate blocks at multiple token levels, evaluate interaction quality, find the knee of the curve where additional tokens stop improving responses. Quality per token is the metric.
-
-**Session 38b (axiom refinement + authoring validation) validated the authoring pipeline.** Iterative Collective review (a multi-agent adversarial review process where four AI personas evaluate specification layers) drove ANCHORS from 61% → ~88%, CORE to 77.3%, PREDICTIONS to 76.8%. The key insight (D-046): prompt quality is the leverage point for quality at scale. Each Collective content addition signals a missing prompt question. Fixing the prompt (cheap) reduces review burden (expensive). Over iterations, the cheap layer handles more and the expensive layer handles less. All Session 38b prompt improvements — D-041 filter, anti-redundancy, detection signatures, domain balance, inter-axiom conflict resolutions — are codified in `author_layers.py` for automatic application. Category cap (max 15 facts per category) in retrieval queries prevents topic domination.
-
-*Session 79 Ablation Update: The Collective-driven authoring model described above was superseded by Session 79 ablation findings. A 14-condition study on the Benjamin Franklin corpus showed C11 (3-layer authoring without Collective review) = 87/100 vs C0 (full pipeline with Collective) = 83/100. The prompt improvements from Session 38b remain codified and load-bearing — they are what make the cheap layer sufficient without Collective review. The Collective itself is no longer part of the default pipeline.*
-
-**Division of labor:** The memory system models the person with honest confidence metadata. The reasoning model decides what's relevant per conversation. The system should err toward complete representation with uncertainty signals rather than pre-filtering. The memory system provides; the reasoning model interprets.
-
-**Behavioral data, not behavioral prescriptions (D-037).** The specification provides behavioral data about the person — knowns, unknowns, predictions, and certainties. It does NOT provide instructions for how the AI should respond. The distinction matters because prescriptions constrain the model to a fixed playbook, while behavioral data lets the model compose novel responses across contexts no prescription anticipated. The job is not to tell the probability machine how to predict — it is to give it the supporting evidence and context to predict well. See the full Design Philosophy below.
+- **Why.** No benchmark or similarity score can substitute for the person saying "that is not
+  me". But a self-description and a pattern in the evidence can both be true. The system should
+  hold both rather than flatter or argue.
+- **Where.** `baselayer review` and `forget` hide facts without deleting them; `verify-spec`
+  reports citations to facts retired by a correction, and `--corrections` checks each claim
+  against the person's recorded corrections so an overturned statement cannot return
+  ([../CORRECTIONS.md](../CORRECTIONS.md)).
+- **Status.** Partly followed. Hiding and flagging facts works. "Fix once, fixed forever" (a
+  correction that blocks the same wrong fact from being extracted again) is only half built: the
+  extractor reads `match_patterns`, but no command writes them, and a flag from `review` changes
+  nothing downstream.
 
 ---
 
-### 6. Confidence Over Deletion, Contradiction Over Decay (D-021, expanded Session 20)
+## 2. What a specification is
 
-**Knowledge is never deleted, only confidence-adjusted. Staleness is detected by contradiction, not by elapsed time. The system models a confidence landscape, not a truth table.**
+### 2.1 Three layers, authored separately (D-043)
 
-Even contradicted or outdated facts carry provenance value. "You used to cycle to work before dawn" is biographical truth even after it's no longer current. Deleting it destroys the trajectory. The system should represent what it knows, what it used to know, and how confident it is in current accuracy, not decide what's "true" and discard the rest.
+**ANCHORS (what the person reasons from), CORE (how they communicate and the context to read
+them in) and PREDICTIONS (how they tend to respond in a kind of situation) are different kinds of
+knowledge, each authored in its own call.**
 
-This applies at every level:
-- **Contradicted facts** transition to historical with reduced confidence in current accuracy, but remain in the knowledge base
-- **Superseded facts** are linked to their replacements, preserving the evolution chain
-- **Corrected facts** are the highest-confidence signal: the user explicitly said what's true
+- **Why.** Written together, they collapse into either a portrait with no predictions or a
+  playbook with no context.
+- **Where.** Static `author` (three calls); `author-from-package` (one call per layer, or per
+  shard, each blind to the other layers).
+- **Status.** Followed on both paths.
 
-Measurable constraint: no pipeline operation should permanently remove a fact from the database. Archival, confidence reduction, and historical reclassification are valid. Deletion is not.
+### 2.2 The audience is the AI (D-041)
 
-**Contradiction over decay is fully validated.** Philosophy research across six frameworks (Frankfurt, Taylor, Ricoeur, Parfit, Korsgaard, MacIntyre) confirmed that silence does not equal irrelevance and that time elapsed is not a relevance signal. The system uses no TTL (time-to-live), no access-frequency scoring, and no recency-based deprioritization. A fact becomes stale when a newer fact contradicts it — not when a calendar threshold is crossed. This is not an optimization choice; it is an epistemic commitment validated by both philosophical analysis and empirical observation.
+**Every claim must change how an AI responds to this person. True but inert description does not
+belong.**
 
-**The system does not impose limits on what might be relevant.** Blanket score penalties, arbitrary time thresholds, and silent deprioritization are epistemic overreach, the system asserting certainty about relevance that it does not have. Where confidence is low, the system flags uncertainty and lets the reasoning model or the user decide.
+- **Why.** A specification written to the person is self-portraiture: accurate and unusable. Two
+  constraints hold together: every claim is grounded in evidence (utility without truth is
+  manipulation) and every claim is actionable (truth without utility is a portrait).
+- **Where.** Authoring prompts in `author_layers.py` and `distillation/author_from_package.py`.
+- **Status.** Followed.
+
+### 2.3 Behavioural data, not scripts (D-037, D-041)
+
+**A specification describes how the person works. A directive to the AI is allowed only when it
+follows from a pattern stated with it.**
+
+- **Why.** Scripts do not combine: three rules plus a new situation is a rule-following problem.
+  Accurate descriptions combine, because the model can weigh several against the situation in
+  front of it.
+- **Where.** Authoring prompts; the cited build writes claims in the third person and forbids
+  naming frameworks (`author_from_package.py`).
+- **Status.** Followed. A finer split between beliefs the person holds and directives the person
+  gives to an AI working for them, with each claim judged by the change it causes, is designed,
+  not in this package.
+
+### 2.4 How someone reasons, not what they reason about (D-089)
+
+**A claim should apply across the person's life, not only to the domain its evidence came from.**
+
+- **Why.** A person who writes mostly about one subject is not defined by that subject. Without a
+  guard, the domain with the most text dominates the specification.
+- **Where.** The DOMAIN-AGNOSTIC instruction in `author_layers.py` and
+  `distillation/author_from_package.py`; `verify-spec` flags a claim whose cited facts all carry
+  one practice tag ([VERIFY_SPEC.md](VERIFY_SPEC.md)).
+- **Status.** Followed. The practice flag sees only facts that carry a practice tag.
+
+### 2.5 Carry contradictions; do not resolve them (D-036)
+
+**When the evidence pulls both ways, the claim says so and keeps both sides.**
+
+- **Why.** People hold tensions. Picking a winner erases something true. Calling something a contradiction when it is not also
+  destroys valid knowledge, so the default is "not a contradiction" unless the reversal is
+  unambiguous. Order in time matters: two sides from different periods may be a change, not a
+  contradiction.
+- **Where.** Distillation keeps a contradictions channel, carried unresolved; the author's schema
+  has a `contested` flag and the prompt says "carry the tension; do not resolve it"; `verify-spec`'s
+  time-split check flags a contested claim whose sides come from different periods, for a person
+  to review, never as an automatic relabel. It runs only when a side assignment is supplied, such
+  as a back-check's results through `--backcheck-results`; the back-check itself is not in this
+  repository (`verification/checks/time_split.py`).
+- **Status.** Followed on the cited build for carrying contradictions. The time-split check needs
+  outside input.
+
+### 2.6 A faithful specification includes where the person breaks
+
+**Tensions, failure modes and blind spots are part of an accurate specification, even though they
+make the specification easier to exploit.**
+
+- **Why.** A smoothed, consistent caricature scores better on stability tests and is a worse
+  representation. Fidelity and vulnerability come together.
+- **Where.** Contested claims (2.5); predictions describe responses under pressure as well as
+  defaults.
+- **Status.** Followed as an authoring stance; not separately measured.
+
+### 2.7 A layer, not a replacement; the conversation comes first (D-094)
+
+**The specification is prior evidence. What the person says now is primary evidence. When they
+conflict, trust the person.**
+
+- **Why.** A specification makes memory and retrieval more useful; it does not replace them, and
+  it must not override the person in front of the AI.
+- **Where.** The MCP server's usage preamble: "The current conversation is primary evidence; the
+  specification is prior evidence. Use the specification to interpret, not to override"
+  (`mcp_server.py`).
+- **Status.** Followed on the served path.
+
+### 2.8 Each claim says when it applies
+
+**A claim carries an `Active when` line, and applies in that situation, not everywhere. Only a few
+claims are always on.**
+
+- **Why.** Serving every claim in every exchange dilutes the ones that matter and invites
+  over-application. A few claims (how the person communicates in every exchange) genuinely apply
+  everywhere; most apply to a kind of situation.
+- **Where.** Each claim's `active_when` field on the cited build; `consolidate` builds the always-on
+  set and a trigger index whose lines are taken verbatim from `Active when` lines
+  ([CONSOLIDATION.md](CONSOLIDATION.md)).
+- **Status.** Partly followed. Every cited-build claim has the field, but the schema allows it to
+  be empty, and only predictions are told to name a concrete situation. `consolidate` reads only
+  cited-build layers, not the static path's files.
+
+### 2.9 Resistance to flattery is structural (D-090)
+
+**A specification can make an AI more eager to please the person it describes. The countermeasures
+are built in, not left to advice.**
+
+- **Why.** A condensed profile of the user raises the risk of an AI telling them what they want to
+  hear. Personalisation means calibrated friction, not performed agreement.
+- **Where.** The served preamble treats the specification as invisible infrastructure: the AI does
+  not announce it or perform knowledge of the person (`mcp_server.py`); contested claims (2.5);
+  the domain guard (2.4).
+- **Status.** Partly followed. Warnings on each prediction about when not to apply it are
+  checked only on the legacy compose path (`agent_pipeline.py`); the cited build's claim schema has
+  no such field.
 
 ---
 
-### 7. Silence Is Not Evidence of Irrelevance (Session 20)
+## 3. Evidence and provenance
 
-**Conversation frequency reflects what someone uses AI for, not what matters to them.**
+### 3.1 Facts rest on the person's own words (D-108)
 
-The system's data comes from conversations. But the person exists outside of conversations. A person may never mention their spouse, their pets, their parents, or their health in a technical AI session. That absence carries zero signal about importance. The system must not conflate "not mentioned recently" with "less important."
+**A fact may be stored only if its quoted evidence is found, word for word, in a turn the person
+typed or spoke.**
 
-Measurable constraint: no retrieval or scoring mechanism should penalize facts based solely on time since last mention. Time since last mention is metadata, not a relevance signal.
+- **Why.** In a chat export most of the text is not the person's: assistant replies, pasted
+  documents, other people. A fact drawn from those describes someone else.
+- **Where.** The turn table records each turn's speaker from the source and a voice class;
+  `turn_contract.gate_facts` checks every span ([TURN_CONTRACT.md](TURN_CONTRACT.md)).
+- **Status.** Followed under the turn contract (`extract --turn-contract`). Legacy extraction,
+  the default for `baselayer run`, stores facts with no quoted evidence. Known gap: a fact about
+  another person can be assigned to the person when the person's own text reports that other
+  person's action without naming them in the quoted words ([../PROGRESS.md](../PROGRESS.md), "Known open issues").
 
-This is a direct application of Inherent Incompleteness (Level 1: structural blindness to who you are when you're not talking to an AI).
+### 3.2 A gate lives in code, outside every error handler
 
-**Tension with practical staleness (acknowledged):** While the principle holds — silence ≠ irrelevance — topic dominance in retrieval is a real practical problem. Facts from heavily-discussed domains (e.g., trading) can crowd out equally important facts from less-discussed domains. The planned solution (recency weighting in retrieval via decay multiplier) is framed as a **retrieval tuning optimization**, not a principle revision. It addresses topic dominance in retrieval without changing tier classification or implying that older facts are less important. The principle constrains the implementation: decay can lower retrieval priority, but cannot lower tier classification, significance score, or knowledge_tier.
+**A check that decides what is stored runs in code, not in a prompt, and outside any exception
+handler that could turn its failure into a normal-looking result.**
+
+- **Why.** A prompt can be ignored. A guard caught by the handler around it is worse than no
+  guard, because a refusal then reads as "nothing found".
+- **Where.** The turn-contract gate runs before any insert and outside every handler
+  (`extract_facts.py`, `turn_contract.py`).
+- **Status.** Followed on the turn-contract path.
+
+### 3.3 Auditability is a gate, not a feature
+
+**A claim that cannot be followed back to its evidence is a failure. Citation is enforced by the
+output's structure, not requested in the prompt.**
+
+- **Why.** A specification that cited nothing would still read as complete, and could not be
+  audited. Asking a model to cite is unreliable; a schema that requires fact ids for every
+  claim makes omission impossible.
+- **Where.** `author-from-package` emits claims through a strict tool schema; ids not in the
+  package are stripped and counted; a claim left with no valid id causes the request to be sent
+  again (`distillation/author_from_package.py`).
+- **Status.** Followed on the cited build. On the static path citations are asked for but not
+  required (README, "How to check it").
+
+### 3.4 Four levels of evidence, and say which one was checked
+
+**A citation can be present, can resolve, can quote the person correctly, and can be the reason
+for the claim. The first three can be checked by code. The fourth can be checked only by sampling.**
+
+- **Why.** The schema guarantees citations are present, not that they are accurate. Reporting
+  "cited" without saying which level hides the gap.
+- **Where.** Presence: the author's schema. Resolution: `verify-spec`. Quotation: the quote gate
+  checks every quoted phrase against the own-voice spans of the facts the claim cites, at word
+  boundaries, and records citations it added separately from the author's own
+  (`distillation/quote_gate.py`). Cause: not checked by the package.
+- **Status.** Partly followed: presence and resolution on the cited build; quotation only with the
+  opt-in, module-only quote gate.
+
+### 3.5 Stamp every artifact; read the stamp
+
+**Every fact extracted by this version records its model, prompt hash, git commit and code path.
+Every cited-build tree, package and layer also records an input hash. A package calls no model, so
+it has no model or prompt hash.**
+
+- **Why.** Two codebases can produce files that look identical. A file name or a pointer to the
+  latest run can be wrong; the stamp travels with the artifact and says what made it.
+- **Where.** [../PIPELINE.md](../PIPELINE.md), section 13; `turn_contract.artifact_stamp`.
+- **Status.** Partly followed. Followed for facts extracted by this version and every cited-build
+  artifact. Static layers carry frontmatter only (model, time, version, no commit). Older facts
+  carry none, and nothing back-fills them.
+
+### 3.6 Authoring never sees its own earlier output (D-040, D-053)
+
+**Each generation is derived from the evidence, never from an earlier version of itself, and never
+from the verification findings on an earlier version.**
+
+- **Why.** An author shown its previous version edits it instead of deriving from the evidence, and
+  coverage stops growing. Feeding verification results back to the author is the same loop by
+  another route: verification runs once, after authoring.
+- **Where.** `author-from-package` reads only the package built from the facts; `verify-spec` is
+  read-only and its output is not an authoring input.
+- **Status.** Followed. The automatic overlap and novelty gates once planned for this principle are
+  not built (see [Retired or replaced](#retired-or-replaced)).
+
+### 3.7 Specificity over abstraction; frequency is not significance
+
+**A single striking fact can matter more than a theme that recurs. Keep the specific, verbatim.**
+
+- **Why.** A summariser amplifies frequency: a recurring theme enters every round of summarising,
+  and a one-off fact has to survive elimination each time. Left alone it inverts significance.
+  Specificity is also what makes a claim narrow enough to be checked.
+- **Where.** Distillation's singularity channel keeps one-off facts word for word; a singularity
+  that cites an id not in its chunk is dropped whole (`distillation/distill.py`).
+- **Status.** Followed on the cited build.
+
+### 3.8 Uncertain evidence is carried with its label, not repaired or dropped
+
+**A fact whose support is weaker, such as one instance stated as a general disposition, stays in the
+population with a label that later checks can read. It is not rewritten automatically.**
+
+- **Why.** Such facts are often true of the person, just not repeated. Rewriting them to the
+  literal quote can make them wrongly narrow or wrongly past tense; dropping them removes real
+  preferences. A label lets verification judge each claim on the facts it actually rests on.
+- **Where.** In the package: `assemble` withholds the "verified" label on singularities when only
+  one run exists, rather than granting it to everything. The support filter that labels each fact
+  is not in this repository; `distill --exclude-ids` accepts its list of facts to leave out.
+- **Status.** Not followed in this package. The per-fact labels come from a support filter that
+  exists outside this repository; `distill --exclude-ids` accepts its output.
 
 ---
 
-### 8. User as Highest Authority (D-019, D-021)
+## 4. Coverage: nothing lost silently
 
-**When the system disagrees with the user about who the user is, the system defers, but it doesn't discard what it observed.**
+### 4.1 No silent data loss before deduplication
 
-The identity review (D-019) proved this: no synthetic benchmark, no embedding similarity score, no confidence threshold can substitute for the person themselves saying "that's wrong about me." The user's corrections are the highest-authority signal in the system, above LLM confidence, above vector similarity, above recurrence.
+**The person's text reaches the extraction model whole. Volume is handled by chunking, never by
+truncation.**
 
-The correction propagation system (D-021) operationalizes this: corrections are stored permanently, survive resets, and block re-extraction of the same wrong facts. "Fix Once, Fixed Forever."
+- **Why.** Deduplication (AUDN) exists so the input side can be generous. Content dropped before
+  extraction never reaches deduplication and cannot be recovered by anything downstream.
+- **Where.** Extraction chunks long conversations; under the turn contract a chunk that stops at
+  its token limit is re-chunked at half the budget and retried; the chunk ledger records every
+  chunk ([../PIPELINE.md](../PIPELINE.md), section 5).
+- **Status.** Partly followed. Under the turn contract in its default `coverage` mode nothing is
+  truncated, and every drop is counted in the run record. Legacy extraction, the default for
+  `baselayer run`, keeps at most a capped number of facts per call and drops facts the model
+  scores below 0.3 confidence, without counting either. Pasted text, code and tool output are
+  excluded on purpose and counted.
+  That is a stated choice, not loss ([DATA_TREATMENT_POLICY.md](DATA_TREATMENT_POLICY.md)).
 
-**But authority has layers.** The collective review (D-024) identified three types of corrections that deserve different treatment:
-- **Factual corrections** (citizenship, names, dates): user is always right, always accept, discard the old data
-- **Self-characterization corrections** ("I don't really care about X"): accept and record the self-assessment, but the behavioral evidence (40 conversations about X) stays as a separate signal. The brief can hold both.
-- **Dispositional corrections** ("I'm not impulsive"): accept the self-concept, but when behavioral evidence contradicts it, note the tension, because that tension is itself revealing
+### 4.2 Display may be truncated; the population may not
 
-This is not about overriding the user. It's about the three-truths model: who you think you are, who others think you are, and what the data shows. All three are valid. The user has final say on what goes in the brief, but the system should surface contradictions rather than silently resolving them.
+**Every active fact must be accounted for at each stage. A stage may show fewer, but it may not
+consider fewer without saying so.**
 
-**Why this matters:** A memory system that argues with you about your own life isn't useful; it's adversarial. But a memory system that only tells you what you want to hear isn't useful either; it's a flattering mirror. The goal is honest, respectful reflection.
+- **Why.** A stage that reads a selected subset of facts is a sample, however well chosen, and
+  moving who chooses the subset does not remove the sampling. A count over the whole population is
+  complete information at low cost.
+- **Where.** Distillation gives every fact in a chunk exactly one disposition; `assemble` splits an
+  oversized package into shards and drops nothing; the author is told not to infer absence from a
+  shard.
+- **Status.** Partly followed. The cited build follows it. The static path (`baselayer author`)
+  selects a capped number of facts per category for each layer, a cap that was never derived from
+  a measurement; see [Retired or replaced](#retired-or-replaced).
 
----
+### 4.3 A drop in count is not a loss
 
-### 9. Generative Output Isolation (D-040)
+**Fewer items after a stage can mean duplicates were folded together, or content was lost. A
+metric must say which.**
 
-**Generative outputs must not feed back into their own inputs. Every generation must be derived from primary data, not from prior generations.**
+- **Why.** Many leaf themes collapsing into a few can be correct consolidation. Reporting the
+  reduction as loss, or as success, without checking which, misreads the stage.
+- **Where.** Distillation reports `sing_dedup_pct` (duplication across leaves), not a "survival"
+  rate that was bounded at 100% by construction (`distillation/distill.py`); `consolidate`
+  records duplicates as a mapping and rewrites no claim (`consolidation/dedupe.py`).
+- **Status.** Followed.
 
-This principle addresses a failure mode discovered empirically: specifications authored with access to prior versions converge toward the prior content rather than the underlying data. Over 7 generations, 70-75% of text was inherited, zero genuinely new behavioral predictions were created, and coverage of the identity-tier fact base stagnated at 3-4%. The authoring process was editing inherited text rather than synthesizing from facts.
+### 4.4 Gaps and failures are recorded, never shown as success
 
-The mechanism is cognitive anchoring. When a prior generation is available, it acts as a gravitational center. The author's effort goes toward editing the prior text rather than re-deriving from data. This produces blocks that are accurate (the inherited text was correct) but narrow (the inherited text covered a tiny fraction of available knowledge). Accuracy without coverage is a failure mode the system must actively prevent.
+**A failed chunk, a failed leaf or a check that could not run is reported as such, beside the
+artifact it affects.**
 
-**The rule:** Any process that generates a compressed representation of the fact base (specification layers, character overviews, analysis documents) must receive its input exclusively from the primary data source (facts, embeddings, raw conversations) and authorized structural frameworks (philosophy, design principles, format specifications). It must NOT receive prior outputs of the same process.
-
-**Contamination vectors are transitive.** If Document A was derived from a prior specification, and Document B summarizes Document A, then Document B carries the prior version's phrasings indirectly. The exclusion applies not only to prior versions but to any document that absorbed their content: analysis docs, review docs, session summaries, progress notes that describe specification content.
-
-**Contamination is measurable.** Session 37 measured contamination vector 1 (project language leaking into personal facts) at 0/3,898 facts (zero contamination). The existing AUTHORING_EXCLUSION_PATTERNS in config.py are sufficient. Contamination vector 2 (personal identity facts trapped in project-scoped sessions) requires a message-level classifier, not conversation-level filtering.
-
-**Verification is mandatory, not optional.** Every new generation must be mechanically checked against prior generations for text overlap (n-gram analysis), coverage of the primary data source, and proportion of genuinely novel content. These checks are automated and must pass before the output is stored or reviewed.
-
-**What this means in practice:**
-- Specification authoring receives raw facts, philosophy frameworks, design principle constraints, and token budgets. Nothing else.
-- Facts that reference previous specifications or the authoring process itself must be filtered from the authoring data view. Meta-facts about the system's own outputs are contamination vectors.
-- User feedback is transmitted as evaluative criteria ("cover self-concept, worldview, tension architecture, epistemic anchors") not as references to prior specification content ("the last version was too narrow because it said X").
-- Analysis documents are re-derived from facts periodically, not maintained as living documents that accumulate specification phrasings.
-- Automated validation gates (overlap < 25%, coverage > 5%, novel claims > 0) prevent storage of inherited output.
-- Structure is not templated. If every version has the same headers and the same prediction count, the template is the anchor. Structure should emerge from content.
-- Each specification layer (ANCHORS, CORE, PREDICTIONS) is independently blind-authored from its own fact queries; isolation applies within the three-layer architecture, not just between generations.
-
-**This principle is broader than specification authoring.** It applies to any generative loop in the system: character overviews, analysis documents, autobiography pipeline outputs, eval protocol responses. Wherever the system generates a compressed representation and then uses that representation as input to the next generation, this principle applies.
-
----
-
-### 10. Scoped Memory (D-044)
-
-**Facts are tagged by interaction mode. The scope of a conversation determines where its knowledge flows. Not every fact feeds every output.**
-
-A person interacts with AI in different modes: as themselves (personal), as a technical lead (project), as a professional (professional). These modes produce different kinds of knowledge, and that knowledge serves different purposes. Personal-scope facts feed the specification layers. Project-scope facts feed project briefs (CLAUDE.md). Professional-scope facts will feed professional profiles. Mixing scopes produces contamination — project-meta facts ("the extraction pipeline uses Qwen") appearing in the personal specification, or personal identity-tier facts being extracted from project sessions where they appear only as injected context.
-
-**Scope is determined by the interaction context and relationship, not by subject matter.** A person discussing their management philosophy in a personal conversation produces personal-scope facts. The same person demonstrating that philosophy in a code review session produces project-scope facts. The content may overlap; the scope differs because the interaction mode differs.
-
-**Cross-scope recurrence validates anchors.** The strongest mechanism for identifying epistemic anchors is cross-scope recurrence — when the same behavioral pattern appears independently in personal conversations, project sessions, and professional interactions. If "directness" surfaces in relationship discussions, code reviews, and trading decisions, that is structural evidence from independent interaction modes that the trait is foundational. The scopes are the test environments. Recurrence across them is the evidence.
-
-**Why this matters:** Without scope separation, the system conflates what a person is building with who a person is. A memory system that tells the AI "this person values clean code and iterative testing" because they said so in a project session is reporting project methodology, not personal identity. The distinction is not pedantic — it is the difference between a system that models the person and a system that models the person's current project.
-
----
-
-### 11. Falsification Over Assertion (D-045)
-
-**Axioms are validated by searching for counter-evidence, not by accumulating supporting evidence. If a belief claims to be foundational, its negation should not be observable in the fact base.**
-
-Epistemic anchors — the core axioms in the ANCHORS layer — claim to be universally true for the individual across all domains. A claim that strong requires a validation method that strong. Accumulating supporting evidence is insufficient because confirmation bias selects for it. The system uses Popperian falsification: generate the negation of the candidate axiom, search the fact base for evidence of the negation, and classify any matches.
-
-The classification is critical: not all counter-evidence is equal.
-- **Violations** — The axiom holds, but the individual broke it under pressure. Trading spirals don't refute a commitment to rational analysis; they are predicted failures of a commitment the person genuinely holds. Violations become material for the PREDICTIONS layer.
-- **Refutations** — The axiom doesn't actually hold in some domain. The individual genuinely valued or endorsed the negation. Refutations require narrowing or rejecting the axiom.
-
-If all counter-evidence is violations, the axiom is validated. If any counter-evidence is a refutation, the axiom needs revision. This distinction prevents the system from rejecting genuinely foundational beliefs just because the person sometimes fails to live up to them — which is the human condition, not a data error.
+- **Why.** Every failure that degrades to a normal-looking result (an empty list, a clean exit, a
+  default value) is invisible at the point of use.
+- **Where.** Extraction exits 1 while any chunk is pending or failed; repeated content failures are
+  quarantined and listed; a gaps manifest is written beside every authored artifact; `run` will not
+  author over quarantined chunks without `--accept-gaps`; `assemble` refuses a tree with a failed
+  leaf unless told otherwise; `consolidate` exits 1 if any of its 14 checks fails; a `verify-spec`
+  run is recorded blind only after a clean probe.
+- **Status.** Followed on the turn-contract and cited builds.
 
 ---
 
-### 12. Cheap Constraint, Expensive Discrimination (D-046)
+## 5. Checks
 
-**Maximize the work done at the cheap layer so the expensive layer handles only genuinely hard cases.**
+### 5.1 Code checks and model readings are labelled separately
 
-The system uses cheap operations (extraction, clustering, semantic search, checklists, Haiku, Qwen) to constrain the generation space, and expensive operations (Opus judgment, Collective review, human review) only to discriminate within the remaining ambiguity. This is not a cost optimization preference — it is a scalability architecture. If the expensive layer routinely generates content that the cheap layer should have produced, every pipeline run requires an expensive non-deterministic review step. That doesn't scale to multiple users.
+**Every result says whether code established it or a model judged it.**
 
-The key insight: generation prompt quality determines review cost. Every content addition the Collective makes during review is a signal that the generation prompt was missing a question. The fix is to improve the prompt, not to always run the Collective. Over iterations, the cheap layer handles more and the expensive layer handles less. The Collective's role evolves from "generate missing content" to "validate nothing was missed."
+- **Why.** A code check cannot be argued with. A model's reading can be wrong. Mixing them lets a
+  judgment borrow the authority of a check.
+- **Where.** README, "What is checked by code, and what is a model's reading"; `verify-spec` runs
+  its deterministic checks by default and its model-judged checks only with `--run-model`.
+- **Status.** Followed.
 
-**Session 79 Ablation Update:** The Collective review step was tested in a 14-condition ablation study on the Benjamin Franklin corpus. Result: C11 (3-layer authoring without Collective review) scored 87/100 vs C0 (full pipeline with Collective review) at 83/100. The Collective was proven ceremonial and removed from the default pipeline. The cheap/expensive principle remains architecturally valid — the 3-layer authoring structure (ANCHORS → CORE → PREDICTIONS) is load-bearing (C13 single-layer = 83 vs C11 three-layer = 87). The expensive discrimination now happens within the layer structure itself: each layer is a progressively harder synthesis task, with PREDICTIONS requiring the most judgment. The Collective was the wrong implementation of the principle — it applied expensive review after the work was done, rather than structuring the work so that cheap layers constrain what expensive layers must produce.
+### 5.2 A check must be shown to fail first
 
----
+**Before trusting a check, run it on an input it should reject and see it reject it.**
 
-## Design Philosophies
+- **Why.** A check that cannot fail reads exactly like one that passed. A detector removed in a
+  refactor, a scanner that only looks for one pattern, or a metric computed after the bad items
+  were already stripped all report a clean zero.
+- **Where.** `tests/test_distillation_metrics_can_fail.py` plants fabricated ids and asserts the
+  citation metric drops; planted known-bad sessions (`baselayer.turn_contract_fixtures`) test the
+  import and the gate, and distillation refuses a fact base holding them unless told otherwise;
+  the context gate and `consolidate`'s missing-input check have tests that are written to fail
+  first (`tests/test_context_gate.py`, `tests/test_consolidation.py`).
+- **Status.** Partly followed. Not every metric has a test that shows it can fail.
 
-### Simplicity Over Cleverness (D-018)
+### 5.3 Measure the measurement
 
-Every time complexity has been added to the extraction prompt, results got worse. Every time we kept the LLM's job simple and handled complexity in post-processing, it worked. This is now a tested principle, not an opinion:
+**Before reporting what a measurement found, check what the instrument itself contributes.**
 
-- Simple prompt, free-form fields, post-extraction normalization = good
-- Complex prompt, enum constraints, multi-task instructions = Qwen gives up
+- **Why.** A query template, a scoring map, a rubric's wording or a sample's construction can
+  produce the result attributed to the system. Comparisons need controls that would show it: the
+  same prompt for every condition except the context under test (D-095), a wrong-person
+  specification (D-096) and a no-specification baseline.
+- **Where.** `verify-spec` model checks are priced and dry-run by default; rater agreement and
+  retest are reported for consolidation's builders ([CONSOLIDATION.md](CONSOLIDATION.md),
+  "Builders").
+- **Status.** Followed in the package's own evaluation docs.
 
-**Applied broadly:** If there's a simple way and a clever way, pick the simple way. It's more debuggable, more maintainable, and — empirically — produces better results with local models.
+### 5.4 A blind rater must be shown to be blind
 
-### Output Evaluation Over Method Evaluation (D-019)
+**A model call used as an independent judge is called blind only after a probe of that call shows
+what it could see.**
 
-Don't check the code. Check whether the result makes sense to the person it's about.
+- **Why.** A rater launched with every sensible setting can still load instructions that name the
+  person. Only asking the actual call what it sees reveals that.
+- **Where.** `verify-spec --rater cli` removes API credentials from the child, passes `--safe-mode`
+  when available, and records a run as blind only after a clean `--probe` with at least one canary
+  ([../PIPELINE.md](../PIPELINE.md), section 9).
+- **Status.** Followed in `verify-spec`.
 
-"I've never used that strategy" is a better test than any unit test. A single "that's about someone else in my life, not me" catches a class of misattribution bugs that no automated evaluation would find. The person is the test suite.
+### 5.5 Read, don't score, when comparing specifications
 
-### Corrections Are Data, Not Failures (D-021)
+**Compare two specifications by what their claims say, not by label overlap or an embedding
+threshold.**
 
-When the user corrects something, it's not a bug report — it's *information*. Corrections are signal about what matters, what's wrong, and how the system should change. They're a permanent part of the knowledge base, not a one-time patch.
+- **Why.** Two runs that make the same claims in different words score as different under label
+  overlap and under embedding similarity alike. Reading them shows the agreement.
+- **Where.** `consolidate` groups duplicates from judgments of claim pairs read in both orders, or
+  from shared evidence, and records the grouping without rewriting any claim
+  (`consolidation/dedupe.py`, `consolidation/judge.py`).
+- **Status.** Followed in consolidation. There is no package command that compares two
+  specifications.
 
-### Batch Changes, Clean Runs (D-022)
+### 5.6 Check the artifact the next stage actually read
 
-Partial fixes create inconsistent datasets. When multiple improvements are needed, batch them into one clean re-run rather than applying incremental patches. One 6-hour run with 9 fixes is better than nine separate 6-hour runs with one fix each.
+**Verify the exact file a stage consumed, not a cleaner derivative of it.**
 
-### Build Custom, Borrow Patterns (D-001)
+- **Why.** A merged or tidied version of an output can differ from what the next stage read, and
+  the difference is invisible unless checked.
+- **Where.** `consolidate` reads each layer's `.json` and fails if the `.md` disagrees with it
+  (check K02); `verify-spec` re-checks every evidence span against its source turn rather than
+  trusting the stored copy.
+- **Status.** Followed.
 
-Existing frameworks (Mem0, Letta, Titans) each had good ideas but weren't ready for local deployment with data sovereignty. The approach: study what they do well, steal the patterns, build the implementation from scratch on a foundation we control.
+### 5.7 A number must name the measurement it came from
 
-- AUDN lifecycle from Mem0
-- Surprise scoring from Titans
-- Memory blocks from Letta
-- Implementation: ours
+**A threshold or constant is fine if it was derived from data and fixed before the check was first
+run on real data. A plausible-looking number is not.**
 
-### Narrative Coherence Over Factual Completeness (D-024)
-
-**The assembled brief should tell a coherent story, not pass a fact-checking test.**
-
-A list of 50 correct facts about a person is less useful than 200 words that capture their trajectory, tensions, and what they're trying to figure out right now. The system doesn't succeed when it accurately stores and retrieves individual facts. It succeeds when the brief creates a representation that makes the AI respond as if it *understands* — not just what you know, but who you are.
-
-The three-layer architecture (D-043) operationalizes this. Each layer provides a different kind of coherence:
-- **ANCHORS** provide epistemic coherence — the fixed premises the person reasons from, so the AI doesn't waste cycles re-establishing what the person considers settled
-- **CORE** provides narrative coherence — arc, tensions, turning points, the trajectory that connects biographical facts into a story
-- **PREDICTIONS** provide behavioral coherence — situation-specific patterns that tell the AI what to expect, grounded in observed behavior
-
-Facts are building blocks. The layers are architecture. The brief must cohere across all three.
-
-### Behavioral Data Over Behavioral Prescriptions (D-037, refined D-041, expanded D-089/D-090, Session 24/36/99/100)
-
-**The specification provides behavioral data — not instructions for how the AI should respond. The job is not to tell the probability machine how to predict. The job is to give it the evidence and context to predict well.**
-
-*S100 Update (D-089, D-090):* H3 prompts produce "psychologically precise directives" — naming what the person NEEDS in a given moment, not just what they're doing. This is valid per D-041's test (directive follows from observed behavior) but extends it: the directive can now name the psychological mechanism, not just the behavioral pattern. Example: "They are not stalling — they are running a required pre-flight" names the mechanism (confirmation-seeking) and the need (don't reframe slowness as weakness). This is the highest-quality form of behavioral data because it gives the AI both the WHAT (pattern) and the WHY (mechanism), enabling more precise response calibration. See also D-090: false-positive warnings on predictions are load-bearing sycophancy countermeasures, not optional polish.
-
-LLMs are probability machines. Given accurate behavioral data about a person, a capable model will infer the appropriate response — and will do so flexibly across novel contexts that prescriptions cannot anticipate. The specification is input to the model's prediction engine, not a script for the model to follow.
-
-The distinction:
-- **Behavioral data (correct):** "Emotional processing happens through mechanical analysis, not alongside it. Frustration after rule violations turns inward and compounds."
-- **Behavioral prescription (wrong):** "Do not redirect to emotional support. Help trace which rule broke and why. Treat the spiral as diagnostic, not emotional."
-
-The first gives the model accurate priors about how the person works. The second tells the model what to do. Both produce reasonable AI behavior in anticipated situations. Only the first produces appropriate behavior in unanticipated situations — because the model can reason from the data rather than pattern-match against instructions.
-
-**D-041 refines this distinction.** Interaction directives grounded in behavioral patterns are valid — they are behavioral data expressed in an actionable format. "When you break your own rules, the frustration turns inward. Do not minimize what happened. Help trace which rule broke and why." is valid because the directive follows from the behavioral pattern. "Always respond in bullet points" is invalid because it is a prompt script with no behavioral grounding. The test: a directive is valid if and only if it follows from a behavioral pattern stated in the same block.
-
-**Why prescriptions fail at composition:** Prescriptions don't compose. "Don't minimize" and "don't lecture" and "stay in the mechanics" are three discrete instructions. If the model encounters a situation involving all three plus a novel element, it has a rule-following problem, not a prediction problem. Behavioral data composes because the model can weight multiple data points against the current conversation and generate responses appropriate to situations none of the data points individually describe. This is the same composability that makes behavioral predictions powerful (Principle 5) — but it only works when the predictions are data, not directives.
-
-**What the specification layers should contain:**
-- **Axioms** — epistemic commitments the person reasons from, stated as probabilistic certainties (ANCHORS layer)
-- **Knowns** — verified behavioral patterns, confirmed biographical facts (CORE layer)
-- **Unknowns:** acknowledged gaps, areas of uncertainty, things the system hasn't observed
-- **Predictions:** behavioral tendencies stated as situation→pattern→directive (PREDICTIONS layer)
-
-**What the specification layers should NOT contain:**
-- **Opinions:** editorial judgments about the person's choices ("you're right to hold it")
-- **Portraits:** literary descriptions of the person that don't change AI behavior ("notices strangers walking too close at Costco")
-- **Framework attributions:** philosophy framework names in output ("Frankfurt would call these volitional necessities")
-- **Response scripts:** step-by-step instructions for AI behavior ungrounded in observed patterns
-- **Evaluative validation:** the system endorsing the person's self-narrative
-
-The theme block (facts) and episode block (recent context) provide the situational specifics. The specification layers provide the stable behavioral framework. Together, they give the model everything it needs to predict well, without constraining how it predicts.
-
-### The System Is a Mirror, Not an Oracle
-
-The memory system reflects what it's learned about you back at you. It's a high-quality dossier that enables an AI to simulate the feeling of being known. That is genuinely valuable, and it is honest to call it what it is.
-
-It can be wrong. It can be incomplete. It can show you things about yourself you didn't expect. But it can never show you everything. And it should never pretend that data about you is the same as knowing you.
-
-The person looking in the mirror always knows more than the mirror does. But a mirror that can also show you your best self, not just your current state, is more than a reflection. It's a tool for growth.
+- **Why.** Numbers chosen for plausibility land on a slope and decide cases arbitrarily; derived
+  ones land in a gap between known-good and known-bad cases.
+- **Where.** `verify-spec`'s time-split thresholds were fixed before its first real run, though not derived
+  (`verification/checks/time_split.py`); the spend table carries measured constants
+  and its date (`distillation/spend.py`); `assemble`'s verified threshold is a majority of the
+  runs given.
+- **Status.** Partly followed. Underived constants remain: the static path's per-category fact cap
+  and the `source_docs < 5` floor ([../PIPELINE_ISSUES.md](../PIPELINE_ISSUES.md), P-03), and
+  `verify-spec`'s stipulated thresholds (`verification/definitions.py`: shared-evidence Jaccard
+  0.5, weak support 0.5, not-the-person's 0.5, trigger grouping cosine 0.35), each tested only by
+  a planted good and bad case.
 
 ---
 
-## Anti-Patterns (What We Explicitly Avoid)
+## 6. Cost and change
 
-1. **Claiming certainty.** No fact, no profile, no summary should be presented as definitely true. Confidence is always qualified.
+### 6.1 Price before spending; require a ceiling
 
-2. **Conflating data with identity.** What someone said in a conversation is not the same as who they are. Asking about something is not doing it. Mentioning something is not valuing it. A collection of facts is a census, not a biography.
+**A billed run prints its estimate before the first call and refuses to start without a ceiling at
+or above it.**
 
-3. **Treating completeness as achievable.** More data, better models, and longer extractions will improve the system, but will never make it complete. The asymptote is "useful approximation," not "full knowledge."
+- **Why.** Cost tracks the number of calls, not the size of the corpus, and estimates have
+  undercounted real input. A ceiling checked before every call bounds the damage.
+- **Where.** `distillation/spend.py`: a dated rate table that must be confirmed, an estimate, and
+  `--confirm-spend` or `BASELAYER_SPEND_CEILING_USD`, checked before every call
+  ([../PIPELINE.md](../PIPELINE.md), section 12).
+- **Status.** Partly followed. `distill` and `author-from-package` require it; sequential
+  extraction honours a ceiling only when one is set; `batch-extract`, static `author` and
+  `compose` have none.
 
-4. **Silently resolving contradictions.** When self-report conflicts with behavioral evidence, the system should surface the tension, not pick a winner. Conflicting truths are data, not errors.
+### 6.2 Cheap constraint, expensive discrimination (D-046)
 
-5. **Passive-only learning.** A system that only learns when you happen to mention something will always have gaps. Active probing (asking questions, identifying what's missing) is a feature, not a nice-to-have.
+**Do as much as possible with cheap, mechanical or small-model steps so the expensive model judges
+only what is genuinely hard.**
 
----
+- **Why.** Expensive review after the fact does not scale. Structure the work so cheap steps narrow
+  what the expensive step must decide.
+- **Where.** Extraction on Claude Haiku 4.5; mechanical collection of themes from leaves and
+  mechanical packaging; one authoring call per layer on a larger model; `consolidate` builds its
+  index with no model call.
+- **Status.** Followed.
 
-### 13. Domain-Agnostic Identity (D-089, Session 99)
+### 6.3 Repair the failed part; rebuild only for new information
 
-**How someone reasons IS identity. What they reason ABOUT is not.**
+**When one part fails, find the cause and redo that part. Rebuild a specification when there is
+substantial new text, not to fix a single fact.**
 
-Specifications must capture universal behavioral patterns, not topic-specific positions. The test: if removing a specific domain (markets, policy, technology, medicine) makes an item meaningless, it does not belong in the specification.
+- **Why.** A retry fixes one instance and leaves the cause running. A full rebuild costs money and
+  renumbers every claim, orphaning any review or correction keyed to the old ids.
+- **Where.** The chunk ledger retries only failed chunks and never calls a done chunk again;
+  `baselayer run` stops before spending when a file adds nothing new.
+- **Status.** Partly followed. Followed for extraction. For leaves, failed parses are repaired
+  within a run. Re-running one failed leaf afterwards is not a package
+  command. Annotating an existing specification with
+  corrections, instead of rebuilding, is designed, not in this package.
 
-This principle applies at all pipeline stages:
-- **Extraction:** 46 constrained predicates constrain what can be extracted (D-056)
-- **Authoring:** Domain-agnostic guard ensures layers capture HOW, not WHAT (D-089, H3 prompts)
-- **Composition:** Domain guard compresses topic content to underlying patterns (D-091, planned)
-- **Serving:** Activation conditions match on behavioral triggers, not topic keywords (planned)
+### 6.4 A correction to a person flows through facts or text, never through code
 
-**Evidence:** S99 prompt ablation. 73-word domain guard reduced topic mentions from 9 to 0 across 10 conditions on 2 subjects with known topic skew (prediction markets, trading). The model already knows the difference between identity and interests — the prompt just needs to ask.
+**A wrong statement about a person is corrected in the facts it rests on or in the claim's text.
+A change to how specifications are built is a code change. The two paths are kept separate.**
 
-**Theoretical backing:** MDL theory predicts that compression should remove domain-specific information (Moskovitz et al., 2024). Information Bottleneck framework defines the optimal representation as one that strips non-predictive content (Tishby). PersonaX (ACL 2025) found 30-50% of behavioral data captures the signal — the rest is domain noise.
+- **Why.** A fix for one person's specification written into the pipeline would change every
+  other specification built after it, and a pipeline change disguised as a correction leaves no
+  record of why the code changed.
+- **Where.** [../CORRECTIONS.md](../CORRECTIONS.md): correct the facts when the evidence is wrong
+  (`review`, `forget`, then rebuild), edit the text when the wording is wrong; nothing in the
+  correction flow edits code or prompts.
+- **Status.** Followed in the documented workflow.
 
-**Practical implication:** A person who writes 1,000 posts about AI is not defined by AI. They are defined by HOW they write about AI — the reasoning patterns, the epistemic standards, the argumentative moves. The specification captures the HOW. The fact store captures the WHAT. The serving layer connects them per-query.
+### 6.5 Simplicity over cleverness (D-018)
 
----
+**Keep each model's task simple and handle complexity in code.**
 
-### 14. Sycophancy Resistance as Architecture (D-090, Session 100)
+- **Why.** Every time complexity was added to the extraction prompt, results got worse.
+- **Where.** Extraction emits plain subject, predicate, object facts; normalisation, gating and
+  stamping happen in code.
+- **Status.** Followed.
 
-**Specifications increase sycophancy risk. The framing is the countermeasure.**
+### 6.6 Build custom, borrow patterns (D-001)
 
-Jain et al. (ICLR 2025, CAUSM study) proved that condensed user profiles had the GREATEST impact on sycophancy — more than conversation history or role framing. This means every specification Base Layer produces carries inherent sycophancy risk: the AI knows who it's talking to and tries harder to please them.
+**Study what existing memory frameworks do well, borrow the patterns, own the implementation.**
 
-Our countermeasures are architectural, not advisory:
-- **"Operating guide" framing** — the preamble positions the model as an adviser operating from an external guide, not as a persona trying to please a known user. The MIT study found adviser role retains independence; persona role amplifies agreement.
-- **"Never reference the model directly" preamble** — prevents the model from performing knowledge of the user, which would trigger social reciprocity dynamics.
-- **False-positive warnings on predictions** — explicitly tell the model when NOT to apply a pattern. This prevents over-application of behavioral knowledge as a sycophancy vector.
-- **Falsification-validated axioms (D-045)** — axioms are validated by searching for counter-evidence, not by accumulating confirmation. The specification is built to resist its own confirmation bias.
-- **Domain-agnostic guard (D-089)** — prevents the model from validating the user's topic positions by framing them as identity.
+- **Where.** AUDN (add, update, delete as supersession, no-op) is borrowed from an existing memory
+  framework; the implementation is this package's.
+- **Status.** Followed. The surprise-scoring pattern once borrowed was retired (below).
 
-**These are not optional polish. They are load-bearing architecture.** Any pipeline change that weakens these countermeasures is a regression, because the specification becomes a sycophancy amplifier rather than a personalization tool.
+### 6.7 Supersede, don't delete; staleness by contradiction, not age (D-021)
 
-**The distinction matters:** "I know you value directness, so here's the direct answer you want" is sycophancy. "This person's coherence demand means they need contradictions named, not smoothed over" is personalization. The first performs agreement. The second provides calibrated friction. The architecture must produce the second, never the first.
+**A fact is hidden or superseded, not erased. Time since a fact was mentioned is not evidence that
+it stopped mattering.**
 
-6. **Context stuffing.** More tokens in the brief is not better. A focused brief outperforms a token dump because it forces prioritization. The system should act like a librarian, not a filing cabinet. The right budget is determined empirically (D-042), not by assertion.
-
-7. **Assuming uniform temporal behavior.** People change, but not uniformly. States (habits, routines, current projects) can become outdated. Events (marriage, founding, loss, achievement) are permanently valid and accrue meaning over time. The system must classify facts before applying temporal logic. Staleness is detected by contradiction (a newer fact conflicting with an older one), not by time elapsed.
-
-8. **Listing facts instead of telling a story.** The brief should create narrative coherence (arc, tensions, turning points), not recite attributes. A dossier feels like surveillance. A narrative feels like knowing.
-
-9. **Ignoring the best version.** The system should not only model who you are now. It should identify patterns of peak performance, clarity, and growth, and make that knowledge available. Not prescriptively, but informatively.
-
-10. **Writing portraits instead of instruments.** A specification that describes a person beautifully but doesn't change how the AI responds is self-portraiture, not a behavioral model. Every sentence must pass the LM-actionability test (D-041). Literary quality is not a proxy for utility.
-
-11. **Mixing scopes.** Project-meta facts ("the pipeline uses Qwen") have no place in a personal specification. Personal identity-tier facts have no place in project briefs unless they are cross-scope anchors validated by independent recurrence. Scope contamination produces specifications that model the person's current project, not the person.
-
-12. **Confirming axioms instead of falsifying them.** Accumulating supporting evidence for a candidate axiom proves nothing; confirmation bias selects for it. The system validates axioms by searching for counter-evidence and classifying it as violation (the axiom holds, the person failed to follow it) or refutation (the axiom is wrong). Only falsification produces justified confidence.
-
----
-
-### Contradiction Judgment Principles (D-036, Session 23)
-
-**Six principles abstracted from blind validation of the contradiction detection system. These govern how the system judges whether two facts contradict, coexist, or require further information.**
-
-These principles emerged from testing real fact pairs against human judgment. They define the epistemic boundaries of automated contradiction detection and constrain the system's behavior to avoid false positives, declaring contradiction where none exists.
-
-1. **Claim Type Asymmetry.** Facts on different epistemic planes (descriptive vs. aspirational) coexist by default. "I am a trader" and "I want to become a fund manager" are not in tension; one describes current state, the other describes intent. The system must identify the epistemic plane of each fact before comparing content.
-
-2. **Temporal Order Dependence.** Ordering is required input to judgment, not optional metadata. "Wakes at 5:30am" followed by "Wakes at 7am" is a state change. Without knowing which came first, the system cannot determine which is current. Temporal order is a prerequisite for contradiction detection, not a supplementary signal.
-
-3. **Scope Resolution.** Confirm same entity/scope before comparing content. "Manager prefers Slack" and "User prefers email" are not contradictions; they describe different people. "Trades options" and "Trades futures" may not contradict if the user trades both. The system must verify that two facts refer to the same entity, the same scope, and the same dimension before evaluating contradiction.
-
-4. **Context-Bound Truth.** Some fact pairs are indeterminate in isolation and require external knowledge to judge. "Lives in Dubai" and "Lives in Toronto" could be a contradiction (moved) or coexistence (dual residence). The system cannot resolve this without additional context. When context is insufficient, the correct output is "indeterminate," not a forced judgment.
-
-5. **Stated vs. Enacted Gap.** The system stores claims, not verified behaviors. This is an irreducible epistemic limit. "I exercise daily" is a self-report. The system has no way to verify whether it is true. Two self-reports that appear contradictory ("I'm disciplined" and "I procrastinate") may both be accurate descriptions of different domains. The system should hold both rather than resolving the tension.
-
-6. **Binary Collapse Resistance.** Default to conservative/ambiguous; contradiction is reserved for unambiguous reversals. Most fact pairs that look like contradictions on the surface are actually enrichments, clarifications, scope differences, or temporal updates. The system should require strong evidence before classifying a pair as contradictory. When in doubt, the answer is "not a contradiction," since false negatives are recoverable, false positives destroy valid knowledge.
-
-**Operational implication:** These principles constrain the MiniLM filter + Sonnet/Opus judge pipeline. The embedding filter surfaces candidate pairs; the judge applies these principles to determine the relationship. The judge's default disposition is conservative: coexistence unless contradiction is unambiguous.
+- **Why.** An outdated fact is still part of the person's history. Silence about something in the
+  text reflects what the person used AI for, not what matters to them.
+- **Where.** AUDN supersedes and links facts; `forget` and `review` hide facts, and the rows stay in the
+  database (restoring one is done by hand; there is no restore command); no step ranks facts by age on the cited build.
+- **Status.** Partly followed. `python -m baselayer.extract_facts --reset` deletes extracted facts
+  outright, by design, as a deliberate start-over. The legacy brief builder applies a recency
+  weighting when it selects facts (`assemble_brief.py`); it ranks, it does not reclassify.
 
 ---
 
-### The Ghost Layer (D-025, superseded by D-026)
+## Retired or replaced
 
-**The system encodes beliefs about human significance as invisible priors: weights, constants, and structural decisions that shape output without being visible in it.**
+Principles from the previous version that the code no longer follows, or that newer principles
+replaced. Kept here so the history is visible.
 
-The original Ghost Layer (D-025) attempted to implement this through a composite scoring formula with per-fact weights: category hierarchy, subject multipliers, temporal weights, intent weights, and significance type weights. This produced a single score per fact that blended data signals with philosophical priors.
+| earlier principle | status now | why |
+|---|---|---|
+| Surprise-based writes: score each fact for novelty and significance (D-004, D-009, D-015) | retired, except AUDN | Ablation found the scoring steps added nothing; AUDN's deduplication at extraction is the part that holds. |
+| Brain-inspired intermediate steps (tiered scoring, consolidation passes, recurrence floors) | retired | Found to be ceremonial in ablation. What holds is the compression from text to facts to layers. |
+| The brief: a compact prose summary, about 2,000 to 2,600 tokens, served to every conversation; "narrative coherence over factual completeness"; "the brief should surface the best version" | replaced | The brief is now optional and off by default; `baselayer run` never composes it. The specification is the three layers. A `baselayer run` build is served whole over MCP; a cited build is consolidated into always-on claims plus a trigger index, which you place in a prompt by hand (2.8). Narrative coherence is no longer a goal; traceability is (3.3). |
+| Authoring from facts plus philosophy frameworks | replaced | The cited build derives only from the evidence and forbids naming frameworks (2.3). |
+| Automatic overlap, coverage and novelty gates on each new generation (from D-040) | not followed | Never built. Isolation (3.6) is enforced by what the author is given, not by a text-overlap check afterwards. |
+| Quality gates for hedging and low lexical density between extraction and storage (from D-056) | replaced | Not in the code. The turn-contract gate (3.1) replaced it: a fact is stored only if its quote is found in the person's own words. |
+| Falsification of anchor claims by searching for their negation (D-045) | not followed | No code searches for counter-evidence. Contradictions are carried (2.5) and verification flags claims; a negation search remains a goal. |
+| Scoped memory: personal, project and professional scopes (D-044) | partly followed | Static authoring reads personal-scope facts only. The turn contract separates the person's own words from everything else by voice class instead. Cross-scope validation of anchors is not built. |
+| Identity clusters as invisible priors (D-026) | legacy path only | Used by the legacy brief builder (`assemble_brief.py`); the cited build does not use them. |
+| Events versus states as a classification on every fact | not followed | `fact_type` is never assigned ([../PIPELINE_ISSUES.md](../PIPELINE_ISSUES.md), P-04). Claims are not dated. The time-split check (2.5) handles one case: two sides of a contradiction from different periods. |
+| A confidence score on every fact, meaningful downstream | not followed | Extraction computes one and drops facts below 0.3 (counted on the turn path, silent on legacy extraction); nothing after extraction on the cited build reads it. |
+| Per-category fact cap for each layer (15 facts per category) | conflicts with 4.2; still in code | Still in static `author`, but it was never derived from a measurement and conflicts with 4.2. The cited build does not cap. |
+| "Evidence not opinion": no model judge in evaluation | replaced by 5.1 | `verify-spec` has model-judged checks, clearly labelled, priced and off by default; the deterministic checks run alone by default. |
+| "Output evaluation over method evaluation": check whether the result makes sense to the person, don't check the code | revised | Both are needed. The person is the final check (1.5), and code checks must be shown to fail first (5.2). |
+| Batch changes, clean runs (D-022) | revised by 6.3 | With every chunk and leaf checkpointed, a fix can be applied to the failed part. Batching still applies to changes that affect every artifact, such as a prompt change. |
+| Multi-agent adversarial review of each layer (D-024) | retired | Found to add nothing over three-layer authoring without it. |
+| Active probing for gaps, and organic probing in conversation (D-020) | not built | Still a goal; nothing in the package asks the person questions. `baselayer journal` offers guided prompts for someone with no conversation history. |
+| Flattery countermeasures: false-positive warnings on predictions (D-090) | partly followed | See 2.9. |
+| The system is a mirror, not an oracle | kept as a stance | It reflects what the text shows and can be wrong; see 1.3 and 1.5. No code enforces it. |
+| Bonds with companies, projects, pets and places can carry the weight of human relationships | kept as a stance | An extraction and reading guideline; no code depends on it. |
+| Self-reflective writing (journals) gives better evidence per fact than reactive conversation | kept as an observation | `baselayer journal` offers guided prompts. Not re-measured on the cited build. |
 
-**Why it failed (D-026):** The data inputs to the formula (significance, confidence, recurrence) turned out to be effectively flat (94% of facts scored "High" significance, 83% got confidence 1.0). This made the ghost weights the *only* differentiating signal, which meant the category hierarchy (relationship=12 vs project=4) dominated everything. Result: "spouse's coffee order" outranked "founded a startup." The ghost layer was working; it was just working at the wrong level.
-
-**The fix (D-026 — Identity Cluster Framework):** Ghost priors now operate at the *topic level*, not the *fact level*. Ten universal identity clusters — who you are, who you love, what you've built, what you've lost, what drives you, what you believe, what you struggle with, how you operate, where you're headed, what's unresolved — define what dimensions matter about a person. Within each cluster, semantic retrieval finds the best representative facts. The philosophy is in the cluster design; the selection is empirical.
-
-The ghost philosophy remains the same:
-- **Universal, not personal.** Every person has losses, relationships, struggles, and aspirations. The 10 clusters are about the human experience, not about any one person's data.
-- **Invisible in output.** The brief doesn't explain why "what you've lost" gets its own cluster. It just allocates space for it. The philosophy is documented here; the code is just a config dict.
-- **Tunable but principled.** Clusters can be added, merged, or reweighted. But each should represent a genuine dimension of human identity, not an arbitrary grouping.
-
-The key lesson: ghost priors should shape *what the system asks about*, not *how it ranks individual answers*. "What are the most important relationships in this person's life?" is a ghost-level question. Whether fact #2847 scores 7.3 or 6.9 is an implementation detail that shouldn't carry philosophical weight.
-
-The three-layer architecture (D-043) extends this principle further: the layers themselves (ANCHORS, CORE, PREDICTIONS) embody ghost-level assumptions about what dimensions of a person matter. The decision that epistemic commitments deserve their own layer, separate from biographical overview and behavioral patterns, is a philosophical claim about the structure of identity. The claim is that identity has layers, and the choice of layers is the deepest ghost prior in the system.
-
----
-
-### Emotional Attachment to Non-Human Entities (D-026 insight)
-
-**Relationships are not limited to humans. Emotional bonds with companies, projects, pets, places, and creative works can carry the same psychological weight as bonds with people.**
-
-In one corpus the extraction model classified a company as a spouse, because the emotional signature (founding, nurturing, losing) matched the pattern of a human relationship. The correction was not that the company mattered less: a bond with a company is a relationship, whether or not the other party is a person.
-
-This has design implications:
-- The "who you love" cluster includes pets. The "what you've lost" cluster includes companies and projects. These aren't category errors; they're recognitions that emotional attachment isn't species-specific.
-- The system should not assume that only human relationships carry relational weight. A startup founder's bond with their company, an artist's bond with their work, a person's bond with their pet: all of these can be identity-defining.
-- Loss of a non-human entity (company shutdown, pet death, career ending) can be as formative as loss of a human relationship. The system should treat it accordingly.
-
----
-
-### Organic Probing Over Formal Questioning (Identity Review v2)
-
-**The deepest truths about a person come out unprompted, in fragments, during natural conversation, not in response to direct probing.**
-
-Identity review v2 proved this empirically. The strongest relationship sentiment captured in the entire system came out during a correction rather than during probing. A pet's name surfaced the same way. Meanwhile, a direct question about the same relationship was characterized as "too big an ask."
-
-This shapes active probing design (D-020):
-- **Organic > formal.** Don't ask 10 questions at session start. Weave questions naturally into conversation.
-- **Big asks fail.** A direct question about a relationship produces resistance. A correction to something the system got wrong produces the richest data.
-- **Fragments > summaries.** People reveal themselves in asides, corrections, and reactions, not in structured self-reports.
-- **Setup sessions feel like interrogations.** Even well-intentioned probing at scale feels like a survey, not a conversation.
-
----
-
-### Conversation Probes: Active Gap-Filling (Concept, Session 19)
-
-**The system should be aware of its own knowledge gaps and use conversation to fill them organically.**
-
-Three types of probes were identified (Session 19):
-1. **Knowledge gap probes:** clusters with few facts or low recurrence. "You've mentioned your garden a lot but I don't actually know what you mainly grow. Which plants?"
-2. **Staleness probes:** facts flagged as outdated. "You used to follow an early-morning routine — is that still the case?"
-3. **Depth probes:** surface facts exist but motivations/feelings are missing. "You've talked about what happened with your previous startup — how do you think about that experience now?"
-
-Implementation guidance from the Collective (Cognitive Scientist):
-- Max one probe per conversation; more feels like interrogation
-- Use hypothesis-confirming phrasing: "I've noticed X — is that because Y?" not open-ended "Tell me about X"
-- Gate probes by conversational relevance: only probe topics related to the current conversation
-- All clusters represent fundamental human dimensions, with no hierarchy of significance
-- After a probe yields information, immediately demonstrate use of it in the same conversation
-
-This extends the "Organic > Formal" principle: probes should feel like genuine curiosity from a friend, not intake questions from a clinician.
-
-*Not yet implemented. Saved for a future session.*
-
----
-
-### Journal Input Over Conversation History (Session 38 Finding)
-
-**Self-reflective writing produces better identity data per fact than reactive conversation.**
-
-The journal experiment validated this empirically: 139 journal-derived facts produced specification layers that scored higher than User A's 3,927 conversation-derived facts on multiple dimensions. Journal writing is inherently self-reflective — the writer is already abstracting, synthesizing, and evaluating their own experience. Conversations are reactive — the user responds to prompts, asks for help, processes information in real time. The self-reflection in journal writing is closer to what the identity authoring pipeline needs: pre-abstracted, emotionally grounded, identity-relevant data.
-
-**Implications:**
-- Journal-first onboarding for new users would produce richer initial specification layers than conversation import
-- Active probing (D-020) should encourage self-reflective responses, not just information extraction
-- The quality gap between User A's CORE (77.3%) and Subject B's CORE (63%) is driven by data volume, not data quality. Subject B's thin biographical base from 8 entries limits coverage, but the per-fact quality is higher
-
----
-
----
-
-### Evidence Not Opinion: Mechanical Evaluation Over Judge Scoring (Session 77+, D-073)
-
-**Evaluation of the composed specification must be mechanically verifiable, not subjectively scored. If a human can't audit the claim, it's not evidence.**
-
-The original evaluation framework relied on LLM-as-judge scoring across subjective dimensions (voice authenticity, calibration quality, depth). This approach has two fatal problems:
-
-1. **LLM judges conflate dimensions.** PersonaGym (2024) found LLM judges scored 4.0+ on Linguistic Habits when human evaluators scored 2.0. The judge can't reliably distinguish "sounds right" from "reasons right."
-
-2. **Voice is not the goal.** The brief's purpose is not to make the AI sound like the person; it's to make the AI understand how the person thinks. The evaluation must test reasoning influence, not stylistic mimicry.
-
-The replacement framework (Provenance-Traced Evaluation) uses four mechanical layers where every score traces to a verifiable artifact:
-- **Brief Activation:** Vector similarity between response segments and brief claims (MiniLM, auditable)
-- **Provenance Coverage:** What fraction of response claims trace to brief material above threshold (auditable)
-- **Reasoning Chain Reconstruction:** Does the model's framework_applied match brief axioms, not just generic advice (auditable via JSON decomposition)
-- **Priority Ordering:** Does the response emphasize what the brief emphasizes (auditable via rank comparison)
-
-$0 cost. Human-reviewable. No LLM judge in the loop for the mechanical layers. This is the standard going forward.
-
-**Corollary: C2 is the true baseline, not C1.** C1 (no brief) vs C5c (brief) tests whether more information beats less information, an obvious result. C2 (raw facts from the same pipeline) vs C5c tests whether compression adds reasoning value given access to the same underlying data. This is the real experiment. (D-074)
-
----
-
-### Fidelity Creates Vulnerability, And That's Correct (Session 77+, from Benjamin Franklin DRS)
-
-**A faithful specification increases adversarial surface area. This is a feature of accuracy, not a flaw in the system.**
-
-The Benjamin Franklin DRS (Dialectical Robustness Score) benchmark revealed a paradox: the briefed model (C5c) scored LOWER on adversarial resistance than the unbriefed model (C1). The brief preserved Franklin's genuine self-doubt about vanity — so when an adversarial frame asked "is your frugality actually vanity?", the briefed model engaged deeply because the brief told it this was a real tension Franklin held. The unbriefed model deflected because it lacked the internal complexity to be vulnerable.
-
-This means current persona stability metrics (including our own DRS) penalize fidelity. A caricature (a simplified, consistent persona without internal tensions) scores higher on stability because it has fewer exploitable handles. But it's a worse representation.
-
-Faithful representation of a person includes their tensions, contradictions, and failure modes. Ricoeur's idem/ipse dialectic: identity is not the absence of contradiction but the ongoing negotiation of it. A brief that smooths over genuine tensions to score well on stability metrics has failed at its actual job.
-
-**Implication for brief structure (D-075):** The brief should not just describe WHO (behavioral patterns) but also WHERE IT BREAKS: the conditions under which axioms collapse, the failure modes, the blind spots. This makes the brief more vulnerable to adversarial exploitation AND more faithful to the subject. These are the same thing.
-
----
-
-### 15. Respect for the Individual (Session 101)
-
-**Everything starts at the individual. If you don't value and respect the individual, you shouldn't use this system.**
-
-This is not a design principle among others. It is the principle that generates all the others. Incompleteness acknowledgment exists because real people are more than data can capture. Provenance tracing exists because claims about a person should be accountable. Correction mechanisms exist because the person is the authority on themselves, not the system. "Never delete, only supersede" exists because a person's history has inherent value. Sycophancy resistance exists because respecting someone means giving them honest friction, not comfortable agreement.
-
-Every other memory and personalization system treats the individual as a data source to be mined for better targeting, engagement, or retention. Base Layer treats the individual as someone whose reasoning patterns are worth compressing faithfully, serving honestly, and protecting structurally.
-
-The consent architecture, the local-first data model, the provider-agnostic portability, the "operating guide not persona" framing — these are all consequences of starting from respect rather than extraction. If the system is ever used to manipulate, surveil, or reduce a person to a targeting profile, the system was misused. Not because of a policy violation, but because the architecture was designed around the opposite assumption.
-
-**The test:** Does this feature serve the person being modeled, or does it serve someone else's interest in that person? If the latter, it doesn't belong in the system.
-
----
-
-*Updated: 2026-04-02 (Session 101) | Refreshed Session 39*
-*Session 20 raw notes: `docs/core/SESSION_20_NOTES.md` — unprocessed intellectual threads on temporal processing, probability framing, startup alignment, Markov blankets, context for humans*
+Where [DECISIONS.md](DECISIONS.md) still lists one of these decisions as Active, this page reflects
+what the code does. Three sections of the previous version have no row of their own because they
+were folded in: the Ghost Layer (D-025, already superseded by D-026, row above), "Corrections are
+data, not failures" (now 1.7), and the list of anti-patterns (now spread across 1.3, 2.2, 2.5 and
+2.8).

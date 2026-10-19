@@ -100,4 +100,4 @@ class TestNoSecretLeakage:
                 with redirect_stdout(f):
                     _check_api_key()
             # Output should not contain any real key pattern
-            # (It prints a hint "sk-ant-..." which is fine)
+            # (It names the variable, not a key shape)
