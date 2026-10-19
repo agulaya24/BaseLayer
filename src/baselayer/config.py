@@ -511,9 +511,11 @@ def collection_space(collection):
     """Read the distance space off a Chroma collection. Never assume it.
 
     Chroma stores it in collection metadata as `hnsw:space`. When unset, Chroma's
-    default is l2. Collections in this project are NOT uniform: `memory_facts` is
-    created cosine (embed.py, extract_facts.py, batch_extract.py), while `messages`,
-    `turn_pairs` and `conversation_summaries` are left at the l2 default.
+    default is l2. Both collections the package creates ask for cosine: `memory_facts`
+    (extract_facts.py, batch_extract.py) and `messages` (embed.py). Neither request
+    changes a collection that already exists, and a collection created elsewhere
+    (for example a `conversation_summaries` collection, which nothing in the package
+    creates) can carry no `hnsw:space`, which reads here as l2.
     """
     md = getattr(collection, "metadata", None) or {}
     return md.get("hnsw:space", "l2")

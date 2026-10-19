@@ -72,7 +72,7 @@ it. The full step table is in [../PIPELINE.md](../PIPELINE.md#1-two-paths).
 |---|---|---|
 | extraction | legacy (whole conversations in chunks) by default; the turn contract when `BASELAYER_TURN_CONTRACT=1` is set | `baselayer extract --turn-contract`: every fact quotes the person's own words, checked by a gate in code |
 | authoring input | a selection of facts made by SQL, capped per category | every active fact, each given one recorded verdict by distillation |
-| citations | asked for, not required | required by schema; ids not in the package are refused |
+| citations | asked for, not required | required by schema; ids not in the package are stripped and counted |
 | verification and trigger index | not run | `verify-spec`, `consolidate` |
 | served over MCP | yes | no |
 
@@ -237,7 +237,9 @@ pointer) and the text the MCP server serves below a `## Injectable Block` marker
 | `vector` | when the citation path returns nothing (common for ANCHORS and PREDICTIONS, which synthesise rather than quote), `store_layer()` calls `verify_provenance.generate_vector_provenance()`, which embeds each claim and links its nearest facts. This is proximity, not a link the model made: read it as nearby, not used |
 
 **Traceability** (`_run_traceability`, after `author` inside `baselayer run`): tiers facts by
-predicate (`tier_facts_by_predicate`), embeds facts if fewer than 90% have vectors, writes vector
+predicate (`tier_facts_by_predicate`), runs `baselayer embed` when fewer than 90% of facts have a
+vector in `memory_facts` (that embeds messages, so it does not raise the fact-vector count; fact
+vectors are written during extraction), writes vector
 provenance for every claim of each layer, cited or not (top N facts per claim, no similarity floor;
 read every `vector` row as nearby, not used), and runs a tension check: up to 30 candidate fact pairs found by
 embedding similarity, each classified by Claude Haiku 4.5 (`detect_contradictions.classify_pair_haiku`)
@@ -250,8 +252,9 @@ pronouns enforced (D-092) and a completeness check of required terms. Output:
 
 **Stale marker.** `baselayer forget` writes `data/identity_layers/stale_after_forget.json`; any
 layer or brief older than it is reported stale by `baselayer stats`, the MCP server log and
-`get_stats`, and the served specification carries a short notice. Any re-author clears it. A
-cited-path output directory is never marked stale.
+`get_stats`, and the served specification carries a short notice. Staleness is per file, by
+modification time, so a re-author clears it for the files it rewrites. A cited-path output
+directory is never marked stale.
 
 ---
 
@@ -290,9 +293,11 @@ shards of disjoint leaf ranges and `--out` becomes a manifest; nothing is droppe
 **Author from package** (`baselayer author-from-package --package ... --outdir <dir>`). Model:
 Claude Opus 5 by default (`--model`), effort `high`. One call per layer, or per shard, each blind
 to the other layers. Each claim is emitted through a strict schema (id, name, statement,
-`Active when`, fact ids, contested flag); a claim without fact ids is not accepted, and ids not in
-the package are refused. Writes `<layer>.md`, `<layer>.json` and `<layer>.stamp.json` per layer;
-with `--db`, a coverage gaps manifest; with `--compose`, an optional `brief.md`. It writes nothing
+`Active when`, fact ids, contested flag). Ids not in the package are stripped and counted; the
+request is re-sent only when a claim is left with no valid id (or no claim is emitted). Writes
+`<layer>.md`, `<layer>.json` and `<layer>.stamp.json` per layer, and a coverage gaps manifest on
+every run (`--db` decides whether it records the chunk ledger as checked or as not checked); with
+`--compose`, an optional `brief.md`. It writes nothing
 to `layer_claim_provenance`: a cited-path claim's facts are the `fact_ids` in `<layer>.json`. The
 quote gate (module only, `python -m baselayer.distillation.author_from_package --quote-gate --db
 <memory.db>`) checks quoted phrases against the own-voice spans of the cited facts.
@@ -361,7 +366,7 @@ by hand (see [../../README.md](../../README.md#for-your-agent)).
 | tool | what it returns |
 |---|---|
 | `get_brief(reason)` | the optional brief, when one was composed; otherwise a note that none exists |
-| `recall_memories(query)` | facts and episodes near the query by vector similarity (needs `baselayer embed`) |
+| `recall_memories(query)` | facts near the query by vector similarity in `memory_facts` (written during extraction, not by `baselayer embed`), plus episodes from a conversation-summary collection when one exists |
 | `search_facts(query, limit)` | keyword search over active facts (FTS5, with a LIKE fallback) |
 | `trace_claim(claim_id)` | the rows of `layer_claim_provenance` for a claim id: each fact with its tier, recurrence, link method and source conversation title, and, for a fact extracted under the turn contract on a database with the `evidence_spans` column, up to three of its evidence spans (the person's quoted words, with the turn id) |
 | `verify_claims(claim_id, layer)` | the `baselayer verify` checks for one claim or layer |
@@ -437,15 +442,21 @@ tables above.
 under `<root>/data/vectors/`. Every client is built through `config.get_chroma_client()`, with
 ChromaDB's anonymized telemetry off.
 
-Vectors serve `search`-style retrieval (`recall_memories`), `baselayer verify`, vector provenance
-and the tension check. Neither author reads ChromaDB, and the cited path does not need it.
+Two collections. `memory_facts` holds one vector per fact, written during extraction
+(`extract_facts.py`, `batch_extract.py`); `recall_memories`, `baselayer verify` and vector
+provenance read it. `messages` holds one vector per imported message, written by `baselayer embed`
+(`embed.py`); `baselayer search` reads it. The tension check embeds facts in memory and reads
+neither. Neither author takes ChromaDB as input, and the cited path does not need it, but the
+static path's `store_layer()` queries `memory_facts` for vector provenance when a layer has no
+citation provenance.
 
-Collections do not share a distance space, so read it before converting a distance. `memory_facts`
-is created with `hnsw:space=cosine` (similarity `1 - d`); `messages`, `turn_pairs` and
-`conversation_summaries` are left at Chroma's l2 default, which returns squared distance
-(similarity `1 - d/2`). Call `collection_space()` and pass the result to
-`chromadb_dist_to_similarity()`, which requires it. Applying one formula to both was a live defect:
-on a cosine collection it passed a 0.85 gate whose true value was about 0.45.
+Collections need not share a distance space, so read it before converting a distance. Both are
+created with `hnsw:space=cosine` (similarity `1 - d`). Creation does not change a collection that
+already exists, and a collection with no `hnsw:space` (one created outside the package, such as a
+conversation-summary collection) is at Chroma's l2 default, which `collection_space()` reports as
+`l2`. Call `collection_space()` and pass the result to `chromadb_dist_to_similarity()`, which
+requires it. Applying the l2 formula to a cosine collection was a live defect: it passed a 0.85
+gate whose true value was about 0.45.
 
 ---
 
@@ -496,7 +507,7 @@ shape it has. It predates distillation and the turn contract.
 |---|---|
 | chat exports (ChatGPT, Claude) | `baselayer run <export>`, or the cited path |
 | journals, notes, essays | `baselayer run <folder>`; text files are imported as the person's own words, so exclude any they did not write |
-| a document corpus that is not a person (a book, a set of filings) | `--document-mode` with `--subject` on `extract` or `run`; never for a person |
+| a document corpus that is not a person (a book, a set of filings) | `--document-mode` on `extract` or `run` (`--subject` exists on `run` only); never for a person |
 | nothing | `baselayer journal` runs guided prompts and stores the answers as text to extract from |
 
 ---

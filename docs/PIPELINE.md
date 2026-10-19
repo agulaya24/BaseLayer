@@ -16,7 +16,7 @@ which model it calls (if any), what can stop it, and its options. Commands and f
 | coverage gate | stops before authoring while the chunk ledger holds quarantined chunks, unless `--accept-gaps` | not applied; gaps are written beside each artifact |
 | distill, assemble | no | yes |
 | author | static `baselayer author`, Claude Sonnet 4.6 | `baselayer author-from-package`, Claude Opus 5 by default |
-| traceability | tier facts, embed, vector provenance, a tension check between facts on Claude Haiku 4.5 | no (run `baselayer embed` if you want search) |
+| traceability | tier facts, an embedding check, vector provenance, a tension check between facts on Claude Haiku 4.5 | no (`baselayer embed` if you want `baselayer search` over messages) |
 | verify | no | `baselayer verify-spec` |
 | consolidate | no | `baselayer consolidate` |
 | served over MCP | yes (`data/identity_layers/`) | no |
@@ -262,9 +262,10 @@ on the subscription: `python -m baselayer.consolidation.build judge` (duplicate 
 
 ## 11. Side branches
 
-- `baselayer embed`: builds the local vector index (`all-MiniLM-L6-v2`, ChromaDB) used by
-  `search`, `verify` and the MCP retrieval tools. The first run downloads the model from Hugging
-  Face. ChromaDB's own anonymized telemetry is on by default; Base Layer builds every client it
+- `baselayer embed`: embeds imported messages (`all-MiniLM-L6-v2`) into the ChromaDB `messages`
+  collection, which `baselayer search` reads. Fact vectors (`memory_facts`), which `verify`, vector
+  provenance and the MCP `recall_memories` tool read, are written during extraction, not here. The
+  model is downloaded from Hugging Face on first use. ChromaDB's own anonymized telemetry is on by default; Base Layer builds every client it
   creates with it off. If you create ChromaDB clients in your own code, pass
   `Settings(anonymized_telemetry=False)` or set `ANONYMIZED_TELEMETRY=False`.
 - `baselayer verify`: the older provenance audit of static layers (vector proximity, recurrence,
@@ -273,7 +274,8 @@ on the subscription: `python -m baselayer.consolidation.build judge` (duplicate 
   nearest facts by embedding (top N per claim, no similarity floor), as the `run` traceability step
   also does; read every `vector` link as nearby, not used.
 - `baselayer provenance --claim A1`: trace a static-layer claim to its facts.
-- `baselayer search "<query>"`, `baselayer stats`: keyword search over active facts; database counts.
+- `baselayer search "<query>"`, `baselayer stats`: semantic search over embedded messages (needs
+  `baselayer embed`); database counts.
 - `baselayer checkpoint extraction`: a report on extraction quality. It changes nothing.
 
 ## 12. Spend

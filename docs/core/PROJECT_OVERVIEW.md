@@ -96,8 +96,8 @@ not serve a cited-path output directory or the `consolidate` output. It offers t
 - The server also places the layers in its MCP instructions. Some clients may truncate long
   instructions; the full text is always the `memory://specification` resource, which re-reads the
   layer files on every call.
-- `recall_memories` needs the vector index (`baselayer embed`, or `run`'s traceability step);
-  `search_facts` is keyword search and does not.
+- `recall_memories` reads the fact vectors written during extraction (`baselayer embed` does not
+  write them); `search_facts` is keyword search and needs no vectors.
 - `trace_claim` lists the facts linked to a claim with tier, recurrence, how each link was made and
   the source conversation title. For facts from turn-contract extraction it also prints up to three
   of the person's own quoted words per fact, with the turn they came from.

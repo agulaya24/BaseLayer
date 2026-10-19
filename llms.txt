@@ -63,7 +63,7 @@ A serving system that routes between retrieval and interpretation by question ty
 
 - The Specification's benefit is largest where the model knows the person least. Mean prediction-quality lift +0.89 on a 1-to-5 rubric across 9 low-baseline subjects; every one improved (§4.1).
 - The Specification is a leveler. It brings every subject to roughly the same operational quality (~2.44 on the rubric across 14 subjects), regardless of where each subject's baseline sits (§4.1, §5.2).
-- Compression is load-bearing. A ~7K-token Specification recovers most of what the full source corpus delivers, at 5x to 80x smaller context (§4.2).
+- Compression is load-bearing. The Specification the study tested (the three layers plus a composed brief, about 7K tokens per subject, roughly 4K to 9K) recovers most of what the full source corpus delivers, at 5x to 80x smaller context (§4.2). Today's layer sizes are given above.
 - Content specificity matters. A different person's Specification applied to this subject drops accuracy below the no-context baseline. The matched content does the work, not the structured-prompt template (§4.3).
 - Memory-system providers do not converge on which facts matter. Given identical input, mean pairwise top-10 overlap is 8.3 percent across the 10 system pairs. They converge on recall scores, not on relevance (§4.4.1).
 

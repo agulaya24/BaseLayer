@@ -72,7 +72,7 @@ Step-by-step:
 
 ```bash
 baselayer extract                 # Haiku 4.5, 46 constrained predicates, AUDN lifecycle
-baselayer embed                   # MiniLM-L6-v2 -> ChromaDB
+baselayer embed                   # optional: messages -> ChromaDB, for `baselayer search`
 baselayer author --layer all      # Sonnet 4.6, three-layer authoring (static path)
 baselayer compose                 # optional: Opus 4.6, a prose brief from the layers (static path)
 ```
@@ -144,7 +144,7 @@ After the pipeline:
 1. **Specification**: the three layers. On the `baselayer run` path, `data/identity_layers/{anchors,core,predictions}_v4.md` under the data root; on the cited path, `<layer>.md` and `<layer>.json` in the `author-from-package` output directory.
 2. **Optional brief**: `data/identity_layers/brief_v5_clean.md` (only if `compose` ran) or `brief.md` (only with `--compose`).
 3. **Fact database** with tier, type, and confidence metadata.
-4. **Vector store** for semantic search over facts and source text (after `embed`).
+4. **Vector store**: fact vectors written during extraction (for `recall_memories`, `verify` and vector provenance), and message vectors for `baselayer search` (after `embed`).
 5. **Cited path only**: a `verify-spec` report and `consolidate` output (`served.txt`, `index.json`).
 
 ## Connecting to AI

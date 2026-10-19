@@ -76,12 +76,13 @@ baselayer import chatgpt-export.zip     # .zip/.json exports, .txt/.md/.docx/.rs
 baselayer estimate
 baselayer extract                       # --backend ollama for local extraction
 baselayer author                        # all three layers; --layer core for one
-baselayer embed                         # vector index for MCP search and `baselayer verify`
+baselayer embed                         # optional: message vectors for `baselayer search`
 baselayer compose                       # optional: a single prose brief from the layers
 ```
 
-`run` builds the vector index for you; on the step-by-step route run `embed` yourself, or the MCP
-`recall_memories` tool and `baselayer verify` have nothing to search.
+Fact vectors are written during `extract`, so the MCP `recall_memories` tool and `baselayer verify`
+work without `embed`. `embed` adds one vector per imported message, which only `baselayer search`
+reads.
 
 ## Path B: the cited path
 
@@ -193,8 +194,7 @@ moves through each path: [CORRECTIONS.md](../CORRECTIONS.md).
 - An Anthropic API key for the model steps listed in step 3.
 - Optional: Ollama with the model named by `LLM_MODEL` in `config.py` (`qwen2.5:14b`) for local
   extraction.
-- Disk for the embedding model (downloaded from Hugging Face on the first `embed`) and the vector
-  store.
+- Disk for the embedding model (downloaded from Hugging Face on first use) and the vector store.
 
 Cost depends on how much text you import and on current provider prices. Model calls scale with
 the corpus; `distill` and `author-from-package` print their own estimate before any call.

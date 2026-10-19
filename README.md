@@ -120,8 +120,9 @@ Run these into a fresh data root. Each step links to its detail.
    authored layers. No model call, no claim text rewritten, 14 checks that must pass.
    ([docs/core/CONSOLIDATION.md](docs/core/CONSOLIDATION.md))
 
-`baselayer embed` builds a vector index for search and the MCP tools. The cited path does not need
-it.
+`baselayer embed` embeds imported messages for `baselayer search`. Fact vectors, which the MCP
+recall tool and `baselayer verify` read, are written during extraction. The cited path needs
+neither.
 
 ```
 export MEMORY_SYSTEM_ROOT=~/bl/franklin && mkdir -p "$MEMORY_SYSTEM_ROOT"

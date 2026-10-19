@@ -54,10 +54,10 @@ user; just do the work and report state.
 | "Resume it"                                       | Run `baselayer serve enable`.                                                                         |
 | "What has it been doing?" / "show me usage"       | Run `baselayer log stats` for aggregate, `baselayer log tail --limit 20` for recent calls.            |
 | "Why did you fetch X?" / "show me reasons"        | Run `baselayer log tail` and read the `reason:` lines.                                                |
-| "What's in my spec?"                              | Pull from MCP via `get_brief(reason="user asked what's in their spec")` and summarize.                |
-| "Regenerate my spec"                              | Run `baselayer author --layer all` then `baselayer compose`. Confirm cost gate first if noticeable.   |
-| "Add this conversation to the corpus"             | Run `baselayer import <file>`, then `baselayer extract`, `baselayer embed`, then re-author/compose.   |
-| "Is the model getting fresh info from my spec?"   | Re-author from current data: `baselayer author --layer all`, `baselayer compose`. Re-tag layer files. |
+| "What's in my spec?"                              | Read the `memory://specification` resource (the three layers) and summarize; `get_brief` adds the prose brief only if one was composed. |
+| "Regenerate my spec"                              | Run `baselayer author --layer all`. Add `baselayer compose` only if the user wants the optional prose brief. Confirm the cost first. |
+| "Add this conversation to the corpus"             | Run `baselayer run <file>` (imports with deduplication, extracts, re-authors, behind a cost prompt), or `baselayer import <file>`, `baselayer extract`, `baselayer author --layer all`. |
+| "Is the model getting fresh info from my spec?"   | Re-author from current data: `baselayer author --layer all`. The `memory://specification` resource re-reads the layer files on every call. |
 | "It's broken / not working"                       | Diagnostic flow below. Do not bounce the user; run the checks.                                        |
 
 ---
@@ -75,8 +75,9 @@ Run in order and report what you find:
       from layer fetches, the model is running an older server cached in
       memory; advise the user to start a fresh Claude Code session.
    c. Check the spec files: ls `<MEMORY_SYSTEM_ROOT>/data/identity_layers/`.
-      `core_v4.md`, `anchors_v4.md`, `predictions_v4.md`, `brief_v5_clean.md`
-      should all exist. If missing, regenerate via the pipeline.
+      `core_v4.md`, `anchors_v4.md` and `predictions_v4.md` should exist; a
+      brief file exists only if one was composed. If a layer is missing,
+      regenerate via the pipeline.
 4. If the user mentions the `/mcp` dialog: that dialog is for
    Anthropic-managed cloud connectors (Drive, Calendar, Gmail). Local
    stdio servers like `base-layer` are managed only via `claude mcp ...`
@@ -98,12 +99,12 @@ Run in order and report what you find:
 | `baselayer import <file>`      | Import ChatGPT/Claude export, journal directory, or text file.                           |
 | `baselayer estimate`           | Preview API cost before extraction.                                                      |
 | `baselayer extract`            | Extract structured behavioral facts via Haiku (46 constrained predicates, AUDN lifecycle). |
-| `baselayer embed`              | Generate ChromaDB vectors for the fact corpus.                                           |
+| `baselayer embed`              | Embed imported messages into the ChromaDB `messages` collection, which `baselayer search` reads. Fact vectors are written during extraction. |
 | `baselayer author --layer all` | Generate the three layers (anchors, core, predictions) via Sonnet.                       |
-| `baselayer compose`            | Compose unified narrative brief from the three layers via Opus.                          |
-| `baselayer run <file>`         | Full pipeline (import -> extract -> embed -> author -> compose) with cost gate.          |
+| `baselayer compose`            | Optional: compose a single prose brief from the three layers via Opus.                   |
+| `baselayer run <file>`         | One command: init if needed, import, estimate and confirm, extract, coverage gate, author the three layers, then traceability (tiering, vector provenance, a tension check on Haiku 4.5). It does not compose a brief. |
 | `baselayer stats`              | Database stats: conversation count, fact count, tier breakdown.                          |
-| `baselayer search "<query>"`   | FTS keyword search across active facts.                                                  |
+| `baselayer search "<query>"`   | Semantic search over imported messages (needs `baselayer embed`).                        |
 | `baselayer provenance --claim` | Trace a specification claim back to its supporting facts.                                |
 | `baselayer verify --layer all` | Run the four-check provenance audit on authored claims.                                  |
 | `baselayer checkpoint <stage>` | Quality gate after a pipeline stage. Reports only; there is no `--fix` flag.             |
@@ -118,6 +119,11 @@ Run in order and report what you find:
 | `baselayer log stats`          | Aggregate calls-by-tool across all sessions.                                             |
 | `baselayer journal`            | Guided prompt session when the user has no conversation history.                         |
 
+The cited path is eight separate steps, not `run`: name the person
+(`subject_names`), `import`, `extract --turn-contract`, `distill`, `assemble`,
+`author-from-package`, `verify-spec`, `consolidate`. Its output is not served
+over MCP.
+
 For the canonical command list, parse `src/baselayer/cli.py`.
 
 ---
@@ -128,7 +134,7 @@ For the canonical command list, parse `src/baselayer/cli.py`.
 |--------------------------------|----------------------------------------------------------------------------------------------------|
 | `memory://specification`       | Always-on resource. Returns CORE + ANCHORS + PREDICTIONS inline (~6-8K tokens) plus a brief manifest. Loaded at session start. |
 | `memory://identity`            | Deprecated alias for the above. Forwards to the same content.                                      |
-| `get_brief(reason)`            | Unified narrative portrait (~3,000 tokens). Fetch for broad self-reflective queries.               |
+| `get_brief(reason)`            | The optional prose brief, when one was composed; otherwise a note that none exists. Fetch for broad self-reflective queries. |
 | `recall_memories(query)`       | Semantic retrieval of facts and episodes from the user's history.                                  |
 | `search_facts(query)`          | Keyword search across the active fact database.                                                    |
 | `trace_claim(claim_id)`        | Provenance for a specification claim (e.g. `A1`, `P3`, `C2`).                                      |

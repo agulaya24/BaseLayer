@@ -20,3 +20,25 @@ def test_no_source_notice_prescribes_author_compose():
         src = inspect.getsource(mod)
         assert "author --compose" not in src, mod.__name__
 
+
+
+# get_help() returns agent_guide.AGENT_GUIDE to any MCP client, so stale pipeline advice there is
+# acted on by an agent, not just read. Each string below is advice the code no longer supports:
+# `run` does not embed messages or compose, the brief is optional, `embed` writes the `messages`
+# collection only (fact vectors are written during extraction), `baselayer search` is semantic
+# search over messages, and the brief has no fixed size.
+_STALE_AGENT_GUIDE = (
+    "import -> extract -> embed -> author -> compose",
+    "then `baselayer compose`",
+    "`baselayer embed`, then re-author",
+    "`baselayer compose`. Re-tag",
+    "Generate ChromaDB vectors for the fact corpus",
+    "FTS keyword search across active facts",
+    "~3,000 tokens",
+)
+
+
+def test_agent_guide_carries_no_stale_pipeline_advice():
+    from baselayer import agent_guide
+    for phrase in _STALE_AGENT_GUIDE:
+        assert phrase not in agent_guide.AGENT_GUIDE, phrase

@@ -39,7 +39,7 @@ All commands invoked as `baselayer <subcommand>`. Source of truth: [`src/baselay
 | `baselayer import <file>` | Import ChatGPT/Claude export, journal, text file, or directory. |
 | `baselayer estimate` | Preview of extraction cost only, from the imported text and the dated rate table in `src/baselayer/distillation/spend.py`. A floor, not a budget; authoring is not priced here. |
 | `baselayer extract` | Extract facts via Haiku 4.5 (46 constrained predicates, AUDN lifecycle). Add `--turn-contract` to ground every fact in the subject's own turns (see below). |
-| `baselayer embed` | Generate ChromaDB vectors for provenance tracing. |
+| `baselayer embed` | Embed imported messages into ChromaDB for `baselayer search`. Fact vectors are written during extraction. |
 | `baselayer author --layer all` | Author anchors, core, and predictions layers (Sonnet 4.6). |
 | `baselayer compose` | Optional, legacy: compose a unified prose brief from the three layers (Opus 4.6). Not run by `baselayer run`. |
 | `baselayer distill`, `assemble`, `author-from-package` | The experimental cited path: distillation leaves (Sonnet 5), one package per layer (no model), layers with mandatory citations (Opus 5). `distill` and `author-from-package` print an estimate and refuse to start without `--confirm-spend` or `BASELAYER_SPEND_CEILING_USD`. Always pass `--layer` to `distill`. See [`docs/PIPELINE.md`](docs/PIPELINE.md). |
