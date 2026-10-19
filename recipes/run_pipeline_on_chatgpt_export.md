@@ -95,7 +95,7 @@ baselayer compose
 
 Optional. The three layers are the specification. `compose` writes a prose brief from them (Opus 4.6) at `data/identity_layers/brief_v5_clean.md`. `baselayer run` does not run it.
 
-## Shortcut: full pipeline in one command
+## Shortcut: the whole `run` pipeline in one command
 
 ```bash
 baselayer run /path/to/chatgpt-export.zip
@@ -118,7 +118,7 @@ baselayer run /path/to/chatgpt-export.zip
 
 - **Extraction returns zero facts.** Run `baselayer stats`. If conversation count is zero, the import did not work; check the file path and `--source` flag. If conversations exist but no facts, the corpus may be too short or noisy. Inspect a sample: `sqlite3 "$MEMORY_SYSTEM_ROOT/data/database/memory.db" "SELECT title FROM conversations LIMIT 10"`.
 - **Extraction returns far fewer facts than expected (e.g. 12-42 instead of 200+).** Stale ChromaDB vectors cause AUDN to NOOP. Fix: run `python -m baselayer.extract_facts --reset`, then re-extract. The reset deletes extracted facts, the extraction log, and the fact vectors so every conversation is reprocessed. It is irreversible and has no confirmation prompt; confirm with the user first. It keeps imported conversations and user-corrected facts and does not touch layers already written under `data/identity_layers/`. The safest clean start is a fresh data root: point `MEMORY_SYSTEM_ROOT` at an empty directory. `baselayer forget --all` plus deleting `data/vectors/` is not a reset: the extraction log still marks every conversation as done, so re-extraction processes nothing.
-- **`No API key` error.** `export ANTHROPIC_API_KEY=sk-ant-...`.
+- **`No API key` error.** Set the `ANTHROPIC_API_KEY` environment variable (shell profile or secrets manager), then open a new shell.
 - **Authoring produces thin predictions.** Normal for short corpora. Anchors and core are usually sufficient. Do not regenerate without diagnosing.
 - **Compose fails with missing layer files.** Re-run `baselayer author --layer all`.
 

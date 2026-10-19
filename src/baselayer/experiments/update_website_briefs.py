@@ -18,10 +18,12 @@ from pathlib import Path
 sys.path.insert(0, os.path.dirname(__file__))
 from brief_to_website import parse_brief, format_ts, SUBJECTS
 
-# Website checkout dir. Override with BASELAYER_ROOT; falls back to the
-# repo-relative Anthropic workspace root derived from this file.
-ANTHROPIC_ROOT = os.environ.get("BASELAYER_ROOT", str(Path(__file__).resolve().parents[4]))
-WEBSITE_DATA_DIR = f"{ANTHROPIC_ROOT}/baselayer-website/data"
+# Website checkout directory: set BASELAYER_WEBSITE_DIR. There is no default.
+def website_dir():
+    d = os.environ.get("BASELAYER_WEBSITE_DIR")
+    if not d:
+        sys.exit("Set BASELAYER_WEBSITE_DIR to the website checkout directory.")
+    return d
 
 # Map subject → website data file
 WEBSITE_FILES = {
@@ -63,6 +65,7 @@ def replace_brief_in_file(filepath, var_name, new_brief_ts):
 
 def main():
     dry_run = "--dry-run" in sys.argv
+    WEBSITE_DATA_DIR = os.path.join(website_dir(), "data")
 
     for subject, ts_file in WEBSITE_FILES.items():
         brief_path, var_name = SUBJECTS[subject]

@@ -34,7 +34,7 @@ A Python package + CLI + MCP server. The pipeline takes text (conversations, jou
 - **Core:** operational constraints and communication patterns
 - **Predictions:** situation, behavioral pattern, directive
 
-On the cited path every claim in every layer carries its own `Active when` line, the situation it applies in, and the ids of the facts it rests on. The three layers are the specification; a prose brief is optional.
+On the cited path every claim in every layer cites the ids of the facts it rests on, and can carry an `Active when` line, the situation it applies in (the schema allows it to be empty; predictions are told to name a concrete situation). The three layers are the specification; a prose brief is optional.
 
 Memory systems give the agent the facts of a person. Base Layer gives the framework those facts come from. The two compose; they don't compete.
 
@@ -44,8 +44,9 @@ Memory systems give the agent the facts of a person. Base Layer gives the framew
 
 ```bash
 pip install git+https://github.com/agulaya24/BaseLayer.git
-export ANTHROPIC_API_KEY=sk-ant-...
 ```
+
+Base Layer reads the model API key from the `ANTHROPIC_API_KEY` environment variable. Set it in the shell profile or a secrets manager; never type a key into a command or a file in the repository.
 
 Or from a local clone:
 
@@ -65,7 +66,7 @@ One command, with cost estimate gate:
 baselayer init
 baselayer import <file>          # ChatGPT/Claude export, journal, text file, directory
 baselayer estimate                # preview cost
-baselayer run <file>              # full pipeline
+baselayer run <file>              # the older, quicker pipeline; far fewer checks than the cited path
 ```
 
 Step-by-step:
@@ -77,7 +78,7 @@ baselayer author --layer all      # Sonnet 4.6, three-layer authoring (static pa
 baselayer compose                 # optional: Opus 4.6, a prose brief from the layers (static path)
 ```
 
-The cited path (experimental) is eight steps: name the person (`subject_names` in the import
+The cited path (experimental) is how the README describes making a specification: every claim cites facts that quote the person's own words. It is eight steps: name the person (`subject_names` in the import
 config, before importing), `import`, `extract --turn-contract`, `distill` and `assemble` once per
 layer, `author-from-package`, `verify-spec`, `consolidate`. Commands, options and spend:
 [`docs/PIPELINE.md`](docs/PIPELINE.md). Terms: [`docs/DEFINITIONS.md`](docs/DEFINITIONS.md). Modules, tables and data flow: [`docs/core/ARCHITECTURE.md`](docs/core/ARCHITECTURE.md).
@@ -152,8 +153,8 @@ After the pipeline:
 ### MCP server
 
 ```bash
-# Claude Code
-claude mcp add --transport stdio base-layer -- baselayer-mcp
+# Claude Code, any folder
+claude mcp add --scope user --transport stdio base-layer -- baselayer-mcp
 
 # Claude Desktop, claude_desktop_config.json:
 { "mcpServers": { "base-layer": { "command": "baselayer-mcp" } } }
@@ -238,7 +239,7 @@ In this repository, [`examples/zitkala_sa/`](examples/zitkala_sa/) is the one ex
 
 ## Troubleshooting
 
-- **"No API key"**: `export ANTHROPIC_API_KEY=sk-ant-...`
+- **"No API key"**: set the `ANTHROPIC_API_KEY` environment variable (shell profile or secrets manager), then open a new shell.
 - **"No facts extracted"**: Check `baselayer stats`. May need more source data.
 - **"0 identity-tier facts"**: Run `baselayer checkpoint classification` to inspect. It reports; it does not repair, and there is no `--fix` flag.
 - **Thin predictions**: Normal for short texts. Anchors and core are often sufficient.

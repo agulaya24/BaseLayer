@@ -16,10 +16,12 @@ from pathlib import Path
 sys.path.insert(0, os.path.dirname(__file__))
 from brief_to_website import parse_brief, extract_sources, escape_ts_string, SUBJECTS
 
-# Website checkout dir. Override with BASELAYER_ROOT; falls back to the
-# repo-relative Anthropic workspace root derived from this file.
-ANTHROPIC_ROOT = os.environ.get("BASELAYER_ROOT", str(Path(__file__).resolve().parents[4]))
-EXAMPLES_TS = f"{ANTHROPIC_ROOT}/baselayer-website/data/examples.ts"
+# Website checkout directory: set BASELAYER_WEBSITE_DIR. There is no default.
+def website_dir():
+    d = os.environ.get("BASELAYER_WEBSITE_DIR")
+    if not d:
+        sys.exit("Set BASELAYER_WEBSITE_DIR to the website checkout directory.")
+    return d
 
 # Map examples.ts id → SUBJECTS key
 EXAMPLE_SUBJECTS = {
@@ -50,6 +52,7 @@ def format_inline_brief(paragraphs, indent=4):
 
 def main():
     dry_run = "--dry-run" in sys.argv
+    EXAMPLES_TS = os.path.join(website_dir(), "data", "examples.ts")
 
     with open(EXAMPLES_TS, "r", encoding="utf-8") as f:
         content = f.read()

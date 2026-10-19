@@ -190,8 +190,8 @@ Detail: [core/DISTILLATION.md](core/DISTILLATION.md).
 of the same layer. No model call. It stratifies the tree's themes, singularities and contradictions
 into one package for the author.
 
-- `--min-runs`: how many runs a singularity must appear in to count as verified (default 3, or the
-  number of trees when fewer). With one tree the verified label is withheld.
+- `--min-runs`: how many runs a singularity must appear in to count as verified (default: a strict
+  majority of the trees given, `n // 2 + 1`, so 2 of 3). With one tree the verified label is withheld.
 - `--shard-token-budget`: tokens of rendered evidence one author request may carry (default
   `BASELAYER_LEAF_PAYLOAD_CEILING` or 400,000). A package over it is split into shards of disjoint
   leaf ranges, and `--out` becomes a manifest. Nothing is dropped.

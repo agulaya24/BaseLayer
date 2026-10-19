@@ -145,7 +145,7 @@ See [docs/PIPELINE.md](docs/PIPELINE.md#14-the-cited-build-end-to-end) for stage
 - **A `baselayer run` build, over MCP.** In Claude Code, use the `claude mcp add` line above. In Claude Desktop, use its config file as shown in [recipes/serve_specification_via_mcp.md](recipes/serve_specification_via_mcp.md). The server sends the three layers with every session. Its tools include `recall_memories` and `search_facts` to find facts, `trace_claim` to show what a claim rests on, and `verify_claims` to check it against the database and store the results there. Some clients truncate long MCP instructions. The full text is always available as the `memory://specification` resource.
 - **Any model, by hand.** Put the three layer files in the system prompt. Fact search is unavailable this way.
 
-How an agent should read it
+How an agent should read it:
 
 1. Apply a claim with an `Active when` line, or a prediction's `When ...` trigger, only when that situation holds. The always-on claims at the top of `served.txt` apply in every exchange. A claim with no condition provides context for reading the person. Do not treat it as a rule for every situation.
 2. A claim marked CONTESTED preserves both sides of conflicting evidence. Do not resolve it for the person.
@@ -228,10 +228,12 @@ The specification is meant to be readable by the person it describes and under t
 | topic | doc |
 |---|---|
 | pipeline steps, options, costs and cited build commands | [docs/PIPELINE.md](docs/PIPELINE.md) |
+| where the pipeline stands, what is in the package and what comes next | [docs/PROGRESS.md](docs/PROGRESS.md) |
+| research directions outside the package (conformance, escalation, behavioural envelopes) | [docs/experimental/](docs/experimental/README.md) |
 | code organisation and database tables | [docs/core/ARCHITECTURE.md](docs/core/ARCHITECTURE.md) |
 | project terminology | [docs/DEFINITIONS.md](docs/DEFINITIONS.md) |
 | correcting a specification and rebuilding affected outputs | [docs/CORRECTIONS.md](docs/CORRECTIONS.md) |
-| design principles (dated March 2026) | [docs/core/DESIGN_PRINCIPLES.md](docs/core/DESIGN_PRINCIPLES.md) |
+| design principles, and which the code follows today | [docs/core/DESIGN_PRINCIPLES.md](docs/core/DESIGN_PRINCIPLES.md) |
 | reasons for design decisions | [docs/core/DECISIONS.md](docs/core/DECISIONS.md) |
 | plans, missing package features and open questions | [ROADMAP.md](ROADMAP.md) |
 | known issues found by running the pipeline | [docs/PIPELINE_ISSUES.md](docs/PIPELINE_ISSUES.md) |

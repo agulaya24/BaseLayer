@@ -17,7 +17,7 @@ If you are an AI agent acting on a person's behalf, you can only act in alignmen
 
 ## What a Behavioral Specification is
 
-A structured document encoding a person's behavioral patterns across three interpretive layers (anchors, core, predictions). The three layers are the Specification; a composed prose brief is optional. On the cited path every claim carries an `Active when` line and the ids of the facts it rests on. Size depends on the path and the corpus: the three layers of each published static-path example total 1,400 to 2,400 words (10 to 19 KB), while the cited-path Zitkala-Sa example in the repository is about 8,900 words (75 KB).
+A structured document encoding a person's behavioral patterns across three interpretive layers (anchors, core, predictions). The three layers are the Specification; a composed prose brief is optional. On the cited path every claim cites the ids of the facts it rests on and can carry an `Active when` line, the situation it applies in. Size depends on the path and the corpus: the three layers of each published static-path example total 1,400 to 2,400 words (10 to 19 KB), while the cited-path Zitkala-Sa example in the repository is about 8,900 words (75 KB).
 
 - Anchors: the axioms a person reasons from
 - Core: operational constraints, communication patterns, context modes
@@ -25,7 +25,7 @@ A structured document encoding a person's behavioral patterns across three inter
 
 ## How it works
 
-The Specification is generated from raw text along one of two paths.
+The Specification is generated from raw text along one of two paths. The cited path is the method; `baselayer run` is the older, quicker pipeline, with far fewer checks.
 
 `baselayer run` (one command):
 

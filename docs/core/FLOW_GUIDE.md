@@ -31,9 +31,8 @@ prompt). Use a fresh data root for each corpus, and always for the cited path.
 
 ### 3. Set your API key
 
-```
-export ANTHROPIC_API_KEY=sk-ant-...
-```
+Set the `ANTHROPIC_API_KEY` environment variable in your shell profile or a secrets manager, not
+by typing the key into a command.
 
 Needed by every command that calls a model: `run`, `extract` (unless `--backend ollama`),
 `batch-extract`, `author`, `compose`, `distill`, `author-from-package`, and
@@ -138,7 +137,7 @@ confirming. Spend rules: [PIPELINE.md](../PIPELINE.md#12-spend).
 **MCP (Claude Code):**
 
 ```
-claude mcp add --transport stdio base-layer -- baselayer-mcp
+claude mcp add --scope user --transport stdio base-layer -- baselayer-mcp
 ```
 
 **Claude Desktop**, in `claude_desktop_config.json`:

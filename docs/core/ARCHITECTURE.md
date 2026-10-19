@@ -346,7 +346,7 @@ tool calls the same code.
 
 ## Serving: the MCP server
 
-**Module:** `mcp_server.py`. Registered with `claude mcp add --transport stdio base-layer --
+**Module:** `mcp_server.py`. Registered with `claude mcp add --scope user --transport stdio base-layer --
 baselayer-mcp`. No model call in the serving path.
 
 The server serves only the static path's output: it reads `data/identity_layers/core_v4.md`,

@@ -2,12 +2,14 @@
 
 import os
 import re
-from pathlib import Path
+import sys
 
-# Website checkout dir. Override with BASELAYER_ROOT; falls back to the
-# repo-relative Anthropic workspace root derived from this file.
-ANTHROPIC_ROOT = os.environ.get("BASELAYER_ROOT", str(Path(__file__).resolve().parents[4]))
-HERO_PATH = f"{ANTHROPIC_ROOT}/baselayer-website/components/Hero.tsx"
+# Website checkout directory: set BASELAYER_WEBSITE_DIR. There is no default.
+def website_dir():
+    d = os.environ.get("BASELAYER_WEBSITE_DIR")
+    if not d:
+        sys.exit("Set BASELAYER_WEBSITE_DIR to the website checkout directory.")
+    return d
 
 NEW_SLIDES = '''const slides: HeroSlide[] = [
   {
@@ -127,6 +129,7 @@ NEW_SLIDES = '''const slides: HeroSlide[] = [
   },
 ];'''
 
+HERO_PATH = os.path.join(website_dir(), "components", "Hero.tsx")
 with open(HERO_PATH, "r", encoding="utf-8") as f:
     content = f.read()
 

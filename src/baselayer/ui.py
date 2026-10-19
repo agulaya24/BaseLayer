@@ -133,7 +133,7 @@ input[type="file"] { display: none; }
     <div class="brief-preview" id="briefPreview"></div>
     <div class="next-steps">
         <h3>Next steps</h3>
-        <p>Connect to Claude Code: <code>claude mcp add --transport stdio base-layer -- baselayer-mcp</code></p>
+        <p>Connect to Claude Code: <code>claude mcp add --scope user --transport stdio base-layer -- baselayer-mcp</code></p>
         <p>Interactive chat: <code>baselayer chat</code></p>
         <p>Review your facts: <code>baselayer review</code></p>
     </div>
