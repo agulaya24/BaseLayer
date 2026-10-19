@@ -2095,9 +2095,12 @@ def _turn_extraction_max_tokens(fact_count: int) -> int:
 
 def turn_output_budget(citable_chars: int) -> int:
     """max_tokens for one chunk in fact_count_mode `none`, from its citable characters
-    (config TURN_OUTPUT_TOKENS_PER_CITABLE_CHAR, where the derivation is written)."""
-    scaled = math.ceil(TURN_OUTPUT_TOKENS_PER_CITABLE_CHAR * max(0, citable_chars))
-    return min(EXTRACTION_MAX_OUTPUT_TOKENS, max(TURN_OUTPUT_TOKENS_FLOOR, scaled))
+    (config TURN_OUTPUT_TOKENS_PER_CITABLE_CHAR, where the derivation is written; a model that
+    thinks by default uses the _THINKING rate and floor, config.turn_output_budget_params)."""
+    from baselayer.config import turn_output_budget_params
+    per_char, floor = turn_output_budget_params(EXTRACTION_API_MODEL)
+    scaled = math.ceil(per_char * max(0, citable_chars))
+    return min(EXTRACTION_MAX_OUTPUT_TOKENS, max(floor, scaled))
 
 
 def turn_chunk_max_tokens(chunk, plan: dict) -> int:
@@ -2685,6 +2688,11 @@ def assert_legacy_allowed(conn):
             f"(BASELAYER_TURN_CONTRACT=1), not the legacy path.")
 
 
+def _budget_params() -> tuple:
+    from baselayer.config import turn_output_budget_params
+    return turn_output_budget_params(EXTRACTION_API_MODEL)
+
+
 def turn_run_settings() -> dict:
     """Every cap and switch that shapes a turn-contract run, for the header and
     the per-run record (no hidden caps)."""
@@ -2694,8 +2702,8 @@ def turn_run_settings() -> dict:
         "fact_count_mode": turn_fact_count_mode(),
         "spend_ceiling_usd": spend_ceiling_usd(),
         "spend_rates_as_of": _spend_rates_as_of(),
-        "output_tokens_per_citable_char": TURN_OUTPUT_TOKENS_PER_CITABLE_CHAR,
-        "output_tokens_floor": TURN_OUTPUT_TOKENS_FLOOR,
+        "output_tokens_per_citable_char": _budget_params()[0],
+        "output_tokens_floor": _budget_params()[1],
         "output_tokens_ceiling": EXTRACTION_MAX_OUTPUT_TOKENS,
         "dynamic_cap": _dynamic_cap_enabled(),
         "skip_coverage_gate": bool(os.environ.get("BASELAYER_SKIP_COVERAGE_GATE")),

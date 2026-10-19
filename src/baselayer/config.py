@@ -188,6 +188,13 @@ def extraction_sampling_kwargs(model: str, temperature: float) -> dict:
     return {} if model_rejects_sampling(model) else {"temperature": temperature}
 
 
+def turn_output_budget_params(model: str) -> tuple:
+    """(tokens per citable char, floor) for the turn-path output budget on this model."""
+    if model_rejects_sampling(model):
+        return TURN_OUTPUT_TOKENS_PER_CITABLE_CHAR_THINKING, TURN_OUTPUT_TOKENS_FLOOR_THINKING
+    return TURN_OUTPUT_TOKENS_PER_CITABLE_CHAR, TURN_OUTPUT_TOKENS_FLOOR
+
+
 def extraction_effort_kwargs(model: str) -> dict:
     """BASELAYER_EXTRACTION_EFFORT, sent only to models that take effort (the same set that
     rejects sampling; Haiku 4.5 400s on effort). Unset: nothing is sent and the model default
@@ -500,6 +507,19 @@ TURN_FACT_COUNT_MODE = "coverage"
 # stops on max_tokens is re-chunked, never dropped (extract_facts).
 TURN_OUTPUT_TOKENS_PER_CITABLE_CHAR = 6.4
 TURN_OUTPUT_TOKENS_FLOOR = 2000
+# A model that thinks by default (every 5-generation model; model_rejects_sampling below) spends
+# part of max_tokens on thinking, so it gets its own rate and floor, derived the same way.
+# Derivation (2026-10-19, Haiku 5.5 at effort medium, 98 turn-path extract calls over three
+# same-sample comparisons: essays and talks 41, list roundups 25, chat 32): the largest output
+# per citable char on a chunk of 600+ chars was 5.23 (a chat chunk, 863 chars, 4,515 tokens);
+# three times it is 15.7, rounded up to 16. Under 600 chars the largest output was 2,589 tokens
+# (432 chars, 94% of its budget), and one 313-char chat chunk stopped on its 2,004-token budget
+# and was re-chunked; three times 2,589 is 7,767, rounded up to 8,000. A larger max_tokens costs
+# nothing unless used; it only raises the spend ceiling's worst case, which on Haiku 5.5 is
+# $0.004 at the floor and $0.032 at the 64,000-token clamp. Effort high produced up to 3.09
+# per char on roundups, inside the same rate.
+TURN_OUTPUT_TOKENS_PER_CITABLE_CHAR_THINKING = 16
+TURN_OUTPUT_TOKENS_FLOOR_THINKING = 8000
 # Run-wide spend ceiling (the runaway guard that replaced the fact-count halt on the turn
 # path). Set per run with BASELAYER_SPEND_CEILING_USD; unset means no ceiling. Checked
 # before every sequential model call: measured spend so far (every call's usage, AUDN
