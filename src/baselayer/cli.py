@@ -896,7 +896,8 @@ def _mark_spec_stale_after_forget(hidden, mode):
         print(f"  resource and any server started from now on carry a stale notice (a server")
         print(f"  already running built its instructions at startup, so restart it).")
         print(f"  Stale: {', '.join(f.name for f in stale)}")
-        print(f"  Regenerate it with: baselayer author --compose")
+        print(f"  Regenerate the layers with: baselayer author")
+        print(f"  (add --compose only if you also keep the optional brief)")
     else:
         print(f"\n  No authored specification exists yet, so none is stale.")
 
@@ -913,8 +914,8 @@ def _print_stale_spec_warning():
     count = f"{n} fact(s)" if n else "Facts"
     print(f"  WARNING: specification is stale. {count} were hidden with `baselayer forget`")
     print(f"  after these files were written: {', '.join(f.name for f in stale)}.")
-    print(f"  They may still carry claims drawn from the hidden facts. Regenerate with:")
-    print(f"    baselayer author --compose")
+    print(f"  They may still carry claims drawn from the hidden facts. Regenerate the layers with:")
+    print(f"    baselayer author      (add --compose only to rebuild the optional brief)")
     print()
 
 
@@ -2733,7 +2734,8 @@ def main():
                     "removed: the imported messages the facts came from stay in the database. "
                     "Specification layers already written are not regenerated, so a served "
                     "specification can still carry claims built from hidden facts until you "
-                    "run `baselayer author --compose`. After a forget they are marked stale, "
+                    "re-author them (`baselayer author`; `--compose` only rebuilds the optional "
+                    "brief). After a forget they are marked stale, "
                     "and `baselayer stats` and the MCP server say so. To remove everything, "
                     "delete the data directory and the MCP session logs under "
                     "~/.baselayer/sessions/, which record tool queries.")

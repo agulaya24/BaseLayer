@@ -742,7 +742,8 @@ def get_stats() -> str:
         lines.append(
             "\n  WARNING: specification is stale. Facts were hidden with `baselayer forget` "
             f"after these files were written: {', '.join(f.name for f in stale)}. "
-            "Regenerate with `baselayer author --compose`."
+            "Regenerate the layers with `baselayer author` (`--compose` only rebuilds the "
+            "optional brief)."
         )
 
     return "\n".join(lines)
@@ -923,7 +924,8 @@ def main():
         logger.warning(
             "Serving a STALE specification: facts were hidden with `baselayer forget` after "
             f"{', '.join(f.name for f in stale)} were written. The served text carries a "
-            "stale notice. Regenerate with `baselayer author --compose`.")
+            "stale notice. Regenerate the layers with `baselayer author` (`--compose` only "
+            "rebuilds the optional brief).")
     mcp.run(transport="stdio")
 
 

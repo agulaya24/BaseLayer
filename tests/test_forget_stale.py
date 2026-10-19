@@ -92,7 +92,8 @@ def test_forget_marks_specification_stale_and_says_so(root_with_fact):
     assert r.returncode == 0, r.stdout + r.stderr
     out = r.stdout.lower()
     assert "raw conversation text" in out
-    assert "stale" in out and "baselayer author --compose" in out
+    assert "stale" in out and "regenerate the layers with: baselayer author" in out
+    assert "author --compose" not in out    # any re-author clears the marker; --compose is the brief
     marker = _layers_dir(root) / MARKER_NAME
     assert marker.exists()
     data = json.loads(marker.read_text(encoding="utf-8"))
