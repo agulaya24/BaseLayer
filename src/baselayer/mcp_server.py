@@ -275,7 +275,7 @@ def _log_call(name, **kwargs):
 # ==========================================================================
 # Builds the full inline specification (preamble + CORE + ANCHORS +
 # PREDICTIONS + tool guidance manifest). Called once at module load to
-# populate the FastMCP `instructions` field — the MCP protocol's mechanism
+# populate the FastMCP `instructions` field, the MCP protocol's mechanism
 # for content the client embeds in the system prompt automatically. Also
 # called dynamically by the `memory://specification` resource so explicit
 # fetches stay supported.
@@ -393,7 +393,7 @@ def _build_specification_text() -> str:
 # ==========================================================================
 # Build the spec once at module load and pass it to FastMCP `instructions`.
 # Per the MCP protocol, the client embeds `instructions` in its system
-# prompt automatically — this is the mechanism that forces every connected
+# prompt automatically; this is the mechanism that forces every connected
 # client to load the specification without relying on the model to fetch
 # the resource explicitly. The `memory://specification` resource still
 # exists for backward compatibility and explicit re-reads.

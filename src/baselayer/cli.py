@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Base Layer CLI — Personal AI Memory System
+Base Layer CLI: Personal AI Memory System
 
 Pipeline (4 steps): Import -> Extract -> Embed -> Author. Compose (a unified prose brief
 from the authored layers) is optional and separate: `baselayer compose`.
@@ -45,7 +45,7 @@ import os
 import argparse
 from pathlib import Path
 
-# Fix Windows encoding — prevent UnicodeEncodeError on cp1252 stdout
+# Fix Windows encoding: prevent UnicodeEncodeError on cp1252 stdout
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
@@ -205,7 +205,7 @@ def cmd_init(args):
     print(f"  Option B: Start from scratch with journal prompts")
     print(f"    baselayer journal")
     print(f"\n  Journal entries produce the highest-quality identity data.")
-    print(f"  You can do both — import conversations AND journal.")
+    print(f"  You can do both: import conversations AND journal.")
 
 
 def cmd_import(args):
@@ -333,7 +333,7 @@ def cmd_extract(args):
         print(f"Using local Ollama ({config.LLM_MODEL}) for extraction")
 
     if args.identity_only:
-        print("Mode: IDENTITY-ONLY — extracting personal traits from project conversations")
+        print("Mode: IDENTITY-ONLY: extracting personal traits from project conversations")
 
     import baselayer.extract_facts as extract_facts
 
@@ -772,11 +772,11 @@ def _delete_vectors(fact_ids):
         client = _chroma_client_for(VECTORS_DIR)
         collection = client.get_collection("memory_facts")
     except Exception as e:
-        # Collection doesn't exist — nothing to delete
+        # Collection doesn't exist; nothing to delete
         print(f"WARNING: Could not access memory_facts collection: {e}", file=sys.stderr)
         return 0
 
-    # ChromaDB delete only works with IDs that exist — filter first
+    # ChromaDB delete only works with IDs that exist; filter first
     existing = set()
     for fid in fact_ids:
         try:
@@ -955,7 +955,7 @@ def cmd_provenance(args):
                 return
 
             first = rows[0]
-            print(f"\n  Claim: {first['claim_id']} — {first['claim_text'] or '(unnamed)'}")
+            print(f"\n  Claim: {first['claim_id']}: {first['claim_text'] or '(unnamed)'}")
             print(f"  Layer: {first['layer_name']} ({first['layer_version'] or 'unknown'})")
             print(f"\n  Supporting Facts ({len(rows)}):")
 
@@ -975,7 +975,7 @@ def cmd_provenance(args):
                         print(f"        source: \"{conv['title'][:80]}\"")
 
         else:
-            # Summary mode — show all claims with fact counts
+            # Summary mode: show all claims with fact counts
             rows = conn.execute("""
                 SELECT layer_name, claim_id, claim_text, COUNT(*) as fact_count,
                        layer_version
@@ -1111,7 +1111,7 @@ def cmd_verify(args):
 
 
 def cmd_review(args):
-    """Interactive fact review — inspect, approve, or flag facts."""
+    """Interactive fact review: inspect, approve, or flag facts."""
     from baselayer.config import DATABASE_FILE, get_db
 
     if not DATABASE_FILE.exists():
@@ -1228,7 +1228,7 @@ def cmd_journal(args):
     JOURNAL_PROMPTS = [
         {
             "id": "who",
-            "prompt": "Describe yourself in a few sentences — who are you, what do you do, and what matters most to you?",
+            "prompt": "Describe yourself in a few sentences: who are you, what do you do, and what matters most to you?",
             "category": "identity",
         },
         {
@@ -1269,10 +1269,10 @@ def cmd_journal(args):
     ]
 
     with contextlib.closing(get_db()) as conn:
-        print(f"\n  Base Layer Journal — Identity Onboarding")
+        print(f"\n  Base Layer Journal: Identity Onboarding")
         print(f"  {'='*50}")
         print(f"  Answer these questions to quickly build your identity profile.")
-        print(f"  Write naturally — more detail means better identity quality.")
+        print(f"  Write naturally; more detail means better identity quality.")
         print(f"  Press enter to skip a question, type 'quit' to stop.\n")
 
         entries = []
@@ -1358,7 +1358,7 @@ def _run_traceability():
 
     # 5a: Rule-based tiering (predicate -> knowledge_tier).
     # Shared with batch_extract.run_process via tier_facts_by_predicate so both
-    # extraction paths tier identically. Idempotent — only touches untiered
+    # extraction paths tier identically. Idempotent: only touches untiered
     # facts, so calling it here after the batch path already tiered is a no-op.
     print("  5a. Tiering facts by predicate...")
     from baselayer.extract_facts import tier_facts_by_predicate
@@ -1450,7 +1450,7 @@ def _run_traceability():
 
 
 def cmd_pipeline(args):
-    """S98 Phase 4: Unified pipeline — one command, all gates enforced.
+    """S98 Phase 4: Unified pipeline: one command, all gates enforced.
 
     Usage:
         baselayer pipeline <subject_id>          # V1: fresh run
@@ -1509,7 +1509,7 @@ def cmd_pipeline(args):
                 break
 
     print(f"\n{'='*60}")
-    print(f"  Base Layer Pipeline — {name}")
+    print(f"  Base Layer Pipeline: {name}")
     print(f"  Mode: {'V2 (re-extract)' if v2_mode else 'V1 (fresh)'}")
     print(f"  Memory: {memory_dir}")
     print(f"  Source: {source_dir or 'N/A'}")
@@ -1569,7 +1569,7 @@ def cmd_pipeline(args):
             force = False
         cmd_import(_ImportArgs())
     else:
-        print(f"  No source directory — skipping import.")
+        print(f"  No source directory; skipping import.")
 
     total_after, pending = _conversation_counts(SUBJ_DB_FILE)
     # --v2 clears extraction first, so everything is pending and the run always proceeds.
@@ -1580,7 +1580,7 @@ def cmd_pipeline(args):
             rerun_hint=f"baselayer pipeline {subject_id} --reauthor"):
         return
 
-    # Step 2: Extract (batch API — 50% cheaper, ~1hr turnaround)
+    # Step 2: Extract (batch API: 50% cheaper, ~1hr turnaround)
     print(f"\n  Step 2: Extracting facts (batch API)...")
     import baselayer.batch_extract as batch_extract
 
@@ -1603,7 +1603,7 @@ def cmd_pipeline(args):
                 processing = getattr(counts, 'processing', 0)
                 succeeded = getattr(counts, 'succeeded', 0)
                 total = state.get("total_requests", 0)
-                print(f"  Batch: {status} — {succeeded}/{total} succeeded, {processing} processing")
+                print(f"  Batch: {status}: {succeeded}/{total} succeeded, {processing} processing")
                 if status == "ended":
                     state["status"] = "ended"
                     batch_extract._save_batch_state(state)
@@ -1667,7 +1667,7 @@ def cmd_pipeline(args):
     conn.close()
 
     print(f"\n{'='*60}")
-    print(f"  Pipeline complete — {name}")
+    print(f"  Pipeline complete: {name}")
     print(f"  Facts: {fact_count} | Version: {new_version}")
     print(f"{'='*60}\n")
 
@@ -1797,7 +1797,7 @@ def cmd_run(args):
         except (EOFError, KeyboardInterrupt):
             confirm = "n"
         if confirm == "n":
-            print("  Cancelled. Your data is imported — run 'baselayer extract' when ready.")
+            print("  Cancelled. Your data is imported; run 'baselayer extract' when ready.")
             return
 
     # Step 2: Extract
@@ -2173,7 +2173,7 @@ def _check_fact_floor():
         failures.append(f"source documents: {source_docs}/5")
 
     if failures:
-        print(f"Error: Fact quality below threshold — {', '.join(failures)}.")
+        print(f"Error: Fact quality below threshold: {', '.join(failures)}.")
         print(f"Extract more data or check extraction quality.")
         print(f"To force anyway: set BASELAYER_SKIP_FACT_FLOOR=1")
         if not os.environ.get("BASELAYER_SKIP_FACT_FLOOR"):
@@ -2215,7 +2215,7 @@ def _check_pipeline_lock():
             alive.append(current_pid)
             lock_file.write_text("\n".join(str(p) for p in alive))
         except (ValueError, IOError):
-            # Corrupted lock file — overwrite
+            # Corrupted lock file; overwrite
             lock_file.write_text(str(current_pid))
     else:
         lock_file.write_text(str(current_pid))
@@ -2668,14 +2668,14 @@ def main():
 
     # brief
     p_brief = subparsers.add_parser("brief",
-        help="[ARCHIVED] Assemble a context-retrieval brief via assemble_brief.py — "
+        help="[ARCHIVED] Assemble a context-retrieval brief via assemble_brief.py; "
              "use 'compose' for the current V4 unified brief")
     p_brief.add_argument("message", help="The message to build the brief for")
     p_brief.set_defaults(func=cmd_brief)
 
     # chat
     p_chat = subparsers.add_parser("chat",
-        help="[ARCHIVED] Interactive memory-augmented chat via assemble_brief.py — "
+        help="[ARCHIVED] Interactive memory-augmented chat via assemble_brief.py; "
              "kept for compatibility, not part of the 4-step pipeline")
     p_chat.set_defaults(func=cmd_chat)
 
@@ -2748,13 +2748,13 @@ def main():
                                "re-extraction still skips conversations already processed.")
     p_forget.set_defaults(func=cmd_forget)
 
-    # provenance (S56 — trace layer claims to source facts)
+    # provenance (S56: trace layer claims to source facts)
     p_prov = subparsers.add_parser("provenance", help="Trace specification claims to supporting facts")
     p_prov.add_argument("--claim", type=str, metavar="ID",
                          help="Trace a specific claim by lexicon ID (e.g. A1, P3, C2)")
     p_prov.set_defaults(func=cmd_provenance)
 
-    # verify (S57 — vector + claim verification)
+    # verify (S57: vector + claim verification)
     p_verify = subparsers.add_parser("verify",
         help="Verify specification layer provenance (vector similarity + claim checks)")
     p_verify.add_argument("--layer", choices=["anchors", "core", "predictions", "all"],
@@ -2864,12 +2864,12 @@ def main():
     p_chunks.set_defaults(func=cmd_chunks)
 
 
-    # rebuild-fts (Session 57 — C11: FTS5 full-text search index)
+    # rebuild-fts (Session 57, C11: FTS5 full-text search index)
     p_fts = subparsers.add_parser("rebuild-fts",
         help="Rebuild FTS5 full-text search index from existing facts")
     p_fts.set_defaults(func=cmd_rebuild_fts)
 
-    # ui (Session 72 — local drag-and-drop web UI)
+    # ui (Session 72: local drag-and-drop web UI)
     p_ui = subparsers.add_parser("ui",
         help="Launch local web UI for drag-and-drop pipeline")
     p_ui.add_argument("--port", type=int, default=3141, help="Port (default: 3141)")
@@ -2884,7 +2884,7 @@ def main():
 
     p_ui.set_defaults(func=_launch_ui)
 
-    # pipeline (S98 Phase 4 — unified command with gates)
+    # pipeline (S98 Phase 4: unified command with gates)
     p_pipeline = subparsers.add_parser("pipeline",
         help="Multi-subject pipeline for a subject already in the registry. Needs a "
              "subject_id, not a file. For your own export, use `run`.")
