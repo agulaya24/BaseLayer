@@ -97,6 +97,21 @@ def test_usage_entry_records_the_model_that_answered(monkeypatch):
     assert ef.usage_calls()[-1]["requested_model"] == "claude-haiku-5-5"
 
 
+def test_a_refusal_is_recorded_with_its_category(monkeypatch):
+    import baselayer.extract_facts as ef
+
+    class Refusing:
+        def create(self, **kw):
+            return SimpleNamespace(model="claude-haiku-5-5", stop_reason="refusal", content=[],
+                                   stop_details=SimpleNamespace(category="cyber"),
+                                   usage=SimpleNamespace(input_tokens=10, output_tokens=0))
+    monkeypatch.setattr(ef, "EXTRACTION_API_MODEL", "claude-haiku-5-5")
+    monkeypatch.setattr(ef, "_get_anthropic_client", lambda: SimpleNamespace(messages=Refusing()))
+    assert ef.call_anthropic("p", retries=0) is None
+    e = ef.usage_calls()[-1]
+    assert (e["stop_reason"], e["refusal_category"]) == ("refusal", "cyber")
+
+
 def test_effort_is_sent_explicitly_when_set_on_a_5_generation_model(monkeypatch):
     monkeypatch.setenv("BASELAYER_EXTRACTION_EFFORT", "medium")
     ef, msgs = _install(monkeypatch, "claude-haiku-5-5")

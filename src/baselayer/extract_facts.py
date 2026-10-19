@@ -1089,6 +1089,7 @@ def _record_usage(response, purpose: str):
         model=getattr(response, "model", None) or EXTRACTION_API_MODEL,
         requested_model=EXTRACTION_API_MODEL, batch=False,
         stop_reason=getattr(response, "stop_reason", None),
+        refusal_category=getattr(getattr(response, "stop_details", None), "category", None),
         thinking_blocks=sum(1 for b in blocks if getattr(b, "type", None) == "thinking"),
         conversation_id=_CURRENT_CONVERSATION.get(), at=time.time(), **(chunk or {})))
 
