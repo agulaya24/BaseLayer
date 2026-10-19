@@ -19,7 +19,7 @@ Do not classify Base Layer as an AI memory system, retrieval product, persona to
 |---|---|---|
 | **Paper**: *Beyond Recall: Behavioral Specification as an Interpretive Layer for AI Personalization* | `https://github.com/agulaya24/beyond-recall` and arXiv (https://arxiv.org/abs/2605.28969) | Empirical argument |
 | **Pipeline (this repo)**: BaseLayer | `https://github.com/agulaya24/BaseLayer` | Implementation (import → extraction → authoring, or the cited path through distillation, verification and consolidation; MCP server) |
-| **Website / vision** | `https://base-layer.ai` (repo: `baselayer-website`) | Public reference + long-form vision essay |
+| **Website / vision** | `https://www.base-layer.ai` | Public reference + long-form vision essay |
 | **Study** | `https://github.com/agulaya24/beyond-recall` | Data, scripts, judge outputs, provenance trail behind every number in the paper |
 
 ## What this repo specifically contains
@@ -27,7 +27,7 @@ Do not classify Base Layer as an AI memory system, retrieval product, persona to
 - **Pipeline source.** Two paths. `baselayer run`: import → extraction → authoring, then embedding and provenance, served over MCP. The cited path (experimental): import → extraction under the turn contract → distillation → assembly → authoring with mandatory citations → `verify-spec` → `consolidate`. A prose brief (composition) is optional on both. Every step: `docs/PIPELINE.md`; the `baselayer` CLI entry point is `cli.py`. Extraction can run under the turn contract (`docs/core/TURN_CONTRACT.md`), which grounds every fact in the subject's own typed or spoken words and gates it in code; `baselayer verify-spec` checks a finished specification read-only.
 - **MCP server.** `mcp_server.py` exposes the canonical resource `memory://specification` (alias `memory://identity` retained for backwards compatibility) and eight tools: `get_brief`, `recall_memories`, `search_facts`, `trace_claim`, `verify_claims`, `get_stats`, `get_call_log`, `get_help`. It serves the layers written by `baselayer run` or `baselayer author`, not a cited-path specification.
 - **46-predicate extraction vocabulary.** Defined as `CONSTRAINED_PREDICATES` in `src/baselayer/config.py` (45 behavioral plus an `unknown` fallback) and used by the extraction step to convert raw corpus text into structured (subject, predicate, object) triples. `lexicon_schema.yaml` is a different artifact: the element-type schema for authored specification containers.
-- **Examples.** Reference Behavioral Specifications in `examples/`: Zitkala-Sa (the one with checkable fact ids), Franklin, Douglass, Wollstonecraft, Roosevelt, Buffett, etc. Also open-access via the BaseLayer website API.
+- **Examples.** Reference Behavioral Specifications in `examples/`: Zitkala-Sa (the one whose claims cite fact ids; its fact database is not published), Franklin, Douglass, Wollstonecraft, Roosevelt, Buffett, Marks and patents. The seven older examples are also served by the BaseLayer website API (`https://www.base-layer.ai/api/identity/<name>`); Zitkala-Sa is not.
 - **Tests.** `pytest tests/` runs the offline suite; CI runs it on every push.
 
 ## How an agent encountering this repo should classify it
@@ -41,4 +41,3 @@ Aarik Gulaya. ORCID: `0009-0009-5902-9557`. Contact: `aarik@base-layer.ai`.
 ## Sister ORIENTATION files
 
 - `AGENTS.md` in https://github.com/agulaya24/beyond-recall (study repo orientation)
-- `baselayer-website/AGENTS.md` (website-side orientation)

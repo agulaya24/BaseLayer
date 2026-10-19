@@ -18,8 +18,9 @@ communicates and tends to respond. An AI reads it before working for that person
 interpretive layer above memory: memory supplies facts, the specification supplies the way that
 person reads them.
 
-The specification is plain text. You can read every claim, look up the facts it cites, see the
-exact words of the person each fact was drawn from (on the cited path), and correct what is wrong.
+The specification is plain text. You can read every claim, look up the facts it cites in your own
+database, see the exact words of the person each fact was drawn from (for facts extracted under the
+turn contract), and correct what is wrong.
 
 It is not a biography and not a summary. It is a reading made by models, and it is not confirmed
 until the person it describes says it is them.
@@ -34,7 +35,10 @@ until the person it describes says it is them.
 | a trigger index | `consolidate` output: the always-on claims in full, a list of situations each naming the claims to read, groups of claims that state the same idea, and an index file to look claims up by id. |
 
 An example claim, from the specification built from Zitkala-Sa's *American Indian Stories* (1921,
-public domain; full example in [examples/zitkala_sa/](examples/zitkala_sa/)):
+public domain; full example in [examples/zitkala_sa/](examples/zitkala_sa/)). The example ships
+the layer text only. Its fact ids cannot be resolved from this repository: the fact database is
+not published, and those facts were extracted before the turn contract, so they carry no evidence
+spans.
 
 > **P1 SYSTEMIC CRITIQUE OVER SINGLE COMPLAINT.** Presented with a specific grievance or
 > malpractice, they will not treat it as an isolated incident; they escalate it to the level of
@@ -55,20 +59,24 @@ export ANTHROPIC_API_KEY=sk-ant-...
 ```
 
 Python 3.10 or later. Not on PyPI (the `baselayer` name there belongs to another project). Data
-lives under `~/.baselayer` for an installed package, or wherever `MEMORY_SYSTEM_ROOT` points (the
-directory must already exist).
+lives wherever `MEMORY_SYSTEM_ROOT` points (the directory must already exist). Without it, a
+package installed with the `pip install` line above uses `~/.baselayer`, while code run from a
+clone of this repository (an editable or source install) uses the clone itself, under its `data/`
+directory, whose database, vectors, layers, distillation archive and import config are
+gitignored. Setting
+`MEMORY_SYSTEM_ROOT` avoids both surprises.
 
 ### Two ways to build a specification
 
 | | `baselayer run` | the cited path (experimental) |
 |---|---|---|
-| what it is | one command, the original pipeline | seven steps, the current design |
+| what it is | one command, the original pipeline | eight steps (0 to 7 below), the current design |
 | extraction | Claude Haiku 4.5 | Claude Haiku 4.5, own words only (the turn contract) |
 | authoring | Claude Sonnet 4.6, layers written from facts | Claude Sonnet 5 sorts the facts, Claude Opus 5 writes the layers |
 | every claim cites facts | not guaranteed | required |
 | verification and trigger index | not run | `verify-spec` and `consolidate` |
 | served to Claude over MCP | yes | no (see [For your agent](#for-your-agent)) |
-| spend ceiling | none unless `BASELAYER_SPEND_CEILING_USD` is set (checked by sequential extraction only; `batch-extract`, `author` and `compose` have none) | `distill` and `author-from-package` price the run and refuse to start without one; extraction as on the left |
+| spend ceiling | none unless `BASELAYER_SPEND_CEILING_USD` is set (checked by sequential extraction only; `batch-extract`, `author`, `compose` and the traceability tension check, up to 30 Haiku calls, have none) | `distill` and `author-from-package` price the run and refuse to start without one; extraction as on the left |
 
 ### Quick start: one command
 
@@ -112,14 +120,17 @@ Run these into a fresh data root. Each step links to its detail.
    authored layers. No model call, no claim text rewritten, 14 checks that must pass.
    ([docs/core/CONSOLIDATION.md](docs/core/CONSOLIDATION.md))
 
-`baselayer embed` builds a vector index for search and the MCP tools. The cited path does not need
-it.
+`baselayer embed` embeds imported messages for `baselayer search`. Fact vectors, which the MCP
+recall tool and `baselayer verify` read, are written during extraction. The cited path needs
+neither.
 
 ```
 export MEMORY_SYSTEM_ROOT=~/bl/franklin && mkdir -p "$MEMORY_SYSTEM_ROOT"
 baselayer init
 echo '{"subject_names": ["Benjamin", "Benjamin Franklin"]}' > "$MEMORY_SYSTEM_ROOT/data/import_config.json"
 baselayer import chatgpt-export.zip
+baselayer estimate                            # a floor for extraction, not a budget
+export BASELAYER_SPEND_CEILING_USD=<usd>      # sequential extraction stops before passing it
 baselayer extract --turn-contract
 mkdir -p trees packages
 baselayer distill --layer anchors --max-facts 50 --out trees/anchors.json \
@@ -136,8 +147,9 @@ baselayer consolidate spec_out/ --out served_out/
 `distill` and `author-from-package` print an estimate and refuse to start unless `--confirm-spend`
 (or `BASELAYER_SPEND_CEILING_USD`) covers it; a large corpus is hours and tens of dollars per layer. `<table date>` is the date of the
 in-repo rate table, printed by `baselayer distill --help`; check current prices before confirming
-it. Always pass `--layer` to `distill` (without it the run is an undirected control), and create
-the output directories first (`distill` writes its tree only at the end of the run). Spend options,
+it. Always pass `--layer` to `distill` (without it the run is the undirected control, and it
+prints a warning saying so), and create the output directories first (`distill` refuses to start
+without them). Spend options,
 the quote gate and batch modules, and every step's inputs and outputs:
 [docs/PIPELINE.md](docs/PIPELINE.md).
 
@@ -146,8 +158,8 @@ the quote gate and batch modules, and every step's inputs and outputs:
 - **Over MCP (Claude Code, Claude Desktop):** `claude mcp add --transport stdio base-layer -- baselayer-mcp`.
   The server serves the three layers in `data/identity_layers/` (written by `baselayer run` or
   `baselayer author`) and offers tools to search facts and trace a claim to its facts. It sends the
-  layers in its MCP instructions, which some clients cut short; the full text is always the
-  `memory://specification` resource. It does not serve a cited-path `spec_out/` directory or the
+  layers in its MCP instructions, and some clients may truncate long instructions; the full text
+  is always the `memory://specification` resource. It does not serve a cited-path `spec_out/` directory or the
   trigger index.
   ([recipes/serve_specification_via_mcp.md](recipes/serve_specification_via_mcp.md))
 - **Any model, by hand:** put the three layer files in the system prompt, or put consolidate's
@@ -184,8 +196,17 @@ specification another model can tell apart from others is distinguishable, not f
 person can confirm it.
 
 Every fact extracted by this version is stamped with the model, prompt hash and code path that made
-it, and the git commit when run from a git clone (a pip install records `unknown`). On the `baselayer run` path a claim with no inline citation is linked to its
-nearest facts by embedding: read those links as nearby, not used.
+it, and the git commit when run from a git clone (outside a git work tree it records `unknown`). On
+the `baselayer run` path, traceability also links every claim to its nearest facts by embedding
+(`link_method` `vector`), cited or not: read every vector link as nearby, not used.
+
+**Looking up a cited-path claim's facts.** No command prints them yet. MCP `trace_claim` and
+`baselayer provenance` read the `layer_claim_provenance` table, which `author-from-package` does not
+write (static `author`, `run`, `verify --generate` and `distill --write-provenance` do; the last
+stores tree themes and singularities under ids such as T1 and S1, not claim ids). Each claim's fact ids are in the
+layer's `.json` file (`fact_ids`; each is a fact id or its first 8 characters, sometimes written
+with `F-`), the facts and their evidence spans are in the `memory_facts` table of your database,
+and `verify-spec` re-checks every citation and span.
 
 ### Terms
 
@@ -213,11 +234,12 @@ Every other term: [docs/DEFINITIONS.md](docs/DEFINITIONS.md).
 - **Edit the text.** On the `baselayer run` path the layers are markdown files in
   `data/identity_layers/`; edit them and restart the MCP server. On the cited path each layer is a
   `.md` and a `.json` file; edit both, because `consolidate` fails when they disagree.
-- **Correct a fact.** `baselayer review` walks through facts one at a time: you can hide a fact or
-  flag it with a note; it does not edit fact text. `baselayer forget` hides facts (by id,
-  conversation, or all); the rows stay and can be restored. Layers already written are not
-  regenerated. On the `run` path, re-author them (`baselayer author`); they are marked stale until
-  you do. On the cited path, rebuild from `distill` for all three layers: each tree was built from
+- **Correct a fact.** `baselayer review` walks through facts one at a time: you can hide a fact
+  (marked superseded; its vector stays) or flag it with a note; it does not edit fact text.
+  `baselayer forget` hides facts (by id, conversation, or all) and removes their vectors; the rows
+  stay and can be restored. Layers already written are not regenerated by either. On the `run`
+  path, re-author them (`baselayer author`). Only `forget` marks the layers stale until you do;
+  hiding with `review` leaves no marker. On the cited path, rebuild from `distill` for all three layers: each tree was built from
   all the active facts, so re-authoring from the old packages keeps the hidden ones.
 - **Add more text.** Import the new file and run the steps again. Extraction only processes what is
   new; `baselayer run` stops before spending anything when the file adds nothing.
@@ -239,17 +261,17 @@ How corrections flow through the system: [docs/CORRECTIONS.md](docs/CORRECTIONS.
   `distill --exclude-ids` accepts a list of facts to leave out.
 - **The research verification judges** (a back-check and a combined support, reach and recency
   judge) are not in the package. `verify-spec --backcheck-results` reads a back-check's results but
-  does not run one. verify-spec's own model-judged checks are in the package, built and priced; per
-  [docs/core/VERIFY_SPEC.md](docs/core/VERIFY_SPEC.md) they have been exercised against a scripted
-  rater only.
-- **One command for the cited path.** It is seven steps, and the quote gate, batch leaves and
+  does not run one. verify-spec's own model-judged checks are in the package, built and priced. In
+  this repository they are tested only against a scripted fake rater, and no run against a real
+  model is published here ([docs/core/VERIFY_SPEC.md](docs/core/VERIFY_SPEC.md)).
+- **One command for the cited path.** It is eight steps, and the quote gate, batch leaves and
   the model-built consolidation inputs run as Python modules.
 
 ## Privacy
 
 The database, vectors, facts and specification stay on your machine. There are no accounts and no
 sync. Extraction and authoring send text to the model API you configure, and that provider's
-retention policy applies ([Anthropic's](https://www.anthropic.com/policies/privacy)). The first
+retention policy applies ([Anthropic's](https://www.anthropic.com/legal/privacy)). The first
 embedding run downloads the embedding model from Hugging Face. Base Layer sends no usage data, and
 turns off ChromaDB's own telemetry on every client it creates.
 
@@ -259,7 +281,8 @@ The *Beyond Recall* study evaluated specifications on 14 historical subjects wit
 autobiographies. Gains are largest where the model knows the person least. Specifications change
 how decisions are argued in every situation tested, and change the decision itself in some. An
 analysis plan was locked partway through the study, after most data had been collected; it is not a
-preregistration of the full study
+preregistration of the full study, and it specifies a seven-judge panel, while the five-judge
+primary panel is not in it
 ([ANALYSIS_PLAN_LOCK.md](https://github.com/agulaya24/beyond-recall/blob/master/docs/ANALYSIS_PLAN_LOCK.md)).
 Method, panels and caveats: the [paper](https://arxiv.org/abs/2605.28969) and the
 [research page](https://www.base-layer.ai/research).
@@ -269,9 +292,13 @@ Method, panels and caveats: the [paper](https://arxiv.org/abs/2605.28969) and th
 - Site: https://www.base-layer.ai · examples: https://www.base-layer.ai/examples/franklin
 - Paper: *Beyond Recall*, https://arxiv.org/abs/2605.28969 (CC BY 4.0); study code and data:
   https://github.com/agulaya24/beyond-recall; dataset: https://huggingface.co/datasets/agulaya24/beyond-recall
-- Examples in this repository: [examples/](examples/). `zitkala_sa/` is the one with checkable
-  citations; the other seven predate citations.
+- Examples in this repository: [examples/](examples/). `zitkala_sa/` is the one whose claims cite
+  fact ids (the fact database is not included, so the ids cannot be resolved from here); the other
+  seven predate citations.
 - Docs: [docs/PIPELINE.md](docs/PIPELINE.md) (every step), [docs/DEFINITIONS.md](docs/DEFINITIONS.md),
+  [docs/CORRECTIONS.md](docs/CORRECTIONS.md), [docs/core/FLOW_GUIDE.md](docs/core/FLOW_GUIDE.md) (a walkthrough),
+  [docs/core/ARCHITECTURE.md](docs/core/ARCHITECTURE.md) (modules, tables, data flow),
+  [docs/core/PROJECT_OVERVIEW.md](docs/core/PROJECT_OVERVIEW.md),
   [docs/core/DECISIONS.md](docs/core/DECISIONS.md),
   [ROADMAP.md](ROADMAP.md), [CHANGELOG.md](CHANGELOG.md). For coding agents: [AGENTS.md](AGENTS.md).
 - Reproducing the paper: the paper's version is tagged `v0.2.0`

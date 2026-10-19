@@ -1,96 +1,148 @@
-# Base Layer: User Flow Guide
-## The Interpretive Layer Above Memory
+# Base Layer: Flow Guide
 
-## From Install to Brief Generation
+## From install to a specification
 
-### Step 1: Install
+A walkthrough of both ways to build a specification. Every step's options, inputs and outputs are
+in [PIPELINE.md](../PIPELINE.md); when this guide and `baselayer <command> --help` disagree,
+`--help` is right.
+
+### 1. Install
+
 ```
 pip install git+https://github.com/agulaya24/BaseLayer.git
 ```
-Downloads the package + dependencies (ChromaDB, sentence-transformers, Anthropic SDK). Base Layer is not on PyPI today (the `baselayer` name there is held by an unrelated project), so install from the GitHub source URL or clone the repo and `pip install -e .`.
 
-### Step 2: Initialize
+Python 3.10 or later. Base Layer is not on PyPI (the `baselayer` name there belongs to another
+project), so install from the GitHub URL, or clone the repository and `pip install -e .`.
+
+### 2. Choose a data root and initialize
+
 ```
+export MEMORY_SYSTEM_ROOT=~/bl/me && mkdir -p "$MEMORY_SYSTEM_ROOT"   # optional
 baselayer init
 ```
-Creates your data directory (`~/.baselayer/`) with an empty database and vector store. All your data stays local on your machine.
 
-### Step 3: Set Your API Key
+Every command reads and writes under one data root: `MEMORY_SYSTEM_ROOT` when set (the directory
+must already exist). Unset, it is `~/.baselayer` for a package installed from the GitHub URL, or
+the clone itself (under its `data/`) when you run the code from a clone. It is never the current
+directory. `init` creates
+the database and asks you to acknowledge the privacy notice (`--accept-data-processing` skips the
+prompt). Use a fresh data root for each corpus, and always for the cited path.
+
+### 3. Set your API key
+
 ```
 export ANTHROPIC_API_KEY=sk-ant-...
 ```
-Get your key at [console.anthropic.com](https://console.anthropic.com/). API key is required only for extract, author, and compose; every other step runs locally.
 
-### Step 4: Import Your Data
-```
-baselayer import chatgpt-export.zip
-baselayer import claude-export.json
-baselayer import ~/Documents/personal-notes/
-baselayer import my-journal.txt
-```
-Supports multiple input types:
-- **ChatGPT exports** (.zip or conversations.json)
-- **Claude exports** (.json from claude.ai)
-- **Text files** (.txt, .md, .docx) - personal notes, journals, reflections
-- **Directories** - bulk import all text files in a folder
+Needed by every command that calls a model: `run`, `extract` (unless `--backend ollama`),
+`batch-extract`, `author`, `compose`, `distill`, `author-from-package`, and
+`verify-spec --run-model --rater api`. `import`, `estimate`, `embed`, `assemble`, `consolidate`,
+`search`, `stats` and a dry-run `verify-spec` make no model call. `verify-spec --rater cli` runs
+`claude -p` on your local Claude subscription with the API key removed from the child's
+environment.
 
-Personal notes and journals tend to produce the highest quality identity data because they're self-reflective by nature.
+### 4. Pick a path
 
-### Step 5: Estimate Cost
+| | `baselayer run` | the cited path (experimental) |
+|---|---|---|
+| steps | one command | eight steps (0 to 7 below) |
+| every claim cites facts | not guaranteed | required |
+| verification and trigger index | not run | `verify-spec`, `consolidate` |
+| served over MCP | yes | no |
+
+---
+
+## Path A: `baselayer run`
+
 ```
+baselayer run chatgpt-export.zip      # or claude-export.json, a journal folder, notes.md
+```
+
+It initializes the data root if needed, imports the file, prints an extraction estimate and asks
+to continue (`--yes` skips the prompt), extracts facts (Claude Haiku 4.5), writes the three layers
+into `data/identity_layers/` (Claude Sonnet 4.6), then runs a traceability step: tiers facts,
+builds the vector index, links claims to nearby facts, and runs a small Haiku check for tensions
+between facts. It never composes a brief. A file that adds nothing new stops before any spend
+unless you pass `--reauthor`.
+
+`baselayer estimate` prices extraction only, from the dated rate table in
+`src/baselayer/distillation/spend.py`. Treat it as a floor, not a budget.
+
+The same steps, one at a time:
+
+```
+baselayer import chatgpt-export.zip     # .zip/.json exports, .txt/.md/.docx/.rst files or a folder
 baselayer estimate
+baselayer extract                       # --backend ollama for local extraction
+baselayer author                        # all three layers; --layer core for one
+baselayer embed                         # optional: message vectors for `baselayer search`
+baselayer compose                       # optional: a single prose brief from the layers
 ```
-Prints pending conversation counts, estimated tokens, and an estimated extraction cost per model. `baselayer estimate` computes its extraction figure from your imported text; the authoring and composition figures it prints are fixed values that do not scale with the corpus. Actual cost depends on text volume and provider pricing, so treat the estimate as a rough guide, not a budget.
 
-### Step 6: Extract Facts
-```
-baselayer extract
-baselayer extract --backend ollama    # use local Qwen instead of API
-```
-Reads every conversation, pulls out facts about you using AUDN (Add, Update, Delete, Noop) lifecycle operations. Uses 46 constrained predicates. Default uses Haiku API (fast, cheap). Local Ollama available for zero-cost extraction if you have a GPU.
+Fact vectors are written during `extract`, so the MCP `recall_memories` tool and `baselayer verify`
+work without `embed`. `embed` adds one vector per imported message, which only `baselayer search`
+reads.
 
-### Step 7: Author Layers + Compose Brief
-```
-baselayer author --compose          # generate layers + compose specification (recommended)
-baselayer author                    # generate layers only
-baselayer author --layer core       # regenerate a single layer
-baselayer compose                   # compose specification from existing layers
-```
-Generates three specification layers from your facts:
-- **ANCHORS** - Your deepest beliefs and epistemic axioms
-- **CORE** - Biographical foundation: who you are, who matters, what you've built
-- **PREDICTIONS** - Behavioral patterns: how you'll react, decide, communicate
+## Path B: the cited path
 
-Then composes a behavioral specification from all three layers. Collective review (a multi-agent adversarial review process) was proven ceremonial in the Session 79 pipeline ablation study and removed from the default pipeline. The author step generates layers directly; the compose step creates the specification.
-
-Pre-authored once, reused across every conversation.
-
-**Superseded, but still runs.** This author step hands each layer a capped slice of facts: at most 15 per category (`MAX_FACTS_PER_CATEGORY` in `author_layers.py`), selected by sort position rather than importance. On large corpora most facts never reach the author; on one measured 407-fact corpus, the CORE layer was written from 141 of them. The command works as documented and remains the default in this repository. Its experimental successor, interpretive distillation, first compresses every fact into one package per layer so that nothing is dropped by a cap, and requires citations by schema. It ships in this repository as the experimental subpackage `baselayer.distillation` (`baselayer distill` / `assemble` / `author-from-package`); see `DISTILLATION.md` for its caveats.
-
-**One-command version:**
 ```
-baselayer run <file>
+export MEMORY_SYSTEM_ROOT=~/bl/me && mkdir -p "$MEMORY_SYSTEM_ROOT"
+baselayer init
+echo '{"subject_names": ["Benjamin", "Benjamin Franklin"]}' > "$MEMORY_SYSTEM_ROOT/data/import_config.json"
+baselayer import chatgpt-export.zip
+baselayer estimate                            # a floor for extraction, not a budget
+export BASELAYER_SPEND_CEILING_USD=<usd>      # sequential extraction stops before passing it
+baselayer extract --turn-contract
+mkdir -p trees packages
+baselayer distill --layer anchors --max-facts 50 --out trees/anchors.json \
+    --rates-confirmed <table date> --confirm-spend <usd>       # repeat for core, predictions
+baselayer assemble trees/anchors.json --out packages/anchors.json   # repeat for core, predictions
+baselayer author-from-package --package packages/anchors.json --package packages/core.json \
+    --package packages/predictions.json --outdir spec_out/ \
+    --db "$MEMORY_SYSTEM_ROOT/data/database/memory.db" \
+    --rates-confirmed <table date> --confirm-spend <usd>
+baselayer verify-spec spec_out/ --label me --corpus "$MEMORY_SYSTEM_ROOT" --out verify_out/
+baselayer consolidate spec_out/ --out served_out/
 ```
-Runs the full pipeline (Import, Extract, Author, Compose) automatically with a cost estimate gate before spending.
 
-### Step 8: Your Brief
-```
-baselayer brief "Help me write a cover letter"
-```
-Assembles a behavioral specification (the compressed document that teaches an AI how you think and communicate) tailored to the current message. **Prefers the composed specification** if available, a single compressed document that eval showed outperforms structured layer injection. Falls back to three-layer format if no specification exists:
-- **Layer 1: Identity** (~3,500 tokens) - Three pre-authored layers (always present)
-- **Layer 2: Themes** (~800 tokens) - Relevant facts retrieved by semantic similarity
-- **Layer 3: Episodes** (~600 tokens) - Specific conversation memories
+0. **Name the person.** Set `subject_names` in `data/import_config.json` under the data root to
+   every form of the person's name the text may use, before importing. Turn-contract extraction
+   refuses to start without it, and the importer uses it too.
+1. **Import** stores the text one turn per row and records who said each turn. Only turns the
+   person typed or spoke can be cited later.
+2. **Extract** with `--turn-contract`: every fact must quote the person's own words, and a gate in
+   code drops any fact whose quote is not found in the person's turn. A rerun resumes where it
+   stopped. Detail: [TURN_CONTRACT.md](TURN_CONTRACT.md).
+3. **Distill**, once per layer (Claude Sonnet 5). Always pass `--layer`: without it the run uses
+   `blind`, an undirected control arm, and prints a warning. The directory for `--out` must exist;
+   `distill` checks it before any call. Detail: [DISTILLATION.md](DISTILLATION.md).
+4. **Assemble**, once per layer. No model call.
+5. **Author** the three layers (Claude Opus 5). Every claim must cite fact ids. A prose brief is
+   written only with `--compose`.
+6. **Verify.** `verify-spec` checks citations, evidence spans, voice and stamps against the
+   database, read-only. Model-judged checks are priced and sent only with `--run-model`. Detail:
+   [VERIFY_SPEC.md](VERIFY_SPEC.md).
+7. **Consolidate** into an always-on set, a trigger index and duplicate groups. No model call, no
+   claim text rewritten, 14 checks that must pass. Detail: [CONSOLIDATION.md](CONSOLIDATION.md).
 
-The brief gets injected into the AI's system prompt. The AI now knows you.
+`distill` and `author-from-package` print an estimate and refuse to start until you confirm the
+rate table's date (`--rates-confirmed`, printed by `baselayer distill --help`) and give a spend
+ceiling (`--confirm-spend` or `BASELAYER_SPEND_CEILING_USD`). Check current prices before
+confirming. Spend rules: [PIPELINE.md](../PIPELINE.md#12-spend).
 
-### Step 9: Connect to Your AI (MCP Server)
-```
-baselayer-mcp
-```
-Starts the MCP (Model Context Protocol) server that connects Base Layer to any MCP-compatible AI client.
+---
 
-**Claude Desktop** -- add to `claude_desktop_config.json`:
+## Connect to your AI
+
+**MCP (Claude Code):**
+
+```
+claude mcp add --transport stdio base-layer -- baselayer-mcp
+```
+
+**Claude Desktop**, in `claude_desktop_config.json`:
+
 ```json
 {
   "mcpServers": {
@@ -101,61 +153,48 @@ Starts the MCP (Model Context Protocol) server that connects Base Layer to any M
 }
 ```
 
-**Claude Code:**
+The server serves the three layers in `data/identity_layers/`, which only Path A writes. It does
+not serve a cited-path `spec_out/` directory or the `consolidate` output. What the AI gets:
+
+- `memory://specification` (resource): the three layers (CORE, ANCHORS, PREDICTIONS) with a short
+  usage note and a list of the tools. The server also places this text in its MCP instructions;
+  some clients may truncate long instructions, so the resource and the tools are the reliable way
+  to read it in full.
+- `recall_memories`, `search_facts`: retrieval over the facts (`recall_memories` needs the vector
+  index).
+- `trace_claim`: the facts linked to a claim, how each was linked and the source conversation; for
+  turn-contract facts, also the person's quoted words.
+- `verify_claims`, `get_stats`, `get_brief` (the optional brief, if one was composed), `get_help`,
+  `get_call_log`.
+
+Setup and checks: [recipes/serve_specification_via_mcp.md](../../recipes/serve_specification_via_mcp.md).
+
+**By hand:** put the three layer files in the system prompt, or consolidate's `served.txt`
+(always-on claims plus the trigger index) and look up the claims a situation names in
+`index.json`.
+
 ```
-claude mcp add --transport stdio base-layer -- baselayer-mcp
-```
-
-**What the AI gets:**
-- **Identity layers** (Resource, always available) -- specification preferred, three-layer fallback (ANCHORS + CORE + PREDICTIONS)
-- **recall_memories** (Tool, on-demand) -- AI calls this when it needs specific facts or episodes
-- **search_facts** (Tool) -- keyword search across your fact database
-- **trace_claim** (Tool) -- provenance trace from any identity layer claim back to source facts
-- **get_stats** (Tool) -- database statistics
-- **verify_claims** (Tool) -- verify identity layer claims against the fact base
-
-The AI always knows who you are (identity layers). It pulls up specific memories only when the conversation calls for it.
-
----
-
-## What Happens Under the Hood
-
-```
-Your Data ------> Import ------> Extract ------> Author Layers
-(chats, notes,                                        |
- journals)                                        Compose Brief
-                                                      |
-                                                 MCP Server
-                                                /          \
-                                Specification Resource  recall_memories Tool
-                                (always available)       (AI calls on demand)
-                                      \                  /
-                                       AI System Prompt
-                                       (AI knows you)
+Your text --> import --> extract --+--> author ----------------------------> data/identity_layers/ --> MCP server
+                                   |    (Path A, `baselayer run`)                                     (resource + tools)
+                                   |
+                                   +--> distill --> assemble --> author-from-package --> spec_out/
+                                        (Path B, cited)                                      |
+                                                                          verify-spec, consolidate --> by hand
 ```
 
-## Cost Summary
-| Step | Model | Runs |
-|------|-------|------|
-| Extract | Haiku (default) | Model API |
-| Author layers | Sonnet | Model API |
-| Compose brief | Opus | Model API |
-| Brief assembly | None (local) | Local |
+## Correcting and updating
 
-Cost depends on text volume and provider pricing. Run `baselayer estimate` before extracting and treat it as a rough guide.
-
-## Time Estimates
-| Step | First Run | Subsequent |
-|------|-----------|------------|
-| Install | 2 min | - |
-| Import | 30 sec | seconds (incremental) |
-| Extract (Haiku) | 10-20 min | minutes (new only) |
-| Author + Compose | 5-10 min | on-demand |
-| Brief generation | <1 sec | <1 sec |
-| **Full pipeline** | **~30 min** | **minutes (incremental)** |
+Edit the layer files, hide facts with `baselayer review` or `baselayer forget`, and re-author.
+Import new text and run the steps again; extraction only processes what is new. How a correction
+moves through each path: [CORRECTIONS.md](../CORRECTIONS.md).
 
 ## Requirements
-- **Python 3.10+**
-- **Anthropic API key** - for extraction, layer authoring, and brief composition (`export ANTHROPIC_API_KEY=sk-...`)
-- **Ollama + Qwen 2.5 14B** (optional) - for local extraction without API costs
-- **~2GB disk** - for embeddings model + vector store
+
+- Python 3.10 or later.
+- An Anthropic API key for the model steps listed in step 3.
+- Optional: Ollama with the model named by `LLM_MODEL` in `config.py` (`qwen2.5:14b`) for local
+  extraction.
+- Disk for the embedding model (downloaded from Hugging Face on first use) and the vector store.
+
+Cost depends on how much text you import and on current provider prices. Model calls scale with
+the corpus; `distill` and `author-from-package` print their own estimate before any call.

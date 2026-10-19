@@ -6,15 +6,19 @@ Three implementations:
                   ANTHROPIC_API_KEY / ANTHROPIC_AUTH_TOKEN removed (a bare `claude -p`
                   inherits the key and bills API credits), BASELAYER_SPEC_INJECT=0, hooks
                   disabled via --settings, an empty strict MCP config, `--allowedTools ""`,
-                  and a cwd outside every project tree. `--allowedTools ""` grants nothing;
+                  `--safe-mode` when the installed CLI lists it in `claude --help` (it drops
+                  the user-scope CLAUDE.md, skills, plugins and hooks; without it the run
+                  continues and says so), and a cwd outside every project tree. `--allowedTools ""` grants nothing;
                   whether it DENIES tools that user-scope allow rules already permit is
                   unverified, so the child may still be able to read files.
   ApiRater        the Anthropic API. Only when explicitly requested, with a spend cap.
 
-Blindness: every Claude Code child loads the user-scope ~/.claude/CLAUDE.md regardless
-of cwd or config dir, so no CLI run is blind by construction. Each rater records
-blind=False with that channel named. Nothing sets blind=True without a stored
-context probe of the actual child whose answer contains none of the canaries.
+Blindness: without --safe-mode every Claude Code child loads the user-scope
+~/.claude/CLAUDE.md regardless of cwd or config dir. With it, that channel is closed
+on the CLI versions it was probed on, but no CLI run is blind by construction. Each
+rater records blind=False with the open channel named. Nothing sets blind=True
+without a stored context probe of the actual child whose answer contains none of the
+canaries.
 """
 from __future__ import annotations
 
@@ -28,6 +32,22 @@ from pathlib import Path
 
 USER_SCOPE_CHANNEL = ("user-scope ~/.claude/CLAUDE.md loads into every Claude Code child regardless of cwd, "
                       "--strict-mcp-config or CLAUDE_CONFIG_DIR; it can name the subject")
+SAFE_MODE_CHANNEL = ("--safe-mode passed: the user-scope ~/.claude/CLAUDE.md, skills, plugins and hooks are "
+                     "dropped; anything else the child can see is unverified without a clean probe")
+NO_SAFE_MODE_WARNING = ("WARNING: the installed claude CLI (%s) does not list --safe-mode in its --help, so "
+                        "verify-spec rater children run without it and load the user-scope ~/.claude/CLAUDE.md, "
+                        "which can name the subject. Upgrade the CLI, or add --probe to record what the child sees.")
+
+
+def cli_supports_safe_mode(binary: str, timeout: int = 60) -> bool:
+    """Whether `claude --help` lists --safe-mode. Free (no model call); any failure to run
+    the help counts as unsupported."""
+    try:
+        r = subprocess.run([binary, "--help"], capture_output=True, text=True, encoding="utf-8",
+                           timeout=timeout)
+    except Exception:  # noqa: BLE001 -- missing binary, timeout, OS error: treat as unsupported
+        return False
+    return "--safe-mode" in ((r.stdout or "") + (r.stderr or ""))
 
 
 @dataclass
@@ -102,7 +122,9 @@ class ClaudeCliRater(Rater):
     name = "claude_cli"
     bills_api = False
 
-    def __init__(self, model: str, cwd: Path, work_dir: Path, protected: list[Path], timeout: int = 900, binary: str | None = None):
+    def __init__(self, model: str, cwd: Path, work_dir: Path, protected: list[Path], timeout: int = 900, binary: str | None = None,
+                 safe_mode: bool | None = None):
+        """safe_mode: None detects support from `claude --help`; True or False forces it."""
         check_rater_cwd(cwd, protected)
         self.model = model
         self.cwd = Path(cwd).resolve()
@@ -114,10 +136,15 @@ class ClaudeCliRater(Rater):
         self.mcp_config = work_dir / "empty_mcp.json"
         self.mcp_config.write_text(json.dumps({"mcpServers": {}}), encoding="utf-8")
         self.probe: dict | None = None
+        self.safe_mode = cli_supports_safe_mode(self.binary) if safe_mode is None else bool(safe_mode)
+        if not self.safe_mode:
+            import sys
+            print(NO_SAFE_MODE_WARNING % self.binary, file=sys.stderr, flush=True)
 
     def command(self) -> list[str]:
         return [self.binary, "-p", "--strict-mcp-config", "--mcp-config", str(self.mcp_config), "--model", self.model,
-                "--allowedTools", "", "--output-format", "json", "--settings", CLI_SETTINGS]
+                "--allowedTools", "", "--output-format", "json", "--settings", CLI_SETTINGS,
+                *(["--safe-mode"] if self.safe_mode else [])]
 
     def complete(self, prompt: str) -> Reply:
         t = time.time()
@@ -143,7 +170,9 @@ class ClaudeCliRater(Rater):
                 "billing": "subscription (ANTHROPIC_API_KEY and ANTHROPIC_AUTH_TOKEN removed from the child env, asserted)",
                 "spec_injection": "BASELAYER_SPEC_INJECT=0 and --settings disableAllHooks",
                 "cost_usd_field": "counterfactual: claude -p reports what the call would cost at API rates",
-                "blind": blind, "blind_channel": USER_SCOPE_CHANNEL,
+                "safe_mode": self.safe_mode,
+                "user_scope_instructions": "--safe-mode" if self.safe_mode else "loaded (the CLI lacks --safe-mode)",
+                "blind": blind, "blind_channel": SAFE_MODE_CHANNEL if self.safe_mode else USER_SCOPE_CHANNEL,
                 "probe": self.probe if self.probe else "not_run"}
 
 

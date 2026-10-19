@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Base Layer CLI — Personal AI Memory System
+Base Layer CLI: Personal AI Memory System
 
 Pipeline (4 steps): Import -> Extract -> Embed -> Author. Compose (a unified prose brief
 from the authored layers) is optional and separate: `baselayer compose`.
@@ -45,7 +45,7 @@ import os
 import argparse
 from pathlib import Path
 
-# Fix Windows encoding — prevent UnicodeEncodeError on cp1252 stdout
+# Fix Windows encoding: prevent UnicodeEncodeError on cp1252 stdout
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
@@ -110,7 +110,7 @@ def cmd_init(args):
     print("    During fact extraction, conversation text is sent to the Anthropic API")
     print("    (Claude Haiku) for processing. Your data is subject to Anthropic's API")
     print("    data policy (zero-retention by default as of March 2025; policies may")
-    print("    change — see https://www.anthropic.com/policies/privacy).")
+    print("    change; see https://www.anthropic.com/legal/privacy).")
     print()
     print("    By continuing, you acknowledge this data processing.")
     if getattr(args, "accept_data_processing", False):
@@ -205,7 +205,7 @@ def cmd_init(args):
     print(f"  Option B: Start from scratch with journal prompts")
     print(f"    baselayer journal")
     print(f"\n  Journal entries produce the highest-quality identity data.")
-    print(f"  You can do both — import conversations AND journal.")
+    print(f"  You can do both: import conversations AND journal.")
 
 
 def cmd_import(args):
@@ -245,9 +245,24 @@ def cmd_import(args):
     import_conversations.main()
 
 
+def _estimate_rate(model):
+    """(input, output) USD per MTok for `model` from the dated rate table in
+    distillation/spend.py, or None when the table has no rate for it. A dated id
+    (claude-haiku-4-5-20251001) is looked up by its undated name (claude-haiku-4-5)."""
+    import re as _re
+    from baselayer.distillation.spend import RATES_PER_MTOK
+    if model in RATES_PER_MTOK:
+        return RATES_PER_MTOK[model]
+    return RATES_PER_MTOK.get(_re.sub(r"-\d{8}$", "", model or ""))
+
+
 def cmd_estimate(args):
-    """Estimate API cost for extraction based on imported data."""
+    """Estimate the API cost of extracting what is imported and not yet extracted.
+
+    Prices extraction only, from the dated rate table in distillation/spend.py. It is a
+    floor, not a budget: the token count is approximate and authoring is not priced here."""
     from baselayer.config import DATABASE_FILE, EXTRACTION_API_MODEL, get_db
+    from baselayer.distillation.spend import CHARS_PER_TOKEN, RATES_AS_OF, RATES_SOURCE
 
     if not DATABASE_FILE.exists():
         print("No database found. Run: baselayer init")
@@ -267,45 +282,37 @@ def cmd_estimate(args):
             WHERE c.id NOT IN (SELECT conversation_id FROM extraction_log)
         """).fetchone()[0]
 
-        # Token estimation (4 chars per token)
-        input_tokens = total_chars // 4
-        # Output estimate: ~200 tokens per conversation (JSON facts)
-        output_tokens = pending * 200
+    # Same characters-per-token assumption as the billed distillation estimates.
+    input_tokens = int(total_chars / CHARS_PER_TOKEN)
+    # Output assumption: about 200 tokens of JSON facts per conversation.
+    output_tokens = pending * 200
 
-        # Pricing per 1M tokens (as of 2026)
-        pricing = {
-            "claude-haiku-4-5-20251001": {"input": 0.80, "output": 4.00, "name": "Haiku 4.5"},
-            "claude-sonnet-4-20250514": {"input": 3.00, "output": 15.00, "name": "Sonnet 4"},
-            "claude-opus-4-20250514": {"input": 15.00, "output": 75.00, "name": "Opus 4"},
-        }
+    print(f"\n  Extraction Cost Estimate (a floor, not a budget)")
+    print(f"  {'='*45}")
+    print(f"  Total conversations:    {total_convos:,}")
+    print(f"  Already extracted:      {extracted:,}")
+    print(f"  Pending extraction:     {pending:,}")
+    print(f"  Estimated input tokens: {input_tokens:,}")
+    print(f"  Estimated output tokens:{output_tokens:,}")
 
-        print(f"\n  Extraction Cost Estimate")
-        print(f"  {'='*45}")
-        print(f"  Total conversations:    {total_convos:,}")
-        print(f"  Already extracted:      {extracted:,}")
-        print(f"  Pending extraction:     {pending:,}")
-        print(f"  Estimated input tokens: {input_tokens:,}")
-        print(f"  Estimated output tokens:{output_tokens:,}")
+    rate = _estimate_rate(EXTRACTION_API_MODEL)
+    print(f"\n  Extraction model:       {EXTRACTION_API_MODEL}")
+    if rate is None:
+        print(f"  No rate for this model in the in-repo table dated {RATES_AS_OF}; "
+              f"no cost is printed.")
+    else:
+        cost = (input_tokens / 1_000_000) * rate[0] + (output_tokens / 1_000_000) * rate[1]
+        print(f"  Rate:                   ${rate[0]:g} in / ${rate[1]:g} out per million tokens,")
+        print(f"                          in-repo table dated {RATES_AS_OF} ({RATES_SOURCE}).")
+        print(f"                          Check current prices.")
+        print(f"  Estimated extraction:   ${cost:,.2f}")
 
-        print(f"\n  Estimated cost by model:")
-        for model_id, info in pricing.items():
-            input_cost = (input_tokens / 1_000_000) * info["input"]
-            output_cost = (output_tokens / 1_000_000) * info["output"]
-            total_cost = input_cost + output_cost
-            marker = " <-- current default" if model_id == EXTRACTION_API_MODEL else ""
-            print(f"    {info['name']:12s} ${total_cost:>7.2f}{marker}")
-
-        print(f"\n  Note: Actual cost depends on conversation length and")
-        print(f"  fact density. Estimates are typically within 2x of actual.")
-
-        # Also show downstream pipeline costs
-        if pending > 0:
-            print(f"\n  Post-extraction pipeline costs (one-time):")
-            print(f"    Layer authoring (Sonnet): ~$0.10")
-            print(f"    Brief composition (Opus): ~$0.20")
-            print(f"    Total pipeline:           ~$0.30")
-
-        print()
+    print(f"\n  Covers sequential extraction only. batch-extract bills about half the per-token")
+    print(f"  rate. Turn-contract extraction also sends preceding turns with each chunk as")
+    print(f"  context, so it sends more input than counted here.")
+    print(f"  Authoring is not priced here: distill and author-from-package print their own")
+    print(f"  estimate before any call; static author (and run) and compose print none.")
+    print()
 
 
 def cmd_extract(args):
@@ -326,7 +333,7 @@ def cmd_extract(args):
         print(f"Using local Ollama ({config.LLM_MODEL}) for extraction")
 
     if args.identity_only:
-        print("Mode: IDENTITY-ONLY — extracting personal traits from project conversations")
+        print("Mode: IDENTITY-ONLY: extracting personal traits from project conversations")
 
     import baselayer.extract_facts as extract_facts
 
@@ -442,7 +449,10 @@ def cmd_distill(args):
     argv = ["distill.py", "--db", db, "--out", args.out,
             "--model", args.model, "--max-facts", str(args.max_facts),
             "--limit-chunks", str(args.limit_chunks), "--partition", args.partition,
-            "--seed", str(args.seed), "--layer", args.layer]
+            "--seed", str(args.seed)]
+    if args.layer is not None:
+        # Forwarded only when given, so the module can warn when the control default applies.
+        argv += ["--layer", args.layer]
     if args.checkpoint:
         argv += ["--checkpoint", args.checkpoint]
     if args.resume_from:
@@ -762,11 +772,11 @@ def _delete_vectors(fact_ids):
         client = _chroma_client_for(VECTORS_DIR)
         collection = client.get_collection("memory_facts")
     except Exception as e:
-        # Collection doesn't exist — nothing to delete
+        # Collection doesn't exist; nothing to delete
         print(f"WARNING: Could not access memory_facts collection: {e}", file=sys.stderr)
         return 0
 
-    # ChromaDB delete only works with IDs that exist — filter first
+    # ChromaDB delete only works with IDs that exist; filter first
     existing = set()
     for fid in fact_ids:
         try:
@@ -886,7 +896,8 @@ def _mark_spec_stale_after_forget(hidden, mode):
         print(f"  resource and any server started from now on carry a stale notice (a server")
         print(f"  already running built its instructions at startup, so restart it).")
         print(f"  Stale: {', '.join(f.name for f in stale)}")
-        print(f"  Regenerate it with: baselayer author --compose")
+        print(f"  Regenerate the layers with: baselayer author")
+        print(f"  (add --compose only if you also keep the optional brief)")
     else:
         print(f"\n  No authored specification exists yet, so none is stale.")
 
@@ -903,8 +914,8 @@ def _print_stale_spec_warning():
     count = f"{n} fact(s)" if n else "Facts"
     print(f"  WARNING: specification is stale. {count} were hidden with `baselayer forget`")
     print(f"  after these files were written: {', '.join(f.name for f in stale)}.")
-    print(f"  They may still carry claims drawn from the hidden facts. Regenerate with:")
-    print(f"    baselayer author --compose")
+    print(f"  They may still carry claims drawn from the hidden facts. Regenerate the layers with:")
+    print(f"    baselayer author      (add --compose only to rebuild the optional brief)")
     print()
 
 
@@ -944,7 +955,7 @@ def cmd_provenance(args):
                 return
 
             first = rows[0]
-            print(f"\n  Claim: {first['claim_id']} — {first['claim_text'] or '(unnamed)'}")
+            print(f"\n  Claim: {first['claim_id']}: {first['claim_text'] or '(unnamed)'}")
             print(f"  Layer: {first['layer_name']} ({first['layer_version'] or 'unknown'})")
             print(f"\n  Supporting Facts ({len(rows)}):")
 
@@ -964,7 +975,7 @@ def cmd_provenance(args):
                         print(f"        source: \"{conv['title'][:80]}\"")
 
         else:
-            # Summary mode — show all claims with fact counts
+            # Summary mode: show all claims with fact counts
             rows = conn.execute("""
                 SELECT layer_name, claim_id, claim_text, COUNT(*) as fact_count,
                        layer_version
@@ -1100,7 +1111,7 @@ def cmd_verify(args):
 
 
 def cmd_review(args):
-    """Interactive fact review — inspect, approve, or flag facts."""
+    """Interactive fact review: inspect, approve, or flag facts."""
     from baselayer.config import DATABASE_FILE, get_db
 
     if not DATABASE_FILE.exists():
@@ -1217,7 +1228,7 @@ def cmd_journal(args):
     JOURNAL_PROMPTS = [
         {
             "id": "who",
-            "prompt": "Describe yourself in a few sentences — who are you, what do you do, and what matters most to you?",
+            "prompt": "Describe yourself in a few sentences: who are you, what do you do, and what matters most to you?",
             "category": "identity",
         },
         {
@@ -1258,10 +1269,10 @@ def cmd_journal(args):
     ]
 
     with contextlib.closing(get_db()) as conn:
-        print(f"\n  Base Layer Journal — Identity Onboarding")
+        print(f"\n  Base Layer Journal: Identity Onboarding")
         print(f"  {'='*50}")
         print(f"  Answer these questions to quickly build your identity profile.")
-        print(f"  Write naturally — more detail means better identity quality.")
+        print(f"  Write naturally; more detail means better identity quality.")
         print(f"  Press enter to skip a question, type 'quit' to stop.\n")
 
         entries = []
@@ -1347,7 +1358,7 @@ def _run_traceability():
 
     # 5a: Rule-based tiering (predicate -> knowledge_tier).
     # Shared with batch_extract.run_process via tier_facts_by_predicate so both
-    # extraction paths tier identically. Idempotent — only touches untiered
+    # extraction paths tier identically. Idempotent: only touches untiered
     # facts, so calling it here after the batch path already tiered is a no-op.
     print("  5a. Tiering facts by predicate...")
     from baselayer.extract_facts import tier_facts_by_predicate
@@ -1439,7 +1450,7 @@ def _run_traceability():
 
 
 def cmd_pipeline(args):
-    """S98 Phase 4: Unified pipeline — one command, all gates enforced.
+    """S98 Phase 4: Unified pipeline: one command, all gates enforced.
 
     Usage:
         baselayer pipeline <subject_id>          # V1: fresh run
@@ -1498,7 +1509,7 @@ def cmd_pipeline(args):
                 break
 
     print(f"\n{'='*60}")
-    print(f"  Base Layer Pipeline — {name}")
+    print(f"  Base Layer Pipeline: {name}")
     print(f"  Mode: {'V2 (re-extract)' if v2_mode else 'V1 (fresh)'}")
     print(f"  Memory: {memory_dir}")
     print(f"  Source: {source_dir or 'N/A'}")
@@ -1558,7 +1569,7 @@ def cmd_pipeline(args):
             force = False
         cmd_import(_ImportArgs())
     else:
-        print(f"  No source directory — skipping import.")
+        print(f"  No source directory; skipping import.")
 
     total_after, pending = _conversation_counts(SUBJ_DB_FILE)
     # --v2 clears extraction first, so everything is pending and the run always proceeds.
@@ -1569,7 +1580,7 @@ def cmd_pipeline(args):
             rerun_hint=f"baselayer pipeline {subject_id} --reauthor"):
         return
 
-    # Step 2: Extract (batch API — 50% cheaper, ~1hr turnaround)
+    # Step 2: Extract (batch API: 50% cheaper, ~1hr turnaround)
     print(f"\n  Step 2: Extracting facts (batch API)...")
     import baselayer.batch_extract as batch_extract
 
@@ -1592,7 +1603,7 @@ def cmd_pipeline(args):
                 processing = getattr(counts, 'processing', 0)
                 succeeded = getattr(counts, 'succeeded', 0)
                 total = state.get("total_requests", 0)
-                print(f"  Batch: {status} — {succeeded}/{total} succeeded, {processing} processing")
+                print(f"  Batch: {status}: {succeeded}/{total} succeeded, {processing} processing")
                 if status == "ended":
                     state["status"] = "ended"
                     batch_extract._save_batch_state(state)
@@ -1656,7 +1667,7 @@ def cmd_pipeline(args):
     conn.close()
 
     print(f"\n{'='*60}")
-    print(f"  Pipeline complete — {name}")
+    print(f"  Pipeline complete: {name}")
     print(f"  Facts: {fact_count} | Version: {new_version}")
     print(f"{'='*60}\n")
 
@@ -1786,7 +1797,7 @@ def cmd_run(args):
         except (EOFError, KeyboardInterrupt):
             confirm = "n"
         if confirm == "n":
-            print("  Cancelled. Your data is imported — run 'baselayer extract' when ready.")
+            print("  Cancelled. Your data is imported; run 'baselayer extract' when ready.")
             return
 
     # Step 2: Extract
@@ -2162,7 +2173,7 @@ def _check_fact_floor():
         failures.append(f"source documents: {source_docs}/5")
 
     if failures:
-        print(f"Error: Fact quality below threshold — {', '.join(failures)}.")
+        print(f"Error: Fact quality below threshold: {', '.join(failures)}.")
         print(f"Extract more data or check extraction quality.")
         print(f"To force anyway: set BASELAYER_SKIP_FACT_FLOOR=1")
         if not os.environ.get("BASELAYER_SKIP_FACT_FLOOR"):
@@ -2204,7 +2215,7 @@ def _check_pipeline_lock():
             alive.append(current_pid)
             lock_file.write_text("\n".join(str(p) for p in alive))
         except (ValueError, IOError):
-            # Corrupted lock file — overwrite
+            # Corrupted lock file; overwrite
             lock_file.write_text(str(current_pid))
     else:
         lock_file.write_text(str(current_pid))
@@ -2495,7 +2506,7 @@ def main():
     p_import.set_defaults(func=cmd_import)
 
     # estimate
-    p_estimate = subparsers.add_parser("estimate", help="Estimate API cost for extraction")
+    p_estimate = subparsers.add_parser("estimate", help="Estimate extraction cost from the dated rate table (a floor; authoring is not priced)")
     p_estimate.set_defaults(func=cmd_estimate)
 
     # extract
@@ -2557,7 +2568,10 @@ def main():
              "citation audit, most measurements from one small corpus.")
     p_distill.add_argument("--db", default=None,
                            help="SQLite corpus (default: this project's memory.db), opened read-only")
-    p_distill.add_argument("--out", required=True, help="where to write the tree JSON")
+    p_distill.add_argument("--out", required=True,
+                           help="where to write the tree JSON. Its directory must already exist "
+                                "(checked before any model call); the tree is written after the "
+                                "last leaf.")
     p_distill.add_argument("--model", default="claude-sonnet-5")
     p_distill.add_argument("--max-facts", type=int, default=120, help="chunk size (untuned lever: "
                            "finer chunks cite more facts and cost proportionally more)")
@@ -2568,9 +2582,11 @@ def main():
                            help="chunking strategy; `semantic` additionally needs scikit-learn "
                                 "(pip install baselayer[semantic])")
     p_distill.add_argument("--seed", type=int, default=0)
-    p_distill.add_argument("--layer", default="blind",
+    p_distill.add_argument("--layer", default=None,
                            choices=["anchors", "blind", "core", "predictions"],
-                           help="layer directive; `blind` is the undirected control")
+                           help="layer directive: anchors, core or predictions. Default when "
+                                "omitted: `blind`, the undirected control arm, whose tree is not a "
+                                "layer; a warning is printed. Always pass it.")
     p_distill.add_argument("--checkpoint", default="", help="write leaves here after every chunk")
     p_distill.add_argument("--resume-from", default="", help="reload leaves from a checkpoint file")
     p_distill.add_argument("--write-provenance", action="store_true",
@@ -2652,15 +2668,15 @@ def main():
 
     # brief
     p_brief = subparsers.add_parser("brief",
-        help="[ARCHIVED] Assemble a context-retrieval brief via assemble_brief.py — "
-             "use 'compose' for the current V4 unified brief")
+        help="[ARCHIVED] Assemble a context-retrieval brief via assemble_brief.py; "
+             "the optional prose brief now comes from 'compose' or author-from-package --compose")
     p_brief.add_argument("message", help="The message to build the brief for")
     p_brief.set_defaults(func=cmd_brief)
 
     # chat
     p_chat = subparsers.add_parser("chat",
-        help="[ARCHIVED] Interactive memory-augmented chat via assemble_brief.py — "
-             "kept for compatibility, not part of the 4-step pipeline")
+        help="[ARCHIVED] Interactive memory-augmented chat via assemble_brief.py; "
+             "kept for compatibility, not part of either build path")
     p_chat.set_defaults(func=cmd_chat)
 
     # serve (0.3.0 toggle for MCP spec serving)
@@ -2718,7 +2734,8 @@ def main():
                     "removed: the imported messages the facts came from stay in the database. "
                     "Specification layers already written are not regenerated, so a served "
                     "specification can still carry claims built from hidden facts until you "
-                    "run `baselayer author --compose`. After a forget they are marked stale, "
+                    "re-author them (`baselayer author`; `--compose` only rebuilds the optional "
+                    "brief). After a forget they are marked stale, "
                     "and `baselayer stats` and the MCP server say so. To remove everything, "
                     "delete the data directory and the MCP session logs under "
                     "~/.baselayer/sessions/, which record tool queries.")
@@ -2731,13 +2748,13 @@ def main():
                                "re-extraction still skips conversations already processed.")
     p_forget.set_defaults(func=cmd_forget)
 
-    # provenance (S56 — trace layer claims to source facts)
+    # provenance (S56: trace layer claims to source facts)
     p_prov = subparsers.add_parser("provenance", help="Trace specification claims to supporting facts")
     p_prov.add_argument("--claim", type=str, metavar="ID",
                          help="Trace a specific claim by lexicon ID (e.g. A1, P3, C2)")
     p_prov.set_defaults(func=cmd_provenance)
 
-    # verify (S57 — vector + claim verification)
+    # verify (S57: vector + claim verification)
     p_verify = subparsers.add_parser("verify",
         help="Verify specification layer provenance (vector similarity + claim checks)")
     p_verify.add_argument("--layer", choices=["anchors", "core", "predictions", "all"],
@@ -2847,12 +2864,12 @@ def main():
     p_chunks.set_defaults(func=cmd_chunks)
 
 
-    # rebuild-fts (Session 57 — C11: FTS5 full-text search index)
+    # rebuild-fts (Session 57, C11: FTS5 full-text search index)
     p_fts = subparsers.add_parser("rebuild-fts",
         help="Rebuild FTS5 full-text search index from existing facts")
     p_fts.set_defaults(func=cmd_rebuild_fts)
 
-    # ui (Session 72 — local drag-and-drop web UI)
+    # ui (Session 72: local drag-and-drop web UI)
     p_ui = subparsers.add_parser("ui",
         help="Launch local web UI for drag-and-drop pipeline")
     p_ui.add_argument("--port", type=int, default=3141, help="Port (default: 3141)")
@@ -2867,7 +2884,7 @@ def main():
 
     p_ui.set_defaults(func=_launch_ui)
 
-    # pipeline (S98 Phase 4 — unified command with gates)
+    # pipeline (S98 Phase 4: unified command with gates)
     p_pipeline = subparsers.add_parser("pipeline",
         help="Multi-subject pipeline for a subject already in the registry. Needs a "
              "subject_id, not a file. For your own export, use `run`.")

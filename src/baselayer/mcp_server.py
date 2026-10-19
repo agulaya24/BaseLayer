@@ -275,7 +275,7 @@ def _log_call(name, **kwargs):
 # ==========================================================================
 # Builds the full inline specification (preamble + CORE + ANCHORS +
 # PREDICTIONS + tool guidance manifest). Called once at module load to
-# populate the FastMCP `instructions` field — the MCP protocol's mechanism
+# populate the FastMCP `instructions` field, the MCP protocol's mechanism
 # for content the client embeds in the system prompt automatically. Also
 # called dynamically by the `memory://specification` resource so explicit
 # fetches stay supported.
@@ -393,7 +393,7 @@ def _build_specification_text() -> str:
 # ==========================================================================
 # Build the spec once at module load and pass it to FastMCP `instructions`.
 # Per the MCP protocol, the client embeds `instructions` in its system
-# prompt automatically — this is the mechanism that forces every connected
+# prompt automatically; this is the mechanism that forces every connected
 # client to load the specification without relying on the model to fetch
 # the resource explicitly. The `memory://specification` resource still
 # exists for backward compatibility and explicit re-reads.
@@ -597,10 +597,35 @@ def search_facts(query: str, limit: int = 15) -> str:
     return f"Found {len(rows)} facts:\n\n" + "\n".join(lines)
 
 
+TRACE_MAX_SPANS = 3
+
+
+def _evidence_span_lines(raw) -> list:
+    """Display lines for a fact's evidence spans (the person's own quoted words), at most
+    TRACE_MAX_SPANS of them. Empty for a fact without spans or with unreadable span data."""
+    if not raw:
+        return []
+    try:
+        spans = json.loads(raw) if isinstance(raw, str) else raw
+    except (TypeError, ValueError):
+        return []
+    spans = [s for s in (spans or []) if isinstance(s, dict) and s.get("span")]
+    out = []
+    for s in spans[:TRACE_MAX_SPANS]:
+        turn = f" (turn {s['turn_id']})" if s.get("turn_id") else ""
+        out.append(f"      words: \"{s['span']}\"{turn}")
+    if len(spans) > TRACE_MAX_SPANS:
+        out.append(f"      ... {len(spans) - TRACE_MAX_SPANS} more evidence span(s) on this fact")
+    return out
+
+
 @mcp.tool()
 def trace_claim(claim_id: str) -> str:
     """Trace a specification claim back to its supporting facts and source conversations.
-    Like Genius.com annotations: shows the evidence chain behind each claim.
+    Shows each linked fact with its tier, recurrence, how it was linked and the source
+    conversation title. For a fact extracted under the turn contract it also shows up to
+    three of the person's own quoted words the fact rests on (evidence spans), each with
+    its turn id. Facts from legacy extraction carry no spans.
 
     Args:
         claim_id: The lexicon ID of the claim to trace (e.g. "A1", "P3", "C2")
@@ -610,13 +635,17 @@ def trace_claim(claim_id: str) -> str:
         return "No memory database found. Run: baselayer init"
 
     with contextlib.closing(get_db()) as conn:
+        # Evidence spans exist only in databases created or migrated for the turn contract;
+        # naming the column on an older database would raise.
+        fact_cols = {c[1] for c in conn.execute("PRAGMA table_info(memory_facts)").fetchall()}
+        spans_col = ", f.evidence_spans" if "evidence_spans" in fact_cols else ""
         # Get provenance entries for this claim
-        rows = conn.execute("""
+        rows = conn.execute(f"""
             SELECT p.claim_id, p.claim_text, p.fact_id, p.link_method,
                    p.rank_in_claim, p.layer_name, p.layer_version,
                    f.fact_text, f.fact_type, f.knowledge_tier,
                    f.recurrence_count, f.source_conversation_id,
-                   f.predicate, f.object_text
+                   f.predicate, f.object_text{spans_col}
             FROM layer_claim_provenance p
             LEFT JOIN memory_facts f ON p.fact_id = f.id
             WHERE UPPER(p.claim_id) = UPPER(?)
@@ -642,6 +671,8 @@ def trace_claim(claim_id: str) -> str:
             method = r["link_method"] or "?"
             lines.append(f"  [{r['rank_in_claim']}] {fact_text}")
             lines.append(f"      tier: {tier}, recurrence: {rec}, linked via: {method}")
+            if spans_col:
+                lines.extend(_evidence_span_lines(r["evidence_spans"]))
 
             # Show source conversation if available
             if r["source_conversation_id"]:
@@ -711,7 +742,8 @@ def get_stats() -> str:
         lines.append(
             "\n  WARNING: specification is stale. Facts were hidden with `baselayer forget` "
             f"after these files were written: {', '.join(f.name for f in stale)}. "
-            "Regenerate with `baselayer author --compose`."
+            "Regenerate the layers with `baselayer author` (`--compose` only rebuilds the "
+            "optional brief)."
         )
 
     return "\n".join(lines)
@@ -892,7 +924,8 @@ def main():
         logger.warning(
             "Serving a STALE specification: facts were hidden with `baselayer forget` after "
             f"{', '.join(f.name for f in stale)} were written. The served text carries a "
-            "stale notice. Regenerate with `baselayer author --compose`.")
+            "stale notice. Regenerate the layers with `baselayer author` (`--compose` only "
+            "rebuilds the optional brief).")
     mcp.run(transport="stdio")
 
 

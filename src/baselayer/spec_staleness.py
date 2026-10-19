@@ -53,7 +53,8 @@ def record_forget(layers_dir, facts_forgotten, mode, now=None, files=None):
         "last_mode": mode,
         "note": ("Facts were hidden with `baselayer forget` after the specification files "
                  "older than forgotten_at were written. Those files may still carry claims "
-                 "drawn from the hidden facts. Regenerate with `baselayer author --compose`."),
+                 "drawn from the hidden facts. Regenerate the layers with `baselayer author` "
+                 "(`--compose` only rebuilds the optional brief)."),
     }
     tmp = path.with_suffix(".json.tmp")
     tmp.write_text(json.dumps(data, indent=2), encoding="utf-8")

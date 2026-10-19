@@ -25,7 +25,7 @@ data/eval/
 # Contradiction artifacts
 data/contradictions/
 
-# Identity layers (contain personal data — NEVER commit)
+# Identity layers (contain personal data; NEVER commit)
 data/identity_layers/
 # Backups and dated copies of the above. The bare directory name does not
 # cover them: a checkout with data/identity_layers_backup_pre_20260812/ was
@@ -33,6 +33,10 @@ data/identity_layers/
 # Note: `git check-ignore` reported that directory as already ignored,
 # matching a BLANK line. It was a false positive. Trust `git add -An`.
 data/identity_layers_*/
+
+# Distillation trees archived beside the corpus by `distill` (and its run ledger and gaps
+# manifests). In a clone the data root is the clone, and trees carry the person's own words.
+data/distillation/
 
 # Exported data files
 data/*.csv
@@ -52,7 +56,7 @@ venv/
 dist/
 build/
 
-# Personal data mappings (contains personal data — can exist at root, scripts/, or data/)
+# Personal data mappings (contains personal data; can exist at root, scripts/, or data/)
 entity_map.json
 scripts/entity_map.json
 data/entity_map.json
@@ -75,7 +79,7 @@ docs/analysis/
 # Internal review plan (not for public repo)
 docs/REVIEW_PLAN.md
 
-# GTM directory (internal strategy — not for public repo)
+# GTM directory (internal strategy; not for public repo)
 gtm/
 
 # Generated identity blocks (contain personal data)
@@ -132,7 +136,7 @@ docs/REVIEW_PLAN.md
 docs/REVIEW_RESULTS*.md
 docs/SONNET_HANDOFF.md
 
-# Subject data directories (contain personal data — NEVER commit)
+# Subject data directories (contain personal data; NEVER commit)
 subjects/*/
 ../subjects/buffett_memory/
 ../subjects/marks_memory/
@@ -163,7 +167,7 @@ data/swebench/
 scripts/experiments/drift_results/
 scripts/experiments/overnight_results/
 
-# PatentMind / Moltbook bot (API keys + runtime state — never commit)
+# PatentMind / Moltbook bot (API keys + runtime state; never commit)
 scripts/patentmind_agent.py
 scripts/patentmind_state.json
 scripts/baselayer_agent.py
@@ -198,19 +202,19 @@ data/*_archive*
 subjects/
 tensions_all.json
 
-# Scraping scripts (contain subject details — never commit)
+# Scraping scripts (contain subject details; never commit)
 scrape_*.py
 data/scrape_*.py
 data/scrapers_archive/
 
-# Runner scripts (contain subject names, paths, emails — never commit)
+# Runner scripts (contain subject names, paths, emails; never commit)
 runners/
 
 # Stale/archive scripts (contain API keys, subject details)
 archive/stale_scripts/
 archive/scripts_backup_*/
 
-# Internal docs (contain subject names, strategy, plans — never commit)
+# Internal docs (contain subject names, strategy, plans; never commit)
 docs/archive/
 docs/core/PROGRESS.md
 docs/core/GTM_REVIEW_*.md
@@ -240,7 +244,7 @@ docs/internal/
 # Claude Code session state (per-user)
 .claude/
 
-# Local working data: snapshots, experiments, datasets (never commit — size + personal data)
+# Local working data: snapshots, experiments, datasets (never commit; size + personal data)
 data/_backup_*/
 data/_snapshot_*/
 data/experiments/

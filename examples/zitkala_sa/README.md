@@ -1,16 +1,20 @@
 # Zitkala-Sa, the cited example
 
-This is the only example in the repository with fact-level provenance. Read it if you want to
-check the auditability claim rather than take it.
+This is the only example in the repository whose claims cite fact ids. Only the layer text ships
+here: the corpus database is not published, so an outside reader cannot resolve the ids. The
+counts below were checked by the maintainer against that database.
 
 **Source:** *American Indian Stories* (1921) by Zitkala-Sa, public domain, Project Gutenberg.
-**Built:** 2026-08-18 on the current pipeline: IMPORT, EXTRACT, DISTILL, ASSEMBLE, AUTHOR, COMPOSE.
+**Built:** 2026-08-18 on the cited path as it stood then: IMPORT, EXTRACT, DISTILL, ASSEMBLE, AUTHOR,
+COMPOSE (the brief was then composed by default). Extraction predates the turn contract, so the
+facts carry no evidence spans, and `verify-spec` and `consolidate` did not exist yet.
 **Corpus:** 407 facts, 59 predicates.
 
-## What you can verify
+## What was verified
 
 Every claim in the three layers carries the fact ids it was authored from, as an `*Evidence:*`
-line and a machine-readable `provenance:` list. Those ids are real rows in the corpus database.
+line and a machine-readable `provenance:` list. Those ids are rows in the (unpublished) corpus
+database.
 
 | file | claims | all cited | distinct fact ids | ids that resolve |
 |---|---|---|---|---|

@@ -6,7 +6,7 @@ For background on the project, read [`AGENTS.md`](AGENTS.md) and [`README.md`](R
 
 ## Project context
 
-Base Layer is the interpretive layer above memory. The pipeline takes text (conversations, journals, essays, books) and produces a behavioral specification: a 5,000 to 10,000 token structured document that captures how a specific person interprets information, decides, and communicates. Memory systems retrieve facts. The specification supplies the framework those facts are read through.
+Base Layer is the interpretive layer above memory. The pipeline takes text (conversations, journals, essays, books) and produces a behavioral specification: a structured document in three layers that captures how a specific person interprets information, decides, and communicates. Memory systems retrieve facts. The specification supplies the framework those facts are read through.
 
 If you are running in this repo as Claude Code, you are most likely doing one of four things:
 
@@ -35,19 +35,19 @@ All commands invoked as `baselayer <subcommand>`. Source of truth: [`src/baselay
 
 | Command | One-liner |
 |---|---|
-| `baselayer init` | Initialize a fresh database under the data root (`MEMORY_SYSTEM_ROOT`; not the current directory). |
+| `baselayer init` | Initialize a fresh database under the data root (`MEMORY_SYSTEM_ROOT`; unset, code run from this clone uses the clone's own `data/`; never the current directory). |
 | `baselayer import <file>` | Import ChatGPT/Claude export, journal, text file, or directory. |
-| `baselayer estimate` | Rough preview of API cost. The extraction figure is computed from the imported text; the authoring and composition figures are fixed values. |
+| `baselayer estimate` | Preview of extraction cost only, from the imported text and the dated rate table in `src/baselayer/distillation/spend.py`. A floor, not a budget; authoring is not priced here. |
 | `baselayer extract` | Extract facts via Haiku 4.5 (46 constrained predicates, AUDN lifecycle). Add `--turn-contract` to ground every fact in the subject's own turns (see below). |
-| `baselayer embed` | Generate ChromaDB vectors for provenance tracing. |
+| `baselayer embed` | Embed imported messages into ChromaDB for `baselayer search`. Fact vectors are written during extraction. |
 | `baselayer author --layer all` | Author anchors, core, and predictions layers (Sonnet 4.6). |
 | `baselayer compose` | Optional, legacy: compose a unified prose brief from the three layers (Opus 4.6). Not run by `baselayer run`. |
 | `baselayer distill`, `assemble`, `author-from-package` | The experimental cited path: distillation leaves (Sonnet 5), one package per layer (no model), layers with mandatory citations (Opus 5). `distill` and `author-from-package` print an estimate and refuse to start without `--confirm-spend` or `BASELAYER_SPEND_CEILING_USD`. Always pass `--layer` to `distill`. See [`docs/PIPELINE.md`](docs/PIPELINE.md). |
-| `baselayer run <file>` | Full pipeline with cost-gate. Runs `import` -> `extract` -> `author`, then embeds in a post-authoring traceability phase. No brief: `compose` is optional and separate. |
+| `baselayer run <file>` | Full static pipeline with a cost prompt. Runs `init` if needed -> `import` -> estimate and confirm -> `extract` -> coverage gate -> `author`, then a traceability phase (tier, embed, vector provenance, a tension check on Haiku 4.5). No brief: `compose` is optional and separate. |
 | `baselayer stats` | Database stats: conversations, facts, tier breakdown. |
 | `baselayer search "<query>"` | FTS keyword search across active facts. |
 | `baselayer provenance --claim A1` | Trace a specification claim back to its supporting facts. |
-| `baselayer verify --layer all` | Run the four-check provenance audit on authored claims. |
+| `baselayer verify --layer all` | The older provenance audit of the static layers (vector proximity, recurrence, cross-domain span, optional local NLI with `--nli`). Writes rows into the corpus database. Not `verify-spec`. |
 | `baselayer verify-spec <spec_dir> --label L --corpus C --out O` | Read-only post-specification verification: citation resolution, per-fact voice, re-gating of every evidence span. Dry run by default; no model is called unless `--run-model`. |
 | `baselayer consolidate <spec_dir> --out O [--grouping G --categories C]` | Mechanical, no model: the served form of a finished spec (always-on claims in full, trigger categories whose lines name claim ids, an index JSON for pulling claims), a duplicate mapping, and 14 checks. Reads the spec dir, writes only `--out`. The judged inputs (duplicate verdicts, trigger grouping, categories) come from `python -m baselayer.consolidation.build judge\|group\|categorize`, which calls a model (API priced and capped, or `claude -p`). `docs/core/CONSOLIDATION.md`. |
 | `baselayer checkpoint extraction` | Quality gate after extraction. Reports only; no `--fix` flag exists. |
@@ -71,18 +71,18 @@ Once registered, the next Claude Code session loads two resources and eight tool
 
 **Resources** (always-on, client-controlled):
 
-- `memory://specification`. The structural specification inline: CORE (communication and context), ANCHORS (foundational beliefs and reasoning patterns), PREDICTIONS (situation-to-response patterns), plus a brief manifest. Approximately 6 to 8K tokens. The server also sends this text in its MCP instructions, which some clients cut short; reading the resource returns the full text.
+- `memory://specification`. The structural specification inline: CORE (communication and context), ANCHORS (foundational beliefs and reasoning patterns), PREDICTIONS (situation-to-response patterns), plus a brief manifest. Its size depends on the corpus. The server also sends this text in its MCP instructions; some clients may truncate long instructions, and reading the resource returns the full text.
 - `memory://identity`. Deprecated alias for `memory://specification`. Forwards to the same content. Retained for backward compatibility.
 
 **On-demand specification tool:**
 
-- `get_brief(reason)`. The optional prose brief, if one was composed (~3,000 tokens). The model fetches this when the query is broad, abstract, or self-reflective. Provides a private one-sentence rationale via `reason`; not user-facing.
+- `get_brief(reason)`. The optional prose brief, if one was composed. The model fetches this when the query is broad, abstract, or self-reflective. Provides a private one-sentence rationale via `reason`; not user-facing.
 
 **Memory tools** (model-controlled, called on demand):
 
 - `recall_memories(query)`. Semantic retrieval of relevant facts plus episodic memories for a query.
 - `search_facts(query, limit=15)`. Keyword search across active facts (FTS5 with LIKE fallback).
-- `trace_claim(claim_id)`. Provenance from a specification claim (e.g. `A1`, `P3`, `C2`) back to source facts and conversations.
+- `trace_claim(claim_id)`. Provenance from a specification claim (e.g. `A1`, `P3`, `C2`) back to its linked facts: fact text, tier, recurrence, link method and source conversation title, plus up to three evidence spans (the person's quoted words and turn id) per fact that came from turn-contract extraction.
 - `verify_claims(claim_id="", layer="all")`. Run the binary verification checks (existence, recurrence, cross-domain coverage, temporal consistency, contradictions).
 - `get_stats()`. Database summary: conversations, messages, active and superseded facts, tier and source breakdowns.
 - `get_call_log(limit, name_filter)`. Recent MCP calls in this session.
@@ -102,7 +102,7 @@ Once registered, the next Claude Code session loads two resources and eight tool
 | `src/baselayer/agent_pipeline.py` | Optional prose brief composition (`compose`, Opus 4.6). |
 | `src/baselayer/mcp_server.py` | MCP server. Resources + tools. |
 | `src/baselayer/config.py` | Constants, paths, database singletons. Also the extraction predicate vocabulary: `CONSTRAINED_PREDICATES`, 46 constrained predicates (45 behavioral plus an `unknown` fallback). |
-| `src/baselayer/verify_provenance.py` | The four-check verifier. |
+| `src/baselayer/verify_provenance.py` | The provenance audit behind `baselayer verify` and the `verify_claims` tool. |
 | `lexicon_schema.yaml` | Element-type schema for authored specification containers (axiom, prediction, context_mode, meta_section) plus provenance syntax. Not the predicate vocabulary; that lives in `config.py`. |
 | `tests/` | The test suite. `pytest tests/` runs it. |
 | `src/baselayer/voice.py`, `turns.py`, `turn_import.py`, `import_config.py` | Turn-contract import: detectors, the turn table, per-source builders, the local config loader. |
@@ -112,7 +112,7 @@ Once registered, the next Claude Code session loads two resources and eight tool
 | `src/baselayer/distillation/` | The cited path: `distill`, `assemble`, `author-from-package`, the quote gate, the spend table. Every step: [`docs/PIPELINE.md`](docs/PIPELINE.md). Terms: [`docs/DEFINITIONS.md`](docs/DEFINITIONS.md). |
 | `docs/core/` | Architecture, decisions, design principles. Read on demand, not at session start. |
 | `docs/internal/` | Internal plans (refactor plans, agent-facing reviews, runbooks). Exists only in the private working copy; not tracked in this repo. |
-| `examples/` | Example specifications: `zitkala_sa/` (the one with checkable fact ids), then Franklin, Buffett, Douglass, Roosevelt, Wollstonecraft, Marks, patents. |
+| `examples/` | Example specifications: `zitkala_sa/` (the one whose claims cite fact ids; its fact database is not published), then Franklin, Buffett, Douglass, Roosevelt, Wollstonecraft, Marks, patents. |
 | `recipes/` | Copy-paste agent task recipes. |
 | `data/` | User data (database, vectors, layers, briefs). Do not touch unless the task requires it. |
 
@@ -136,7 +136,7 @@ When writing new prose, use "specification" and "interpretive layer". Do not rei
 - **Do not POST to unknown endpoints.** Read the route handler first. The S101 incident wiped tracking data for 48 subjects because an agent called a cleanup endpoint without reading it.
 - **Do not modify `lexicon_schema.yaml` or `CONSTRAINED_PREDICATES` casually.** `lexicon_schema.yaml` governs the element types of authored layers; `CONSTRAINED_PREDICATES` in `config.py` governs extraction, and predicate changes invalidate stored facts under the AUDN lifecycle. Read [`docs/core/ARCHITECTURE.md`](docs/core/ARCHITECTURE.md) and the extraction code first.
 - **Do not re-extract without clearing both SQLite and ChromaDB.** Old vectors cause AUDN to return NOOP and you get 12-42 facts instead of 200+. `python -m baselayer.extract_facts --reset` deletes extracted facts, the extraction log, and the fact vectors so every conversation is reprocessed. It is irreversible and has no confirmation prompt; confirm with the user first. It keeps imported conversations and user-corrected facts and does not touch layers already written under `data/identity_layers/`. The safest clean start is a fresh data root: point `MEMORY_SYSTEM_ROOT` at an empty directory. `baselayer forget --all` plus deleting `data/vectors/` is not a reset: the extraction log still marks every conversation as done, so re-extraction processes nothing.
-- **Do not run the pipeline without the cost-estimate gate.** Use `baselayer run` (which gates by default) or run `baselayer estimate` before `baselayer extract`.
+- **Do not run the pipeline without the cost-estimate gate.** Use `baselayer run` (which gates by default) or run `baselayer estimate` before `baselayer extract`. The estimate prices extraction only and is a floor, not a budget.
 - **Do not use the `brief` or `chat` subcommands for new work.** Both are archived. The three layers are the specification; `compose` writes an optional prose brief from them.
 - **Do not retry the same failing approach more than twice.** Diagnose and redesign. If extraction returns zero facts twice, stop and read `extract_facts.py`.
 

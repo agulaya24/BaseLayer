@@ -3,9 +3,12 @@
 Each directory contains the pipeline output for a public subject.
 
 **Read `zitkala_sa/` first if you care about provenance.** It is the only example built on the
-current pipeline and the only one whose claims carry fact ids you can check. The other seven were
-generated on 2026-03-09, before citations were enforced, and contain **zero fact ids**. They show
-what the writing looks like; they cannot be used to verify the auditability claim.
+cited path and the only one whose claims carry fact ids. Only its layer text ships here: the fact
+database is not published, so the ids cannot be resolved from this repository, and its facts were
+extracted before the turn contract, so they carry no evidence spans. It shows what a cited
+specification looks like; it does not let an outside reader verify the citations. The other seven
+were generated on 2026-03-09, before citations were enforced, and contain **zero fact ids**. They
+show what the writing looks like.
 
 The older seven use `*_v4.md` filenames:
 
@@ -28,15 +31,15 @@ brief_v4.md        optional prose brief composed from the three layers
 | `buffett/` | Berkshire Hathaway Shareholder Letters (48) | 350K | 602 |
 | `marks/` | Oaktree Capital Investment Memos (74) | 600K | 784 |
 
-Built on the current pipeline, with citations:
+Built on the cited path, with citations:
 
-| Directory | Source | Facts | Cited fact ids | Resolve |
+| Directory | Source | Facts | Cited fact ids | Resolve (checked by the maintainer against the unpublished database) |
 |---|---|---|---|---|
 | `zitkala_sa/` | American Indian Stories (1921), public domain | 407 | 407 | 406 (one compose fabrication, kept and documented) |
 
 ## How to read these
 
-**Start with the layers.** The three layers are the specification: they are what the MCP server serves, and each was written independently of the other two. Begin with `zitkala_sa/`, whose claims carry fact ids.
+**Start with the layers.** The three layers are the specification (on the `baselayer run` path they are what the MCP server serves), and each was written independently of the other two. Begin with `zitkala_sa/`, whose claims cite fact ids.
 
 - **ANCHORS:** the beliefs this person reasons from. What they take as given.
 - **CORE:** how they communicate, what context modes they operate in, how to interact with them.

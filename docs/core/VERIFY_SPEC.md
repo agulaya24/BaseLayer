@@ -25,7 +25,11 @@ baselayer verify-spec <spec_dir> --label <label> --corpus <corpus dir or memory.
 - The default is a dry run: every deterministic check runs, the model-judged tasks are built and
   priced, and no model is called.
 - `--run-model --rater cli --rater-cwd <dir>` runs the model checks through `claude -p` on the
-  subscription.
+  subscription. API credentials are removed from the child's environment. The child gets
+  `--safe-mode` when the installed CLI lists it in `claude --help`, which keeps the user-scope
+  `~/.claude/CLAUDE.md`, skills, plugins and hooks out of its context; on a CLI without it the run
+  continues, prints a warning, and records `safe_mode: false` in the report's rater provenance.
+  Either way a run is recorded blind only when `--probe` ran and came back clean.
 - `--run-model --rater api --model <id> --confirm-api-spend <usd>` runs them on API credits. The run
   refuses when the upper estimate exceeds the cap.
 

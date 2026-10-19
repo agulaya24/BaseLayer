@@ -20,7 +20,8 @@ the wording is not. An edit to the text alone is lost the next time the layer is
 
 **On the `baselayer run` path** the layers are `data/identity_layers/anchors_v4.md`, `core_v4.md`
 and `predictions_v4.md` under the data root. The MCP server serves the text below each file's
-`## Injectable Block` line. It builds its instructions once when it starts, so restart the server
+`## Injectable Block` line, or, in a file without that line, everything after the first `---`
+separator (or the whole file when there is none). It builds its instructions once when it starts, so restart the server
 (or the client session) after an edit; the `memory://specification` resource re-reads the files on
 each call.
 
@@ -32,7 +33,8 @@ change them; `verify-spec` will then check the edited claim against the facts it
 ## 3. Correcting facts
 
 - **`baselayer review`** walks through active facts one at a time (`--tier`, `--limit`). Press `d`
-  to hide a fact (it is marked superseded, by `user_review`) or `f` to flag it with a note (a
+  to hide a fact (it is marked superseded, by `user_review`; its vector is not removed, and no
+  stale marker is written) or `f` to flag it with a note (a
   `user_corrections` row of type `flag`). It does not edit fact text, and a flag does not hide the
   fact or change any later step.
 - **`baselayer forget`** hides facts by id (`--fact`), by conversation (`--conversation`) or all of
@@ -40,15 +42,29 @@ change them; `verify-spec` will then check the edited claim against the facts it
   restored; their vectors are removed and are not restored. Imported conversation text stays.
 - **Hidden facts drop out of later builds.** Distillation and static authoring read only active
   facts, and `verify-spec` reports a citation to a hidden fact as superseded.
-- **Layers already written are not regenerated.** After a `forget`, the static layers in
+- **Layers already written are not regenerated.** Only `forget` writes the stale marker. After a
+  `forget`, the static layers in
   `data/identity_layers/` are marked stale (`baselayer stats`, the MCP server log and the served
-  specification say so) until they are written again; any re-author clears the marker. A cited-path
+  specification say so) until they are written again; any re-author clears the marker for the
+  layers it rewrites. Hiding a fact with `review` leaves the layers unmarked, so re-author after a
+  review yourself. A cited-path
   output directory is never marked stale. Run `verify-spec` on it to see which citations no longer
   resolve.
-- **The `user_corrections` table** has more types than `review` writes. `verify-spec` treats a row
-  of type `DELETE`, `refuted` or `REATTRIBUTE` as retiring the fact it names, and extraction blocks
-  any new fact matching a row's `match_patterns` (a case-insensitive substring match). No command in
-  this package writes those types or patterns; they come from a row added another way.
+- **The `user_corrections` table.** Its schema has more columns and types than any command
+  writes. What is and is not implemented:
+
+  | part of a row | written by | read by |
+  |---|---|---|
+  | type `flag`, with the note in `annotation` | `baselayer review` (`f`) | nothing; a flag changes no later step |
+  | types `DELETE`, `refuted`, `REATTRIBUTE` with `original_fact_id` | no command | `verify-spec`: a citation to that fact gets the status `corrected_<type>` instead of `live` |
+  | `match_patterns` (a JSON list of strings), any type | no command | extraction (`extract`, with or without `--turn-contract`, and `batch-extract`): a new fact whose text contains any pattern, case-insensitive, is not stored |
+  | type `REPLACE`, `corrected_fact_text` | no command | only the legacy module `python -m baselayer.assemble_brief --generate-identity`, which lists recent `DELETE` and `REPLACE` rows; no fact text is changed |
+  | `corrected_category`, `corrected_subject`, `notes` | no command | nothing applies them |
+
+  So the only corrections that take effect are a row you add by hand (for example with
+  `sqlite3`) of one of the retiring types, which `verify-spec` honours, or with `match_patterns`,
+  which later extraction honours. Neither rewrites existing facts or regenerates any layer; to drop
+  a wrong fact from future builds, hide it with `review` or `forget`.
 
 ## 4. Re-authoring after a correction
 
@@ -113,8 +129,9 @@ AUDN deduplicates against the facts already stored. `baselayer run <file>` stops
 
 ## 7. Removing everything
 
-Delete the data root (`MEMORY_SYSTEM_ROOT`, or `~/.baselayer`), which holds the database, the
-vectors, the layers and the default import config, and the MCP session logs in
+Delete the data root (`MEMORY_SYSTEM_ROOT`; unset, `~/.baselayer` for an installed package, or the
+`data/` directory of a clone you run from), which holds the database, the vectors, the layers, the
+distillation archive and the default import config, and the MCP session logs in
 `~/.baselayer/sessions/`, which record tool queries. Remove any output directories you created for
 the cited path (trees, packages, specification, verification and consolidation output) and any
 import config or corrections file kept elsewhere.

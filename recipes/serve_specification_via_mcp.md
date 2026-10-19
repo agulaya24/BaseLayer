@@ -1,6 +1,6 @@
 # Recipe: Serve a specification via MCP
 
-**Goal.** Connect an existing behavioral specification to Claude Desktop or Claude Code via the Base Layer MCP server. The server serves the three layers in `data/identity_layers/` (CORE, ANCHORS and PREDICTIONS, written by `baselayer run` or `baselayer author`) plus a manifest of supplementary tools. It sends them in its MCP instructions, which some clients cut short; the `memory://specification` resource always returns the full text. The optional prose brief, if one was composed, is on demand via `get_brief(reason)`.
+**Goal.** Connect an existing behavioral specification to Claude Desktop or Claude Code via the Base Layer MCP server. The server serves the three layers in `data/identity_layers/` (CORE, ANCHORS and PREDICTIONS, written by `baselayer run` or `baselayer author`) plus a manifest of supplementary tools. It sends them in its MCP instructions; some clients may truncate long instructions, and the `memory://specification` resource always returns the full text. The optional prose brief, if one was composed, is on demand via `get_brief(reason)`.
 
 The server does not serve a specification written by `baselayer author-from-package` (the cited path) or the output of `baselayer consolidate`. Nothing in this package serves those yet.
 
@@ -18,7 +18,7 @@ The server does not serve a specification written by `baselayer author-from-pack
 claude mcp add --transport stdio base-layer -- baselayer-mcp
 ```
 
-The server reads the data root from `MEMORY_SYSTEM_ROOT` (default `~/.baselayer` for an installed package), not from the current directory. Set that variable in the server's environment to serve a specific subject.
+The server reads the data root from `MEMORY_SYSTEM_ROOT` (unset: `~/.baselayer` for an installed package, the clone itself when run from a clone), not from the current directory. Set that variable in the server's environment to serve a specific subject.
 
 ### Claude Desktop
 
@@ -79,7 +79,7 @@ Keyword search across active facts.
 Call trace_claim("A1")
 ```
 
-Trace anchor claim `A1` back to the facts that support it. Replace `A1` with any claim ID from the specification (anchors are `A*`, core are `C*`, predictions are `P*`).
+Trace anchor claim `A1` back to the facts linked to it: each fact's text, tier, recurrence, link method and source conversation title, plus up to three evidence spans (the person's quoted words and turn id) for a fact that came from turn-contract extraction. Replace `A1` with any claim ID from the specification (anchors are `A*`, core are `C*`, predictions are `P*`).
 
 ```
 Call verify_claims(claim_id="A1")
@@ -103,7 +103,7 @@ The `/mcp` dialog itself is for managing Anthropic-hosted cloud connectors (Goog
 ## Failure modes
 
 - **`baselayer-mcp: command not found`.** The package is not installed in the active Python environment. `pip install git+https://github.com/agulaya24/BaseLayer.git` and confirm `which baselayer-mcp` resolves.
-- **Resource returns "No specification layers found".** The subject directory has no layer files under `data/identity_layers/`. Run the pipeline first; the always-on resource reads the authored layers.
+- **Resource returns "No specification layers found".** The data root (`MEMORY_SYSTEM_ROOT`) has no layer files under `data/identity_layers/`. Run the pipeline first; the always-on resource reads the authored layers.
 - **Server starts but no resource appears in Claude Code.** Restart Claude Code after `claude mcp add`. The harness picks up new servers at session start, not mid-session.
 - **The model never calls `get_brief()`.** Tail the MCP host's stderr log and filter for `[base-layer]` to see what the model is actually fetching. If the model never fetches the brief on broad or self-reflective questions, the manifest's trigger language may need sharpening; current behavior is informed by the Beyond Recall finding that interpretation-heavy questions are where the brief adds the most value.
 - **`memory://identity` returns different content than `memory://specification`.** This is a bug. Both should be identical (alias forwards to same handler). File an issue.

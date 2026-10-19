@@ -403,9 +403,9 @@ def test_rater_cwd_must_be_outside_projects(tmp_path):
 def test_cli_rater_command_and_provenance(tmp_path):
     cwd = tmp_path / "neutral"
     cwd.mkdir()
-    r = ClaudeCliRater("sonnet", cwd, tmp_path / "work", [tmp_path / "corpus"], binary="claude")
+    r = ClaudeCliRater("sonnet", cwd, tmp_path / "work", [tmp_path / "corpus"], binary="claude", safe_mode=True)
     cmd = r.command()
-    for flag in ("-p", "--strict-mcp-config", "--settings", "--allowedTools"):
+    for flag in ("-p", "--strict-mcp-config", "--settings", "--allowedTools", "--safe-mode"):
         assert flag in cmd
     assert json.loads((tmp_path / "work" / "empty_mcp.json").read_text()) == {"mcpServers": {}}
     pv = r.provenance()
@@ -415,7 +415,7 @@ def test_cli_rater_command_and_provenance(tmp_path):
 def test_probe_sets_blind_only_when_clean(tmp_path):
     cwd = tmp_path / "n"
     cwd.mkdir()
-    r = ClaudeCliRater("sonnet", cwd, tmp_path / "w", [], binary="claude")
+    r = ClaudeCliRater("sonnet", cwd, tmp_path / "w", [], binary="claude", safe_mode=True)
     r.complete = lambda p: __import__("baselayer.verification.raters", fromlist=["Reply"]).Reply(text='{"people_named": ["Jane Roe"]}')
     run_probe(r, ["Jane Roe"], tmp_path / "probe.json")
     assert r.provenance()["blind"] is False and (tmp_path / "probe.json").exists()

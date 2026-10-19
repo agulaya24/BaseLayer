@@ -1866,14 +1866,35 @@ def finish_tree(a, cl, run):
     # clone appended the user's rows to the distill_runs.jsonl SHIPPED IN THIS REPO: their run
     # history mixed into the reference data, and a `git diff` full of their corpus. The archive
     # directory is where the rest of the trace already lives.
-    try:
-        led = os.path.join(home, "distill_runs.jsonl")
-    except NameError:
-        led = os.path.join(os.path.dirname(os.path.abspath(a.out)), "distill_runs.jsonl")
+    # `home` is None when archiving failed (the except branch above), and os.path.join(None, ...)
+    # raises TypeError, not NameError: the run then crashed after every billed call and the
+    # ledger row was lost. Fall back to the --out directory in that case.
+    led = (os.path.join(home, "distill_runs.jsonl") if home
+           else os.path.join(os.path.dirname(os.path.abspath(a.out)), "distill_runs.jsonl"))
     with open(led, "a", encoding="utf-8") as f:
         f.write(json.dumps(row) + "\n")
     print("ledger -> %s" % led)
     return tree
+
+
+BLIND_DEFAULT_WARNING = (
+    "WARNING: --layer not given, so this run uses the default `blind`: the undirected control "
+    "arm, not a layer. Its tree is not comparable to an anchors, core or predictions tree. Pass "
+    "--layer anchors|core|predictions to build a layer, or --layer blind to silence this.")
+
+
+def check_output_paths(a):
+    """Refuse, before facts load and before any model call, when the directory that will hold
+    the tree (--out) or the checkpoint (--checkpoint) does not exist. The tree is written only
+    after every billed leaf call, so a missing directory used to lose the whole run's output.
+    The directory is not created: a mistyped path should fail, not appear."""
+    for flag, path in (("--out", a.out), ("--checkpoint", getattr(a, "checkpoint", ""))):
+        if not path:
+            continue
+        parent = os.path.dirname(os.path.abspath(path))
+        if not os.path.isdir(parent):
+            raise SystemExit("%s %s: directory %s does not exist. Create it first (nothing was "
+                             "sent; no model call was made)." % (flag, path, parent))
 
 
 def _main():
@@ -1887,7 +1908,10 @@ def _main():
                     choices=["predicate", "category", "predcat", "random", "semantic", "time",
                              "episode"])
     ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--layer", default="blind", choices=sorted(LAYER_DIRECTIVES))
+    ap.add_argument("--layer", default=None, choices=sorted(LAYER_DIRECTIVES),
+                    help="layer directive. Default when omitted: `blind`, the undirected control "
+                         "arm, whose tree is not a layer; a warning is printed. Pass anchors, core "
+                         "or predictions to build a layer.")
     ap.add_argument("--checkpoint", default="", help="write leaves here after every chunk")
     ap.add_argument("--resume-from", default="", help="reload leaves from a checkpoint file")
     ap.add_argument("--write-provenance", action="store_true",
@@ -1907,6 +1931,10 @@ def _main():
                          "%s)" % _spend.MEASURED_LEAF_BASIS)
     add_design_args(ap)
     a = ap.parse_args()
+    check_output_paths(a)
+    if a.layer is None:
+        a.layer = "blind"
+        print(BLIND_DEFAULT_WARNING, file=sys.stderr, flush=True)
 
     F = load_facts(a)
     (rows, contract_version, n_planted, record_only_included, record_only_excluded, subject_info, other_subjects, exclude_info) = (F[k] for k in ("rows", "contract_version", "n_planted", "record_only_included", "record_only_excluded", "subject_info", "other_subjects", "exclude_info"))
