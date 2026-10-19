@@ -1,7 +1,8 @@
 # Post-specification verification (`baselayer verify-spec`)
 
-Status: BUILT on `feat/respec-hardening`. Deterministic checks run on real specifications; the
-model-judged checks have run only against a scripted fake rater in the test suite.
+Status: ships as `baselayer verify-spec`. The deterministic checks have run on real
+specifications. In this repository the model-judged checks are tested only against a scripted fake
+rater; no recorded run against a real model is published here.
 
 ## What it is for
 

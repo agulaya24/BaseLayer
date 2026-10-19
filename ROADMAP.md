@@ -4,14 +4,14 @@ This document tracks committed and exploratory work on Base Layer. Dates indicat
 
 ## Current state
 
-Pre-1.0. Pipeline is functional end-to-end (one-command `baselayer run`); MCP server is shipping; behavioral specifications generate consistently across 14 historical subjects and original-author corpora; provenance verifier covers four checks against the citation graph.
+Pre-1.0. Pipeline is functional end-to-end (one-command `baselayer run`); MCP server is shipping; behavioral specifications generate consistently across 14 historical subjects and original-author corpora; provenance verifier covers four checks against the citation graph; `baselayer verify-spec` checks a finished specification against its corpus, and `baselayer consolidate` builds a trigger index from one. The cited path (distill, assemble, author-from-package) is experimental.
 
 ## Near-term (next 1-2 quarters)
 
 ### Production readiness
 
-- **Identity-to-specification refactor.** Code, file paths, and API endpoints still use the legacy `identity` term while documentation has moved to `specification`. The refactor brings code in line with the new positioning. See [`docs/internal/identity_to_specification_refactor_plan.md`](docs/internal/identity_to_specification_refactor_plan.md). Includes a backwards-compatibility shim for the API.
-- **`brief_v4.md` rename.** Output filename becomes `specification.md`. Currently flagged as tech debt in `docs/core/ARCHITECTURE.md`.
+- **Identity-to-specification refactor.** Code, file paths, and API endpoints still use the legacy `identity` term while documentation has moved to `specification`. The refactor brings code in line with the new positioning. The plan is kept in the maintainer's private working copy, not in this repository. Includes a backwards-compatibility shim for the API.
+- **`brief_v4.md` rename.** Output filename becomes `specification.md`.
 - **Stable 1.0 API surface.** Lock the CLI command set, MCP tool signatures, and HTTP endpoint shapes. Versioned changelog from this point forward.
 
 ### Local pipeline
@@ -35,8 +35,8 @@ Pre-1.0. Pipeline is functional end-to-end (one-command `baselayer run`); MCP se
 ### Adoption surface
 
 - **Per-subject spec cards.** Inspired by Hugging Face model cards. Each shipped specification ships with a spec card documenting source corpus, extraction model, validation score, known limitations, and temporal scope.
-- **Local examples directory.** Runnable examples under `examples/` with input corpora and expected output specifications. Today the `examples/` link points to live web examples; reviewers flagged that local files would help adopters.
-- **Source-type adapters.** Today: ChatGPT, Claude, journals, text files, directories. Wanted: Slack exports, Discord exports, longform email archives, voice transcripts.
+- **Local examples directory.** Runnable examples under `examples/` with input corpora and expected output specifications. Today `examples/` holds the output specifications for 8 subjects (one with checkable citations) but not their input corpora.
+- **Source-type adapters.** Today: ChatGPT, Claude (web and Claude Code), journals, text files and directories, shell history, meeting transcripts. Wanted: Slack exports, Discord exports, longform email archives, voice transcripts.
 
 ## Longer-term (research horizons)
 
@@ -48,7 +48,7 @@ Pre-1.0. Pipeline is functional end-to-end (one-command `baselayer run`); MCP se
 ### Distillation and cost
 
 - **Fine-tuned extraction models.** Train 3B-14B models on Haiku extraction output. Reduce cost to near-zero for high-volume use.
-- **Anthropic Batch API.** 50% cost savings via batched extraction. Infrastructure built; integration pending.
+- **Anthropic Batch API.** 50% cost savings via batched extraction. Shipped as `baselayer batch-extract` (with `--turn-contract`); the distillation leaves also have a batch path.
 
 ### Composition and orchestration
 

@@ -1,11 +1,13 @@
 # Recipe: Serve a specification via MCP
 
-**Goal.** Connect an existing behavioral specification to Claude Desktop or Claude Code via the Base Layer MCP server. Since 0.4.0, the always-on resource serves the full structural specification inline: CORE, ANCHORS, and PREDICTIONS (~6 to 8K tokens) plus a manifest of supplementary tools. Only the unified narrative brief stays on demand, via `get_brief(reason)`.
+**Goal.** Connect an existing behavioral specification to Claude Desktop or Claude Code via the Base Layer MCP server. The server serves the three layers in `data/identity_layers/` (CORE, ANCHORS and PREDICTIONS, written by `baselayer run` or `baselayer author`) plus a manifest of supplementary tools. It sends them in its MCP instructions, which some clients cut short; the `memory://specification` resource always returns the full text. The optional prose brief, if one was composed, is on demand via `get_brief(reason)`.
+
+The server does not serve a specification written by `baselayer author-from-package` (the cited path) or the output of `baselayer consolidate`. Nothing in this package serves those yet.
 
 ## Prerequisites
 
 - Base Layer installed: `pip install git+https://github.com/agulaya24/BaseLayer.git` (or `pip install -e .` from a source checkout). Base Layer is not currently on PyPI; install from GitHub. The `baselayer-mcp` entrypoint must resolve in your shell.
-- An existing specification at `data/identity_layers/brief_v5_clean.md` in the subject directory you intend to serve from. If you do not have one, run `recipes/run_pipeline_on_chatgpt_export.md` first.
+- The three layer files `anchors_v4.md`, `core_v4.md` and `predictions_v4.md` under `data/identity_layers/` in the data root you intend to serve from. If you do not have them, run `recipes/run_pipeline_on_chatgpt_export.md` first.
 - Claude Code or Claude Desktop installed.
 
 ## Step 1. Register the MCP server
@@ -36,7 +38,7 @@ Restart Claude Desktop after editing.
 
 ## Step 2. Verify both resource URIs resolve
 
-Start a new Claude Code session in the subject directory. The next conversation should load `memory://specification` automatically as context.
+Start a new Claude Code session. The server reads the data root from `MEMORY_SYSTEM_ROOT`, not from the session's working directory. The next conversation should receive the specification through the server's instructions.
 
 To confirm: ask the assistant to read the resources by URI.
 
@@ -83,11 +85,11 @@ Trace anchor claim `A1` back to the facts that support it. Replace `A1` with any
 Call verify_claims(claim_id="A1")
 ```
 
-Run the binary verification checks against a specific claim. Returns existence, recurrence, cross-domain coverage, and contradiction signals.
+Run the binary verification checks against a specific claim. Returns existence, recurrence, cross-domain coverage, temporal consistency, and contradiction signals. It writes its results into the corpus database.
 
 ## Expected output
 
-After registration, every new Claude Code or Claude Desktop conversation will have the structural specification (CORE + ANCHORS + PREDICTIONS) plus a manifest loaded as background context. The model pulls the unified narrative brief via `get_brief(reason)` when the conversation is broad, abstract, or self-reflective. Recent MCP usage is queryable in-session via `get_call_log()`.
+After registration, every new Claude Code or Claude Desktop conversation receives the structural specification (CORE + ANCHORS + PREDICTIONS) plus a manifest through the server's instructions, as far as the client passes them on; ask the model to read `memory://specification` to be sure it has the full text. If a prose brief was composed, the model can pull it via `get_brief(reason)` when the conversation is broad, abstract, or self-reflective. Recent MCP usage is queryable in-session via `get_call_log()`.
 
 ## Verifying the server is actually running
 
@@ -111,4 +113,4 @@ The `/mcp` dialog itself is for managing Anthropic-hosted cloud connectors (Goog
 - The MCP server runs over stdio. No accounts. Base Layer sends no usage data.
 - The specification stays on the user's machine. Base Layer uploads nothing.
 - Retrieval tools open a local ChromaDB store. ChromaDB has its own anonymized telemetry setting, on by default; Base Layer opens the store with that setting off.
-- For non-MCP integrations (paste into ChatGPT custom instructions, Cursor, etc.), use `baselayer brief "<message>"` to print a context-tailored specification to stdout.
+- For non-MCP integrations (ChatGPT custom instructions, Cursor, any system prompt), paste the text below `## Injectable Block` in each of the three layer files. You lose fact search this way. `baselayer brief` is archived; do not use it.

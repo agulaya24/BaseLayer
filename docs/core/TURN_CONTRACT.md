@@ -4,6 +4,12 @@ This document is the interface for import, extraction, distillation and verifica
 only by bumping the version, and stamp the version on every artifact built under it. Decision
 record: D-108 in `DECISIONS.md`.
 
+**Before you run it:** set `subject_names` in the import config (`<data root>/data/import_config.json`,
+or the file `BASELAYER_IMPORT_CONFIG` names) to every form of the person's name the text may use,
+and do it before importing. Turn-mode extraction refuses to start while the list is empty (§5), and
+the importer uses the names too: a greeting addressed to one of them is read as pasted material
+(`import_config.py`). Build into a fresh data root.
+
 Status by section:
 
 | section | status | where |

@@ -17,7 +17,7 @@ If you are an AI agent acting on a person's behalf, you can only act in alignmen
 
 ## What a Behavioral Specification is
 
-A structured document encoding a person's behavioral patterns across three interpretive layers (anchors, core, predictions) plus a composed unified brief. Total size per subject is approximately 7,000 tokens, around 5,000 words, about the length of a short magazine article.
+A structured document encoding a person's behavioral patterns across three interpretive layers (anchors, core, predictions). The three layers are the Specification; a composed prose brief is optional. On the cited path every claim carries an `Active when` line and the ids of the facts it rests on. Total size per subject is approximately 7,000 tokens, around 5,000 words, about the length of a short magazine article.
 
 - Anchors: the axioms a person reasons from
 - Core: operational constraints, communication patterns, context modes
@@ -25,15 +25,27 @@ A structured document encoding a person's behavioral patterns across three inter
 
 ## How it works
 
-The Specification is generated from raw text through a five-step pipeline:
+The Specification is generated from raw text along one of two paths.
+
+`baselayer run` (one command):
 
 1. **Import.** Multi-source ingest (ChatGPT, Claude, journals, text).
-2. **Extract.** Haiku, 46 constrained predicates. AUDN lifecycle (add, update, delete, noop). Optional turn contract: import records each turn's speaker, only the person's own typed or spoken turns can be cited, and a gate in code stores a fact only if it quotes them verbatim.
-3. **Embed.** MiniLM-L6-v2 local embeddings produce ChromaDB vectors for provenance tracing.
-4. **Author.** Sonnet generates the three layers independently from different fact subsets.
-5. **Compose.** Opus compresses the three layers into the unified Specification.
+2. **Extract.** Haiku 4.5, 46 constrained predicates. AUDN lifecycle (add, update, delete, noop).
+3. **Author.** Sonnet 4.6 generates the three layers independently from different fact subsets.
+4. **Traceability.** MiniLM-L6-v2 local embeddings (ChromaDB) and vector provenance.
 
-`baselayer verify-spec` then checks a finished Specification against its evidence, read-only.
+The cited path (experimental):
+
+1. **Name the person.** `subject_names` in the local import config, before import.
+2. **Import.** Each turn records its speaker; only the person's own typed or spoken turns can be cited.
+3. **Extract under the turn contract.** A gate in code stores a fact only if it quotes the person's own turns verbatim.
+4. **Distill.** Sonnet 5 gives every fact one verdict per layer: part of a theme, a one-off kept word for word, or not load-bearing. Contradictions are kept.
+5. **Assemble.** One package per layer, no model call.
+6. **Author.** Opus 5 writes the three layers; every claim must cite fact ids.
+7. **Verify.** `baselayer verify-spec` checks the finished Specification against its evidence, read-only.
+8. **Consolidate.** `baselayer consolidate` builds the always-on claims and a trigger index, no model call.
+
+A prose brief (`compose`) is optional on both paths. Every step: `docs/PIPELINE.md` in the source repo.
 
 ## How the Specification composes with other context
 
@@ -61,13 +73,13 @@ Full research: https://base-layer.ai/research
 
 Example Specifications (no auth):
 
-- `GET https://base-layer.ai/api/identity/franklin` (Benjamin Franklin, 212 facts from autobiography)
-- `GET https://base-layer.ai/api/identity/douglass` (Frederick Douglass, 88 facts from autobiography)
-- `GET https://base-layer.ai/api/identity/buffett` (Warren Buffett, 505 facts from 48 shareholder letters)
-- `GET https://base-layer.ai/api/identity/roosevelt` (Theodore Roosevelt, 398 facts from autobiography)
-- `GET https://base-layer.ai/api/identity/wollstonecraft` (Mary Wollstonecraft, 95 facts from treatise)
+- `GET https://www.base-layer.ai/api/identity/franklin` (Benjamin Franklin, autobiography)
+- `GET https://www.base-layer.ai/api/identity/douglass` (Frederick Douglass, autobiography)
+- `GET https://www.base-layer.ai/api/identity/buffett` (Warren Buffett, 48 shareholder letters)
+- `GET https://www.base-layer.ai/api/identity/roosevelt` (Theodore Roosevelt, autobiography)
+- `GET https://www.base-layer.ai/api/identity/wollstonecraft` (Mary Wollstonecraft, treatise)
 
-Each returns structured JSON: anchors, core, predictions, unified Specification, stats.
+Each returns structured JSON: anchors, core, predictions, the optional brief, stats.
 
 ## Behavioral predicates
 
@@ -98,7 +110,7 @@ Full vocabulary: `CONSTRAINED_PREDICATES` in `src/baselayer/config.py` in the so
 
 ## Reproducibility
 
-The repository version corresponding to the *Beyond Recall* paper is tagged `v0.2.0` on GitHub. The same source is also vendored directly into the memory-study-repo at `./baselayer/`, so paper readers can clone the study repo and have the cited pipeline in one place. Install the paper version with `pip install git+https://github.com/agulaya24/BaseLayer.git@v0.2.0`. Base Layer is not on PyPI today; the `baselayer` name there is held by an unrelated project. Old URLs and aliases continue to serve indefinitely. The published paper's data and code citations remain valid forever.
+The repository version corresponding to the *Beyond Recall* paper is tagged `v0.2.0` on GitHub. The same source is also vendored directly into the study repository (https://github.com/agulaya24/beyond-recall, formerly memory-study-repo) at `./baselayer/`, so paper readers can clone the study repo and have the cited pipeline in one place. Install the paper version with `pip install git+https://github.com/agulaya24/BaseLayer.git@v0.2.0`. Base Layer is not on PyPI today; the `baselayer` name there is held by an unrelated project. Old URLs and aliases continue to serve indefinitely. The published paper's data and code citations remain valid forever.
 
 ## Structured discovery
 
@@ -112,7 +124,7 @@ The repository version corresponding to the *Beyond Recall* paper is tagged `v0.
 If you used a Behavioral Specification, signal it. Not required, but it helps us understand how Specifications are being used:
 
 ```
-POST https://base-layer.ai/api/agent-feedback
+POST https://www.base-layer.ai/api/agent-feedback
 {
   "agent": "who you are",
   "action": "what you did with the Specification",
