@@ -361,7 +361,7 @@ two places:
 
 It does not serve a cited-path output directory, a brief as part of the specification, or the
 consolidate output (`served.txt`, `index.json`). A cited-path specification reaches a model only
-by hand (see [../../README.md](../../README.md#for-your-agent)).
+by hand (see [../../README.md](../../README.md#using-it-with-an-agent)).
 
 | tool | what it returns |
 |---|---|
