@@ -54,7 +54,48 @@ def test_extraction_model_honours_the_role_override(monkeypatch):
     finally:
         monkeypatch.delenv("BASELAYER_LLM_EXTRACTION")
         importlib.reload(config)
-    assert config.EXTRACTION_API_MODEL == "claude-haiku-4-5-20251001"   # default unchanged
+    assert config.EXTRACTION_API_MODEL == "claude-haiku-5-5"   # the default (2026-10-19)
+
+
+def test_the_default_extraction_model_is_haiku_55_in_every_reader(monkeypatch):
+    """Aarik 2026-10-19: extraction moves to claude-haiku-5-5 at effort medium. The role table
+    (llm_provider, freshness check) and the extraction constant name the same model."""
+    import baselayer.config as config
+    monkeypatch.delenv("BASELAYER_LLM_EXTRACTION", raising=False)
+    importlib.reload(config)
+    assert config.EXTRACTION_API_MODEL == "claude-haiku-5-5"
+    assert config.LLM_PROVIDER_CONFIG["extraction"] == config.EXTRACTION_API_MODEL
+    assert config._LATEST_MODELS["haiku"] == "claude-haiku-5-5"
+    assert config.DEFAULT_EXTRACTION_EFFORT == "medium"
+
+
+def test_effort_medium_is_sent_by_default_and_can_be_turned_off(monkeypatch):
+    monkeypatch.delenv("BASELAYER_EXTRACTION_EFFORT", raising=False)
+    ef, msgs = _install(monkeypatch, "claude-haiku-5-5")
+    ef.call_anthropic("p", retries=0)
+    assert msgs.kwargs[0]["output_config"] == {"effort": "medium"}
+    monkeypatch.setenv("BASELAYER_EXTRACTION_EFFORT", "")       # empty: the model's own default
+    ef, msgs = _install(monkeypatch, "claude-haiku-5-5")
+    ef.call_anthropic("p", retries=0)
+    assert "output_config" not in msgs.kwargs[0]
+
+
+def test_a_batch_request_on_the_default_model_carries_effort_and_no_temperature(monkeypatch):
+    from baselayer import batch_extract as be
+    monkeypatch.delenv("BASELAYER_EXTRACTION_EFFORT", raising=False)
+    r = be._build_request_for_conv("c1", "p", "claude-haiku-5-5", 100, be.BATCH_TEMPERATURE, "J\n")
+    assert "temperature" not in r["params"]
+    assert r["params"]["output_config"] == {"effort": "medium"}
+
+
+def test_the_run_settings_record_model_and_effort(monkeypatch):
+    import baselayer.extract_facts as ef
+    monkeypatch.delenv("BASELAYER_EXTRACTION_EFFORT", raising=False)
+    monkeypatch.setattr(ef, "EXTRACTION_API_MODEL", "claude-haiku-5-5")
+    s = ef.turn_run_settings()
+    assert s["extraction_effort"] == "medium"
+    monkeypatch.setattr(ef, "EXTRACTION_API_MODEL", "claude-haiku-4-5-20251001")
+    assert ef.turn_run_settings()["extraction_effort"] is None    # Haiku 4.5 takes no effort
 
 
 @pytest.mark.parametrize("model", ["claude-haiku-5-5", "claude-sonnet-5-5", "claude-sonnet-5",
@@ -67,6 +108,7 @@ def test_sequential_call_sends_no_sampling_params_where_the_model_rejects_them(m
 
 
 def test_haiku_45_keeps_its_production_temperature(monkeypatch):
+    monkeypatch.delenv("BASELAYER_EXTRACTION_EFFORT", raising=False)
     ef, msgs = _install(monkeypatch, "claude-haiku-4-5-20251001")
     ef.call_anthropic("p", retries=0)
     assert msgs.kwargs[0]["temperature"] == 0.1
@@ -120,3 +162,13 @@ def test_effort_is_sent_explicitly_when_set_on_a_5_generation_model(monkeypatch)
     ef, msgs = _install(monkeypatch, "claude-haiku-4-5-20251001")   # effort 400s on Haiku 4.5
     ef.call_anthropic("p", retries=0)
     assert "output_config" not in msgs.kwargs[0]
+
+
+def test_estimate_prices_the_default_model_at_the_spend_table_rates():
+    """`baselayer estimate` prices the configured model; before, its table had no Haiku 5.5
+    row, so the default would have printed no cost."""
+    from baselayer import cli, config
+    for model in (config.DEFAULT_EXTRACTION_MODEL, "claude-haiku-4-5-20251001"):
+        rates = config.spend_rates_for(model)
+        assert cli._estimate_rate(model) == (rates["input"], rates["output"])
+    assert cli._estimate_rate_source("claude-haiku-5-5")[2] == config.SPEND_RATES_AS_OF

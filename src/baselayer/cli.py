@@ -246,21 +246,32 @@ def cmd_import(args):
 
 
 def _estimate_rate(model):
-    """(input, output) USD per MTok for `model` from the dated rate table in
-    distillation/spend.py, or None when the table has no rate for it. A dated id
-    (claude-haiku-4-5-20251001) is looked up by its undated name (claude-haiku-4-5)."""
+    """(input, output) USD per MTok for `model`, or None when no in-repo table has it.
+    A dated id (claude-haiku-4-5-20251001) is looked up by its undated name."""
+    found = _estimate_rate_source(model)
+    return found[:2] if found else None
+
+
+def _estimate_rate_source(model):
+    """(input, output, as_of, source) for `model`, from the first table that has it: the
+    extraction spend table (config.SPEND_RATES_BY_MODEL), then the dated distillation table
+    in distillation/spend.py."""
     import re as _re
-    from baselayer.distillation.spend import RATES_PER_MTOK
-    if model in RATES_PER_MTOK:
-        return RATES_PER_MTOK[model]
-    return RATES_PER_MTOK.get(_re.sub(r"-\d{8}$", "", model or ""))
+    from baselayer.config import SPEND_RATES_AS_OF, SPEND_RATES_SOURCE, spend_rates_for
+    from baselayer.distillation.spend import RATES_AS_OF, RATES_PER_MTOK, RATES_SOURCE
+    r = spend_rates_for(model)
+    if r is not None:
+        return r["input"], r["output"], SPEND_RATES_AS_OF, SPEND_RATES_SOURCE
+    rate = RATES_PER_MTOK.get(model) or RATES_PER_MTOK.get(_re.sub(r"-\d{8}$", "", model or ""))
+    return (rate[0], rate[1], RATES_AS_OF, RATES_SOURCE) if rate else None
 
 
 def cmd_estimate(args):
     """Estimate the API cost of extracting what is imported and not yet extracted.
 
-    Prices extraction only, from the dated rate table in distillation/spend.py. It is a
-    floor, not a budget: the token count is approximate and authoring is not priced here."""
+    Prices extraction only, from the extraction spend table in config.py (or, for a model it
+    lacks, the dated rate table in distillation/spend.py). It is a floor, not a budget: the
+    token count is approximate and authoring is not priced here."""
     from baselayer.config import DATABASE_FILE, EXTRACTION_API_MODEL, get_db
     from baselayer.distillation.spend import CHARS_PER_TOKEN, RATES_AS_OF, RATES_SOURCE
 
@@ -295,15 +306,15 @@ def cmd_estimate(args):
     print(f"  Estimated input tokens: {input_tokens:,}")
     print(f"  Estimated output tokens:{output_tokens:,}")
 
-    rate = _estimate_rate(EXTRACTION_API_MODEL)
+    rate = _estimate_rate_source(EXTRACTION_API_MODEL)
     print(f"\n  Extraction model:       {EXTRACTION_API_MODEL}")
     if rate is None:
-        print(f"  No rate for this model in the in-repo table dated {RATES_AS_OF}; "
-              f"no cost is printed.")
+        print(f"  No rate for this model in the in-repo tables (distillation table dated "
+              f"{RATES_AS_OF}); no cost is printed.")
     else:
         cost = (input_tokens / 1_000_000) * rate[0] + (output_tokens / 1_000_000) * rate[1]
         print(f"  Rate:                   ${rate[0]:g} in / ${rate[1]:g} out per million tokens,")
-        print(f"                          in-repo table dated {RATES_AS_OF} ({RATES_SOURCE}).")
+        print(f"                          in-repo table dated {rate[2]} ({rate[3]}).")
         print(f"                          Check current prices.")
         print(f"  Estimated extraction:   ${cost:,.2f}")
 

@@ -95,6 +95,7 @@ def test_the_spend_ceiling_stops_the_run_before_the_call_that_would_pass_it(env,
     monkeypatch.setenv("BASELAYER_TURN_CONTRACT", "1")
     msgs = _Msgs()
     monkeypatch.setattr(env.ef, "EXTRACTION_BACKEND", "anthropic")
+    monkeypatch.setattr(env.ef, "EXTRACTION_API_MODEL", "claude-haiku-4-5-20251001")  # its rates
     monkeypatch.setattr(env.ef, "_get_anthropic_client", lambda: types.SimpleNamespace(messages=msgs))
     # each call costs $0.002 measured; worst case per call is about $0.011 (2,000 max_tokens)
     monkeypatch.setenv("BASELAYER_SPEND_CEILING_USD", "0.02")

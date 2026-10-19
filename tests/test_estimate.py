@@ -40,10 +40,12 @@ def scratch(tmp_path, monkeypatch):
 
 
 def test_rate_comes_from_the_dated_table():
-    # the configured extraction model is a dated id; the table is keyed by the undated name
-    assert config.EXTRACTION_API_MODEL.startswith("claude-haiku-4-5")
-    assert cli._estimate_rate(config.EXTRACTION_API_MODEL) == spend.RATES_PER_MTOK["claude-haiku-4-5"]
+    # a dated id is looked up by the undated name; the extraction table (config) and the
+    # distillation table (spend.py) agree on Haiku 4.5
+    assert cli._estimate_rate("claude-haiku-4-5-20251001") == spend.RATES_PER_MTOK["claude-haiku-4-5"]
     assert cli._estimate_rate("claude-haiku-4-5") == spend.RATES_PER_MTOK["claude-haiku-4-5"]
+    assert cli._estimate_rate(config.EXTRACTION_API_MODEL) == (0.10, 0.50)   # Haiku 5.5, default
+    assert cli._estimate_rate("claude-opus-5-5") == spend.RATES_PER_MTOK["claude-opus-5-5"]
     assert cli._estimate_rate("no-such-model-20250101") is None
 
 
@@ -53,7 +55,7 @@ def test_estimate_prints_the_table_rate_and_date(scratch, monkeypatch, capsys):
     out = capsys.readouterr().out
     i, o = spend.RATES_PER_MTOK["claude-haiku-4-5"]
     assert f"${i:g} in / ${o:g} out" in out
-    assert spend.RATES_AS_OF in out
+    assert config.SPEND_RATES_AS_OF in out
     # 2 pending conversations x 3500 chars / 3.5 chars per token = 2000 input tokens,
     # 2 x 200 output tokens; at $1 / $5 per MTok that is $0.002 + $0.002.
     assert "Pending extraction:     2" in out

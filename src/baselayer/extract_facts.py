@@ -2688,6 +2688,11 @@ def assert_legacy_allowed(conn):
             f"(BASELAYER_TURN_CONTRACT=1), not the legacy path.")
 
 
+def _effort():
+    from baselayer.config import extraction_effort
+    return extraction_effort(EXTRACTION_API_MODEL)
+
+
 def _budget_params() -> tuple:
     from baselayer.config import turn_output_budget_params
     return turn_output_budget_params(EXTRACTION_API_MODEL)
@@ -2702,6 +2707,7 @@ def turn_run_settings() -> dict:
         "fact_count_mode": turn_fact_count_mode(),
         "spend_ceiling_usd": spend_ceiling_usd(),
         "spend_rates_as_of": _spend_rates_as_of(),
+        "extraction_effort": _effort(),
         "output_tokens_per_citable_char": _budget_params()[0],
         "output_tokens_floor": _budget_params()[1],
         "output_tokens_ceiling": EXTRACTION_MAX_OUTPUT_TOKENS,

@@ -46,6 +46,10 @@ def corpus(tmp_path, monkeypatch):
         def __init__(self, *a, **k):
             raise AssertionError("the pilot tests must never build an API client")
     monkeypatch.setattr("anthropic.Anthropic", NoNetwork)
+    # These tests check the pilot's mechanics with Haiku 4.5's rate arithmetic; the default
+    # model (Haiku 5.5) has its own test below.
+    import baselayer.config as _cfg
+    monkeypatch.setattr(_cfg, "EXTRACTION_API_MODEL", "claude-haiku-4-5-20251001")
     for var in ("BASELAYER_DYNAMIC_CAP", "BASELAYER_TURN_CONTRACT"):
         monkeypatch.delenv(var, raising=False)
     import baselayer.extract_facts as ef
@@ -118,11 +122,11 @@ def test_explicit_rates_need_no_confirmation_flag_and_are_used(corpus):
     assert ran
 
 
-def test_non_haiku_model_requires_explicit_rates(corpus, monkeypatch):
+def test_a_model_without_a_published_rate_requires_explicit_rates(corpus, monkeypatch):
     import baselayer.config as cfg
     monkeypatch.setattr(cfg, "EXTRACTION_API_MODEL", "claude-sonnet-5")
     root, ran, runner = corpus
-    with pytest.raises(P.PilotRefused, match="not Haiku 4.5"):
+    with pytest.raises(P.PilotRefused, match="no published rate"):
         _run(root, runner, "--sample", "4", "--confirm-spend", "100", "--rates-confirmed")
 
 
@@ -272,3 +276,16 @@ def test_pilot_next_steps_say_the_corpus_is_not_for_distillation(corpus, capsys)
     _run(root, runner, "--sample", "2", "--confirm-spend", "100", "--rates-confirmed")
     out = capsys.readouterr().out
     assert "NOT for distillation" in out and "fresh corpus directory" in out
+
+
+def test_the_default_model_uses_its_own_published_rates_and_assumptions(corpus, monkeypatch):
+    """Haiku 5.5 (the default since 2026-10-19) is priced from the extraction spend table, with
+    its own chars-per-token and output-tokens-per-fact (thinking included) assumptions."""
+    import baselayer.config as cfg
+    monkeypatch.setattr(cfg, "EXTRACTION_API_MODEL", "claude-haiku-5-5")
+    root, _, runner = corpus
+    rec = _run(root, runner, "--sample", "4", "--confirm-spend", "100", "--rates-confirmed")
+    a = rec["estimate"]["assumptions"]
+    assert (a["input_rate_per_mtok"], a["output_rate_per_mtok"]) == (0.10, 0.50)
+    assert (a["chars_per_token"], a["tokens_per_fact"]) == (2.9, 360)
+    assert rec["model"] == "claude-haiku-5-5"

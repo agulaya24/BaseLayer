@@ -16,6 +16,16 @@ from tests.test_turn_batch_extract import _result, _state, benv  # noqa: F401
 from tests.test_turn_extraction import (  # noqa: F401  (env is a fixture)
     CONV, TURN_FACTS, TURNS as BASE_TURNS, _records, _seed, env)
 
+
+
+@pytest.fixture(autouse=True)
+def _haiku_45(monkeypatch):
+    """These tests check the Haiku 4.5 constants (a model that does not think); a thinking
+    model's budget is tested in test_output_budget_thinking.py."""
+    import baselayer.extract_facts as ef
+    monkeypatch.setattr(ef, "EXTRACTION_API_MODEL", "claude-haiku-4-5-20251001")
+
+
 LONG_TURNS = [(0, "subject", "own_typed", "user", LONG),
               (1, "assistant", "assistant", "assistant", "Noted.")]
 

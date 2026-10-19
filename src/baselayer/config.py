@@ -169,9 +169,16 @@ LLM_MODEL = "qwen2.5:14b"
 # Set via BASELAYER_EXTRACTION_BACKEND env var or change default here.
 
 EXTRACTION_BACKEND = os.environ.get("BASELAYER_EXTRACTION_BACKEND", "anthropic")
-# BASELAYER_LLM_EXTRACTION is the documented per-role override (LLM_PROVIDER_CONFIG below); it
-# never reached extraction while this was a bare literal. Default unchanged.
-EXTRACTION_API_MODEL = os.environ.get("BASELAYER_LLM_EXTRACTION", "claude-haiku-4-5-20251001")
+# BASELAYER_LLM_EXTRACTION is the documented per-role override (LLM_PROVIDER_CONFIG below).
+# Default claude-haiku-5-5 at effort medium since 2026-10-19 (Aarik), from Haiku 4.5: in blind
+# same-sample comparisons, judged in both orders against a same-model noise floor, Haiku 5.5
+# medium was preferred on essays and talks (31 / 1 / 8), list roundups (18 / 3 / 4) and chat
+# (17 / 2 / 6), at about one fifth of the cost; effort high was no better than medium. Haiku 4.5
+# stays selectable: BASELAYER_LLM_EXTRACTION=claude-haiku-4-5-20251001 (it then sends
+# temperature 0.1 and no effort, as before).
+DEFAULT_EXTRACTION_MODEL = "claude-haiku-5-5"
+DEFAULT_EXTRACTION_EFFORT = "medium"
+EXTRACTION_API_MODEL = os.environ.get("BASELAYER_LLM_EXTRACTION", DEFAULT_EXTRACTION_MODEL)
 
 # Models that reject non-default sampling parameters with a 400 (temperature/top_p/top_k):
 # every 5-generation model, Fable and Mythos, and Opus 4.7 / 4.8. Matched on the id prefix.
@@ -195,14 +202,18 @@ def turn_output_budget_params(model: str) -> tuple:
     return TURN_OUTPUT_TOKENS_PER_CITABLE_CHAR, TURN_OUTPUT_TOKENS_FLOOR
 
 
+def extraction_effort(model: str):
+    """The effort an extraction call on this model sends: BASELAYER_EXTRACTION_EFFORT, default
+    DEFAULT_EXTRACTION_EFFORT (medium, what was measured), only for models that take effort (the
+    same set that rejects sampling; Haiku 4.5 400s on effort). Set it empty to send nothing and
+    take the model's own default. None when nothing is sent."""
+    effort = os.environ.get("BASELAYER_EXTRACTION_EFFORT", DEFAULT_EXTRACTION_EFFORT)
+    return effort if effort and model_rejects_sampling(model) else None
+
+
 def extraction_effort_kwargs(model: str) -> dict:
-    """BASELAYER_EXTRACTION_EFFORT, sent only to models that take effort (the same set that
-    rejects sampling; Haiku 4.5 400s on effort). Unset: nothing is sent and the model default
-    applies (medium on Haiku 5.5)."""
-    effort = os.environ.get("BASELAYER_EXTRACTION_EFFORT")
-    if effort and model_rejects_sampling(model):
-        return {"output_config": {"effort": effort}}
-    return {}
+    effort = extraction_effort(model)
+    return {"output_config": {"effort": effort}} if effort else {}
 
 
 # ==========================================================================
@@ -422,7 +433,8 @@ OUTPUT_SAFE_CHUNK_CAP = 100
 # cover the requested fact count, so the ceiling tracks the ask instead of a
 # fixed value. ~EXTRACTION_TOKENS_PER_FACT tokens/fact + a JSON-wrapping buffer,
 # clamped to the extraction model's documented max output tokens.
-# Haiku 4.5 (claude-haiku-4-5-20251001) max output = 64000 tokens.
+# Haiku 4.5 (claude-haiku-4-5-20251001) max output = 64000 tokens; Haiku 5.5 = 128000, so the
+# 64000 clamp holds on both.
 EXTRACTION_TOKENS_PER_FACT = 90
 EXTRACTION_OUTPUT_BUFFER_TOKENS = 2000
 EXTRACTION_MAX_OUTPUT_TOKENS = 64000
@@ -791,8 +803,8 @@ AGENT_RUNS_DIR = IDENTITY_LAYERS_DIR / "runs"
 #   pip install google-generativeai # For gemini-*
 
 _LLM_DEFAULTS = {
-    "extraction": "claude-haiku-4-5-20251001",
-    "classification": "claude-haiku-4-5-20251001",   # LEGACY — classification removed in S79
+    "extraction": DEFAULT_EXTRACTION_MODEL,          # same default as EXTRACTION_API_MODEL
+    "classification": DEFAULT_EXTRACTION_MODEL,      # LEGACY — classification removed in S79
     "tiering": "claude-sonnet-4-6",                    # LEGACY — tiering removed in S79
     "authoring": "claude-sonnet-4-6",                  # S98: updated from claude-sonnet-4-20250514
     "review": "claude-opus-4-6",                       # S98: updated from claude-opus-4-20250514 (3x cheaper)
@@ -801,7 +813,7 @@ _LLM_DEFAULTS = {
 
 # S98: Known latest model versions — used for freshness check
 _LATEST_MODELS = {
-    "haiku": "claude-haiku-4-5-20251001",
+    "haiku": "claude-haiku-5-5",
     "sonnet": "claude-sonnet-4-6",
     "opus": "claude-opus-4-6",
 }

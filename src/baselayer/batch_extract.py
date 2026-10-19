@@ -34,7 +34,7 @@ from datetime import datetime
 from baselayer.config import (
     PROJECT_ROOT, DATABASE_FILE, VECTORS_DIR, EMBEDDING_MODEL,
     EXTRACTION_API_MODEL, EXTRACTION_BACKEND,
-    extraction_sampling_kwargs, extraction_effort_kwargs,
+    extraction_sampling_kwargs, extraction_effort_kwargs, extraction_effort,
     CONSTRAINED_PREDICATES,
     SCOPE_SOURCE_MAPPING, DEFAULT_SCOPE, is_claude_code_source,
     MIN_MESSAGES_FOR_EXTRACTION,
@@ -622,6 +622,7 @@ def run_submit(document_mode=False, skip_extracted=False, turn_contract=None):
         "conversation_ids": list(chunk_counts.keys()),
         "chunk_map": chunk_map,  # custom_id → {parent_conv_id, chunk_idx, total_chunks, source}
         "model": EXTRACTION_API_MODEL,
+        "effort": extraction_effort(EXTRACTION_API_MODEL),
         "status": "submitted",
         "mode": "turn" if turn_mode else "legacy",
         # An incremental batch covers only part of the corpus, so the resetting --process
