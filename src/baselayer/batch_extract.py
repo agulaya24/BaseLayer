@@ -117,8 +117,13 @@ def _batch_usage(result, conv_id, custom_id, meta=None):
     extra = {}
     if meta and meta.get("citable_chars") is not None:
         extra = {"chunk": meta.get("chunk_idx"), "citable_chars": meta["citable_chars"]}
+    blocks = getattr(msg, "content", None) or []
     return _tc.usage_entry(getattr(msg, "usage", None), purpose="extract", model=getattr(msg, "model", None),
-                           batch=True, conversation_id=conv_id, custom_id=custom_id, **extra)
+                           requested_model=EXTRACTION_API_MODEL, batch=True,
+                           stop_reason=getattr(msg, "stop_reason", None),
+                           refusal_category=getattr(getattr(msg, "stop_details", None), "category", None),
+                           thinking_blocks=sum(1 for b in blocks if getattr(b, "type", None) == "thinking"),
+                           conversation_id=conv_id, custom_id=custom_id, **extra)
 
 
 def _scoped_turn_mode(fn):

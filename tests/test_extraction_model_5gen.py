@@ -172,3 +172,16 @@ def test_estimate_prices_the_default_model_at_the_spend_table_rates():
         rates = config.spend_rates_for(model)
         assert cli._estimate_rate(model) == (rates["input"], rates["output"])
     assert cli._estimate_rate_source("claude-haiku-5-5")[2] == config.SPEND_RATES_AS_OF
+
+
+def test_a_batch_usage_entry_records_what_the_sequential_one_does():
+    """The live Haiku 5.5 batch (2026-10-19) showed batch entries carried the answering model
+    but not stop_reason, the thinking block count, the refusal category or the requested model."""
+    from baselayer import batch_extract as be
+    msg = SimpleNamespace(model="claude-haiku-5-5", stop_reason="end_turn", stop_details=None,
+                          content=[SimpleNamespace(type="thinking"), SimpleNamespace(type="text")],
+                          usage=SimpleNamespace(input_tokens=10, output_tokens=5))
+    e = be._batch_usage(SimpleNamespace(result=SimpleNamespace(message=msg)), "c1", "c1__0")
+    assert (e["model"], e["stop_reason"], e["thinking_blocks"]) == ("claude-haiku-5-5", "end_turn", 1)
+    assert e["requested_model"] == be.EXTRACTION_API_MODEL and e["refusal_category"] is None
+    assert e["batch"] is True
