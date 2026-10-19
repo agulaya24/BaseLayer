@@ -4,7 +4,9 @@ This is the only example in the repository with fact-level provenance. Read it i
 check the auditability claim rather than take it.
 
 **Source:** *American Indian Stories* (1921) by Zitkala-Sa, public domain, Project Gutenberg.
-**Built:** 2026-08-18 on the current pipeline: IMPORT, EXTRACT, DISTILL, ASSEMBLE, AUTHOR, COMPOSE.
+**Built:** 2026-08-18 on the cited path as it stood then: IMPORT, EXTRACT, DISTILL, ASSEMBLE, AUTHOR,
+COMPOSE (the brief was then composed by default). Extraction predates the turn contract, so the
+facts carry no evidence spans, and `verify-spec` and `consolidate` did not exist yet.
 **Corpus:** 407 facts, 59 predicates.
 
 ## What you can verify

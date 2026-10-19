@@ -4,19 +4,18 @@ This document tracks committed and exploratory work on Base Layer. Dates indicat
 
 ## Current state
 
-Pre-1.0. Pipeline is functional end-to-end (one-command `baselayer run`); MCP server is shipping; behavioral specifications generate consistently across 14 historical subjects and original-author corpora; provenance verifier covers four checks against the citation graph; `baselayer verify-spec` checks a finished specification against its corpus, and `baselayer consolidate` builds a trigger index from one. The cited path (distill, assemble, author-from-package) is experimental.
+Pre-1.0. Pipeline is functional end-to-end (one-command `baselayer run`); MCP server is shipping; behavioral specifications generate consistently across 14 historical subjects and original-author corpora; `baselayer verify` audits the provenance of the static layers; `baselayer verify-spec` checks a finished specification against its corpus, and `baselayer consolidate` builds a trigger index from one. The cited path (distill, assemble, author-from-package) is experimental.
 
 ## Near-term (next 1-2 quarters)
 
 ### Production readiness
 
 - **Identity-to-specification refactor.** Code, file paths, and API endpoints still use the legacy `identity` term while documentation has moved to `specification`. The refactor brings code in line with the new positioning. The plan is kept in the maintainer's private working copy, not in this repository. Includes a backwards-compatibility shim for the API.
-- **`brief_v4.md` rename.** Output filename becomes `specification.md`.
 - **Stable 1.0 API surface.** Lock the CLI command set, MCP tool signatures, and HTTP endpoint shapes. Versioned changelog from this point forward.
 
 ### Local pipeline
 
-- **32B-class local models for authoring and composition.** Extraction already runs locally via Ollama (Qwen 3, Gemma 3, Mistral 7B tested). Active research is on whether 32B-class local models produce specifications at quality parity with Sonnet/Opus. If yes, the project ships a fully-local mode by default.
+- **32B-class local models for authoring and composition.** Extraction can already run locally via Ollama (`BASELAYER_EXTRACTION_BACKEND=ollama`; the configured model is `qwen2.5:14b`, `LLM_MODEL` in `config.py`). Active research is on whether 32B-class local models produce specifications at quality parity with Sonnet/Opus. If yes, the project ships a fully-local mode by default.
 - **Structured output enforcement.** Ollama native JSON schema constraints for guaranteed valid extraction output.
 
 ### Evaluation

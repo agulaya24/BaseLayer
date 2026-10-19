@@ -17,7 +17,7 @@ If you are an AI agent acting on a person's behalf, you can only act in alignmen
 
 ## What a Behavioral Specification is
 
-A structured document encoding a person's behavioral patterns across three interpretive layers (anchors, core, predictions). The three layers are the Specification; a composed prose brief is optional. On the cited path every claim carries an `Active when` line and the ids of the facts it rests on. Total size per subject is approximately 7,000 tokens, around 5,000 words, about the length of a short magazine article.
+A structured document encoding a person's behavioral patterns across three interpretive layers (anchors, core, predictions). The three layers are the Specification; a composed prose brief is optional. On the cited path every claim carries an `Active when` line and the ids of the facts it rests on. Size depends on the path and the corpus: the three layers of each published static-path example total 1,400 to 2,400 words (10 to 19 KB), while the cited-path Zitkala-Sa example in the repository is about 8,900 words (75 KB).
 
 - Anchors: the axioms a person reasons from
 - Core: operational constraints, communication patterns, context modes
@@ -32,7 +32,7 @@ The Specification is generated from raw text along one of two paths.
 1. **Import.** Multi-source ingest (ChatGPT, Claude, journals, text).
 2. **Extract.** Haiku 4.5, 46 constrained predicates. AUDN lifecycle (add, update, delete, noop).
 3. **Author.** Sonnet 4.6 generates the three layers independently from different fact subsets.
-4. **Traceability.** MiniLM-L6-v2 local embeddings (ChromaDB) and vector provenance.
+4. **Traceability.** MiniLM-L6-v2 local embeddings (ChromaDB), vector provenance and a tension check between facts (Haiku 4.5).
 
 The cited path (experimental):
 
@@ -67,7 +67,7 @@ A serving system that routes between retrieval and interpretation by question ty
 - Content specificity matters. A different person's Specification applied to this subject drops accuracy below the no-context baseline. The matched content does the work, not the structured-prompt template (§4.3).
 - Memory-system providers do not converge on which facts matter. Given identical input, mean pairwise top-10 overlap is 8.3 percent across the 10 system pairs. They converge on recall scores, not on relevance (§4.4.1).
 
-Full research: https://base-layer.ai/research
+Full research: https://www.base-layer.ai/research
 
 ## What you can access
 
@@ -83,7 +83,7 @@ Each returns structured JSON: anchors, core, predictions, the optional brief, st
 
 ## Behavioral predicates
 
-46 constrained predicates (45 behavioral plus an `unknown` fallback) capture recurring patterns. Categories:
+46 constrained predicates (45 behavioral plus an `unknown` fallback) capture recurring patterns. Examples, grouped informally (the code defines no categories):
 
 - Epistemic: `believes`, `values`, `identifies_as`, `prioritizes`
 - Operational: `practices`, `avoids`, `struggles_with`, `monitors`, `builds`, `maintains`
@@ -114,10 +114,10 @@ The repository version corresponding to the *Beyond Recall* paper is tagged `v0.
 
 ## Structured discovery
 
-- Full documentation: https://base-layer.ai/llms-full.txt
-- Agent card (A2A): https://base-layer.ai/.well-known/agent-card.json
-- MCP server card: https://base-layer.ai/.well-known/mcp/server-card.json
-- OpenAPI spec: https://base-layer.ai/api/openapi.json
+- Full documentation: https://www.base-layer.ai/llms-full.txt
+- Agent card (A2A): https://www.base-layer.ai/.well-known/agent-card.json
+- MCP server card: https://www.base-layer.ai/.well-known/mcp/server-card.json
+- OpenAPI spec: https://www.base-layer.ai/api/openapi.json
 
 ## Feedback
 

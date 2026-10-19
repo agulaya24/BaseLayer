@@ -25,6 +25,12 @@ Changes on `main` after 0.5.0. `pyproject.toml` still reports 0.5.0, and there i
 - `baselayer run <file>` and `baselayer pipeline <subject>` now import the named source every time, through the importer's dedup. Previously both skipped import whenever any conversation already existed, then re-extracted, re-authored and reported success over a specification that excluded the new file. When nothing new is imported, nothing is waiting for extraction and a complete specification already exists, they stop before the cost estimate and say so; `--reauthor` regenerates anyway. A run interrupted between extraction and authoring still authors when re-run. The text and JSON importers also skip a file whose content is already stored, so the same file spelled by a different path is not imported twice. The completion message no longer points at the archived `chat` command.
 - `forget` marks the specification stale. It writes `data/identity_layers/stale_after_forget.json`; any layer or brief file older than it is reported stale by `baselayer stats`, the MCP server log and `get_stats`, and a short notice in the served specification. Staleness is per file, by modification time: any re-author (`baselayer author`, or a `baselayer run` that authors) clears it for the layers it rewrites, with no `--compose` needed; a brief composed before the forget stays flagged until it is recomposed or removed. The help says forget hides facts, keeps raw conversation text, and does not regenerate layers.
 
+### Documentation (follow-up to the README rewrite, no behavior change)
+- `docs/core/ARCHITECTURE.md`, `PROJECT_OVERVIEW.md` and `FLOW_GUIDE.md` rewritten for the two paths: the three layers are the specification, the brief is optional and never written by `run`, and the MCP server serves only the static layers. Now linked from the README.
+- MCP instructions: the docs no longer assert that clients truncate them; they say some clients may truncate long instructions and that `memory://specification` returns the full text.
+- `user_corrections`: `docs/CORRECTIONS.md` now lists what writes and reads each type and column. Only `review` writes (type `flag`, read by nothing); retiring types and `match_patterns` are read but written by no command.
+- Data root for a clone (editable or source install) is the clone itself, not `~/.baselayer`; vector provenance links every claim, not only uncited ones; only `forget` writes the stale marker; `zitkala_sa/` ships layer text only, so its fact ids cannot be resolved from the repository; specification size claims dropped or measured per path; private repository names removed from AGENTS.md and ORIENTATION.md; `docs/core/DISTILLATION.md` options table (`--db` is on `author-from-package` too) and em dashes; ROADMAP Ollama list replaced with what the code configures; the Anthropic privacy link updated.
+
 ### Documentation corrections (no behavior change)
 - Reset advice corrected. The 0.5.0 entry below says a real reset is `forget --all` plus deleting the vector store. That is wrong: `forget` only hides facts and leaves the extraction log in place, so the next `extract` reports every conversation as already done and processes nothing (reproduced on a scratch corpus). The reset is `python -m baselayer.extract_facts --reset`, which deletes extracted facts, the extraction log, and the fact vectors, and keeps imported conversations and user corrections. It is irreversible and has no confirmation prompt. The safest clean start is pointing `MEMORY_SYSTEM_ROOT` at an empty directory. Help strings in `init --force`, the `init` notice, and the two stale-vector warnings in `extract_facts.py` (which named a nonexistent `baselayer extract --reset`) now say this.
 - `forget` help and docs say it hides facts (soft delete). Raw conversation text stays, and specification layers already written are not regenerated (see Behavior changes: they are now marked stale).
@@ -235,16 +241,16 @@ This release is the immutable reference state corresponding to the "Beyond Recal
 ## Unreleased
 
 ### Planned
-- **D-056 Tier 3** — Quality gate between extraction and storage (reject hedging, low-density, LLM artifacts)
-- **Cross-provider blind evaluation** — Claude / ChatGPT / Gemini comparison
-- **Fact correction UI/CLI** — `baselayer correct` command to flag, edit, or supersede individual facts. Current `user_corrections` table exists but has no user-facing interface. Triggered by S62 finding: aspirational facts ("aspires to a long-term personal goal" rec:93) and situational facts ("lives in a particular city" rec:24) were promoted into identity layers as confident biographical claims. Need: (1) CLI to list/search/edit/supersede facts by ID, (2) corrections cascade to layers on next authoring cycle, (3) hybrid verification — heuristic term-match + Haiku semantic check on composed brief vs source facts
+- **D-056 Tier 3**: Quality gate between extraction and storage (reject hedging, low-density, LLM artifacts)
+- **Cross-provider blind evaluation**: Claude / ChatGPT / Gemini comparison
+- **Fact correction UI/CLI**: `baselayer correct` command to flag, edit, or supersede individual facts. Current `user_corrections` table exists but has no user-facing interface. Triggered by S62 finding: aspirational facts ("aspires to a long-term personal goal" rec:93) and situational facts ("lives in a particular city" rec:24) were promoted into identity layers as confident biographical claims. Need: (1) CLI to list/search/edit/supersede facts by ID, (2) corrections cascade to layers on next authoring cycle, (3) hybrid verification: heuristic term-match + Haiku semantic check on composed brief vs source facts
 
 ---
 
 ## 2026-03-02
 
 ### Unified Brief Composition (S62)
-- `baselayer compose` — Opus compresses 3 deployed layers + identity-tier facts into a unified narrative brief
+- `baselayer compose`: Opus compresses 3 deployed layers + identity-tier facts into a unified narrative brief
 - `UNIFIED_BRIEF_COMPOSITION_PROMPT` encodes 3 eval-proven properties: concrete autobiographical mechanisms, characteristic inner tensions, pragmatic framing
 - Anti-anachronism constraint prevents modern professional vocabulary for historical subjects
 - `store_unified_brief()` writes `brief_v4.md` with YAML header + Injectable Block format
@@ -259,7 +265,7 @@ This release is the immutable reference state corresponding to the "Beyond Recal
 ### Eval Infrastructure Upgrades (S62)
 - **Judge panel:** Multi-model judging (`--judges sonnet/opus/haiku/all`) with per-model output files and consensus scoring (mean across judges, disagreements >1 point flagged)
 - **C2-AP ablation:** Anchors+predictions combination added to ablation conditions
-- **CM condition:** Claude Memory Import comparison — loads `claude_memories.txt` wrapped in `<userMemories>` XML
+- **CM condition:** Claude Memory Import comparison: loads `claude_memories.txt` wrapped in `<userMemories>` XML
 - **Length normalization:** `--max-tokens` arg caps response length, per-token-normalized scores in analysis
 - **Anachronism check:** Binary PASS/FAIL in public figure judge prompt with specific term listing
 
@@ -276,15 +282,15 @@ This release is the immutable reference state corresponding to the "Beyond Recal
 ## 2026-03-01
 
 ### Verification + Testing (S57)
-- `verify_provenance.py` — vector audit + claim verification + NLI verification
+- `verify_provenance.py`: vector audit + claim verification + NLI verification
 - `baselayer verify` CLI command (vector, claims, individual claim by ID)
 - FTS5 full-text search virtual table (`memory_facts_fts`) with auto-sync triggers
 - `baselayer rebuild-fts` CLI command for FTS index rebuilding
 - Test suite expanded: 85 → 319 tests (test_unit.py, test_edge_cases.py, test_mcp.py, test_privacy.py, test_author_provenance.py, test_checkpoint.py, test_batch_extract.py, test_llm_provider.py)
-- `EXTRACTION_CAP_SCALING_REVIEW.md` — implementation review, confirms current caps are sufficient
-- `SCORE_FACTS_REFACTOR_PLAN.md` — O(N*M) refactor plan, deferred until 10x scale
-- `MULTI_PROVIDER_PLAN.md` — comprehensive multi-provider implementation plan (D-052)
-- `README_REVIEW_S57.md` — README draft review
+- `EXTRACTION_CAP_SCALING_REVIEW.md`: implementation review, confirms current caps are sufficient
+- `SCORE_FACTS_REFACTOR_PLAN.md`: O(N*M) refactor plan, deferred until 10x scale
+- `MULTI_PROVIDER_PLAN.md`: comprehensive multi-provider implementation plan (D-052)
+- `README_REVIEW_S57.md`: README draft review
 
 ---
 
@@ -293,27 +299,27 @@ This release is the immutable reference state corresponding to the "Beyond Recal
 ### Provenance + Lexicon (S55-S56)
 - `layer_claim_provenance` and `claim_verification` database tables with indexes
 - `[F-xxx]` fact IDs embedded in authoring prompts for traceability
-- `parse_provenance_from_layer()` and `store_provenance()` in author_layers.py — authoring-time capture
+- `parse_provenance_from_layer()` and `store_provenance()` in author_layers.py: authoring-time capture
 - `trace_claim` MCP tool for on-demand provenance queries
 - `baselayer provenance` CLI command (summary + `--claim ID` trace)
 - `lexicon_schema.yaml` + `lexicon.yaml` created
 
 ### Pipeline Upgrades (S55-S56)
-- **Relationship extraction:** 8 new predicates (47 total), 30+ aliases, entity map hints — targets 0.8% → 3-5%
+- **Relationship extraction:** 8 new predicates (47 total), 30+ aliases, entity map hints: targets 0.8% → 3-5%
 - **Extraction cap scaling:** 4-tier (10/20/35/50 facts), input budget (12K-24K chars) based on conversation length
-- **Temporal recurrence dedup:** 24h windowing, `windowed_recurrence` column — 20 mentions in one day = 1 recurrence
+- **Temporal recurrence dedup:** 24h windowing, `windowed_recurrence` column: 20 mentions in one day = 1 recurrence
 - **ChromaDB:** L2 → cosine distance metric across 10 files
 - **`api_client.py`:** Centralized API singleton + retry + logging, 19 scripts migrated
 
 ### Multi-User Validation (S53-S54)
 - **User B V4:** 36 newsletter posts → 309 active facts → 77.7/100
 - **User C V4:** 9 journal entries → 76 active facts → 81.7/100
-- **N=3 proof complete:** conversations, newsletter posts, journal entries — all 77-82/100
+- **N=3 proof complete:** conversations, newsletter posts, journal entries: all 77-82/100
 - Case study: V4 layers used 26% fewer tokens than raw data with structurally superior responses
 
 ### Contamination Fixes (S55)
-- Removed hardcoded axioms from store_anchors.py — now file-based loading
-- Removed hardcoded inter-axiom conflicts from author_layers.py — derived from actual anchors
+- Removed hardcoded axioms from store_anchors.py: now file-based loading
+- Removed hardcoded inter-axiom conflicts from author_layers.py: derived from actual anchors
 - Removed user-specific cluster descriptions from assemble_brief.py
 - Fixed extract_facts.py `len(messages) < 2` → `< 1` for single-message journals
 
@@ -325,9 +331,9 @@ This release is the immutable reference state corresponding to the "Beyond Recal
 ### Code Quality (S55-S56)
 - D-059 RESOLVED: Keep trading data (~46% redundancy, needs tighter consolidation)
 - Security audit: config path validation, LIKE metacharacter escaping, XML delimiters in extraction prompts
-- Entity map `_user_pronouns` field — pronoun-aware layer authoring
-- Batch re-extraction DONE (S51) — all 1,892 conversations re-extracted with structured triples
-- V4 identity layers DONE (S52) — cycle_003, 78.5/100 Collective score
+- Entity map `_user_pronouns` field: pronoun-aware layer authoring
+- Batch re-extraction DONE (S51): all 1,892 conversations re-extracted with structured triples
+- V4 identity layers DONE (S52): cycle_003, 78.5/100 Collective score
 
 ---
 
@@ -339,7 +345,7 @@ This release is the immutable reference state corresponding to the "Beyond Recal
 - Predicate normalization maps LLM variants to canonical forms
 - New database columns: `predicate`, `object_text`, `qualifier`
 - `fact_text` reconstructed from structured fields for full downstream compatibility
-- Eval harness tested 4 prompt variants on 16 conversations — Variant D scored 85/100 in adversarial review
+- Eval harness tested 4 prompt variants on 16 conversations: Variant D scored 85/100 in adversarial review
 
 ### Scoring Data Integrity Fix
 - Discovered and fixed inflated recurrence scores across all 4,106 facts
@@ -353,19 +359,19 @@ This release is the immutable reference state corresponding to the "Beyond Recal
 
 ### Agent Pipeline for Identity Authoring (D-054)
 - Multi-agent identity authoring: Sonnet generates, three isolated Opus agents refine, confer, undergo 4-persona adversarial review, then revise
-- True agent isolation — separate context windows, no cross-visibility between layer agents
+- True agent isolation: separate context windows, no cross-visibility between layer agents
 - 13 artifacts per cycle stored in `data/identity_layers/runs/`
 - First cycle deployed as v3: ANCHORS 82.3, CORE 77.3, PREDICTIONS 75.8 (78.4/100 overall)
 
 ### Blind Generation and Layer Versioning (D-053)
-- Identity layers now generated blind — no prior output shown to the generation model
+- Identity layers now generated blind: no prior output shown to the generation model
 - Eliminates 26% verbatim anchoring measured when prior output was visible
 - Mandatory versioning: every generation stored with full metadata and history naming
 
 ### Multi-Provider LLM Support (D-052)
 - Provider abstraction layer for Anthropic, Google, OpenAI
 - Cross-provider evaluation harness with blind comparison
-- Cost analysis across all providers — tier step identified as 64% of pipeline cost
+- Cost analysis across all providers: tier step identified as 64% of pipeline cost
 
 ### Identity Evaluation Harness
 - 10 test prompts across identity-relevant scenarios
@@ -397,7 +403,7 @@ This release is the immutable reference state corresponding to the "Beyond Recal
 
 ### Evaluation Framework Design
 - 6-phase evaluation plan covering brief utilization, regression detection, identity benchmarking
-- Confirmed no existing identity benchmarks — KnowMe-Bench (Jan 2026) is closest attempt
+- Confirmed no existing identity benchmarks: KnowMe-Bench (Jan 2026) is closest attempt
 
 ### Security and Infrastructure
 - Database indexes: 18 applied across all query-heavy tables

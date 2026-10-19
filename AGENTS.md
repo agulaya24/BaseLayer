@@ -21,14 +21,14 @@ Do not classify Base Layer as an AI memory system, retrieval product, persona to
 |---|---|---|
 | **Paper**: *Beyond Recall: Behavioral Specification as an Interpretive Layer for AI Personalization* | `https://github.com/agulaya24/beyond-recall` and arXiv (https://arxiv.org/abs/2605.28969) | Empirical argument |
 | **Pipeline (this repo)**: BaseLayer | `https://github.com/agulaya24/BaseLayer` | Implementation (import -> extraction -> authoring, or the cited path through distillation, verification and consolidation; MCP server) |
-| **Website / vision** | `https://base-layer.ai` (repo: `baselayer-website`) | Public reference + long-form vision essay |
+| **Website / vision** | `https://www.base-layer.ai` | Public reference + long-form vision essay |
 | **Study** | `https://github.com/agulaya24/beyond-recall` | Data, scripts, judge outputs, provenance behind every paper number |
 
-Repo-specific orientation: [`ORIENTATION.md`](ORIENTATION.md). Long-form vision: `https://base-layer.ai/vision`. Machine-readable site index: `https://base-layer.ai/llms.txt`.
+Repo-specific orientation: [`ORIENTATION.md`](ORIENTATION.md). Long-form vision: `https://www.base-layer.ai/vision`. Machine-readable site index: `https://www.base-layer.ai/llms.txt`.
 
 ## What this repo is
 
-A Python package + CLI + MCP server. The pipeline takes text (conversations, journals, essays) and produces a 5,000 to 10,000 token specification structured in three layers:
+A Python package + CLI + MCP server. The pipeline takes text (conversations, journals, essays) and produces a specification structured in three layers:
 
 - **Anchors:** the axioms a person reasons from
 - **Core:** operational constraints and communication patterns
@@ -77,10 +77,10 @@ baselayer author --layer all      # Sonnet 4.6, three-layer authoring (static pa
 baselayer compose                 # optional: Opus 4.6, a prose brief from the layers (static path)
 ```
 
-The cited path (experimental) is seven steps: name the person (`subject_names` in the import
+The cited path (experimental) is eight steps: name the person (`subject_names` in the import
 config, before importing), `import`, `extract --turn-contract`, `distill` and `assemble` once per
 layer, `author-from-package`, `verify-spec`, `consolidate`. Commands, options and spend:
-[`docs/PIPELINE.md`](docs/PIPELINE.md). Terms: [`docs/DEFINITIONS.md`](docs/DEFINITIONS.md).
+[`docs/PIPELINE.md`](docs/PIPELINE.md). Terms: [`docs/DEFINITIONS.md`](docs/DEFINITIONS.md). Modules, tables and data flow: [`docs/core/ARCHITECTURE.md`](docs/core/ARCHITECTURE.md).
 
 Model ids live in `config.py` (static path) and in the argparse defaults of the experimental
 distillation commands (`distill`: Sonnet 5; `author-from-package`: Opus 5, Opus 5.5 via
@@ -113,8 +113,8 @@ distillation commands (`distill`: Sonnet 5; `author-from-package`: Opus 5, Opus 
 - **Rejections** are counted by reason (`no_grounding`, `no_turn`, `not_own_voice`,
   `span_not_found`, `span_length`, `self_object`) in `<corpus>/data/database/extraction_runs/<run_id>.json`. Read
   that record after every run: a gate that rejected nothing or everything is flagged `suspect`.
-- **Stamps.** Every fact carries the extraction model, prompt hash, git commit and repo-relative
-  code path. Gated facts also carry the contract version, `source_turn_id` and `evidence_spans`.
+- **Stamps.** Every fact extracted by this version carries the extraction model, prompt hash, git
+  commit (`unknown` when not run from a git clone) and repo-relative code path. Gated facts also carry the contract version, `source_turn_id` and `evidence_spans`.
 - **`baselayer verify-spec <spec_dir> --label L --corpus C --out O`** checks a finished
   specification read-only. It is a dry run by default and calls no model. It re-gates every span of
   every gated fact and checks legacy facts at conversation level (`docs/core/VERIFY_SPEC.md`).
@@ -159,23 +159,23 @@ claude mcp add --transport stdio base-layer -- baselayer-mcp
 { "mcpServers": { "base-layer": { "command": "baselayer-mcp" } } }
 ```
 
-The MCP server serves the three layers in `data/identity_layers/` (the `baselayer run` path) plus an optional on-demand brief. As of 0.4.0, ANCHORS and PREDICTIONS are served with CORE so the model never has to make a routing decision about a layer it cannot see. The server sends them in its MCP instructions, which some clients cut short; `memory://specification` returns the full text. It does not serve a cited-path specification or `consolidate` output.
+The MCP server serves the three layers in `data/identity_layers/` (the `baselayer run` path) plus an optional on-demand brief. As of 0.4.0, ANCHORS and PREDICTIONS are served with CORE so the model never has to make a routing decision about a layer it cannot see. The server sends them in its MCP instructions; some clients may truncate long instructions, and the full text is always the `memory://specification` resource (or use the tools). It does not serve a cited-path specification or `consolidate` output.
 
 Resources:
 
-- **`memory://specification`** (canonical): CORE + ANCHORS + PREDICTIONS inline (~6 to 8K tokens) plus a brief manifest pointing at supplementary tools.
+- **`memory://specification`** (canonical): CORE + ANCHORS + PREDICTIONS inline (its size depends on the corpus) plus a brief manifest pointing at supplementary tools.
 - **`memory://identity`** (deprecated alias): forwards to `memory://specification`.
 
 On-demand specification tool:
 
-- **`get_brief(reason)`:** the optional prose brief, if one was composed (~3,000 tokens). Fetched when the query is broad, abstract, or self-reflective. Takes a one-sentence private `reason` for the call log.
+- **`get_brief(reason)`:** the optional prose brief, if one was composed. Fetched when the query is broad, abstract, or self-reflective. Takes a one-sentence private `reason` for the call log.
 
 Other tools:
 
 - **`recall_memories`:** semantic retrieval of facts and episodic memories
 - **`search_facts`:** keyword search across the fact database
-- **`trace_claim`:** provenance from specification claims back to source facts
-- **`verify_claims`:** run the four-check provenance verifier against authored claims
+- **`trace_claim`:** provenance from a claim back to the facts linked to it in the database: each fact's text, tier, recurrence, link method and source conversation title, plus up to three of its evidence spans (the person's quoted words and turn id) when the fact came from turn-contract extraction
+- **`verify_claims`:** run the provenance checks (existence, recurrence, cross-domain coverage, temporal consistency, contradictions) against the static layers' claims
 - **`get_stats`:** pipeline and database statistics
 - **`get_call_log`:** recent MCP calls in this session (in-memory ring buffer)
 - **`get_help(topic)`:** comprehensive Base Layer agent reference. Includes intent-to-action mappings, diagnostic flow, full CLI surface, full MCP-tool surface, state-file layout, and behavioral norms. Consult any time the user asks about Base Layer itself.
@@ -213,7 +213,7 @@ baselayer compose                     # optional: recompose the prose brief from
 ## Environment variables
 
 ```
-ANTHROPIC_API_KEY=...                  # Required for extraction/authoring/composition
+ANTHROPIC_API_KEY=...                  # Required for every billed step: extraction, authoring, compose, distill, author-from-package, verify-spec --rater api
 MEMORY_SYSTEM_ROOT=...                 # Data root. Default: ~/.baselayer for an installed package; a source checkout uses its own root. Not the current directory.
 BASELAYER_EXTRACTION_BACKEND=ollama    # Optional: local extraction via Ollama
 BASELAYER_SKIP_FACT_FLOOR=1            # Skip minimum fact check
@@ -234,7 +234,7 @@ GitHub Actions CI runs the suite on Python 3.10, 3.11, 3.12.
 - [Frederick Douglass](https://www.base-layer.ai/examples/douglass): autobiography
 - [Warren Buffett](https://www.base-layer.ai/examples/buffett): 48 shareholder letters
 
-In this repository, [`examples/zitkala_sa/`](examples/zitkala_sa/) is the one example whose claims carry checkable fact ids.
+In this repository, [`examples/zitkala_sa/`](examples/zitkala_sa/) is the one example whose claims cite fact ids. Its fact database is not published, so the ids cannot be resolved from the repository.
 
 ## Troubleshooting
 

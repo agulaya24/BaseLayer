@@ -5,7 +5,7 @@ Lives in this repository at `src/baselayer/distillation/`, exposed as `baselayer
 (`distill_batch.py`) and the situation-first design test (`situation_first.py`) run only as
 modules, and several options run only on the modules (see "Command-line entry points and
 module-only options"). This document is the detail doc for
-that subpackage; the architecture-level summary is in `ARCHITECTURE.md`. Reference run records
+that subpackage; the architecture-level summary is in [ARCHITECTURE.md](ARCHITECTURE.md). Reference run records
 (`distill_runs.jsonl`, `convergence_30run.json`) are in `data/distillation_reference/` -- named
 that way because a run archives its own `distill_runs.jsonl` next to the corpus it reads, and
 the reference copy must not sit where a quickstart run from a clone would append user rows.
@@ -116,7 +116,8 @@ but do not forward every option. The options below exist only when the module is
 | `--exclude-ids FILE` | `distill`, `distill_batch`, `convergence` | yes, on `distill` |
 | `--include-other-subjects` | `distill`, `distill_batch`, `convergence` | yes, on `distill` |
 | `--rates-confirmed`, `--rate-in`, `--rate-out`, `--confirm-spend` | every billed module | yes, on `distill` and `author-from-package` |
-| `--quote-gate`, `--db` | `author_from_package` | no |
+| `--quote-gate` | `author_from_package` | no |
+| `--db` | `author_from_package` | yes, on `author-from-package` (it writes the coverage gaps manifest; the quote gate itself needs the module) |
 | `--compose` (optional brief, off by default; `--no-compose` is accepted and is the default) | `author_from_package` | yes, on `author-from-package` |
 | `--dry-run`, `--resume` | `distill_batch` (module-only as a whole) | no |
 | `--resume-step3` | `situation_first` (module-only as a whole) | no |
@@ -160,8 +161,8 @@ baselayer distill --db facts.db --out tree.json \
 `--db` defaults to this project's `data/database/memory.db` when omitted.)
 
 Every flag above is stated explicitly on purpose. The defaults differ from this line, and two of
-them matter: `--layer` defaults to `blind`, which is the **control arm**, and `--max-facts` defaults
-to 120 on the sequential path. The leaf output ceiling (16,000 tokens) was sized for about 60 facts
+them matter: `--layer` defaults to `blind`, which is the **control arm** (a run that omits it prints
+a warning saying so), and `--max-facts` defaults to 120 on the sequential path. The leaf output ceiling (16,000 tokens) was sized for about 60 facts
 per chunk, and 120-fact leaves truncated in a measured run. The batch path defaults to 50.
 
 `<table date>` is the date of the rate table in `spend.py` (`RATES_AS_OF`). Check the current
@@ -210,18 +211,18 @@ nothing.
 
 Every run prints an audit block. What each line is worth:
 
-- **`facts with disposition`** — the coverage claim. Should be 100%; below that means a leaf failed
+- **`facts with disposition`**: the coverage claim. Should be 100%; below that means a leaf failed
   to parse and its facts carry no verdict.
-- **`leaf citations ... fabricated and STRIPPED`** — fabricated ids, counted **before** the
+- **`leaf citations ... fabricated and STRIPPED`**: fabricated ids, counted **before** the
   stripper removes them and recorded on the leaf, so the rate reaches the ledger.
   `citations_clean_pct` is `cited / attempted` and **can report below 100**; proven by mutation
   test, and proven to return to 100 on a clean leaf. `citations_survived_stripper` is the
   separate invariant and must be 0.
-- **`singularity verbatim ... exact`** — compared against the database, so this one can fail.
+- **`singularity verbatim ... exact`**: compared against the database, so this one can fail.
   ⚠️ But its denominator counts only ids that RESOLVE, so a malformed or fabricated id is
   excluded rather than failed. Shipped rows in `data/distillation_reference/distill_runs.jsonl`
   carry 7- and 9-character ids while reading 100.0.
-- **`singularities L1 -> L2 -> root`** — with the merge off (the default), `L2=0` is normal and does
+- **`singularities L1 -> L2 -> root`**: with the merge off (the default), `L2=0` is normal and does
   not mean the lane was discarded.
 
 ## Tests
@@ -230,8 +231,8 @@ Every run prints an audit block. What each line is worth:
 python -m pytest tests/test_distillation_metrics_can_fail.py -q
 ```
 
-These are mutation tests. Each plants a specific defect — a theme citing a fabricated id, an
-invented singularity, a disposition for a fact from another chunk — and asserts the corresponding
+These are mutation tests. Each plants a specific defect (a theme citing a fabricated id, an
+invented singularity, a disposition for a fact from another chunk) and asserts the corresponding
 check **notices**. Two controls confirm the harness itself works.
 
 The standard they enforce: a guard that has not been shown to fail on a known-bad input is not a

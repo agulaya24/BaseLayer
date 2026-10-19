@@ -206,8 +206,9 @@ context. The model is told *"Evidence counts only in the person's OWN words."* V
 person is out of scope. Verification checks evidence, voice and structure."*
 
 **D32 Blind rater.** A rater run is recorded blind only when a context probe of the actual child
-process ran and none of the given canary strings appeared in its answer. Removing API credentials
-and running outside the project tree do not by themselves make a rater blind.
+process ran, at least one canary string was given (`--probe-canary`), and none of them appeared in
+its answer. Removing API credentials,
+running outside the project tree and passing `--safe-mode` do not by themselves make a rater blind.
 
 ## Consolidation
 

@@ -32,8 +32,11 @@ not one of the two paths above.
 ## 2. The data root
 
 Every command reads and writes under one data root: `MEMORY_SYSTEM_ROOT` when set (the directory
-must already exist), otherwise `~/.baselayer` for an installed package. It is never the current
-directory. `baselayer init` creates the database under `<root>/data/database/memory.db`.
+must already exist). Without it, the root depends on where the code runs: a package installed from
+the GitHub URL uses `~/.baselayer`, while code run from a clone of this repository (an editable or
+source install) uses the clone itself, so data lands in the clone's `data/` directory (its
+database, vectors, layers and import config are gitignored). It is never the current directory.
+Set `MEMORY_SYSTEM_ROOT` to know which. `baselayer init` creates the database under `<root>/data/database/memory.db`.
 `--accept-data-processing` acknowledges the privacy notice without a prompt; `--name` and
 `--pronouns` skip the other two prompts. `init --force` drops nothing.
 
@@ -59,7 +62,7 @@ each detector switch changes is in [core/DATA_TREATMENT_POLICY.md](core/DATA_TRE
 ## 4. Import
 
 `baselayer import <file>` reads a ChatGPT export, a Claude export, Claude Code sessions, a journal
-folder, a text file or folder, shell history or meeting transcripts (`--source`, detected when
+folder, a text file or folder, a Claude Code `history.jsonl` (prompts only) or meeting transcripts (`--source`, detected when
 omitted). It writes conversations, messages and a `turns` table with one row per turn.
 
 Each turn records its speaker, taken from the source's own role field, and a voice class:
@@ -114,8 +117,9 @@ at most 400 characters by default). Rejections are counted by reason: `no_ground
   `baselayer chunks ack-model` records that backlog items were seen.
 - **Gaps are stated, never hidden.** `baselayer run` does not author over quarantined chunks unless
   given `--accept-gaps`. Every authored artifact (`baselayer run` and `author`, `distill`, and
-  `author-from-package` with `--db`) gets a `coverage_gaps*.json` manifest beside it, stamped with
-  the run id. The layer text is unchanged; static layers point to the manifest in their
+  `author-from-package`) gets a `coverage_gaps*.json` manifest beside it, stamped with the run id.
+  `author-from-package` writes it in every run; without `--db` the manifest says the ledger was NOT
+  CHECKED. The layer text is unchanged; static layers point to the manifest in their
   frontmatter.
 - **The model is recorded, never acted on.** Every ledger row records the extraction model that
   settled it. A model change re-runs nothing: done work made by another model is a backlog,
@@ -138,7 +142,13 @@ Detail: [core/TURN_CONTRACT.md](core/TURN_CONTRACT.md) sections 3 to 7.
 
 `baselayer distill --layer <anchors|core|predictions> --out <tree.json>`, once per layer.
 Model: Claude Sonnet 5 by default (`--model`). It reads the database read-only (`--db`, default
-the data root's `memory.db`) and writes one tree JSON.
+the data root's `memory.db`). It writes the tree to `--out` and a gaps manifest beside it
+(`<out name>.coverage_gaps.json`), and also archives the tree beside the corpus, in
+`<root>/data/distillation/` for the standard layout (otherwise a `distillation/` directory beside
+the database file):
+`<layer>_<run_id>.json`, `LATEST_<layer>.json` (a pointer to the newest tree),
+`coverage_gaps_<layer>_<run_id>.json` and the run ledger `distill_runs.jsonl`. If that archive
+cannot be written, the `--out` copy is the only record and the ledger goes beside it.
 
 The facts are split into chunks (`--max-facts`, default 120; 50 is what the measured runs used,
 and the leaf output ceiling was sized for about 60). Each chunk is one model call, a leaf, which
@@ -148,7 +158,7 @@ is removed; a singularity with such an id is dropped whole. Themes and singulari
 collected from the leaves mechanically.
 
 - `--layer`: always pass it. The default, `blind`, is an undirected control arm whose output is
-  not comparable to a layer.
+  not comparable to a layer; a run that omits `--layer` prints a warning saying so.
 - `--partition`: how facts are chunked (`predicate` by default; `category`, `predcat`, `random`,
   `semantic`, `time`).
 - `--exclude-ids FILE`: leave named facts out of the population (a JSON list or one id per line).
@@ -158,8 +168,9 @@ collected from the leaves mechanically.
 - `--checkpoint FILE` writes leaves after every chunk; `--resume-from FILE` reloads them.
   `--limit-chunks N` stops early and stamps the tree `PARTIAL_RUN`.
 - `--write-provenance` writes root citations into the corpus database. Off by default.
-- Create the directory for `--out` before the run. The tree is written at the end, after the
-  billed calls, and its parent directory is not created for you.
+- Create the directories for `--out` and `--checkpoint` before the run. `distill` checks that
+  they exist before facts load or any model call and refuses otherwise; it does not create them.
+  The tree itself is written at the end, after the billed calls.
 
 Module-only options (`python -m baselayer.distillation.distill`): `--leaf-spans` shows each leaf
 up to three of every fact's own-word spans, and a singularity may then carry an `own_words`
@@ -193,10 +204,11 @@ into one package for the author.
 blind to the other layers.
 
 Each claim is emitted through a strict schema: an id, a name, a statement, an `Active when` line,
-the fact ids it rests on, and a contested flag. A claim without fact ids is not accepted output,
-and ids not in the package are refused. It writes, per layer, `<layer>.md` (readable) and
-`<layer>.json` (the same claims, structured), plus `<layer>.stamp.json`. With `--db` it also writes
-the coverage gaps manifest. `--compose` adds a prose brief (`brief.md`), off by default.
+the fact ids it rests on, and a contested flag. Fact ids not in the package are stripped from the
+claim and counted; the request is sent again only when a claim is left with no valid fact id. It
+writes, per layer, `<layer>.md` (readable) and `<layer>.json` (the same claims, structured), plus
+`<layer>.stamp.json`, and a coverage gaps manifest (`coverage_gaps.json`, checked against the
+chunk ledger only with `--db`). `--compose` adds a prose brief (`brief.md`), off by default.
 
 **The quote gate** (module only: `python -m baselayer.distillation.author_from_package
 --quote-gate --db <memory.db>`) checks every quoted phrase in a claim against the own-voice spans
@@ -221,9 +233,12 @@ fidelity, cross, adjudicate) are built and priced but not sent.
 `--run-model` sends them, through one of two raters:
 
 - `--rater cli` runs `claude -p` children on the local subscription, with API credentials removed
-  from the child's environment. `--rater-cwd` must be outside every project tree. `--probe` first
+  from the child's environment, and with `--safe-mode` when the installed CLI lists it in
+  `claude --help` (on a CLI without it the run continues, warns, and records `safe_mode: false`).
+  `--rater-cwd` must be outside every project tree. `--probe` first
   asks the child what it can see and stores the answer; a run is recorded blind only when a probe
-  ran clean.
+  ran clean, which needs at least one `--probe-canary` (with none, the probe cannot come back
+  clean).
 - `--rater api --model <id> --confirm-api-spend <usd>` bills API credits and refuses to start when
   the upper estimate exceeds the cap.
 
@@ -254,8 +269,9 @@ on the subscription: `python -m baselayer.consolidation.build judge` (duplicate 
   `Settings(anonymized_telemetry=False)` or set `ANONYMIZED_TELEMETRY=False`.
 - `baselayer verify`: the older provenance audit of static layers (vector proximity, recurrence,
   cross-domain span, optional local NLI with `--nli`). It writes rows into the corpus database and
-  is a different command from `verify-spec`. `--generate` links claims without inline citations to
-  their nearest facts by embedding; read those links as nearby, not used.
+  is a different command from `verify-spec`. `--generate` links every claim, cited or not, to its
+  nearest facts by embedding (top N per claim, no similarity floor), as the `run` traceability step
+  also does; read every `vector` link as nearby, not used.
 - `baselayer provenance --claim A1`: trace a static-layer claim to its facts.
 - `baselayer search "<query>"`, `baselayer stats`: keyword search over active facts; database counts.
 - `baselayer checkpoint extraction`: a report on extraction quality. It changes nothing.
@@ -268,6 +284,7 @@ on the subscription: `python -m baselayer.consolidation.build judge` (duplicate 
 | sequential extraction (`extract`, and `run`) | `run` prints `baselayer estimate` and asks | only when `BASELAYER_SPEND_CEILING_USD` is set, checked before every call against measured spend plus that call's worst case |
 | `batch-extract` | no | none |
 | static `author`, `compose` | no | none |
+| the `run` traceability tension check (Claude Haiku 4.5, up to 30 calls) | no | none |
 | `verify-spec --rater api` | yes | `--confirm-api-spend` |
 | `consolidation.build` with the API backend | yes | as for `distill` |
 
@@ -277,19 +294,20 @@ The rate table lives in `src/baselayer/distillation/spend.py` with the date it w
 confirming. Estimates assume about 3.5 characters per token and have undercounted real input, so
 treat them as a floor. Each process takes its own ceiling; a full build's budget is the sum.
 
-`baselayer estimate` prices extraction only, and its authoring and composition figures are fixed
-values. Treat it as a floor for extraction, not a budget for a run.
+`baselayer estimate` prices extraction only, from the same dated rate table, and prints no
+authoring figure. Treat it as a floor for extraction, not a budget for a run.
 
 ## 13. Stamps
 
 | artifact | carries |
 |---|---|
 | fact (extracted by this version, either path) | `extraction_model`, `extraction_prompt_hash`, `git_commit`, repo-relative `code_path`; gated facts also `turn_contract_version`, `source_turn_id`, `evidence_spans` |
-| tree, package, `author-from-package` layer and brief | `stamp_version`, `kind`, `turn_contract_version`, `model`, `prompt_hash`, `input_hash` (fact ids and fact text), `git_commit`, `code_path`; layers also effort, token usage over every attempt, the rates used and the cost (`<layer>.stamp.json`); packages have no model |
+| tree, package, `author-from-package` layer and brief | `stamp_version`, `kind`, `turn_contract_version`, `model`, `prompt_hash`, `input_hash` (on a tree, a hash of the fact ids and fact text; on a package or layer, a hash of its input JSON), `git_commit`, `code_path`; layers also effort, token usage over every attempt, the rates used and the cost (`<layer>.stamp.json`); packages have no model |
 | static layer (`*_v4.md`) | frontmatter: layer, generated time, version, model, provenance method, item count, a pointer to any coverage gaps manifest |
 | consolidate output | `stage`, `run_id`, `git_commit`, `code_path`, `code_sha256` (a hash of the package's modules), `inputs`, `inputs_hash`, `params`, `model_calls: 0` |
 | `verify-spec` report | verify version, definitions version, git commit, code path |
 
-`git_commit` is the checkout's HEAD, with `-dirty` when it has uncommitted changes. Code run from a
-pip install is not in a git checkout, so it records `unknown`. Facts extracted before these fields
+`git_commit` is the checkout's HEAD, with `-dirty` when it has uncommitted or untracked changes and
+`-state-unknown` when that could not be read. Code outside a git work tree (a pip install) records
+`unknown`. Facts extracted before these fields
 existed carry none of them, and nothing back-fills them. Read an artifact's stamp before trusting it.

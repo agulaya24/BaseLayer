@@ -42,7 +42,7 @@ The source type is auto-detected. To be explicit: `--source chatgpt`.
 baselayer estimate
 ```
 
-Prints the estimated API spend for extraction. **Stop here and surface the estimate to the user. Wait for explicit confirmation before proceeding.** `baselayer estimate` computes its extraction figure from your imported text; the authoring and composition figures it prints are fixed values that do not scale with the corpus. Actual cost depends on text volume and provider pricing, so treat the estimate as a rough guide, not a budget.
+Prints the estimated API spend for extraction. **Stop here and surface the estimate to the user. Wait for explicit confirmation before proceeding.** `baselayer estimate` prices extraction only, from your imported text and the dated rate table in `src/baselayer/distillation/spend.py`; it prints the table date, so check current prices. Authoring is not priced. Actual cost depends on text volume and provider pricing, so treat the estimate as a floor, not a budget.
 
 ### 4. Extract facts
 
@@ -85,7 +85,7 @@ Writes MiniLM-L6-v2 vectors to ChromaDB at `data/vectors/`.
 baselayer author --layer all
 ```
 
-Generates anchors, core, and predictions via Sonnet. Writes to `data/identity_layers/`.
+Generates anchors, core, and predictions via Claude Sonnet 4.6. Writes to `data/identity_layers/` under the data root.
 
 ### 7. Optional: compose a prose brief
 

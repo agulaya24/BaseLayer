@@ -1,7 +1,8 @@
 # MCP Registry Submissions
 
 Registries where the Base Layer MCP server is listed, with the repo URL and
-submission payload for each.
+submission payload for each. The payloads below describe the current server (two resources,
+eight tools); a listing submitted earlier may show an older tool list.
 
 ---
 
@@ -45,7 +46,7 @@ submission payload for each.
   "description": "The interpretive layer above memory. Serves a portable behavioral specification via MCP: epistemic axioms, communication modes, behavioral predictions, and provenance-traced fact retrieval.",
   "vendor": "Base Layer",
   "sourceUrl": "https://github.com/agulaya24/BaseLayer",
-  "homepage": "https://base-layer.ai",
+  "homepage": "https://www.base-layer.ai",
   "license": "Apache-2.0",
   "runtime": "python",
   "transport": ["stdio"],
@@ -54,9 +55,10 @@ submission payload for each.
     "command": "baselayer-mcp",
     "note": "Base Layer is not on PyPI; the baselayer name is held by an unrelated project. Install from the GitHub URL above."
   },
-  "resources": ["memory://identity"],
-  "tools": ["recall_memories", "search_facts", "trace_claim", "get_stats"],
-  "tags": ["memory", "identity", "personalization", "behavioral-compression"]
+  "resources": ["memory://specification", "memory://identity"],
+  "tools": ["get_brief", "recall_memories", "search_facts", "trace_claim", "verify_claims",
+            "get_stats", "get_call_log", "get_help"],
+  "tags": ["memory", "personalization", "behavioral-specification", "interpretive-layer"]
 }
 ```
 
@@ -71,7 +73,7 @@ submission payload for each.
 
 **Entry (add under "Memory / Knowledge" or similar section):**
 ```markdown
-- [Base Layer](https://github.com/agulaya24/BaseLayer) - The interpretive layer above memory. Extracts behavioral patterns from text, compresses into a 3-layer specification (anchors, core, predictions), serves via MCP. 46-predicate extraction vocabulary, provenance-traced, 44+ subjects validated.
+- [Base Layer](https://github.com/agulaya24/BaseLayer) - The interpretive layer above memory. Extracts behavioral patterns from text, writes a 3-layer specification (anchors, core, predictions), serves it via MCP. 46-predicate extraction vocabulary, provenance-traced, evaluated on 14 historical subjects.
 ```
 
 **Notes:** Added under the "Memory / Knowledge" section.
@@ -80,7 +82,7 @@ submission payload for each.
 
 ## Registry list
 
-- Smithery — https://smithery.ai/submit (repo URL)
-- Glama — https://glama.ai/mcp/submit (repo URL; may auto-discover)
-- Official MCP Registry — https://github.com/modelcontextprotocol/servers (PR)
-- awesome-mcp-servers — https://github.com/punkpeye/awesome-mcp-servers (PR)
+- Smithery: https://smithery.ai/submit (repo URL)
+- Glama: https://glama.ai/mcp/submit (repo URL; may auto-discover)
+- Official MCP Registry: https://github.com/modelcontextprotocol/servers (PR)
+- awesome-mcp-servers: https://github.com/punkpeye/awesome-mcp-servers (PR)
