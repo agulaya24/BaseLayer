@@ -2567,7 +2567,10 @@ def main():
              "citation audit, most measurements from one small corpus.")
     p_distill.add_argument("--db", default=None,
                            help="SQLite corpus (default: this project's memory.db), opened read-only")
-    p_distill.add_argument("--out", required=True, help="where to write the tree JSON")
+    p_distill.add_argument("--out", required=True,
+                           help="where to write the tree JSON. Its directory must already exist "
+                                "(checked before any model call); the tree is written after the "
+                                "last leaf.")
     p_distill.add_argument("--model", default="claude-sonnet-5")
     p_distill.add_argument("--max-facts", type=int, default=120, help="chunk size (untuned lever: "
                            "finer chunks cite more facts and cost proportionally more)")

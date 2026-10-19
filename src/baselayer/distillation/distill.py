@@ -1882,6 +1882,20 @@ BLIND_DEFAULT_WARNING = (
     "--layer anchors|core|predictions to build a layer, or --layer blind to silence this.")
 
 
+def check_output_paths(a):
+    """Refuse, before facts load and before any model call, when the directory that will hold
+    the tree (--out) or the checkpoint (--checkpoint) does not exist. The tree is written only
+    after every billed leaf call, so a missing directory used to lose the whole run's output.
+    The directory is not created: a mistyped path should fail, not appear."""
+    for flag, path in (("--out", a.out), ("--checkpoint", getattr(a, "checkpoint", ""))):
+        if not path:
+            continue
+        parent = os.path.dirname(os.path.abspath(path))
+        if not os.path.isdir(parent):
+            raise SystemExit("%s %s: directory %s does not exist. Create it first (nothing was "
+                             "sent; no model call was made)." % (flag, path, parent))
+
+
 def _main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--db", required=True)
@@ -1916,6 +1930,7 @@ def _main():
                          "%s)" % _spend.MEASURED_LEAF_BASIS)
     add_design_args(ap)
     a = ap.parse_args()
+    check_output_paths(a)
     if a.layer is None:
         a.layer = "blind"
         print(BLIND_DEFAULT_WARNING, file=sys.stderr, flush=True)
