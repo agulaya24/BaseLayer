@@ -8,6 +8,17 @@ All notable changes to Base Layer are documented here.
 
 Changes on `main` after 0.5.0. `pyproject.toml` still reports 0.5.0, and there is no 0.5.0 git tag; these entries move into a numbered, dated section when the next version is cut.
 
+### Extraction on Claude Haiku 5.5
+- Extraction now defaults to `claude-haiku-5-5` at effort medium (it was `claude-haiku-4-5-20251001`). In same-sample comparisons judged blind in both orders, against a same-model noise floor, it was preferred on essays and talks (31 / 1 / 8), list posts (18 / 3 / 4) and chat (17 / 2 / 6), at 0.17 to 0.21 of the cost; effort high was no better than medium. `BASELAYER_LLM_EXTRACTION=claude-haiku-4-5-20251001` selects the earlier model, and `BASELAYER_EXTRACTION_EFFORT` sets the effort (empty sends none).
+- `BASELAYER_LLM_EXTRACTION` now reaches extraction; `config.EXTRACTION_API_MODEL` used to be a fixed literal.
+- Sampling parameters are omitted for models that reject them (every 5-generation model, Fable, Mythos, Opus 4.7 and 4.8): on the sequential extraction call, in batch requests, and in `api_client.call_api`. Each of these sent `temperature`, which returns a 400 on those models.
+- A model that thinks by default gets its own turn-path output budget (16 tokens per citable character, floor 8,000), because thinking shares `max_tokens`; Claude Haiku 4.5 keeps 6.4 and 2,000.
+- The extraction spend ceiling prices each call at its own model's published rate (`config.SPEND_RATES_BY_MODEL`, read 2026-10-19, with Claude Haiku 5.5's long-prompt card and the batch discount). It priced every call at Claude Haiku 4.5's rate. A model with no rate is refused while a ceiling is set.
+- Usage entries in the run record carry the model that answered, the requested model, the stop reason, the refusal category and the number of thinking blocks, on the sequential and the batch path.
+- A failed AUDN adjudication is counted (`response_failures` `audn_no_decision`) and marked, not silently stored as ADD; the fact is still kept. An API error that `call_anthropic` turns into no result is counted as `api_error`.
+- The tension check in `baselayer run` stays on Claude Haiku 4.5 (`detect_contradictions.CONTRADICTION_CLASSIFIER_MODEL`); it used to follow the extraction model.
+- `baselayer estimate` and the pilot price the configured extraction model from the same table; the pilot no longer refuses a model other than Claude Haiku 4.5 when the table has its rate.
+
 ### Behavior changes (commands the documentation used to work around)
 - `baselayer estimate` prices extraction from the dated rate table in `distillation/spend.py` (the configured model, its rate and the table date are printed) instead of its own table, which priced Haiku 4.5 at $0.80/$4.00 per MTok against $1/$5. It uses the same 3.5 characters per token as the billed estimates (it used 4). It no longer prints fixed "post-extraction" figures, which included a brief that `baselayer run` never composes, or the unsupported "typically within 2x". It now says what it does not cover: batch rates, turn-contract context and authoring. A model absent from the table prints no cost.
 - `distill` without `--layer` still runs the `blind` control arm (the default value is unchanged), but now prints a warning on stderr saying so, and `--help` states the default. `baselayer distill` forwards `--layer` to the module only when it is given. An explicit `--layer blind` prints no warning.

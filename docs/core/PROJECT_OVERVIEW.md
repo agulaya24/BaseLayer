@@ -72,8 +72,8 @@ Model ids as configured on this branch. Commands that take `--model` can overrid
 
 | role | model | where it is set |
 |---|---|---|
-| extraction (both paths) | `claude-haiku-4-5-20251001` | `EXTRACTION_API_MODEL`, `config.py` |
-| tension check in `run`'s traceability step | `claude-haiku-4-5-20251001` | `detect_contradictions.py` |
+| extraction (both paths) | `claude-haiku-5-5`, effort medium | `EXTRACTION_API_MODEL`, `config.py` (override `BASELAYER_LLM_EXTRACTION`) |
+| tension check in `run`'s traceability step | `claude-haiku-4-5-20251001`, pinned | `detect_contradictions.py` |
 | static `author` | `claude-sonnet-4-6` | `LLM_PROVIDER_CONFIG`, `config.py` |
 | `compose` (optional brief, static path) | `claude-opus-4-6` | `LLM_PROVIDER_CONFIG`, `config.py` |
 | `distill` and `distill_batch` leaves | `claude-sonnet-5` | `--model` default |

@@ -43,7 +43,7 @@ Each step produces an output you can inspect and a check. The table follows the 
 | consolidate | a trigger index naming the claims to read, written as `served.txt` and `index.json`; each whole condition is one trigger by default and the run is flagged DEGRADED; a grouping file from `python -m baselayer.consolidation.build group` splits conditions into situation clauses that are exact substrings | a claim never reached or read outside its situation |
 | consolidate | 14 integrity checks, including unchanged claim text and fact ids, every claim reachable, and served text matching its hash | consolidation altering or losing a claim |
 
-By default, extraction runs on Claude Haiku 4.5, the leaf stage on Claude Sonnet 5, and authoring on Claude Opus 5. Each row is implemented in this repository unless it says otherwise.
+By default, extraction runs on Claude Haiku 5.5 at effort medium, the leaf stage on Claude Sonnet 5, and authoring on Claude Opus 5. Each row is implemented in this repository unless it says otherwise.
 
 The cited build currently takes eight commands. `consolidate` writes files that you put in a system prompt by hand. Automatic serving to an agent is not yet implemented. See [Using it with an agent](#using-it-with-an-agent).
 
@@ -121,14 +121,15 @@ The cited build column uses the batch setup from every measured build. Extractio
 
 | corpus | facts | cited build, batch setup | `baselayer run` |
 |---|---|---|---|
-| about 50,000 words of essays or posts | about 1,000 | $6 to $8, projected | $1 to $2, projected |
-| about 150,000 words of posts and talk transcripts | about 3,000 | about $18, projected | $3 to $4, projected |
-| about 300,000 words of long essays | about 5,000 | $30.27, measured | about $6, projected |
-| a chat history of about 1.4 million words from the person | about 22,000 | $112.32, measured | about $47, projected |
+| about 50,000 words of essays or posts | about 1,000 | $5 to $7, projected | $0.30 to $0.40, projected |
+| about 150,000 words of posts and talk transcripts | about 3,000 | about $17, projected | $0.70 to $0.80, projected |
+| about 300,000 words of long essays | about 5,000 | about $28, derived from a measured build | about $1.30, projected |
+| a chat history of about 1.4 million words from the person | about 22,000 | about $92, derived from a measured build | about $9, projected |
 
-- **The cited build** spends about two thirds to four fifths on its leaf stage. The plain command sequence, at full rate with Claude Opus 5 writing, costs roughly 1.6 to 1.9 times as much.
+- **The cited build** spends about five sixths on its leaf stage. The plain command sequence, at full rate with Claude Opus 5 writing, costs roughly 1.7 to 1.9 times as much.
 - **`baselayer run`** spends nearly all its cost on extraction. Writing the three layers measured about $0.12 on three corpora of about 600 to several thousand facts in July 2026. That cost does not grow with the corpus because each layer reads a capped selection. Its extractor has not been priced on a recorded run. The column projects from the cited build's extractor, so treat it as an order of magnitude.
 - **Rates** are per million input / output tokens, from Anthropic's [pricing page](https://platform.claude.com/docs/en/about-claude/pricing) as read on 19 October 2026.
+  - Claude Haiku 5.5 $0.10 / $0.50 (prompts up to 100,000 tokens)
   - Claude Haiku 4.5 $1 / $5
   - Claude Sonnet 4.6 $3 / $15
   - Claude Sonnet 5 $2 / $10

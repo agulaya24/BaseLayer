@@ -94,7 +94,7 @@ The distillation modules take their models from their own arguments, not from `c
 
 | stage | module | default | notes |
 |---|---|---|---|
-| extraction (before distillation) | `extract_facts.py`, `batch_extract.py` | `claude-haiku-4-5-20251001` (`config.EXTRACTION_API_MODEL`) | stamped on every fact |
+| extraction (before distillation) | `extract_facts.py`, `batch_extract.py` | `claude-haiku-5-5`, effort medium (`config.EXTRACTION_API_MODEL`) | stamped on every fact |
 | leaves | `distill.py`, `distill_batch.py` | `claude-sonnet-5` | `--model` |
 | layers (and the optional brief) | `author_from_package.py` | `claude-opus-5`, effort `high` | Opus 5.5 with `--model claude-opus-5-5`; effort is always sent |
 | situation-first predictions (design test) | `situation_first.py` | `claude-opus-5-5`, effort `high` | not on the default path |

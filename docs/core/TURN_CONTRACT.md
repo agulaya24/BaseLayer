@@ -209,7 +209,9 @@ An UPDATE still keeps only the new fact's spans.
 `coverage`; per run `BASELAYER_FACT_COUNT_MODE`) decides whether the prompt says
 "Extract up to N facts ... most identity-relevant first" and whether accepted facts past the
 per-chunk cap are truncated (`capped`), or neither. The uncounted modes size each chunk's
-`max_tokens` from its citable characters (`TURN_OUTPUT_TOKENS_PER_CITABLE_CHAR`): `none` adds
+`max_tokens` from its citable characters (`TURN_OUTPUT_TOKENS_PER_CITABLE_CHAR`; a model that
+thinks by default, such as Claude Haiku 5.5, uses `TURN_OUTPUT_TOKENS_PER_CITABLE_CHAR_THINKING`
+and its own floor, because thinking shares `max_tokens`): `none` adds
 no sentence; `coverage` adds one asking for every distinct fact the subject's words support,
 without restating; `coverage_fragments` also asks for nothing from a fragment or an unclear
 question. The mode is part of the prompt hash, and a batch chunk keeps the mode it was
@@ -293,7 +295,8 @@ ledger with the log. No conversation is halted or trimmed on a
 fact count: the run record's `density` block reports facts per 1K citable characters with the
 run's own p50/p90/p99/max and the ten densest conversations, and the runaway guard is the
 spend ceiling (`BASELAYER_SPEND_CEILING_USD`, checked before every sequential call against
-measured spend plus the call's worst case).
+measured spend plus the call's worst case, each call priced at its own model's published rate
+from `config.SPEND_RATES_BY_MODEL`; a model with no rate there is refused while a ceiling is set).
 
 A fact whose only grounding is assistant, other-person or pasted text fails. Rejection reasons are
 counted: `no_grounding`, `no_turn`, `not_own_voice`, `span_not_found`, `span_length`,

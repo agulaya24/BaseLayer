@@ -36,7 +36,7 @@ the module exists under `src/baselayer/`, and the CHANGELOG entry names it.
 |---|---|---|
 | Import of chat exports, journals, text files and folders, Claude Code sessions and history, meeting transcripts | runs | `baselayer import --help`; `import_conversations.py`, `turn_import.py` |
 | Turn table on import: speaker from the source, a voice class per turn, pasted text excluded by default, secrets with a recognisable shape masked | runs | `turns.py`, `voice.py`, `redaction.py`; [PIPELINE.md](PIPELINE.md) section 4 |
-| Legacy extraction on Claude Haiku 4.5, 46 listed predicates, AUDN against stored facts | runs (the default for `run`) | `extract_facts.py`; `CONSTRAINED_PREDICATES` in `config.py` |
+| Legacy extraction on Claude Haiku 5.5, 46 listed predicates, AUDN against stored facts | runs (the default for `run`) | `extract_facts.py`; `CONSTRAINED_PREDICATES` in `config.py` |
 | Static authoring of the three layers on Claude Sonnet 4.6 | runs | `baselayer author`; `author_layers.py` |
 | Traceability step after authoring (vector provenance, a tension check on Claude Haiku 4.5) | runs | [PIPELINE.md](PIPELINE.md) section 1 |
 | MCP server serving the three static layers, with tools to search facts and trace a claim | runs | `mcp_server.py`; README, "Using it with an agent" |
