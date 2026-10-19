@@ -1053,12 +1053,42 @@ def spend_ceiling_usd():
     return float(raw) if raw not in (None, "") else None
 
 
+def _rates_or_refuse(model: str) -> dict:
+    from baselayer.config import SPEND_RATES_AS_OF, spend_rates_for
+    rates = spend_rates_for(model)
+    if rates is None:
+        raise SpendCeilingExceeded(
+            f"no published rate for {model!r} in config.SPEND_RATES_BY_MODEL (read "
+            f"{SPEND_RATES_AS_OF}), so the spend ceiling cannot be enforced on it; add its "
+            f"row or unset BASELAYER_SPEND_CEILING_USD. Stopping before the call")
+    return rates
+
+
+def _spend_rates_as_of() -> str:
+    from baselayer.config import SPEND_RATES_AS_OF
+    return SPEND_RATES_AS_OF
+
+
+def call_cost_usd(c: dict) -> float:
+    """One usage entry priced at its own model's rates: the model that answered, else the one
+    requested, else the configured one. Tiered per request (Haiku 5.5 over 100K prompt tokens
+    pays the long-prompt card on the whole call); a batch entry at the batch discount."""
+    from baselayer.config import SPEND_BATCH_DISCOUNT, spend_rates_for, spend_rates_tier
+    model = c.get("model") or c.get("requested_model") or EXTRACTION_API_MODEL
+    if spend_rates_for(model) is None and c.get("requested_model"):
+        model = c["requested_model"]
+    rates = _rates_or_refuse(model)
+    tin = c.get("input_tokens", 0) or 0
+    cr = c.get("cache_read_input_tokens", 0) or 0
+    cw = c.get("cache_creation_input_tokens", 0) or 0
+    r = spend_rates_tier(rates, tin + cr + cw)
+    usd = (tin * r["input"] + (c.get("output_tokens", 0) or 0) * r["output"]
+           + cr * r["cache_read"] + cw * r["cache_write"]) / 1e6
+    return usd * (SPEND_BATCH_DISCOUNT if c.get("batch") else 1.0)
+
+
 def measured_spend_usd(calls=None) -> float:
-    from baselayer.config import SPEND_RATES_PER_MTOK as R
-    t = _tc.usage_totals(_USAGE_CALLS if calls is None else calls)
-    return (t["input_tokens"] * R["input"] + t["output_tokens"] * R["output"]
-            + t["cache_read_input_tokens"] * R["cache_read"]
-            + t["cache_creation_input_tokens"] * R["cache_write"]) / 1e6
+    return sum(call_cost_usd(c) for c in (_USAGE_CALLS if calls is None else calls))
 
 
 def check_spend_ceiling(prompt_chars: int, max_tokens: int):
@@ -1066,9 +1096,12 @@ def check_spend_ceiling(prompt_chars: int, max_tokens: int):
     ceiling = spend_ceiling_usd()
     if ceiling is None:
         return
-    from baselayer.config import SPEND_CHARS_PER_TOKEN, SPEND_RATES_PER_MTOK as R
+    from baselayer.config import spend_rates_tier
+    rates = _rates_or_refuse(EXTRACTION_API_MODEL)
     spent = measured_spend_usd()
-    worst = (prompt_chars / SPEND_CHARS_PER_TOKEN * R["input"] + max_tokens * R["output"]) / 1e6
+    tin = prompt_chars / rates["chars_per_token"]
+    r = spend_rates_tier(rates, tin)
+    worst = (tin * r["input"] + max_tokens * r["output"]) / 1e6
     if spent + worst > ceiling:
         raise SpendCeilingExceeded(
             f"spend ceiling ${ceiling:.4f}: measured ${spent:.4f} plus this call's worst case "
@@ -2659,6 +2692,7 @@ def turn_run_settings() -> dict:
         "turn_table": _tc.TURN_TABLE,
         "fact_count_mode": turn_fact_count_mode(),
         "spend_ceiling_usd": spend_ceiling_usd(),
+        "spend_rates_as_of": _spend_rates_as_of(),
         "output_tokens_per_citable_char": TURN_OUTPUT_TOKENS_PER_CITABLE_CHAR,
         "output_tokens_floor": TURN_OUTPUT_TOKENS_FLOOR,
         "output_tokens_ceiling": EXTRACTION_MAX_OUTPUT_TOKENS,

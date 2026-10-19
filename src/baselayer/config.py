@@ -505,11 +505,50 @@ TURN_OUTPUT_TOKENS_FLOOR = 2000
 # before every sequential model call: measured spend so far (every call's usage, AUDN
 # included) plus the call's worst case (prompt chars / SPEND_CHARS_PER_TOKEN input, plus
 # max_tokens output) must stay at or under the ceiling, or the run stops.
-# Rates are USD per million tokens for the extraction model, Claude Haiku 4.5, published
-# first-party rates (input 1, output 5; cache read 0.1x and cache write 1.25x input).
+# Rates: each call is priced at the published rate of the model that ANSWERED it (its usage
+# entry's `model`, else the requested model), from SPEND_RATES_BY_MODEL. A model with no row is
+# refused when a ceiling is set, never priced at another model's rate.
+# USD per million tokens, first-party API, read on SPEND_RATES_AS_OF from SPEND_RATES_SOURCE.
 # Confirm them against the current price list before relying on the ceiling.
-SPEND_RATES_PER_MTOK = {"input": 1.0, "output": 5.0, "cache_read": 0.10, "cache_write": 1.25}
-SPEND_CHARS_PER_TOKEN = 3.5   # conservative: the pilot measured 3.77 prompt chars per token
+#   - cache_write is the 1-hour write rate (2x input), the dearer of the two write rates, so a
+#     write is never under-counted (extraction sends no cache_control today).
+#   - Claude Haiku 5.5 is priced by prompt length: a request whose prompt (input + cache reads +
+#     cache writes) is over `long_prompt_tokens` pays the `long` rates on every token of it.
+#   - Message Batches bill SPEND_BATCH_DISCOUNT of the standard rate.
+#   - chars_per_token converts a prompt's characters to tokens for the worst case before a call.
+#     Haiku 4.5: the pilot measured 3.77, rounded down to 3.5. Haiku 5.5's newer tokenizer
+#     counted 1.375x and 1.39x the input tokens of Haiku 4.5 on identical prompts (two
+#     same-sample comparisons, 2026-10-19), about 2.7 chars per token, rounded down to 2.5.
+SPEND_RATES_AS_OF = "2026-10-19"
+SPEND_RATES_SOURCE = "https://platform.claude.com/docs/en/about-claude/pricing"
+SPEND_BATCH_DISCOUNT = 0.5
+SPEND_RATES_BY_MODEL = {
+    "claude-haiku-4-5": {"input": 1.0, "output": 5.0, "cache_read": 0.10, "cache_write": 2.0,
+                         "chars_per_token": 3.5},
+    "claude-haiku-5-5": {"input": 0.10, "output": 0.50, "cache_read": 0.01, "cache_write": 0.20,
+                         "chars_per_token": 2.5, "long_prompt_tokens": 100_000,
+                         "long": {"input": 0.50, "output": 2.50, "cache_read": 0.05,
+                                  "cache_write": 1.0}},
+}
+# Haiku 4.5's row, under the name older readers import.
+SPEND_RATES_PER_MTOK = SPEND_RATES_BY_MODEL["claude-haiku-4-5"]
+SPEND_CHARS_PER_TOKEN = SPEND_RATES_PER_MTOK["chars_per_token"]
+
+
+def spend_rates_for(model):
+    """The SPEND_RATES_BY_MODEL row for a model id, a dated snapshot id (claude-haiku-4-5-20251001)
+    resolving to its alias's row. None for a model with no published rate in the table."""
+    m = re.sub(r"-\d{8}$", "", (model or "").strip().lower())
+    return SPEND_RATES_BY_MODEL.get(m)
+
+
+def spend_rates_tier(rates: dict, prompt_tokens: float) -> dict:
+    """The rate card one request pays: the `long` card when its prompt is over the model's
+    long-prompt threshold, else the standard one."""
+    limit = rates.get("long_prompt_tokens")
+    if limit is not None and prompt_tokens > limit:
+        return rates["long"]
+    return rates
 
 
 # ==========================================================================
