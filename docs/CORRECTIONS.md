@@ -20,7 +20,8 @@ the wording is not. An edit to the text alone is lost the next time the layer is
 
 **On the `baselayer run` path** the layers are `data/identity_layers/anchors_v4.md`, `core_v4.md`
 and `predictions_v4.md` under the data root. The MCP server serves the text below each file's
-`## Injectable Block` line. It builds its instructions once when it starts, so restart the server
+`## Injectable Block` line, or, in a file without that line, everything after the first `---`
+separator (or the whole file when there is none). It builds its instructions once when it starts, so restart the server
 (or the client session) after an edit; the `memory://specification` resource re-reads the files on
 each call.
 
@@ -128,8 +129,9 @@ AUDN deduplicates against the facts already stored. `baselayer run <file>` stops
 
 ## 7. Removing everything
 
-Delete the data root (`MEMORY_SYSTEM_ROOT`, or `~/.baselayer`), which holds the database, the
-vectors, the layers and the default import config, and the MCP session logs in
+Delete the data root (`MEMORY_SYSTEM_ROOT`; unset, `~/.baselayer` for an installed package, or the
+`data/` directory of a clone you run from), which holds the database, the vectors, the layers, the
+distillation archive and the default import config, and the MCP session logs in
 `~/.baselayer/sessions/`, which record tool queries. Remove any output directories you created for
 the cited path (trees, packages, specification, verification and consolidation output) and any
 import config or corrections file kept elsewhere.

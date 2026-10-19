@@ -62,7 +62,8 @@ Python 3.10 or later. Not on PyPI (the `baselayer` name there belongs to another
 lives wherever `MEMORY_SYSTEM_ROOT` points (the directory must already exist). Without it, a
 package installed with the `pip install` line above uses `~/.baselayer`, while code run from a
 clone of this repository (an editable or source install) uses the clone itself, under its `data/`
-directory, whose database, vectors, layers and import config are gitignored. Setting
+directory, whose database, vectors, layers, distillation archive and import config are
+gitignored. Setting
 `MEMORY_SYSTEM_ROOT` avoids both surprises.
 
 ### Two ways to build a specification
@@ -198,8 +199,10 @@ it, and the git commit when run from a git clone (outside a git work tree it rec
 the `baselayer run` path, traceability also links every claim to its nearest facts by embedding
 (`link_method` `vector`), cited or not: read every vector link as nearby, not used.
 
-**Looking up a cited-path claim's facts.** No command prints them yet: MCP `trace_claim` and
-`baselayer provenance` read links that only the `run` path writes. Each claim's fact ids are in the
+**Looking up a cited-path claim's facts.** No command prints them yet. MCP `trace_claim` and
+`baselayer provenance` read the `layer_claim_provenance` table, which `author-from-package` does not
+write (static `author`, `run`, `verify --generate` and `distill --write-provenance` do; the last
+stores tree themes and singularities under ids such as T1 and S1, not claim ids). Each claim's fact ids are in the
 layer's `.json` file (`fact_ids`; each is a fact id or its first 8 characters, sometimes written
 with `F-`), the facts and their evidence spans are in the `memory_facts` table of your database,
 and `verify-spec` re-checks every citation and span.

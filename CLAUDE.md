@@ -35,7 +35,7 @@ All commands invoked as `baselayer <subcommand>`. Source of truth: [`src/baselay
 
 | Command | One-liner |
 |---|---|
-| `baselayer init` | Initialize a fresh database under the data root (`MEMORY_SYSTEM_ROOT`; not the current directory). |
+| `baselayer init` | Initialize a fresh database under the data root (`MEMORY_SYSTEM_ROOT`; unset, code run from this clone uses the clone's own `data/`; never the current directory). |
 | `baselayer import <file>` | Import ChatGPT/Claude export, journal, text file, or directory. |
 | `baselayer estimate` | Preview of extraction cost only, from the imported text and the dated rate table in `src/baselayer/distillation/spend.py`. A floor, not a budget; authoring is not priced here. |
 | `baselayer extract` | Extract facts via Haiku 4.5 (46 constrained predicates, AUDN lifecycle). Add `--turn-contract` to ground every fact in the subject's own turns (see below). |

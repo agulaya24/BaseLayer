@@ -84,8 +84,9 @@ not one of the two paths.
 ## Data root and isolation
 
 Every command reads and writes under one data root: `MEMORY_SYSTEM_ROOT` when set (the directory
-must already exist), otherwise `~/.baselayer` for an installed package. It is never the current
-directory. Code is shared; only data changes. `baselayer init` creates
+must already exist). Unset, it is `~/.baselayer` for a package installed from the GitHub URL, or
+the clone itself (under its `data/`) when the code runs from a clone of this repository
+(`config._resolve_project_root`). It is never the current directory. Code is shared; only data changes. `baselayer init` creates
 `<root>/data/database/memory.db` and writes `<root>/data/entity_map.json` (the person's name and
 pronouns), which extraction reads to resolve who a fact is about. Use a fresh data root per corpus,
 and always for the turn contract. Detail: [../PIPELINE.md](../PIPELINE.md#2-the-data-root).

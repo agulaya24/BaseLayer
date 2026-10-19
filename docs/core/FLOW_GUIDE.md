@@ -23,7 +23,9 @@ baselayer init
 ```
 
 Every command reads and writes under one data root: `MEMORY_SYSTEM_ROOT` when set (the directory
-must already exist), otherwise `~/.baselayer`. It is never the current directory. `init` creates
+must already exist). Unset, it is `~/.baselayer` for a package installed from the GitHub URL, or
+the clone itself (under its `data/`) when you run the code from a clone. It is never the current
+directory. `init` creates
 the database and asks you to acknowledge the privacy notice (`--accept-data-processing` skips the
 prompt). Use a fresh data root for each corpus, and always for the cited path.
 
@@ -88,6 +90,8 @@ export MEMORY_SYSTEM_ROOT=~/bl/me && mkdir -p "$MEMORY_SYSTEM_ROOT"
 baselayer init
 echo '{"subject_names": ["Benjamin", "Benjamin Franklin"]}' > "$MEMORY_SYSTEM_ROOT/data/import_config.json"
 baselayer import chatgpt-export.zip
+baselayer estimate                            # a floor for extraction, not a budget
+export BASELAYER_SPEND_CEILING_USD=<usd>      # sequential extraction stops before passing it
 baselayer extract --turn-contract
 mkdir -p trees packages
 baselayer distill --layer anchors --max-facts 50 --out trees/anchors.json \

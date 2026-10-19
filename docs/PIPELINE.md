@@ -35,7 +35,7 @@ Every command reads and writes under one data root: `MEMORY_SYSTEM_ROOT` when se
 must already exist). Without it, the root depends on where the code runs: a package installed from
 the GitHub URL uses `~/.baselayer`, while code run from a clone of this repository (an editable or
 source install) uses the clone itself, so data lands in the clone's `data/` directory (its
-database, vectors, layers and import config are gitignored). It is never the current directory.
+database, vectors, layers, distillation archive and import config are gitignored). It is never the current directory.
 Set `MEMORY_SYSTEM_ROOT` to know which. `baselayer init` creates the database under `<root>/data/database/memory.db`.
 `--accept-data-processing` acknowledges the privacy notice without a prompt; `--name` and
 `--pronouns` skip the other two prompts. `init --force` drops nothing.

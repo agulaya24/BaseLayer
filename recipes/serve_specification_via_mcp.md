@@ -18,7 +18,7 @@ The server does not serve a specification written by `baselayer author-from-pack
 claude mcp add --transport stdio base-layer -- baselayer-mcp
 ```
 
-The server reads the data root from `MEMORY_SYSTEM_ROOT` (default `~/.baselayer` for an installed package), not from the current directory. Set that variable in the server's environment to serve a specific subject.
+The server reads the data root from `MEMORY_SYSTEM_ROOT` (unset: `~/.baselayer` for an installed package, the clone itself when run from a clone), not from the current directory. Set that variable in the server's environment to serve a specific subject.
 
 ### Claude Desktop
 

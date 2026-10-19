@@ -11,7 +11,7 @@
 
 ## Working directory
 
-Give each subject its own data root. The pipeline writes to `data/` under `MEMORY_SYSTEM_ROOT`, not under the current directory. When the variable is unset, an installed package uses `~/.baselayer`. Example:
+Give each subject its own data root. The pipeline writes to `data/` under `MEMORY_SYSTEM_ROOT`, not under the current directory. When the variable is unset, an installed package uses `~/.baselayer` and code run from a clone uses the clone itself. Example:
 
 ```bash
 mkdir -p ~/baselayer_subjects/me

@@ -133,7 +133,8 @@ person can confirm it.
 ## Data
 
 Conversations, facts, vectors and layers are stored on the user's machine under the data root
-(`MEMORY_SYSTEM_ROOT`, or `~/.baselayer` for an installed package). There are no accounts and no
+(`MEMORY_SYSTEM_ROOT`; unset, `~/.baselayer` for an installed package or the clone itself when run
+from a clone). There are no accounts and no
 sync. Extraction and authoring send text to the model API you configure. Base Layer sends no usage
 data and turns off ChromaDB's own telemetry on every client it creates. How each source is treated
 on import: [DATA_TREATMENT_POLICY.md](DATA_TREATMENT_POLICY.md). How corrections flow:
