@@ -110,7 +110,7 @@ def cmd_init(args):
     print("    During fact extraction, conversation text is sent to the Anthropic API")
     print("    (Claude Haiku) for processing. Your data is subject to Anthropic's API")
     print("    data policy (zero-retention by default as of March 2025; policies may")
-    print("    change — see https://www.anthropic.com/policies/privacy).")
+    print("    change — see https://www.anthropic.com/legal/privacy).")
     print()
     print("    By continuing, you acknowledge this data processing.")
     if getattr(args, "accept_data_processing", False):
