@@ -2669,14 +2669,14 @@ def main():
     # brief
     p_brief = subparsers.add_parser("brief",
         help="[ARCHIVED] Assemble a context-retrieval brief via assemble_brief.py; "
-             "use 'compose' for the current V4 unified brief")
+             "the optional prose brief now comes from 'compose' or author-from-package --compose")
     p_brief.add_argument("message", help="The message to build the brief for")
     p_brief.set_defaults(func=cmd_brief)
 
     # chat
     p_chat = subparsers.add_parser("chat",
         help="[ARCHIVED] Interactive memory-augmented chat via assemble_brief.py; "
-             "kept for compatibility, not part of the 4-step pipeline")
+             "kept for compatibility, not part of either build path")
     p_chat.set_defaults(func=cmd_chat)
 
     # serve (0.3.0 toggle for MCP spec serving)
