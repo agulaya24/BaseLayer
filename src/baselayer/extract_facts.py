@@ -1241,6 +1241,7 @@ def call_anthropic(prompt: str, schema: dict = None, retries: int = MAX_RETRIES,
                 print(f"  ERROR: Anthropic API call failed: {e}")
                 if _RAISE_CALL_ERRORS.get():
                     raise                   # the turn path classifies it (content or access)
+                _count_response_failure("api_error")   # swallowed into None: count it
                 return None
 
     return None
@@ -3366,6 +3367,20 @@ Is this a duplicate? Reply with JSON: action=NOOP if duplicate, ADD if genuinely
             if result["action"] == "UPDATE" and not result.get("updated_fact"):
                 result["updated_fact"] = candidate_fact
             return result
+
+        # The adjudication failed (None: an API error, refusal or unparseable reply; or a
+        # reply with no action). This used to fall through to the moderate-similarity ADD
+        # below, storing a likely duplicate with nothing in the run record. Count it and say
+        # so; the fact is still kept, because a missed dedup is visible and repairable and a
+        # dropped fact is not.
+        _count_response_failure("audn_no_decision")
+        return {
+            "action": "ADD",
+            "reasoning": f"AUDN call failed at similarity {max_similarity:.0%}; stored unadjudicated",
+            "updated_fact": candidate_fact,
+            "confidence": 0.6,
+            "audn_failed": True,
+        }
 
     # Moderate similarity (0.3-0.85) — treat as new, skip LLM to save time
     # These can be reviewed later if needed
