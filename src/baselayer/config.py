@@ -170,7 +170,7 @@ LLM_MODEL = "qwen2.5:14b"
 
 EXTRACTION_BACKEND = os.environ.get("BASELAYER_EXTRACTION_BACKEND", "anthropic")
 # BASELAYER_LLM_EXTRACTION is the documented per-role override (LLM_PROVIDER_CONFIG below).
-# Default claude-haiku-5-5 at effort medium since 2026-10-19 (Aarik), from Haiku 4.5: in blind
+# Default claude-haiku-5-5 at effort medium since 2026-10-19 (maintainer decision), from Haiku 4.5: in blind
 # same-sample comparisons, judged in both orders against a same-model noise floor, Haiku 5.5
 # medium was preferred on essays and talks (31 / 1 / 8), list roundups (18 / 3 / 4) and chat
 # (17 / 2 / 6), at about one fifth of the cost; effort high was no better than medium. Haiku 4.5
@@ -804,7 +804,7 @@ AGENT_RUNS_DIR = IDENTITY_LAYERS_DIR / "runs"
 
 _LLM_DEFAULTS = {
     "extraction": DEFAULT_EXTRACTION_MODEL,          # same default as EXTRACTION_API_MODEL
-    "classification": DEFAULT_EXTRACTION_MODEL,      # LEGACY — classification removed in S79
+    "classification": DEFAULT_EXTRACTION_MODEL,      # LEGACY: classification removed in S79
     "tiering": "claude-sonnet-4-6",                    # LEGACY — tiering removed in S79
     "authoring": "claude-sonnet-4-6",                  # S98: updated from claude-sonnet-4-20250514
     "review": "claude-opus-4-6",                       # S98: updated from claude-opus-4-20250514 (3x cheaper)

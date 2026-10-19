@@ -58,7 +58,7 @@ def test_extraction_model_honours_the_role_override(monkeypatch):
 
 
 def test_the_default_extraction_model_is_haiku_55_in_every_reader(monkeypatch):
-    """Aarik 2026-10-19: extraction moves to claude-haiku-5-5 at effort medium. The role table
+    """Decision 2026-10-19: extraction moves to claude-haiku-5-5 at effort medium. The role table
     (llm_provider, freshness check) and the extraction constant name the same model."""
     import baselayer.config as config
     monkeypatch.delenv("BASELAYER_LLM_EXTRACTION", raising=False)
