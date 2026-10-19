@@ -18,7 +18,7 @@ pytest tests/
 # Specific module
 pytest tests/test_extract_normalizers.py
 
-# With coverage
+# With coverage (needs pytest-cov, which the dev extra does not install)
 pytest tests/ --cov=baselayer
 ```
 
@@ -32,18 +32,21 @@ src/baselayer/          # Core package
   cli.py                # CLI entry point (`baselayer --help` lists the subcommands)
   extract_facts.py      # Step 2: Fact extraction (Haiku API or Ollama)
   author_layers.py      # Step 4: Three-layer specification authoring
-  agent_pipeline.py     # Step 5: Specification composition
+  agent_pipeline.py     # Optional prose brief (`baselayer compose`)
+  distillation/         # Cited path: distill, assemble, author-from-package
+  verification/         # verify-spec
+  consolidation/        # consolidate
   import_conversations.py  # Step 1: Multi-source importer
   mcp_server.py         # MCP server for Claude Desktop/Code
   verify_provenance.py  # Claim-to-source tracing
 tests/                  # Test suite, all offline
 docs/                   # Architecture, decisions, evaluation
-examples/               # Sample specifications for 7 subjects
+examples/               # Sample specifications for 8 subjects
 ```
 
 ## Architecture
 
-The pipeline has 5 steps: **Import → Extract → Embed → Author → Compose.**
+There are two paths. `baselayer run`: **Import → Extract → Author**, then embedding and provenance; a prose brief (`compose`) is optional. The cited path: **Import → Extract (turn contract) → Distill → Assemble → Author from package → Verify → Consolidate.** Every step: `docs/PIPELINE.md`.
 
 - `config.py` is the single source of truth for all constants, paths, and the 46 constrained predicates (45 behavioral plus an `unknown` fallback).
 - Every other module imports from `config.py`. The dependency graph is acyclic.

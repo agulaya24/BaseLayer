@@ -42,6 +42,7 @@ All commands invoked as `baselayer <subcommand>`. Source of truth: [`src/baselay
 | `baselayer embed` | Generate ChromaDB vectors for provenance tracing. |
 | `baselayer author --layer all` | Author anchors, core, and predictions layers (Sonnet 4.6). |
 | `baselayer compose` | Optional, legacy: compose a unified prose brief from the three layers (Opus 4.6). Not run by `baselayer run`. |
+| `baselayer distill`, `assemble`, `author-from-package` | The experimental cited path: distillation leaves (Sonnet 5), one package per layer (no model), layers with mandatory citations (Opus 5). `distill` and `author-from-package` print an estimate and refuse to start without `--confirm-spend` or `BASELAYER_SPEND_CEILING_USD`. Always pass `--layer` to `distill`. See [`docs/PIPELINE.md`](docs/PIPELINE.md). |
 | `baselayer run <file>` | Full pipeline with cost-gate. Runs `import` -> `extract` -> `author`, then embeds in a post-authoring traceability phase. No brief: `compose` is optional and separate. |
 | `baselayer stats` | Database stats: conversations, facts, tier breakdown. |
 | `baselayer search "<query>"` | FTS keyword search across active facts. |
@@ -56,7 +57,7 @@ All commands invoked as `baselayer <subcommand>`. Source of truth: [`src/baselay
 
 For long-form usage details and step-by-step pipeline structure, see [`AGENTS.md`](AGENTS.md). Do not invent commands. If a flag does not appear in `cli.py`, it does not exist.
 
-**Turn contract.** `docs/core/TURN_CONTRACT.md`, decision D-108. Import records each turn's speaker and voice class; only the subject's typed or spoken turns can be cited. `extract --turn-contract` gates every fact on verbatim own-voice spans in code, and writes rejection counts by reason (`no_grounding`, `no_turn`, `not_own_voice`, `span_not_found`, `span_length`, `self_object`) to `<corpus>/data/database/extraction_runs/`. Read that record after every run. Facts carry stamps (model, prompt hash, git commit, repo-relative code path, contract version). Build into a fresh corpus directory.
+**Turn contract.** `docs/core/TURN_CONTRACT.md`, decision D-108. Import records each turn's speaker and voice class; only the subject's typed or spoken turns can be cited. `extract --turn-contract` gates every fact on verbatim own-voice spans in code, and writes rejection counts by reason (`no_grounding`, `no_turn`, `not_own_voice`, `span_not_found`, `span_length`, `self_object`) to `<corpus>/data/database/extraction_runs/`. Read that record after every run. Facts carry stamps (model, prompt hash, git commit, repo-relative code path, contract version). Set `subject_names` in the import config before importing; turn-mode extraction refuses to start without it. Build into a fresh corpus directory.
 
 ## MCP server quick-connect
 
@@ -66,16 +67,16 @@ Register the Base Layer MCP server with Claude Code:
 claude mcp add --transport stdio base-layer -- baselayer-mcp
 ```
 
-Once registered, the next Claude Code session loads two resources and seven tools.
+Once registered, the next Claude Code session loads two resources and eight tools. The server serves the three layers in `data/identity_layers/` (the `baselayer run` path); it does not serve a cited-path specification or `consolidate` output.
 
 **Resources** (always-on, client-controlled):
 
-- `memory://specification`. The structural specification inline: CORE (communication and context), ANCHORS (foundational beliefs and reasoning patterns), PREDICTIONS (situation-to-response patterns), plus a brief manifest. Approximately 6 to 8K tokens. Loaded into every conversation.
+- `memory://specification`. The structural specification inline: CORE (communication and context), ANCHORS (foundational beliefs and reasoning patterns), PREDICTIONS (situation-to-response patterns), plus a brief manifest. Approximately 6 to 8K tokens. The server also sends this text in its MCP instructions, which some clients cut short; reading the resource returns the full text.
 - `memory://identity`. Deprecated alias for `memory://specification`. Forwards to the same content. Retained for backward compatibility.
 
 **On-demand specification tool:**
 
-- `get_brief(reason)`. Unified narrative portrait of the user (~3,000 tokens). The model fetches this when the query is broad, abstract, or self-reflective. Provides a private one-sentence rationale via `reason`; not user-facing.
+- `get_brief(reason)`. The optional prose brief, if one was composed (~3,000 tokens). The model fetches this when the query is broad, abstract, or self-reflective. Provides a private one-sentence rationale via `reason`; not user-facing.
 
 **Memory tools** (model-controlled, called on demand):
 
@@ -98,7 +99,7 @@ Once registered, the next Claude Code session loads two resources and seven tool
 | `src/baselayer/cli.py` | CLI entry point. Source of truth for all subcommands and flags. |
 | `src/baselayer/extract_facts.py` | Fact extraction with the AUDN lifecycle (Add, Update, Delete, NOOP; delete is a soft supersession). |
 | `src/baselayer/author_layers.py` | Three-layer authoring (anchors, core, predictions). |
-| `src/baselayer/agent_pipeline.py` | Specification composition (Opus). |
+| `src/baselayer/agent_pipeline.py` | Optional prose brief composition (`compose`, Opus 4.6). |
 | `src/baselayer/mcp_server.py` | MCP server. Resources + tools. |
 | `src/baselayer/config.py` | Constants, paths, database singletons. Also the extraction predicate vocabulary: `CONSTRAINED_PREDICATES`, 46 constrained predicates (45 behavioral plus an `unknown` fallback). |
 | `src/baselayer/verify_provenance.py` | The four-check verifier. |
@@ -108,9 +109,10 @@ Once registered, the next Claude Code session loads two resources and seven tool
 | `src/baselayer/turn_contract.py` | Turn-contract extraction: chunking, rendering, the gate, the run record. |
 | `src/baselayer/verification/` | `verify-spec`, read-only post-specification verification. |
 | `src/baselayer/consolidation/` | `consolidate`: one module per stage, JSON in and JSON out, each stamped. |
+| `src/baselayer/distillation/` | The cited path: `distill`, `assemble`, `author-from-package`, the quote gate, the spend table. Every step: [`docs/PIPELINE.md`](docs/PIPELINE.md). Terms: [`docs/DEFINITIONS.md`](docs/DEFINITIONS.md). |
 | `docs/core/` | Architecture, decisions, design principles. Read on demand, not at session start. |
 | `docs/internal/` | Internal plans (refactor plans, agent-facing reviews, runbooks). Exists only in the private working copy; not tracked in this repo. |
-| `examples/` | Live example specifications (Franklin, Buffett, Douglass, Roosevelt, Wollstonecraft, Marks, patents). |
+| `examples/` | Example specifications: `zitkala_sa/` (the one with checkable fact ids), then Franklin, Buffett, Douglass, Roosevelt, Wollstonecraft, Marks, patents. |
 | `recipes/` | Copy-paste agent task recipes. |
 | `data/` | User data (database, vectors, layers, briefs). Do not touch unless the task requires it. |
 
@@ -135,7 +137,7 @@ When writing new prose, use "specification" and "interpretive layer". Do not rei
 - **Do not modify `lexicon_schema.yaml` or `CONSTRAINED_PREDICATES` casually.** `lexicon_schema.yaml` governs the element types of authored layers; `CONSTRAINED_PREDICATES` in `config.py` governs extraction, and predicate changes invalidate stored facts under the AUDN lifecycle. Read [`docs/core/ARCHITECTURE.md`](docs/core/ARCHITECTURE.md) and the extraction code first.
 - **Do not re-extract without clearing both SQLite and ChromaDB.** Old vectors cause AUDN to return NOOP and you get 12-42 facts instead of 200+. `python -m baselayer.extract_facts --reset` deletes extracted facts, the extraction log, and the fact vectors so every conversation is reprocessed. It is irreversible and has no confirmation prompt; confirm with the user first. It keeps imported conversations and user-corrected facts and does not touch layers already written under `data/identity_layers/`. The safest clean start is a fresh data root: point `MEMORY_SYSTEM_ROOT` at an empty directory. `baselayer forget --all` plus deleting `data/vectors/` is not a reset: the extraction log still marks every conversation as done, so re-extraction processes nothing.
 - **Do not run the pipeline without the cost-estimate gate.** Use `baselayer run` (which gates by default) or run `baselayer estimate` before `baselayer extract`.
-- **Do not use the `brief` or `chat` subcommands for new work.** Both are archived. Use `compose` for the V4 unified specification.
+- **Do not use the `brief` or `chat` subcommands for new work.** Both are archived. The three layers are the specification; `compose` writes an optional prose brief from them.
 - **Do not retry the same failing approach more than twice.** Diagnose and redesign. If extraction returns zero facts twice, stop and read `extract_facts.py`.
 
 ## When in doubt

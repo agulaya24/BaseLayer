@@ -20,7 +20,7 @@ Do not classify Base Layer as an AI memory system, retrieval product, persona to
 | Artifact | Repo / location | Role |
 |---|---|---|
 | **Paper**: *Beyond Recall: Behavioral Specification as an Interpretive Layer for AI Personalization* | `https://github.com/agulaya24/beyond-recall` and arXiv (https://arxiv.org/abs/2605.28969) | Empirical argument |
-| **Pipeline (this repo)** — BaseLayer | `https://github.com/agulaya24/BaseLayer` | Implementation (extraction -> embedding -> authoring -> composition; MCP server) |
+| **Pipeline (this repo)**: BaseLayer | `https://github.com/agulaya24/BaseLayer` | Implementation (import -> extraction -> authoring, or the cited path through distillation, verification and consolidation; MCP server) |
 | **Website / vision** | `https://base-layer.ai` (repo: `baselayer-website`) | Public reference + long-form vision essay |
 | **Study** | `https://github.com/agulaya24/beyond-recall` | Data, scripts, judge outputs, provenance behind every paper number |
 
@@ -30,9 +30,11 @@ Repo-specific orientation: [`ORIENTATION.md`](ORIENTATION.md). Long-form vision:
 
 A Python package + CLI + MCP server. The pipeline takes text (conversations, journals, essays) and produces a 5,000 to 10,000 token specification structured in three layers:
 
-- **Anchors:** the axioms a person reasons from (always active)
-- **Core:** operational constraints and communication patterns (activation-triggered)
-- **Predictions:** situation, behavioral pattern, directive (situation-triggered)
+- **Anchors:** the axioms a person reasons from
+- **Core:** operational constraints and communication patterns
+- **Predictions:** situation, behavioral pattern, directive
+
+On the cited path every claim in every layer carries its own `Active when` line, the situation it applies in, and the ids of the facts it rests on. The three layers are the specification; a prose brief is optional.
 
 Memory systems give the agent the facts of a person. Base Layer gives the framework those facts come from. The two compose; they don't compete.
 
@@ -72,8 +74,13 @@ Step-by-step:
 baselayer extract                 # Haiku 4.5, 46 constrained predicates, AUDN lifecycle
 baselayer embed                   # MiniLM-L6-v2 -> ChromaDB
 baselayer author --layer all      # Sonnet 4.6, three-layer authoring (static path)
-baselayer compose                 # Opus 4.6, unified specification (static path)
+baselayer compose                 # optional: Opus 4.6, a prose brief from the layers (static path)
 ```
+
+The cited path (experimental) is seven steps: name the person (`subject_names` in the import
+config, before importing), `import`, `extract --turn-contract`, `distill` and `assemble` once per
+layer, `author-from-package`, `verify-spec`, `consolidate`. Commands, options and spend:
+[`docs/PIPELINE.md`](docs/PIPELINE.md). Terms: [`docs/DEFINITIONS.md`](docs/DEFINITIONS.md).
 
 Model ids live in `config.py` (static path) and in the argparse defaults of the experimental
 distillation commands (`distill`: Sonnet 5; `author-from-package`: Opus 5, Opus 5.5 via
@@ -96,14 +103,15 @@ distillation commands (`distill`: Sonnet 5; `author-from-package`: Opus 5, Opus 
 
   Pasted text is excluded by default and can be allowlisted by turn id. Subject-specific signals
   (names, meeting speaker labels, exclusions, injection canaries) live in a local import config,
-  never in the repo.
+  never in the repo. `subject_names` must be set there before import: turn-mode extraction refuses
+  to start without it.
 - **`baselayer extract --turn-contract`** (or `BASELAYER_TURN_CONTRACT=1`):
   - chunks by whole turns, with read-only preceding context;
   - offers only own-voice turns as citable;
   - runs a gate in code that stores a fact only if every evidence span names an own-voice turn,
     matches its text verbatim, and is within the length bounds.
 - **Rejections** are counted by reason (`no_grounding`, `no_turn`, `not_own_voice`,
-  `span_not_found`, `span_length`) in `<corpus>/data/database/extraction_runs/<run_id>.json`. Read
+  `span_not_found`, `span_length`, `self_object`) in `<corpus>/data/database/extraction_runs/<run_id>.json`. Read
   that record after every run: a gate that rejected nothing or everything is flagged `suspect`.
 - **Stamps.** Every fact carries the extraction model, prompt hash, git commit and repo-relative
   code path. Gated facts also carry the contract version, `source_turn_id` and `evidence_spans`.
@@ -125,20 +133,19 @@ Run between major stages to catch quality issues:
 
 ```bash
 baselayer extract && baselayer checkpoint extraction
-baselayer embed && baselayer checkpoint classification
-baselayer author && baselayer compose
 ```
 
-There is no `--fix` flag; `checkpoint` takes only a stage name. `scoring` and `classification` are legacy pre-S79 stages.
+There is no `--fix` flag; `checkpoint` takes only a stage name. `scoring` and `classification` are legacy pre-S79 stages. On the cited path the checks are `verify-spec` and `consolidate`'s 14 checks.
 
 ## Output
 
 After the pipeline:
 
-1. **Specification** at `data/identity_layers/brief_v5_clean.md` (relative to the subject directory). Primary artifact, 5,000 to 10,000 tokens.
-2. **Three layers** (anchors, core, predictions). Intermediate structured artifacts.
+1. **Specification**: the three layers. On the `baselayer run` path, `data/identity_layers/{anchors,core,predictions}_v4.md` under the data root; on the cited path, `<layer>.md` and `<layer>.json` in the `author-from-package` output directory.
+2. **Optional brief**: `data/identity_layers/brief_v5_clean.md` (only if `compose` ran) or `brief.md` (only with `--compose`).
 3. **Fact database** with tier, type, and confidence metadata.
-4. **Vector store** for semantic search over facts and source text.
+4. **Vector store** for semantic search over facts and source text (after `embed`).
+5. **Cited path only**: a `verify-spec` report and `consolidate` output (`served.txt`, `index.json`).
 
 ## Connecting to AI
 
@@ -152,16 +159,16 @@ claude mcp add --transport stdio base-layer -- baselayer-mcp
 { "mcpServers": { "base-layer": { "command": "baselayer-mcp" } } }
 ```
 
-The MCP server exposes the structural specification inline plus a single on-demand brief. As of 0.4.0, ANCHORS and PREDICTIONS are loaded with CORE in the always-on resource so the model never has to make a routing decision about a layer it cannot see.
+The MCP server serves the three layers in `data/identity_layers/` (the `baselayer run` path) plus an optional on-demand brief. As of 0.4.0, ANCHORS and PREDICTIONS are served with CORE so the model never has to make a routing decision about a layer it cannot see. The server sends them in its MCP instructions, which some clients cut short; `memory://specification` returns the full text. It does not serve a cited-path specification or `consolidate` output.
 
 Resources:
 
-- **`memory://specification`** (always-on, canonical): CORE + ANCHORS + PREDICTIONS inline (~6 to 8K tokens) plus a brief manifest pointing at supplementary tools.
+- **`memory://specification`** (canonical): CORE + ANCHORS + PREDICTIONS inline (~6 to 8K tokens) plus a brief manifest pointing at supplementary tools.
 - **`memory://identity`** (deprecated alias): forwards to `memory://specification`.
 
 On-demand specification tool:
 
-- **`get_brief(reason)`:** unified narrative portrait (~3,000 tokens). Fetched when the query is broad, abstract, or self-reflective. Takes a one-sentence private `reason` for the call log.
+- **`get_brief(reason)`:** the optional prose brief, if one was composed (~3,000 tokens). Fetched when the query is broad, abstract, or self-reflective. Takes a one-sentence private `reason` for the call log.
 
 Other tools:
 
@@ -177,11 +184,7 @@ Every resource read and tool call emits a stderr log line of the form `[base-lay
 
 ### Manual injection
 
-```bash
-baselayer brief "Help me write a cover letter"
-```
-
-Outputs a context-tailored specification to stdout. Paste into any model's system prompt.
+Paste the three layer files into any model's system prompt (on the `run` path, the text below `## Injectable Block` in each), or paste `consolidate`'s `served.txt` and look up the claims it names in `index.json`. You lose fact search this way. `baselayer brief` is archived.
 
 ## Layer regeneration
 
@@ -189,7 +192,7 @@ Outputs a context-tailored specification to stdout. Paste into any model's syste
 baselayer author --layer anchors      # regenerate anchors
 baselayer author --layer core         # regenerate core
 baselayer author --layer predictions  # regenerate predictions
-baselayer compose                     # recompose specification from existing layers
+baselayer compose                     # optional: recompose the prose brief from existing layers
 ```
 
 ## Key source files
@@ -199,7 +202,10 @@ baselayer compose                     # recompose specification from existing la
 | `src/baselayer/cli.py` | CLI entry point |
 | `src/baselayer/extract_facts.py` | Fact extraction with AUDN lifecycle |
 | `src/baselayer/author_layers.py` | Three-layer authoring |
-| `src/baselayer/agent_pipeline.py` | Specification composition |
+| `src/baselayer/agent_pipeline.py` | Optional prose brief (`compose`) |
+| `src/baselayer/distillation/` | Cited path: `distill`, `assemble`, `author-from-package`, the quote gate, spend |
+| `src/baselayer/verification/` | `verify-spec` |
+| `src/baselayer/consolidation/` | `consolidate` |
 | `src/baselayer/mcp_server.py` | MCP server |
 | `src/baselayer/config.py` | Constants, paths, and the extraction predicate vocabulary (`CONSTRAINED_PREDICATES`: 46 constrained predicates, 45 behavioral plus an `unknown` fallback) |
 | `lexicon_schema.yaml` | Element-type schema for authored specification containers (axiom, prediction, context_mode, meta_section) plus provenance syntax |
@@ -224,9 +230,11 @@ GitHub Actions CI runs the suite on Python 3.10, 3.11, 3.12.
 
 ## Live examples
 
-- [Benjamin Franklin](https://base-layer.ai/examples/franklin): 212 facts from autobiography
-- [Frederick Douglass](https://base-layer.ai/examples/douglass): 88 facts from autobiography
-- [Warren Buffett](https://base-layer.ai/examples/buffett): 505 facts from 48 shareholder letters
+- [Benjamin Franklin](https://www.base-layer.ai/examples/franklin): autobiography
+- [Frederick Douglass](https://www.base-layer.ai/examples/douglass): autobiography
+- [Warren Buffett](https://www.base-layer.ai/examples/buffett): 48 shareholder letters
+
+In this repository, [`examples/zitkala_sa/`](examples/zitkala_sa/) is the one example whose claims carry checkable fact ids.
 
 ## Troubleshooting
 
@@ -235,7 +243,7 @@ GitHub Actions CI runs the suite on Python 3.10, 3.11, 3.12.
 - **"0 identity-tier facts"**: Run `baselayer checkpoint classification` to inspect. It reports; it does not repair, and there is no `--fix` flag.
 - **Thin predictions**: Normal for short texts. Anchors and core are often sufficient.
 - **Re-extraction needed**: `python -m baselayer.extract_facts --reset` deletes extracted facts, the extraction log, and the fact vectors so every conversation is reprocessed. It is irreversible and has no confirmation prompt; confirm with the user first. It keeps imported conversations and user-corrected facts and does not touch layers already written under `data/identity_layers/`. The safest clean start is a fresh data root: point `MEMORY_SYSTEM_ROOT` at an empty directory. `baselayer forget --all` plus deleting `data/vectors/` is not a reset: the extraction log still marks every conversation as done, so re-extraction processes nothing.
-- **Removing facts**: `baselayer forget` hides facts (soft delete: rows marked superseded and restorable; their vectors are removed and not restored). Imported conversation text stays. Specification layers already written are not regenerated; they are marked stale (`baselayer stats`, the MCP server log and the served specification say so) until `baselayer author --compose` rebuilds them without the hidden facts. To remove everything, delete the data directory and the MCP session logs under `~/.baselayer/sessions/`, which record tool queries.
+- **Removing facts**: `baselayer forget` hides facts (soft delete: rows marked superseded and restorable; their vectors are removed and not restored). Imported conversation text stays. Specification layers already written are not regenerated; they are marked stale (`baselayer stats`, the MCP server log and the served specification say so) until they are re-authored without the hidden facts. How corrections flow: [`docs/CORRECTIONS.md`](docs/CORRECTIONS.md). To remove everything, delete the data directory and the MCP session logs under `~/.baselayer/sessions/`, which record tool queries.
 
 ## License
 

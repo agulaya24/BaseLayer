@@ -61,15 +61,15 @@ baselayer checkpoint extraction
 
 `stats` shows conversation, message, and fact counts. `checkpoint extraction` flags quality issues. It reports only; there is no `--fix` flag.
 
-**Under the turn contract** (`baselayer extract --turn-contract`, into a fresh corpus directory; see `docs/core/TURN_CONTRACT.md`):
+**Under the turn contract** (`baselayer extract --turn-contract`, into a fresh corpus directory; see `docs/core/TURN_CONTRACT.md`). Before importing, set `subject_names` in `$MEMORY_SYSTEM_ROOT/data/import_config.json` to every form of the person's name the text uses, for example `{"subject_names": ["Benjamin", "Benjamin Franklin"]}`. Turn-mode extraction refuses to start without it.
 - **Import.** It writes a `turns` table with each turn's speaker and voice class. Check the class distribution before extracting:
 
   ```bash
-  sqlite3 data/database/memory.db "SELECT voice_class, COUNT(*) FROM turns WHERE duplicate_of IS NULL GROUP BY voice_class"
+  sqlite3 "$MEMORY_SYSTEM_ROOT/data/database/memory.db" "SELECT voice_class, COUNT(*) FROM turns WHERE duplicate_of IS NULL GROUP BY voice_class"
   ```
 
   Pasted segments are excluded by default. What the local import config kept out is listed in `import_exclusions`.
-- **Extraction.** Each run writes a record to `data/database/extraction_runs/<run_id>.json`. Read its `gate_rejections` (`no_grounding`, `no_turn`, `not_own_voice`, `span_not_found`, `span_length`), `post_gate_drops` and `suspect` fields and report them to the user. A gate that rejected nothing or everything is flagged `suspect` and needs a look before anything is authored from the facts.
+- **Extraction.** Each run writes a record to `$MEMORY_SYSTEM_ROOT/data/database/extraction_runs/<run_id>.json`. Read its `gate_rejections` (`no_grounding`, `no_turn`, `not_own_voice`, `span_not_found`, `span_length`, `self_object`), `post_gate_drops` and `suspect` fields and report them to the user. A gate that rejected nothing or everything is flagged `suspect` and needs a look before anything is authored from the facts.
 
 ### 5. Embed for provenance
 
@@ -87,13 +87,13 @@ baselayer author --layer all
 
 Generates anchors, core, and predictions via Sonnet. Writes to `data/identity_layers/`.
 
-### 7. Compose the unified specification
+### 7. Optional: compose a prose brief
 
 ```bash
 baselayer compose
 ```
 
-Opus composes the three layers into a unified specification at `data/identity_layers/brief_v5_clean.md`.
+Optional. The three layers are the specification. `compose` writes a prose brief from them (Opus 4.6) at `data/identity_layers/brief_v5_clean.md`. `baselayer run` does not run it.
 
 ## Shortcut: full pipeline in one command
 
@@ -101,16 +101,16 @@ Opus composes the three layers into a unified specification at `data/identity_la
 baselayer run /path/to/chatgpt-export.zip
 ```
 
-`run` chains import, extract, embed and author with the cost-estimate gate before extraction. It does not compose a unified brief; `baselayer compose` is optional and separate. Use `--yes` only if the user has pre-confirmed the spend. Do not pass `--yes` automatically.
+`run` chains import, the cost-estimate gate, extract and author, then a traceability step (fact tiers, embeddings, vector provenance, a tension check). Under the turn contract (set `BASELAYER_TURN_CONTRACT=1`; `run` has no `--turn-contract` flag) it stops before authoring while extraction left quarantined chunks, unless given `--accept-gaps`. It does not compose a brief; `baselayer compose` is optional and separate. Use `--yes` only if the user has pre-confirmed the spend. Do not pass `--yes` automatically.
 
 ## Expected output
 
 | Path | Contents |
 |---|---|
-| `data/identity_layers/brief_v5_clean.md` | Unified behavioral specification. Primary artifact. 5,000 to 10,000 tokens. |
 | `data/identity_layers/anchors_v4.md` | Anchors layer. Decision foundations. |
 | `data/identity_layers/core_v4.md` | Core layer. Operational constraints. |
 | `data/identity_layers/predictions_v4.md` | Predictions layer. Behavioral triggers. |
+| `data/identity_layers/brief_v5_clean.md` | Optional prose brief, only if `compose` was run. |
 | `data/database/memory.db` | SQLite fact database. |
 | `data/vectors/` | ChromaDB vector store. |
 
