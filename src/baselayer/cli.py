@@ -245,9 +245,24 @@ def cmd_import(args):
     import_conversations.main()
 
 
+def _estimate_rate(model):
+    """(input, output) USD per MTok for `model` from the dated rate table in
+    distillation/spend.py, or None when the table has no rate for it. A dated id
+    (claude-haiku-4-5-20251001) is looked up by its undated name (claude-haiku-4-5)."""
+    import re as _re
+    from baselayer.distillation.spend import RATES_PER_MTOK
+    if model in RATES_PER_MTOK:
+        return RATES_PER_MTOK[model]
+    return RATES_PER_MTOK.get(_re.sub(r"-\d{8}$", "", model or ""))
+
+
 def cmd_estimate(args):
-    """Estimate API cost for extraction based on imported data."""
+    """Estimate the API cost of extracting what is imported and not yet extracted.
+
+    Prices extraction only, from the dated rate table in distillation/spend.py. It is a
+    floor, not a budget: the token count is approximate and authoring is not priced here."""
     from baselayer.config import DATABASE_FILE, EXTRACTION_API_MODEL, get_db
+    from baselayer.distillation.spend import CHARS_PER_TOKEN, RATES_AS_OF, RATES_SOURCE
 
     if not DATABASE_FILE.exists():
         print("No database found. Run: baselayer init")
@@ -267,45 +282,37 @@ def cmd_estimate(args):
             WHERE c.id NOT IN (SELECT conversation_id FROM extraction_log)
         """).fetchone()[0]
 
-        # Token estimation (4 chars per token)
-        input_tokens = total_chars // 4
-        # Output estimate: ~200 tokens per conversation (JSON facts)
-        output_tokens = pending * 200
+    # Same characters-per-token assumption as the billed distillation estimates.
+    input_tokens = int(total_chars / CHARS_PER_TOKEN)
+    # Output assumption: about 200 tokens of JSON facts per conversation.
+    output_tokens = pending * 200
 
-        # Pricing per 1M tokens (as of 2026)
-        pricing = {
-            "claude-haiku-4-5-20251001": {"input": 0.80, "output": 4.00, "name": "Haiku 4.5"},
-            "claude-sonnet-4-20250514": {"input": 3.00, "output": 15.00, "name": "Sonnet 4"},
-            "claude-opus-4-20250514": {"input": 15.00, "output": 75.00, "name": "Opus 4"},
-        }
+    print(f"\n  Extraction Cost Estimate (a floor, not a budget)")
+    print(f"  {'='*45}")
+    print(f"  Total conversations:    {total_convos:,}")
+    print(f"  Already extracted:      {extracted:,}")
+    print(f"  Pending extraction:     {pending:,}")
+    print(f"  Estimated input tokens: {input_tokens:,}")
+    print(f"  Estimated output tokens:{output_tokens:,}")
 
-        print(f"\n  Extraction Cost Estimate")
-        print(f"  {'='*45}")
-        print(f"  Total conversations:    {total_convos:,}")
-        print(f"  Already extracted:      {extracted:,}")
-        print(f"  Pending extraction:     {pending:,}")
-        print(f"  Estimated input tokens: {input_tokens:,}")
-        print(f"  Estimated output tokens:{output_tokens:,}")
+    rate = _estimate_rate(EXTRACTION_API_MODEL)
+    print(f"\n  Extraction model:       {EXTRACTION_API_MODEL}")
+    if rate is None:
+        print(f"  No rate for this model in the in-repo table dated {RATES_AS_OF}; "
+              f"no cost is printed.")
+    else:
+        cost = (input_tokens / 1_000_000) * rate[0] + (output_tokens / 1_000_000) * rate[1]
+        print(f"  Rate:                   ${rate[0]:g} in / ${rate[1]:g} out per million tokens,")
+        print(f"                          in-repo table dated {RATES_AS_OF} ({RATES_SOURCE}).")
+        print(f"                          Check current prices.")
+        print(f"  Estimated extraction:   ${cost:,.2f}")
 
-        print(f"\n  Estimated cost by model:")
-        for model_id, info in pricing.items():
-            input_cost = (input_tokens / 1_000_000) * info["input"]
-            output_cost = (output_tokens / 1_000_000) * info["output"]
-            total_cost = input_cost + output_cost
-            marker = " <-- current default" if model_id == EXTRACTION_API_MODEL else ""
-            print(f"    {info['name']:12s} ${total_cost:>7.2f}{marker}")
-
-        print(f"\n  Note: Actual cost depends on conversation length and")
-        print(f"  fact density. Estimates are typically within 2x of actual.")
-
-        # Also show downstream pipeline costs
-        if pending > 0:
-            print(f"\n  Post-extraction pipeline costs (one-time):")
-            print(f"    Layer authoring (Sonnet): ~$0.10")
-            print(f"    Brief composition (Opus): ~$0.20")
-            print(f"    Total pipeline:           ~$0.30")
-
-        print()
+    print(f"\n  Covers sequential extraction only. batch-extract bills about half the per-token")
+    print(f"  rate. Turn-contract extraction also sends preceding turns with each chunk as")
+    print(f"  context, so it sends more input than counted here.")
+    print(f"  Authoring is not priced here: distill and author-from-package print their own")
+    print(f"  estimate before any call; static author (and run) and compose print none.")
+    print()
 
 
 def cmd_extract(args):
@@ -2495,7 +2502,7 @@ def main():
     p_import.set_defaults(func=cmd_import)
 
     # estimate
-    p_estimate = subparsers.add_parser("estimate", help="Estimate API cost for extraction")
+    p_estimate = subparsers.add_parser("estimate", help="Estimate extraction cost from the dated rate table (a floor; authoring is not priced)")
     p_estimate.set_defaults(func=cmd_estimate)
 
     # extract

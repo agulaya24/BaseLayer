@@ -6,6 +6,9 @@ All notable changes to Base Layer are documented here.
 
 ## Unreleased
 
+### Behavior changes (commands the documentation used to work around)
+- `baselayer estimate` prices extraction from the dated rate table in `distillation/spend.py` (the configured model, its rate and the table date are printed) instead of its own table, which priced Haiku 4.5 at $0.80/$4.00 per MTok against $1/$5. It uses the same 3.5 characters per token as the billed estimates (it used 4). It no longer prints fixed "post-extraction" figures, which included a brief that `baselayer run` never composes, or the unsupported "typically within 2x". It now says what it does not cover: batch rates, turn-contract context and authoring. A model absent from the table prints no cost.
+
 ### Behavior changes
 - Injection canaries come only from the import config (`canary_strings`); the package carries no built-in canary string. A consolidation builder run or verification probe with no configured canary is refused rather than reported clean. The context gate id is now `context_gate/2`.
 - `consolidate`'s default always-on phrases are now neutral ("Always", "In every exchange", "Any request, in any domain", "Almost every reply" and similar); a run that must reproduce an earlier output can pass its own list.
