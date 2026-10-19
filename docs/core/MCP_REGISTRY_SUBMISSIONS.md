@@ -8,7 +8,7 @@ eight tools); a listing submitted earlier may show an older tool list.
 
 ## 1. Smithery (smithery.ai)
 
-**URL:** https://smithery.ai/submit
+**URL:** https://smithery.ai (the submission path changes; follow the site's own instructions)
 **How:** Submit GitHub repo URL. Smithery auto-indexes from README + package metadata.
 
 **Submit:**
@@ -21,7 +21,7 @@ eight tools); a listing submitted earlier may show an older tool list.
 
 ## 2. Glama (glama.ai/mcp)
 
-**URL:** https://glama.ai/mcp/submit (or auto-crawls GitHub)
+**URL:** https://glama.ai/mcp/servers (or auto-crawls GitHub)
 **How:** Submit GitHub repo URL or wait for auto-crawl.
 
 **Submit:**
@@ -82,7 +82,7 @@ eight tools); a listing submitted earlier may show an older tool list.
 
 ## Registry list
 
-- Smithery: https://smithery.ai/submit (repo URL)
-- Glama: https://glama.ai/mcp/submit (repo URL; may auto-discover)
+- Smithery: https://smithery.ai (repo URL)
+- Glama: https://glama.ai/mcp/servers (repo URL; may auto-discover)
 - Official MCP Registry: https://github.com/modelcontextprotocol/servers (PR)
 - awesome-mcp-servers: https://github.com/punkpeye/awesome-mcp-servers (PR)

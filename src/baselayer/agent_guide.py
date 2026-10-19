@@ -132,7 +132,7 @@ For the canonical command list, parse `src/baselayer/cli.py`.
 
 | Tool / Resource                | Purpose                                                                                            |
 |--------------------------------|----------------------------------------------------------------------------------------------------|
-| `memory://specification`       | Always-on resource. Returns CORE + ANCHORS + PREDICTIONS inline (~6-8K tokens) plus a brief manifest. Loaded at session start. |
+| `memory://specification`       | Always-on resource. Returns CORE + ANCHORS + PREDICTIONS inline plus a brief manifest; its size depends on the specification. Loaded at session start. |
 | `memory://identity`            | Deprecated alias for the above. Forwards to the same content.                                      |
 | `get_brief(reason)`            | The optional prose brief, when one was composed; otherwise a note that none exists. Fetch for broad self-reflective queries. |
 | `recall_memories(query)`       | Semantic retrieval of facts and episodes from the user's history.                                  |

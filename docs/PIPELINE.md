@@ -29,6 +29,8 @@ book or a set of filings, not for a person.
 `baselayer pipeline` is a separate command for a subject already in the subject registry. It is
 not one of the two paths above.
 
+The cited path as one command sequence, with measured costs: [section 14](#14-the-cited-build-end-to-end).
+
 ## 2. The data root
 
 Every command reads and writes under one data root: `MEMORY_SYSTEM_ROOT` when set (the directory
@@ -313,3 +315,168 @@ authoring figure. Treat it as a floor for extraction, not a budget for a run.
 `-state-unknown` when that could not be read. Code outside a git work tree (a pip install) records
 `unknown`. Facts extracted before these fields
 existed carry none of them, and nothing back-fills them. Read an artifact's stamp before trusting it.
+
+## 14. The cited build, end to end
+
+The cited path from section 1, which the README calls the cited build.
+
+### 14.1 The commands
+
+Bash, into a fresh data root (section 2). `distill` and `author-from-package` refuse to start
+without a spend ceiling at or above their printed estimate, and extraction stops at the ceiling
+when one is set (section 12). Each process takes its own ceiling.
+
+```bash
+export MEMORY_SYSTEM_ROOT=~/bl/jane && mkdir -p "$MEMORY_SYSTEM_ROOT"
+baselayer init
+# Own-words extraction reads the person's names from this file, not from the name init asks
+# for. List every form the text may use; extraction will not start without it (section 3).
+echo '{"subject_names": ["Jane", "Jane Doe"]}' > "$MEMORY_SYSTEM_ROOT/data/import_config.json"
+baselayer import chatgpt-export.zip
+
+export BASELAYER_SPEND_CEILING_USD=40        # per process; size it from 14.3
+export BASELAYER_RATES_CONFIRMED=YYYY-MM-DD  # replace with the date of the rate table that
+                                             # `baselayer distill --help` prints, once you have
+                                             # checked those rates against current prices
+baselayer extract --turn-contract            # own-words facts; a rerun resumes where it stopped
+
+mkdir -p trees packages
+for layer in anchors core predictions; do
+  baselayer distill --layer $layer --max-facts 50 --out trees/$layer.json   # 50 facts per model call
+  baselayer assemble trees/$layer.json --out packages/$layer.json           # no model call
+done
+baselayer author-from-package --outdir spec/ --db "$MEMORY_SYSTEM_ROOT/data/database/memory.db" \
+    --package packages/anchors.json --package packages/core.json --package packages/predictions.json
+
+baselayer verify-spec spec/ --label jane --corpus "$MEMORY_SYSTEM_ROOT" --out verify/
+baselayer consolidate spec/ --out served/
+```
+
+The rate date is left for you to fill in on purpose: confirming it records that a person checked
+the table against current prices, so a date copied from this page would defeat it. Left as
+`YYYY-MM-DD`, `distill` refuses to start and prints the date it expects.
+
+What the commands leave behind:
+
+- `spec/` holds, per layer, `<layer>.md` (readable), `<layer>.json` (the same claims, structured)
+  and `<layer>.stamp.json`, plus a coverage gaps manifest. Edit the `.md` and the `.json` together:
+  `consolidate` fails when they disagree.
+- `verify/` is the verification report. Before relying on a claim, check whether the report names
+  something it found missing. The mechanical checks cost nothing; the model-judged checks are built
+  and priced, and sent only with `--run-model` (section 9).
+- `served/` holds `served.txt` (the always-on claims in full plus one line per situation, naming
+  the claims to read) and `index.json` (each claim's full text, fact ids and contested note).
+  Without `--grouping`, each whole condition is one trigger and the run is flagged DEGRADED; the
+  grouping file comes from `python -m baselayer.consolidation.build group` (section 10).
+  Nothing in this package serves a cited build to an agent yet. By hand: put `served.txt` in the
+  system prompt, and when a situation it lists applies, add the claims it names from `index.json`.
+
+### 14.2 The batch setup
+
+Every build measured in 14.3 ran this way. It changes three steps of 14.1 and keeps the rest. The
+measured builds also did one thing these commands cannot: they left out, through `--exclude-ids`,
+the facts a separate support check judged unsupported by their quotes (about 2 percent of each
+essay build). That check is not in this package.
+
+- **Extraction through the Message Batches API**, at half the per-token rate:
+  `baselayer batch-extract --submit --turn-contract`, then `--status` until it reports `ended`,
+  then `--process`. The batch is not priced before it is sent and no ceiling applies to it
+  (section 12).
+
+  **A plain `--process` deletes every fact already extracted.** Use it only on a fresh data root.
+- **All three layers' leaves in one batch**, each leaf shown up to three of every fact's own-word
+  spans:
+
+  ```bash
+  DB="$MEMORY_SYSTEM_ROOT/data/database/memory.db"
+  python -m baselayer.distillation.distill_batch --db "$DB" --outdir trees/ --max-facts 50 \
+      --leaf-spans --dry-run            # prices the batch and sends nothing
+  python -m baselayer.distillation.distill_batch --db "$DB" --outdir trees/ --max-facts 50 \
+      --leaf-spans                      # submits, waits, writes one tree per layer
+  for layer in anchors core predictions; do
+    baselayer assemble trees/${layer}_predicate_0.json --out packages/$layer.json
+  done
+  ```
+
+  If it is interrupted, run it again with `--resume` and exactly the same flags. The resume checks
+  the model, request count, chunking and exclusion list, but not `--leaf-spans`.
+- **Authoring on Claude Opus 5.5 with the quote gate** (section 8):
+
+  ```bash
+  python -m baselayer.distillation.author_from_package --model claude-opus-5-5 --effort high \
+      --quote-gate --db "$DB" --outdir spec/ \
+      --package packages/anchors.json --package packages/core.json --package packages/predictions.json
+  ```
+
+### 14.3 What it costs
+
+**Basis.** Recorded token usage from four cited builds made between late September and October
+2026 on a development version of this code with the same stages, and from three `baselayer run`
+authoring runs in July 2026, priced at the rates per million input / output tokens on Anthropic's
+[pricing page](https://platform.claude.com/docs/en/about-claude/pricing) as read on 19 October
+2026: Claude Haiku 4.5 $1 / $5, Claude Sonnet 5 $2 / $10, Claude Opus 5 $5 / $25, Claude Opus
+5.5 $4 / $20, Claude Sonnet 4.6 $3 / $15; the Message Batches API at half these rates. The code
+prices its own runs from the table in `src/baselayer/distillation/spend.py` (dated 2026-06-24),
+which holds the first four at the same rates. These are estimates for planning, not
+quotes: cost tracks the number of facts more than the number of words, and facts per word vary by
+kind of text. `baselayer estimate` prices extraction only and has run low, so it is not the basis
+of any figure here.
+
+**The batch setup (14.2), stage by stage, measured:**
+
+| stage | model | about 300,000 words of long essays | a chat history, about 1.4 million words from the person |
+|---|---|---|---|
+| facts extracted / distilled (after exclusions) | | about 5,000 / about 5,000 | about 22,000 / about 21,000 |
+| extract (batch; a few sequential calls at full rate) | Claude Haiku 4.5 | $2.97 ($0.57 per 1,000 facts extracted) | $25.01 ($1.12) |
+| distill: leaves (batch, own-word spans; repairs at full rate) | Claude Sonnet 5 | $23.84 ($4.71 per 1,000 facts distilled) | $77.06 ($3.74) |
+| author (quote gate) | Claude Opus 5.5, effort high | $3.46 | $10.25 (7 shard calls) |
+| assemble, consolidate, mechanical verify | none | $0 | $0 |
+| **total** | | **$30.27** | **$112.32** |
+
+Chat costs more to extract per fact because every chunk carries the other side of the
+conversation as read-only context. The leaf stage is about two thirds of the chat build and four
+fifths of the essay build. Two smaller records agree: a corpus of about 150,000 words of posts
+and talk transcripts extracted at $0.63 per 1,000 facts (batch), and a second build on the essays
+plus about 30,000 words of other writing cost $4.67 per 1,000 distilled facts for its leaves and
+$3.77 for authoring.
+
+**The commands in 14.1, at full rate (derived, not run).** Each figure reprices the same tokens:
+the batch part of extraction at twice its rate, with the sequential part unchanged ($5.80 and
+$46.78 for the two builds above); the batch part of the leaves at twice its rate, plus the same
+repairs ($43.59 and $148.34); authoring on Claude Opus 5, the default, at 1.25 times Opus 5.5 ($4.33
+and $12.81). Totals: about $54 and about $208. The 14.1 leaves run without own-word spans, which
+shortens their output; that saving is not subtracted, so these figures lean high.
+
+**By corpus size.** *Projected* cells take 17 to 23 facts per 1,000 words of the person's own
+writing (the range measured on the essays and on the posts and talk transcripts) and add:
+extraction at $0.57 to $0.63 per 1,000 facts (batch) or $1.12 to $1.18 (full rate); leaves at
+$4.71 per 1,000 facts (batch) or $8.61 (full rate); authoring at about 136 input tokens per fact
+plus about 35,000 output tokens per build, priced at the author's rates (both from the essay
+build). They assume no facts are excluded.
+
+| corpus | facts | `baselayer run` | cited build, batch setup (14.2) | cited build, commands in 14.1 |
+|---|---|---|---|---|
+| about 50,000 words of essays or posts | about 850 to 1,150 | $1 to $2, projected | $6 to $8, projected | $10 to $13, projected |
+| about 150,000 words of posts and talk transcripts | about 3,000 | $3 to $4, projected | about $18, projected | about $32, projected |
+| about 300,000 words of long essays | about 5,000 | about $6, projected | $30.27, measured | about $54, derived |
+| a chat history of about 1.4 million words from the person | about 22,000 | about $47, projected | $112.32, measured | about $208, derived |
+
+**`baselayer run`.** Extraction is nearly all of its cost, and its extractor (legacy, sequential)
+has not been priced on a recorded run. The column above projects it from the own-words
+extractor's measured token counts at full rate: about $1.90 to $2.70 per 100,000 words of the
+person's writing, and $46.78 on the chat history, whose chunks carry both sides of each
+conversation. The legacy extractor reads whole conversations and asks for no quotes, so treat the
+projection as an order of magnitude. Writing the three layers on Claude Sonnet 4.6 measured $0.116
+to $0.121 on three corpora of about 600 to several thousand facts; it does not grow with the
+corpus, because each layer reads a selection of facts capped in size (the measured calls read
+2,000 to 7,000 input tokens each). The tension check is at most 30
+Claude Haiku 4.5 calls of at most 300 output tokens each, under $0.05 of output. Embedding and
+vector provenance run on a local model.
+
+**Not in these figures.** The model-judged `verify-spec` checks, which `--rater api` prices
+before it runs and `--rater cli` sends on a Claude subscription. The measured builds ran their
+model-judged checks on a subscription, through scripts outside this package. Claude Sonnet
+5.5 on the leaf stage (`--model claude-sonnet-5-5 --rate-in 2 --rate-out 10`, since the rate
+table has no row for it) measured 0.36 to 0.38 of Sonnet 5's cost per leaf on a 24-leaf sample
+from the essay build, but a blind comparison did not show its leaves as good, and its repair rate
+and its run through this command are untested.

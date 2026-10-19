@@ -227,7 +227,7 @@ This release is the immutable reference state corresponding to the "Beyond Recal
 
 ### Roadmap
 - Phase B (planned, non-breaking): add `data/specifications/` directory alongside `data/identity_layers/`; both read on load. Add `specification.md` output filename alongside `brief_v4.md`. Add `--specification-only` CLI flag alongside `--identity-only`. Will ship as `0.3.0`.
-- Phase C (planned, non-breaking): website adds `/api/specifications/{subject}` endpoint alongside the existing `/api/identity/{subject}`. Both serve the same handler. Documented in `baselayer-website` repo.
+- Phase C (planned, non-breaking): website adds `/api/specifications/{subject}` endpoint alongside the existing `/api/identity/{subject}`. Both serve the same handler. Documented with the website, not in this repository.
 
 ---
 
