@@ -449,7 +449,10 @@ def cmd_distill(args):
     argv = ["distill.py", "--db", db, "--out", args.out,
             "--model", args.model, "--max-facts", str(args.max_facts),
             "--limit-chunks", str(args.limit_chunks), "--partition", args.partition,
-            "--seed", str(args.seed), "--layer", args.layer]
+            "--seed", str(args.seed)]
+    if args.layer is not None:
+        # Forwarded only when given, so the module can warn when the control default applies.
+        argv += ["--layer", args.layer]
     if args.checkpoint:
         argv += ["--checkpoint", args.checkpoint]
     if args.resume_from:
@@ -2575,9 +2578,11 @@ def main():
                            help="chunking strategy; `semantic` additionally needs scikit-learn "
                                 "(pip install baselayer[semantic])")
     p_distill.add_argument("--seed", type=int, default=0)
-    p_distill.add_argument("--layer", default="blind",
+    p_distill.add_argument("--layer", default=None,
                            choices=["anchors", "blind", "core", "predictions"],
-                           help="layer directive; `blind` is the undirected control")
+                           help="layer directive: anchors, core or predictions. Default when "
+                                "omitted: `blind`, the undirected control arm, whose tree is not a "
+                                "layer; a warning is printed. Always pass it.")
     p_distill.add_argument("--checkpoint", default="", help="write leaves here after every chunk")
     p_distill.add_argument("--resume-from", default="", help="reload leaves from a checkpoint file")
     p_distill.add_argument("--write-provenance", action="store_true",

@@ -1876,6 +1876,12 @@ def finish_tree(a, cl, run):
     return tree
 
 
+BLIND_DEFAULT_WARNING = (
+    "WARNING: --layer not given, so this run uses the default `blind`: the undirected control "
+    "arm, not a layer. Its tree is not comparable to an anchors, core or predictions tree. Pass "
+    "--layer anchors|core|predictions to build a layer, or --layer blind to silence this.")
+
+
 def _main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--db", required=True)
@@ -1887,7 +1893,10 @@ def _main():
                     choices=["predicate", "category", "predcat", "random", "semantic", "time",
                              "episode"])
     ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--layer", default="blind", choices=sorted(LAYER_DIRECTIVES))
+    ap.add_argument("--layer", default=None, choices=sorted(LAYER_DIRECTIVES),
+                    help="layer directive. Default when omitted: `blind`, the undirected control "
+                         "arm, whose tree is not a layer; a warning is printed. Pass anchors, core "
+                         "or predictions to build a layer.")
     ap.add_argument("--checkpoint", default="", help="write leaves here after every chunk")
     ap.add_argument("--resume-from", default="", help="reload leaves from a checkpoint file")
     ap.add_argument("--write-provenance", action="store_true",
@@ -1907,6 +1916,9 @@ def _main():
                          "%s)" % _spend.MEASURED_LEAF_BASIS)
     add_design_args(ap)
     a = ap.parse_args()
+    if a.layer is None:
+        a.layer = "blind"
+        print(BLIND_DEFAULT_WARNING, file=sys.stderr, flush=True)
 
     F = load_facts(a)
     (rows, contract_version, n_planted, record_only_included, record_only_excluded, subject_info, other_subjects, exclude_info) = (F[k] for k in ("rows", "contract_version", "n_planted", "record_only_included", "record_only_excluded", "subject_info", "other_subjects", "exclude_info"))
