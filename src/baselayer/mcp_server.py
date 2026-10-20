@@ -664,13 +664,17 @@ def trace_claim(claim_id: str) -> str:
         # naming the column on an older database would raise.
         fact_cols = {c[1] for c in conn.execute("PRAGMA table_info(memory_facts)").fetchall()}
         spans_col = ", f.evidence_spans" if "evidence_spans" in fact_cols else ""
+        # `forget` marks a fact superseded_by = 'user_forget' and leaves the claim's provenance
+        # rows until the layers are regenerated. Such a fact is not served: not its text, its
+        # quoted words or its source. AUDN supersession (a newer fact) is history and stays.
+        forgot_col = ", f.superseded_by" if "superseded_by" in fact_cols else ""
         # Get provenance entries for this claim
         rows = conn.execute(f"""
             SELECT p.claim_id, p.claim_text, p.fact_id, p.link_method,
                    p.rank_in_claim, p.layer_name, p.layer_version,
                    f.fact_text, f.fact_type, f.knowledge_tier,
                    f.recurrence_count, f.source_conversation_id,
-                   f.predicate, f.object_text{spans_col}
+                   f.predicate, f.object_text{spans_col}{forgot_col}
             FROM layer_claim_provenance p
             LEFT JOIN memory_facts f ON p.fact_id = f.id
             WHERE UPPER(p.claim_id) = UPPER(?)
@@ -690,6 +694,10 @@ def trace_claim(claim_id: str) -> str:
         ]
 
         for r in rows:
+            if forgot_col and r["superseded_by"] == "user_forget":
+                lines.append(f"  [{r['rank_in_claim']}] (hidden: forgotten by the user; "
+                             f"regenerate the layers to drop it from this claim)")
+                continue
             fact_text = r["fact_text"] or "(fact not found)"
             tier = r["knowledge_tier"] or "?"
             rec = r["recurrence_count"] or 0
