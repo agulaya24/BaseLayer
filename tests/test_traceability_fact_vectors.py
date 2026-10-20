@@ -154,3 +154,29 @@ def test_embed_missing_facts_counts_only_what_it_added(tmp_path):
         assert embed_missing_facts(conn, coll, FakeModel(), batch_size=2) == 4
         assert embed_missing_facts(conn, coll, FakeModel(), batch_size=2) == 0
     assert coll.count() == 5
+
+
+def test_against_a_real_chroma_collection_with_paging(tmp_path):
+    """The fakes above encode an assumption about Chroma's API; this asks the artifact.
+    get(include=[], limit, offset) paging and add() must behave as embed_missing_facts expects
+    on the installed chromadb, across more than one page."""
+    chromadb = pytest.importorskip("chromadb")
+    from baselayer.extract_facts import embed_missing_facts, _collection_ids
+    from chromadb.config import Settings
+    client = chromadb.EphemeralClient(settings=Settings(anonymized_telemetry=False))  # no telemetry
+    try:
+        client.delete_collection("memory_facts_probe")
+    except Exception:
+        pass
+    coll = client.create_collection("memory_facts_probe", metadata={"hnsw:space": "cosine"})
+    coll.add(ids=["f00"], embeddings=[[1.0, 0.0, 0.0]], documents=["x"],
+             metadatas=[{"fact_id": "f00", "category": "values"}])
+    dbf = tmp_path / "m.db"
+    _db(dbf, n_active=7, n_superseded=2)
+    with sqlite3.connect(dbf) as conn:
+        assert embed_missing_facts(conn, coll, FakeModel(), batch_size=3) == 6
+        assert embed_missing_facts(conn, coll, FakeModel(), batch_size=3) == 0
+    assert _collection_ids(coll, page=2) == {"f%02d" % i for i in range(7)}
+    got = coll.get(ids=["f03"], include=["metadatas", "documents"])
+    assert got["documents"] == ["fact text 3"]
+    assert got["metadatas"][0]["turn_contract_version"] == "tc-1"

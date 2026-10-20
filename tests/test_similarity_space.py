@@ -54,7 +54,8 @@ def test_similarity_matches_cosine_from_a_real_chroma_query(space, degrees):
     itself cannot fail this way, which is how the l2 defect survived."""
     import math
     chromadb = pytest.importorskip("chromadb")
-    client = chromadb.EphemeralClient()
+    from chromadb.config import Settings
+    client = chromadb.EphemeralClient(settings=Settings(anonymized_telemetry=False))  # no telemetry
     name = "probe_%s_%d" % (space, degrees)
     try:
         client.delete_collection(name)
