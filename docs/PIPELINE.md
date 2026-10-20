@@ -83,9 +83,11 @@ Detail: [core/TURN_CONTRACT.md](core/TURN_CONTRACT.md) sections 1 and 2.
 
 ## 5. Extract
 
-Model: Claude Haiku 5.5 (`claude-haiku-5-5`) at effort medium, the default since 19 October
-2026. `BASELAYER_LLM_EXTRACTION=claude-haiku-4-5-20251001` selects Claude Haiku 4.5, the earlier
-default, and `BASELAYER_EXTRACTION_EFFORT` sets the effort. Facts are subject, predicate, object
+Model: own-words extraction (`--turn-contract`, the cited build) runs on Claude Haiku 5.5
+(`claude-haiku-5-5`) at effort medium, the default since 19 October 2026. Legacy extraction
+(`baselayer extract` without `--turn-contract`, and so `baselayer run`) stays on Claude Haiku 4.5
+(`claude-haiku-4-5-20251001`): on published text the newer model would not credit the writing to the person on the legacy prompt; a legacy comparison is pending. `BASELAYER_LLM_EXTRACTION` sets
+the model on both paths, and `BASELAYER_EXTRACTION_EFFORT` the effort. Facts are subject, predicate, object
 statements, using a list of 46 predicates (`CONSTRAINED_PREDICATES` in `config.py`). New facts
 pass through AUDN (add, update, delete as supersession, no-op) against the facts already stored.
 
@@ -476,17 +478,16 @@ build). They assume no facts are excluded.
 
 | corpus | facts | `baselayer run` | cited build, batch setup (14.2) | cited build, commands in 14.1 |
 |---|---|---|---|---|
-| about 50,000 words of essays or posts | about 850 to 1,150 | $0.30 to $0.40, projected | $5 to $7, projected | $9 to $12, projected |
-| about 150,000 words of posts and talk transcripts | about 3,000 | $0.70 to $0.80, projected | about $17, projected | about $29, projected |
-| about 300,000 words of long essays | about 5,000 | about $1.30, projected | about $28, derived ($30.27 measured on Claude Haiku 4.5) | about $49, derived |
-| a chat history of about 1.4 million words from the person | about 22,000 | about $9, projected | about $92, derived ($112.32 measured on Claude Haiku 4.5) | about $170, derived |
+| about 50,000 words of essays or posts | about 850 to 1,150 | $1 to $2, projected | $5 to $7, projected | $9 to $12, projected |
+| about 150,000 words of posts and talk transcripts | about 3,000 | $3 to $4, projected | about $17, projected | about $29, projected |
+| about 300,000 words of long essays | about 5,000 | about $6, projected | about $28, derived ($30.27 measured on Claude Haiku 4.5) | about $49, derived |
+| a chat history of about 1.4 million words from the person | about 22,000 | about $47, projected | about $92, derived ($112.32 measured on Claude Haiku 4.5) | about $170, derived |
 
-**`baselayer run`.** Extraction is nearly all of its cost, and its extractor (legacy, sequential)
-has not been priced on a recorded run. The column above projects it from the own-words
-extractor's measured token counts at full rate, times the Claude Haiku 5.5 cost ratios above:
-about $0.39 to $0.45 per 100,000 words of the person's writing, and about $8.84 on the chat
-history (on Claude Haiku 4.5, $1.90 to $2.70 and $46.78), whose chunks carry both sides of each
-conversation. The legacy extractor reads whole conversations and asks for no quotes, so treat the
+**`baselayer run`.** Extraction is nearly all of its cost, and its extractor (legacy, sequential,
+on Claude Haiku 4.5) has not been priced on a recorded run. The column above projects it from
+the own-words extractor's measured Claude Haiku 4.5 token counts at full rate: about $1.90 to
+$2.70 per 100,000 words of the person's writing, and $46.78 on the chat history, whose chunks
+carry both sides of each conversation. The legacy extractor reads whole conversations and asks for no quotes, so treat the
 projection as an order of magnitude. Writing the three layers on Claude Sonnet 4.6 measured $0.116
 to $0.121 on three corpora of about 600 to several thousand facts; it does not grow with the
 corpus, because each layer reads a selection of facts capped in size (the measured calls read

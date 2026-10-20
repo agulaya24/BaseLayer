@@ -36,7 +36,7 @@ the module exists under `src/baselayer/`, and the CHANGELOG entry names it.
 |---|---|---|
 | Import of chat exports, journals, text files and folders, Claude Code sessions and history, meeting transcripts | runs | `baselayer import --help`; `import_conversations.py`, `turn_import.py` |
 | Turn table on import: speaker from the source, a voice class per turn, pasted text excluded by default, secrets with a recognisable shape masked | runs | `turns.py`, `voice.py`, `redaction.py`; [PIPELINE.md](PIPELINE.md) section 4 |
-| Legacy extraction on Claude Haiku 5.5, 46 listed predicates, AUDN against stored facts | runs (the default for `run`) | `extract_facts.py`; `CONSTRAINED_PREDICATES` in `config.py` |
+| Legacy extraction on Claude Haiku 4.5, 46 listed predicates, AUDN against stored facts | runs (the default for `run`) | `extract_facts.py`; `CONSTRAINED_PREDICATES` in `config.py` |
 | Static authoring of the three layers on Claude Sonnet 4.6 | runs | `baselayer author`; `author_layers.py` |
 | Traceability step after authoring (vector provenance, a tension check on Claude Haiku 4.5) | runs | [PIPELINE.md](PIPELINE.md) section 1 |
 | MCP server serving the three static layers, with tools to search facts and trace a claim | runs | `mcp_server.py`; README, "Using it with an agent" |
@@ -47,7 +47,7 @@ the module exists under `src/baselayer/`, and the CHANGELOG entry names it.
 
 | part | status | where to check |
 |---|---|---|
-| Turn-contract extraction: every fact must quote the person's own words, checked by a gate in code | experimental command (`extract --turn-contract`, or `BASELAYER_TURN_CONTRACT=1`) | `turn_contract.py`; [core/TURN_CONTRACT.md](core/TURN_CONTRACT.md); decision D-108 |
+| Turn-contract extraction on Claude Haiku 5.5: every fact must quote the person's own words, checked by a gate in code | experimental command (`extract --turn-contract`, or `BASELAYER_TURN_CONTRACT=1`) | `turn_contract.py`; [core/TURN_CONTRACT.md](core/TURN_CONTRACT.md); decision D-108 |
 | Chunk ledger: every extraction chunk is a checkpoint. Failed chunks retry, chunks that keep failing on their content are set aside, and gaps are written beside every artifact | runs on the turn-contract paths | `chunk_ledger.py`; `baselayer chunks --help` |
 | Batch extraction through the Message Batches API | runs (`baselayer batch-extract`) | [PIPELINE.md](PIPELINE.md) section 5 |
 | Distill: each chunk of facts yields themes, one-off facts kept word for word (singularities), contradictions kept unresolved, and one verdict per fact | experimental command | `distillation/distill.py`; [core/DISTILLATION.md](core/DISTILLATION.md) |

@@ -51,7 +51,7 @@ evidence of its own.
 ## Facts and evidence
 
 **D07 Fact.** A short subject, predicate, object statement about the person, extracted by a model
-(Claude Haiku 5.5 by default, Claude Haiku 4.5 before 19 October 2026) from one piece of their text, with an id (`F-` and the first 8 characters of
+(Claude Haiku 5.5 on the cited build, Claude Haiku 4.5 on `baselayer run`) from one piece of their text, with an id (`F-` and the first 8 characters of
 its database id). The model writes the person as "user" or "this person": "user values X" means
 the person the specification describes values X.
 

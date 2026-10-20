@@ -115,16 +115,16 @@ Base Layer is pre-1.0 (version 0.5.0) and not on PyPI. The `baselayer` name ther
 
 ## What it costs
 
-The table shows API spend for one specification by corpus size. *Measured* figures use recorded token usage from cited builds made in September and October 2026. *Projected* figures scale those builds' per-fact costs at 17 to 23 facts per 1,000 words of the person's writing.
+The table shows API spend for one specification by corpus size. *Derived* figures use recorded token usage from cited builds made in September and October 2026, with extraction repriced for Claude Haiku 5.5. *Projected* figures scale those builds' per-fact costs at 17 to 23 facts per 1,000 words of the person's writing.
 
 The cited build column uses the batch setup from every measured build. Extraction and the leaf stage went through the Message Batches API at half price. The leaf stage used one model call per 50 facts per layer. Claude Opus 5.5 wrote the layers.
 
 | corpus | facts | cited build, batch setup | `baselayer run` |
 |---|---|---|---|
-| about 50,000 words of essays or posts | about 1,000 | $5 to $7, projected | $0.30 to $0.40, projected |
-| about 150,000 words of posts and talk transcripts | about 3,000 | about $17, projected | $0.70 to $0.80, projected |
-| about 300,000 words of long essays | about 5,000 | about $28, derived from a measured build | about $1.30, projected |
-| a chat history of about 1.4 million words from the person | about 22,000 | about $92, derived from a measured build | about $9, projected |
+| about 50,000 words of essays or posts | about 1,000 | $5 to $7, projected | $1 to $2, projected |
+| about 150,000 words of posts and talk transcripts | about 3,000 | about $17, projected | $3 to $4, projected |
+| about 300,000 words of long essays | about 5,000 | about $28, derived | about $6, projected |
+| a chat history of about 1.4 million words from the person | about 22,000 | about $92, derived | about $47, projected |
 
 - **The cited build** spends about five sixths on its leaf stage. The plain command sequence, at full rate with Claude Opus 5 writing, costs roughly 1.7 to 1.9 times as much.
 - **`baselayer run`** spends nearly all its cost on extraction. Writing the three layers measured about $0.12 on three corpora of about 600 to several thousand facts in July 2026. That cost does not grow with the corpus because each layer reads a capped selection. Its extractor has not been priced on a recorded run. The column projects from the cited build's extractor, so treat it as an order of magnitude.

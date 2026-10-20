@@ -59,7 +59,7 @@ baselayer run chatgpt-export.zip      # or claude-export.json, a journal folder,
 ```
 
 It initializes the data root if needed, imports the file, prints an extraction estimate and asks
-to continue (`--yes` skips the prompt), extracts facts (Claude Haiku 5.5), writes the three layers
+to continue (`--yes` skips the prompt), extracts facts (Claude Haiku 4.5), writes the three layers
 into `data/identity_layers/` (Claude Sonnet 4.6), then runs a traceability step: tiers facts,
 builds the vector index, links claims to nearby facts, and runs a small Haiku check for tensions
 between facts. It never composes a brief. A file that adds nothing new stops before any spend
