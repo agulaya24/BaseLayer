@@ -440,11 +440,30 @@ def _get_chroma_client():
     return _chroma_client
 
 
+def _no_stdout(fn):
+    """Run a tool or resource with stdout pointed at stderr.
+
+    Stdout is the JSON-RPC stream on the stdio transport (the transport holds its own wrapper
+    around the stdout buffer, so swapping sys.stdout does not touch it). Library code these
+    tools reach prints with plain print(): assemble_brief's retrieval warnings ran on every
+    recall_memories call, and verify_provenance prints progress. Any such line is now a log
+    line on stderr instead of a non-JSON line in the protocol stream."""
+    import functools
+
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        with contextlib.redirect_stdout(sys.stderr):
+            return fn(*args, **kwargs)
+    wrapper._stdout_guarded = True
+    return wrapper
+
+
 # ==========================================================================
 # RESOURCES. Always-available context (client-controlled).
 # ==========================================================================
 
 @mcp.resource("memory://specification")
+@_no_stdout
 def get_specification() -> str:
     """Always-on context for the user's behavioral specification.
 
@@ -471,6 +490,7 @@ def get_specification() -> str:
 
 
 @mcp.resource("memory://identity")
+@_no_stdout
 def get_identity_brief() -> str:
     """Deprecated alias for memory://specification. Returns the same content. Will be removed in a future release."""
     return get_specification()
@@ -481,8 +501,11 @@ def get_identity_brief() -> str:
 # ==========================================================================
 
 @mcp.tool()
+@_no_stdout
 def recall_memories(query: str) -> str:
-    """Search the user's memory for facts and episodes relevant to a query.
+    """Search the user's memory for facts relevant to a query.
+    (Episodic memories are added only when a conversation-summary vector collection exists;
+    nothing in this package builds one, so in practice this returns facts.)
     Use this when the conversation touches on personal topics, past experiences,
     preferences, or anything that would benefit from knowing the user's history.
 
@@ -525,6 +548,7 @@ def recall_memories(query: str) -> str:
 
 
 @mcp.tool()
+@_no_stdout
 def search_facts(query: str, limit: int = 15) -> str:
     """Search the user's fact database by keyword. Returns matching facts with
     metadata (type, tier, category, recurrence).
@@ -620,6 +644,7 @@ def _evidence_span_lines(raw) -> list:
 
 
 @mcp.tool()
+@_no_stdout
 def trace_claim(claim_id: str) -> str:
     """Trace a specification claim back to its supporting facts and source conversations.
     Shows each linked fact with its tier, recurrence, how it was linked and the source
@@ -687,6 +712,7 @@ def trace_claim(claim_id: str) -> str:
 
 
 @mcp.tool()
+@_no_stdout
 def get_stats() -> str:
     """Get summary statistics about the user's memory database.
     Shows conversation count, fact count, tier breakdown, and source breakdown.
@@ -750,6 +776,7 @@ def get_stats() -> str:
 
 
 @mcp.tool()
+@_no_stdout
 def verify_claims(claim_id: str = "", layer: str = "all") -> str:
     """Verify specification claims against the fact database.
     Runs binary verification checks: existence, recurrence, cross-domain coverage,
@@ -783,6 +810,7 @@ def verify_claims(claim_id: str = "", layer: str = "all") -> str:
 
 
 @mcp.tool()
+@_no_stdout
 def get_brief(reason: str) -> str:
     """Return the unified narrative specification that contextualizes the layers.
 
@@ -828,6 +856,7 @@ def get_brief(reason: str) -> str:
 
 
 @mcp.tool()
+@_no_stdout
 def get_help(topic: str = "") -> str:
     """Return the comprehensive Base Layer agent reference, or a focused section.
 
@@ -855,6 +884,7 @@ def get_help(topic: str = "") -> str:
 
 
 @mcp.tool()
+@_no_stdout
 def get_call_log(limit: int = 50, name_filter: str = "") -> str:
     """Return recent MCP calls made against this server in this process.
 
