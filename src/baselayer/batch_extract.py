@@ -422,6 +422,10 @@ def _turn_requests_for_conversation(conn, conv_id, conv_title, source, *, stamps
 def run_submit(document_mode=False, skip_extracted=False, turn_contract=None):
     """Build prompts for all conversations and submit as a batch.
 
+    Returns the new batch id, or None when there is nothing to submit. A refusal (an active
+    batch already in the way) or a failed submission exits non-zero, so a caller such as
+    `pipeline` never goes on to process a batch this call did not submit.
+
     Args:
         document_mode: Use document extraction prompt (for subject corpora).
         skip_extracted: Only process conversations not yet in extraction_log.
@@ -445,7 +449,7 @@ def run_submit(document_mode=False, skip_extracted=False, turn_contract=None):
         print(f"  Batch ID: {existing.get('batch_id')}")
         print(f"  Submitted: {existing.get('created_at')}")
         print(f"  Use --status to check progress, or delete {BATCH_STATE_FILE} to start fresh.")
-        return
+        raise SystemExit(1)
 
     # JSON schema instruction: the same text the sequential path sends.
     schema = TURN_EXTRACT_SCHEMA if turn_mode else EXTRACT_SCHEMA
@@ -612,8 +616,8 @@ def run_submit(document_mode=False, skip_extracted=False, turn_contract=None):
               f"a proxy; price from the pilot's measured usage, not this)")
 
     if not requests:
-        print("ERROR: No conversations to process.")
-        return
+        print("No conversations to submit; nothing was sent.")
+        return None
 
     # Deliberately no dollar figure: in-repo price constants go stale (this
     # function printed Haiku 3 rates for months). Price a run from current
@@ -642,7 +646,8 @@ def run_submit(document_mode=False, skip_extracted=False, turn_contract=None):
         batch_id = batch.id
     except Exception as e:
         print(f"ERROR: Batch submission failed: {e}")
-        return
+        print("  If the request may have reached the API, list recent batches before resubmitting.")
+        raise SystemExit(1)
 
     # Save state. chunk_map is the authoritative custom_id → parent conv_id mapping.
     state = {
@@ -672,6 +677,7 @@ def run_submit(document_mode=False, skip_extracted=False, turn_contract=None):
     print(f"\n  State saved to: {BATCH_STATE_FILE}")
     print(f"\n  Next: Check status with --status, process results with --process")
     print(f"  You can close this terminal and come back later.")
+    return batch_id
 
 
 # ---------------------------------------------------------------------------
