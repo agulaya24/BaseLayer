@@ -179,7 +179,10 @@ class ApiBackend(Backend):
         if self.effort:
             kw["output_config"] = {"effort": self.effort}
         try:
-            resp = client.messages.create(**kw)
+            # Always stream, as distill.call does. A non-streaming create with max_tokens at
+            # the group/categorize size (32000) is refused by the SDK before anything is sent.
+            with client.messages.stream(**kw) as st:
+                resp = st.get_final_message()
         except Exception as e:  # noqa: BLE001 -- classified below, never swallowed as a result
             status = getattr(e, "status_code", None)
             msg = f"{type(e).__name__}: {str(e)[:300]}"

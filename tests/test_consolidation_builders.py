@@ -389,13 +389,27 @@ def test_limit_text_is_recognised():
 class FakeClient:
     def __init__(self, blocks, stop="end_turn"):
         self.sent = []
-        self.messages = types.SimpleNamespace(create=self._create)
+        self.messages = types.SimpleNamespace(stream=self._stream)
         self.blocks, self.stop = blocks, stop
 
     def _create(self, **kw):
         self.sent.append(kw)
         return types.SimpleNamespace(content=self.blocks, stop_reason=self.stop, model=kw["model"],
                                      usage=types.SimpleNamespace(input_tokens=1000, output_tokens=200))
+
+    def _stream(self, **kw):
+        msg = self._create(**kw)
+
+        class _S:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def get_final_message(self):
+                return msg
+        return _S()
 
 
 def test_api_backend_refuses_before_any_client_exists(monkeypatch):
@@ -447,9 +461,29 @@ def test_api_backend_reports_refusal_and_rate_limit():
 
     def boom(**kw):
         raise RateLimitError("rate limited")
-    fc.messages = types.SimpleNamespace(create=boom)
+    fc.messages = types.SimpleNamespace(stream=boom)
     r = b.complete("x", 10)
     assert r.limit and r.text is None
+
+
+def test_api_backend_can_send_a_32k_request(monkeypatch):
+    """grouper and categorize call complete(..., max_tokens=32000). A non-streaming
+    messages.create at that size is refused by the SDK itself before anything is sent
+    ("Streaming is required for operations that may take longer than 10 minutes"), so the
+    API backend could never run those builders: each call failed, was retried, and the build
+    exited 1. A real SDK client is used here, pointed at a closed local port, so the request
+    gets as far as the network and no further; nothing leaves the machine."""
+    anthropic = pytest.importorskip("anthropic")
+    from baselayer.distillation import spend
+    mk = lambda: anthropic.Anthropic(api_key="test-not-a-key", base_url="http://127.0.0.1:9",
+                                     max_retries=0)
+    b = be.ApiBackend("claude-opus-5", rates_confirmed=spend.RATES_AS_OF, confirm_spend=50.0,
+                      client_factory=mk)
+    b.prepare([{"prompt_chars": 100, "max_tokens": 32000}])
+    r = b.complete("x" * 100, 32000)
+    assert r.text is None
+    assert "Streaming is required" not in (r.error or ""), r.error
+    assert "Connection" in (r.error or ""), r.error
 
 
 # ---------------------------------------------------------------- CLI backend (no child launched)
