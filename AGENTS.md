@@ -72,7 +72,7 @@ baselayer run <file>              # the older, quicker pipeline; far fewer check
 Step-by-step:
 
 ```bash
-baselayer extract                 # Haiku 4.5 (--turn-contract: Haiku 5.5), 46 constrained predicates, AUDN lifecycle
+baselayer extract                 # Haiku 4.5 (--turn-contract: Haiku 5.5), a suggested list of 46 predicates, AUDN lifecycle
 baselayer embed                   # optional: messages -> ChromaDB, for `baselayer search`
 baselayer author --layer all      # Sonnet 4.6, three-layer authoring (static path)
 baselayer compose                 # optional: Opus 4.6, a prose brief from the layers (static path)
@@ -208,7 +208,7 @@ baselayer compose                     # optional: recompose the prose brief from
 | `src/baselayer/verification/` | `verify-spec` |
 | `src/baselayer/consolidation/` | `consolidate` |
 | `src/baselayer/mcp_server.py` | MCP server |
-| `src/baselayer/config.py` | Constants, paths, and the extraction predicate vocabulary (`CONSTRAINED_PREDICATES`: 46 constrained predicates, 45 behavioral plus an `unknown` fallback) |
+| `src/baselayer/config.py` | Constants, paths, and the extraction predicate vocabulary (`CONSTRAINED_PREDICATES`: a suggested list of 46 predicates, 45 behavioral plus an `unknown` fallback. The extractor can add others) |
 | `lexicon_schema.yaml` | Element-type schema for authored specification containers (axiom, prediction, context_mode, meta_section) plus provenance syntax |
 
 ## Environment variables

@@ -38,7 +38,7 @@ All commands invoked as `baselayer <subcommand>`. Source of truth: [`src/baselay
 | `baselayer init` | Initialize a fresh database under the data root (`MEMORY_SYSTEM_ROOT`; unset, code run from this clone uses the clone's own `data/`; never the current directory). |
 | `baselayer import <file>` | Import ChatGPT/Claude export, journal, text file, or directory. |
 | `baselayer estimate` | Preview of extraction cost only, from the imported text and the dated rate table in `src/baselayer/distillation/spend.py`. A floor, not a budget; authoring is not priced here. |
-| `baselayer extract` | Extract facts via Haiku 4.5 (46 constrained predicates, AUDN lifecycle). Add `--turn-contract` to ground every fact in the subject's own turns, on Haiku 5.5 at effort medium (see below). Legacy extraction stays on Haiku 4.5 because on published text the newer model would not credit the writing to the person on the legacy prompt; a legacy comparison is pending. |
+| `baselayer extract` | Extract facts via Haiku 4.5 (a suggested list of 46 predicates, AUDN lifecycle). Add `--turn-contract` to ground every fact in the subject's own turns, on Haiku 5.5 at effort medium (see below). Legacy extraction stays on Haiku 4.5 because on published text the newer model would not credit the writing to the person on the legacy prompt; a legacy comparison is pending. |
 | `baselayer embed` | Embed imported messages into ChromaDB for `baselayer search`. Fact vectors are written during extraction. |
 | `baselayer author --layer all` | Author anchors, core, and predictions layers (Sonnet 4.6). |
 | `baselayer compose` | Optional, legacy: compose a unified prose brief from the three layers (Opus 4.6). Not run by `baselayer run`. |
@@ -101,7 +101,7 @@ Once registered, the next Claude Code session loads two resources and eight tool
 | `src/baselayer/author_layers.py` | Three-layer authoring (anchors, core, predictions). |
 | `src/baselayer/agent_pipeline.py` | Optional prose brief composition (`compose`, Opus 4.6). |
 | `src/baselayer/mcp_server.py` | MCP server. Resources + tools. |
-| `src/baselayer/config.py` | Constants, paths, database singletons. Also the extraction predicate vocabulary: `CONSTRAINED_PREDICATES`, 46 constrained predicates (45 behavioral plus an `unknown` fallback). |
+| `src/baselayer/config.py` | Constants, paths, database singletons. Also the extraction predicate vocabulary: `CONSTRAINED_PREDICATES`, a suggested list of 46 predicates (45 behavioral plus an `unknown` fallback). |
 | `src/baselayer/verify_provenance.py` | The provenance audit behind `baselayer verify` and the `verify_claims` tool. |
 | `lexicon_schema.yaml` | Element-type schema for authored specification containers (axiom, prediction, context_mode, meta_section) plus provenance syntax. Not the predicate vocabulary; that lives in `config.py`. |
 | `tests/` | The test suite. `pytest tests/` runs it. |

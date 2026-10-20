@@ -30,7 +30,7 @@ The Specification is generated from raw text along one of two paths. The cited p
 `baselayer run` (one command):
 
 1. **Import.** Multi-source ingest (ChatGPT, Claude, journals, text).
-2. **Extract.** Haiku 4.5, 46 constrained predicates (the cited build extracts on Haiku 5.5; on published text the newer model would not credit the writing to the person on this prompt, comparison pending). AUDN lifecycle (add, update, delete, noop).
+2. **Extract.** Haiku 4.5, a suggested list of 46 predicates that the extractor can extend (the cited build extracts on Haiku 5.5; on published text the newer model would not credit the writing to the person on this prompt, comparison pending). AUDN lifecycle (add, update, delete, noop).
 3. **Author.** Sonnet 4.6 generates the three layers independently from different fact subsets.
 4. **Traceability.** MiniLM-L6-v2 local embeddings (ChromaDB), vector provenance and a tension check between facts (Haiku 4.5).
 
@@ -83,7 +83,7 @@ Each returns structured JSON: anchors, core, predictions, the optional brief, st
 
 ## Behavioral predicates
 
-46 constrained predicates (45 behavioral plus an `unknown` fallback) capture recurring patterns. Examples, grouped informally (the code defines no categories):
+A suggested list of 46 predicates (45 behavioral plus an `unknown` fallback) captures recurring patterns. The extractor can add others. Examples, grouped informally (the code defines no categories):
 
 - Epistemic: `believes`, `values`, `identifies_as`, `prioritizes`
 - Operational: `practices`, `avoids`, `struggles_with`, `monitors`, `builds`, `maintains`
@@ -104,8 +104,8 @@ Full vocabulary: `CONSTRAINED_PREDICATES` in `src/baselayer/config.py` in the so
 ## For builders
 
 - Source: https://github.com/agulaya24/BaseLayer (Apache 2.0)
-- The pipeline runs locally. Extraction and authoring send text to the configured model API (Anthropic by default; provider retention policies apply). The first embedding run downloads the embedding model from Hugging Face. Base Layer does not collect usage data. Its vector store dependency, ChromaDB, has its own anonymized telemetry setting, on by default; Base Layer turns it off on every ChromaDB client it creates.
-- The Specification format is provider-agnostic. It works with Claude, GPT, Gemini, Grok, or any model that accepts a system prompt.
+- The pipeline runs locally. Extraction, distillation, writing, the tension check and all model-judged checks send text to the Anthropic API. Anthropic's retention policy applies. Extraction can instead run on a local model through Ollama. The embedding model is downloaded from Hugging Face on first use. Base Layer does not collect usage data. Its vector store dependency, ChromaDB, has its own anonymized telemetry setting, on by default; Base Layer turns it off on every ChromaDB client it creates.
+- The Specification is plain text, so any model that accepts a system prompt can read it. The pipeline that builds it has been tested almost entirely on Anthropic models.
 - MCP server for Claude integration is documented in the repo.
 
 ## Reproducibility

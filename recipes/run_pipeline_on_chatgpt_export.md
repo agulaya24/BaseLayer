@@ -50,7 +50,7 @@ Prints the estimated API spend for extraction. **Stop here and surface the estim
 baselayer extract
 ```
 
-Runs Haiku across the imported conversations. Uses the 46 constrained predicates (`CONSTRAINED_PREDICATES` in `config.py`) and the AUDN lifecycle (Add, Update, Delete, NOOP).
+Runs Haiku across the imported conversations. Uses the suggested list of 46 predicates (`CONSTRAINED_PREDICATES` in `config.py`; the extractor can add others) and the AUDN lifecycle (Add, Update, Delete, NOOP).
 
 Sanity-check after extraction:
 
