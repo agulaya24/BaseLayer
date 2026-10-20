@@ -50,7 +50,7 @@ def test_rate_comes_from_the_dated_table():
 
 
 def test_estimate_prints_the_table_rate_and_date(scratch, monkeypatch, capsys):
-    monkeypatch.setattr(config, "EXTRACTION_API_MODEL", "claude-haiku-4-5-20251001")
+    monkeypatch.setattr(config, "LEGACY_EXTRACTION_API_MODEL", "claude-haiku-4-5-20251001")
     cli.cmd_estimate(NS())
     out = capsys.readouterr().out
     i, o = spend.RATES_PER_MTOK["claude-haiku-4-5"]
@@ -74,7 +74,8 @@ def test_estimate_prints_no_fixed_downstream_figures(scratch, capsys):
 
 
 def test_estimate_with_an_unpriced_model_prints_no_cost(scratch, monkeypatch, capsys):
-    monkeypatch.setattr(config, "EXTRACTION_API_MODEL", "local-model")
+    # the estimate prices the legacy path (the `run` default)
+    monkeypatch.setattr(config, "LEGACY_EXTRACTION_API_MODEL", "local-model")
     cli.cmd_estimate(NS())
     out = capsys.readouterr().out
     assert "No rate for this model" in out

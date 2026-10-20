@@ -179,7 +179,18 @@ EXTRACTION_BACKEND = os.environ.get("BASELAYER_EXTRACTION_BACKEND", "anthropic")
 # temperature 0.1 and no effort, as before).
 DEFAULT_EXTRACTION_MODEL = "claude-haiku-5-5"
 DEFAULT_EXTRACTION_EFFORT = "medium"
-EXTRACTION_API_MODEL = os.environ.get("BASELAYER_LLM_EXTRACTION", DEFAULT_EXTRACTION_MODEL)
+# The comparisons ran on the turn-contract path only, so the default follows the path
+# (decision A, 2026-10-19): turn-contract extraction, sequential and batch, uses
+# EXTRACTION_API_MODEL; the legacy path (`extract` without --turn-contract, and so
+# `baselayer run`) uses LEGACY_EXTRACTION_API_MODEL, Haiku 4.5, until a legacy comparison is
+# done. On the legacy prompt's first live test, given a published autobiography as a text file,
+# Haiku 5.5 would not credit the writing to the person (3 facts against Haiku 4.5's 24); on
+# unrecognisable first-person prose the two matched (15 and 17). BASELAYER_LLM_EXTRACTION, when
+# set, is the model on both paths.
+DEFAULT_LEGACY_EXTRACTION_MODEL = "claude-haiku-4-5-20251001"
+_EXTRACTION_OVERRIDE = os.environ.get("BASELAYER_LLM_EXTRACTION") or None
+EXTRACTION_API_MODEL = _EXTRACTION_OVERRIDE or DEFAULT_EXTRACTION_MODEL
+LEGACY_EXTRACTION_API_MODEL = _EXTRACTION_OVERRIDE or DEFAULT_LEGACY_EXTRACTION_MODEL
 
 # Models that reject non-default sampling parameters with a 400 (temperature/top_p/top_k):
 # every 5-generation model, Fable and Mythos, and Opus 4.7 / 4.8. Matched on the id prefix.
@@ -281,7 +292,7 @@ def compute_source_fingerprint(source_dir, extraction_model=None):
             h.update(str(f.stat().st_size).encode())
 
     # Extraction model
-    model = extraction_model or EXTRACTION_API_MODEL
+    model = extraction_model or LEGACY_EXTRACTION_API_MODEL   # `run` extracts on the legacy path
     h.update(model.encode())
 
     # Extraction caps (ceiling + budget)

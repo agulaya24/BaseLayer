@@ -48,7 +48,7 @@ from baselayer.config import (
     SIMILARITY_THRESHOLD, MAX_RETRIES, MIN_FACT_LENGTH,
     MAX_FACTS_PER_CONVERSATION, MIN_MESSAGES_FOR_EXTRACTION,
     VALID_CATEGORIES, VALID_FACT_CLASSES,
-    EXTRACTION_BACKEND, EXTRACTION_API_MODEL,
+    EXTRACTION_BACKEND, EXTRACTION_API_MODEL, LEGACY_EXTRACTION_API_MODEL,
     extraction_sampling_kwargs, extraction_effort_kwargs,
     SCOPE_SOURCE_MAPPING, DEFAULT_SCOPE, CLAUDE_CODE_SOURCES, is_claude_code_source, source_family,
     CONSTRAINED_PREDICATES,
@@ -387,6 +387,21 @@ def _get_known_entities_for_prompt():
 # file or an explicit argument). Read only by _dynamic_cap_enabled.
 _TURN_MODE_ACTIVE = contextvars.ContextVar("baselayer_turn_mode_active", default=False)
 
+# The model of the extraction run in progress: set by run_extraction and the batch entry
+# points from the path they run (config: EXTRACTION_API_MODEL on the turn-contract path,
+# LEGACY_EXTRACTION_API_MODEL on the legacy one), reset when they return. Outside a run (a
+# direct call) it is EXTRACTION_API_MODEL.
+_PATH_MODEL = contextvars.ContextVar("baselayer_extraction_path_model", default=None)
+
+
+def active_extraction_model() -> str:
+    return _PATH_MODEL.get() or EXTRACTION_API_MODEL
+
+
+def path_extraction_model(turn_mode: bool) -> str:
+    """The model a run on this path uses (BASELAYER_LLM_EXTRACTION, when set, on both)."""
+    return EXTRACTION_API_MODEL if turn_mode else LEGACY_EXTRACTION_API_MODEL
+
 
 def _dynamic_cap_enabled() -> bool:
     """B-halt dynamic fact cap gate (default OFF on the legacy path, ON in turn mode).
@@ -423,7 +438,7 @@ def _extraction_max_tokens(fact_count: int) -> int:
     """
     scaled = fact_count * EXTRACTION_TOKENS_PER_FACT + EXTRACTION_OUTPUT_BUFFER_TOKENS
     from baselayer.config import thinking_output_budget
-    return thinking_output_budget(EXTRACTION_API_MODEL,
+    return thinking_output_budget(active_extraction_model(),
                                   min(EXTRACTION_MAX_OUTPUT_TOKENS, max(2000, scaled)))
 
 
@@ -1076,7 +1091,7 @@ def call_cost_usd(c: dict) -> float:
     requested, else the configured one. Tiered per request (Haiku 5.5 over 100K prompt tokens
     pays the long-prompt card on the whole call); a batch entry at the batch discount."""
     from baselayer.config import SPEND_BATCH_DISCOUNT, spend_rates_for, spend_rates_tier
-    model = c.get("model") or c.get("requested_model") or EXTRACTION_API_MODEL
+    model = c.get("model") or c.get("requested_model") or active_extraction_model()
     if spend_rates_for(model) is None and c.get("requested_model"):
         model = c["requested_model"]
     rates = _rates_or_refuse(model)
@@ -1099,7 +1114,7 @@ def check_spend_ceiling(prompt_chars: int, max_tokens: int):
     if ceiling is None:
         return
     from baselayer.config import spend_rates_tier
-    rates = _rates_or_refuse(EXTRACTION_API_MODEL)
+    rates = _rates_or_refuse(active_extraction_model())
     spent = measured_spend_usd()
     tin = prompt_chars / rates["chars_per_token"]
     r = spend_rates_tier(rates, tin)
@@ -1121,8 +1136,8 @@ def _record_usage(response, purpose: str):
     blocks = getattr(response, "content", None) or []
     _USAGE_CALLS.append(_tc.usage_entry(
         getattr(response, "usage", None), purpose=purpose,
-        model=getattr(response, "model", None) or EXTRACTION_API_MODEL,
-        requested_model=EXTRACTION_API_MODEL, batch=False,
+        model=getattr(response, "model", None) or active_extraction_model(),
+        requested_model=active_extraction_model(), batch=False,
         stop_reason=getattr(response, "stop_reason", None),
         refusal_category=getattr(getattr(response, "stop_details", None), "category", None),
         thinking_blocks=sum(1 for b in blocks if getattr(b, "type", None) == "thinking"),
@@ -1198,19 +1213,19 @@ def call_anthropic(prompt: str, schema: dict = None, retries: int = MAX_RETRIES,
         max_tokens = max(2000, estimated_facts * 200)
         # sized for a model that does not think; scaled on one that does (config)
         from baselayer.config import thinking_output_budget
-        max_tokens = thinking_output_budget(EXTRACTION_API_MODEL, max_tokens)
+        max_tokens = thinking_output_budget(active_extraction_model(), max_tokens)
 
     for attempt in range(retries + 1):
         # Outside the try: a refusal here must stop the run, not be retried or swallowed.
         check_spend_ceiling(len(json_instruction) + len(prompt), max_tokens)
         try:
             response = client.messages.create(
-                model=EXTRACTION_API_MODEL,
+                model=active_extraction_model(),
                 max_tokens=max_tokens,
                 messages=[{"role": "user", "content": json_instruction + prompt}],
                 # temperature 0.1 where the model takes it; omitted where it 400s (5-generation)
-                **extraction_sampling_kwargs(EXTRACTION_API_MODEL, 0.1),
-                **extraction_effort_kwargs(EXTRACTION_API_MODEL),
+                **extraction_sampling_kwargs(active_extraction_model(), 0.1),
+                **extraction_effort_kwargs(active_extraction_model()),
             )
             _record_usage(response, "audn" if schema is AUDN_SCHEMA else "extract")
             raw = _strip_json_fences(response_text(response))
@@ -2103,7 +2118,7 @@ def turn_output_budget(citable_chars: int) -> int:
     (config TURN_OUTPUT_TOKENS_PER_CITABLE_CHAR, where the derivation is written; a model that
     thinks by default uses the _THINKING rate and floor, config.turn_output_budget_params)."""
     from baselayer.config import turn_output_budget_params
-    per_char, floor = turn_output_budget_params(EXTRACTION_API_MODEL)
+    per_char, floor = turn_output_budget_params(active_extraction_model())
     scaled = math.ceil(per_char * max(0, citable_chars))
     return min(EXTRACTION_MAX_OUTPUT_TOKENS, max(floor, scaled))
 
@@ -2125,7 +2140,7 @@ def turn_chunk_max_tokens(chunk, plan: dict) -> int:
     if uncounted_mode(plan.get("fact_count_mode")):
         return turn_output_budget(chunk.citable_chars)
     from baselayer.config import thinking_output_budget
-    return thinking_output_budget(EXTRACTION_API_MODEL, plan["max_tokens"])
+    return thinking_output_budget(active_extraction_model(), plan["max_tokens"])
 
 
 def _abstract_noncitable_project_text(text: str) -> str:
@@ -2283,7 +2298,7 @@ def legacy_prompt_hash(builder, schema=None) -> str:
 
 
 def _extraction_model_name() -> str:
-    return EXTRACTION_API_MODEL if EXTRACTION_BACKEND == "anthropic" else LLM_MODEL
+    return active_extraction_model() if EXTRACTION_BACKEND == "anthropic" else LLM_MODEL
 
 
 def turn_stamps() -> dict:
@@ -2707,12 +2722,12 @@ def assert_legacy_allowed(conn):
 
 def _effort():
     from baselayer.config import extraction_effort
-    return extraction_effort(EXTRACTION_API_MODEL)
+    return extraction_effort(active_extraction_model())
 
 
 def _budget_params() -> tuple:
     from baselayer.config import turn_output_budget_params
-    return turn_output_budget_params(EXTRACTION_API_MODEL)
+    return turn_output_budget_params(active_extraction_model())
 
 
 def turn_run_settings() -> dict:
@@ -3998,7 +4013,17 @@ def _should_warn_low_fact_count(total_facts: int, errors: int, *, total_chars: i
             and total_facts < LOW_YIELD_WARN_PER_10K * total_chars / 10_000)
 
 
-def run_extraction(limit: int = None, conv_id: str = None,
+def run_extraction(*args, **kwargs):
+    """Main extraction pipeline (_run_extraction), on the path's model: EXTRACTION_API_MODEL
+    under the turn contract, LEGACY_EXTRACTION_API_MODEL on the legacy path (config)."""
+    token = _PATH_MODEL.set(path_extraction_model(_turn_contract_enabled()))
+    try:
+        return _run_extraction(*args, **kwargs)
+    finally:
+        _PATH_MODEL.reset(token)
+
+
+def _run_extraction(limit: int = None, conv_id: str = None,
                     identity_only: bool = False, source_filter: str = None,
                     retry_errors: bool = False, document_mode: bool = False,
                     conv_ids: list = None, review_reason: str = None):
@@ -4019,7 +4044,7 @@ def run_extraction(limit: int = None, conv_id: str = None,
         mode_label = "Fact Extraction (AUDN Pipeline)"
     print("=" * 60)
     print(f"Step 2: Extract — {mode_label}")
-    model_display = EXTRACTION_API_MODEL if EXTRACTION_BACKEND == "anthropic" else LLM_MODEL
+    model_display = active_extraction_model() if EXTRACTION_BACKEND == "anthropic" else LLM_MODEL
     print(f"Model: {model_display}")
     print(f"Similarity threshold: {SIMILARITY_THRESHOLD}")
     if source_filter:

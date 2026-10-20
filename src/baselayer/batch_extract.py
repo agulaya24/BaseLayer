@@ -85,6 +85,9 @@ from baselayer.extract_facts import (
     turn_stamps,
     check_turn_versions,
     _TURN_MODE_ACTIVE,
+    _PATH_MODEL,
+    active_extraction_model,
+    path_extraction_model,
     mark_turn_conversation_extracted,
     _turn_conversations_to_process,
     reset_usage,
@@ -119,7 +122,7 @@ def _batch_usage(result, conv_id, custom_id, meta=None):
         extra = {"chunk": meta.get("chunk_idx"), "citable_chars": meta["citable_chars"]}
     blocks = getattr(msg, "content", None) or []
     return _tc.usage_entry(getattr(msg, "usage", None), purpose="extract", model=getattr(msg, "model", None),
-                           requested_model=EXTRACTION_API_MODEL, batch=True,
+                           requested_model=active_extraction_model(), batch=True,
                            stop_reason=getattr(msg, "stop_reason", None),
                            refusal_category=getattr(getattr(msg, "stop_details", None), "category", None),
                            thinking_blocks=sum(1 for b in blocks if getattr(b, "type", None) == "thinking"),
@@ -135,9 +138,11 @@ def _scoped_turn_mode(fn):
     @functools.wraps(fn)
     def wrapper(*args, **kwargs):
         token = _TURN_MODE_ACTIVE.set(_TURN_MODE_ACTIVE.get())
+        model_token = _PATH_MODEL.set(_PATH_MODEL.get())   # the path model, likewise
         try:
             return fn(*args, **kwargs)
         finally:
+            _PATH_MODEL.reset(model_token)
             _TURN_MODE_ACTIVE.reset(token)
     return wrapper
 from baselayer import turn_contract as _tc
@@ -422,6 +427,7 @@ def run_submit(document_mode=False, skip_extracted=False, turn_contract=None):
     """
     turn_mode = _turn_contract_enabled() if turn_contract is None else bool(turn_contract)
     _TURN_MODE_ACTIVE.set(turn_mode)
+    _PATH_MODEL.set(path_extraction_model(turn_mode))
     mode_label = "Document Corpus" if document_mode else "Re-extraction"
     if turn_mode:
         mode_label += f" under {TURN_CONTRACT_VERSION}"
@@ -523,7 +529,7 @@ def run_submit(document_mode=False, skip_extracted=False, turn_contract=None):
             if turn_mode:
                 built = _turn_requests_for_conversation(
                     conn, conv_id, conv_title, source, stamps=stamps,
-                    model=EXTRACTION_API_MODEL, temperature=BATCH_TEMPERATURE,
+                    model=active_extraction_model(), temperature=BATCH_TEMPERATURE,
                     json_instruction=json_instruction, chunk_map=chunk_map,
                     fresh=not skip_extracted)
                 if built is None:
@@ -572,8 +578,8 @@ def run_submit(document_mode=False, skip_extracted=False, turn_contract=None):
                 input_char_budget=caps["input_char_budget"],
                 max_facts=caps["max_facts"],
                 prompt_builder=prompt_builder,
-                model=EXTRACTION_API_MODEL,
-                max_tokens=legacy_batch_max_tokens(EXTRACTION_API_MODEL),
+                model=active_extraction_model(),
+                max_tokens=legacy_batch_max_tokens(active_extraction_model()),
                 temperature=BATCH_TEMPERATURE,
                 json_instruction=json_instruction,
                 chunk_map=chunk_map,
@@ -633,8 +639,8 @@ def run_submit(document_mode=False, skip_extracted=False, turn_contract=None):
         "total_requests": len(requests),
         "conversation_ids": list(chunk_counts.keys()),
         "chunk_map": chunk_map,  # custom_id → {parent_conv_id, chunk_idx, total_chunks, source}
-        "model": EXTRACTION_API_MODEL,
-        "effort": extraction_effort(EXTRACTION_API_MODEL),
+        "model": active_extraction_model(),
+        "effort": extraction_effort(active_extraction_model()),
         "status": "submitted",
         "mode": "turn" if turn_mode else "legacy",
         # An incremental batch covers only part of the corpus, so the resetting --process
@@ -1082,6 +1088,8 @@ def run_process(resume=False):
     chunk_map = state.get("chunk_map", {})
     turn_mode = state.get("mode") == "turn"
     _TURN_MODE_ACTIVE.set(turn_mode)
+    # synchronous re-chunks and AUDN calls run on the model the batch was submitted with
+    _PATH_MODEL.set(state.get("model") or path_extraction_model(turn_mode))
     client = _get_anthropic_client()
 
     # Verify batch is complete

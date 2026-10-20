@@ -272,7 +272,8 @@ def cmd_estimate(args):
     Prices extraction only, from the extraction spend table in config.py (or, for a model it
     lacks, the dated rate table in distillation/spend.py). It is a floor, not a budget: the
     token count is approximate and authoring is not priced here."""
-    from baselayer.config import DATABASE_FILE, EXTRACTION_API_MODEL, get_db
+    # Sequential legacy extraction, the `baselayer run` default, so the legacy path's model.
+    from baselayer.config import DATABASE_FILE, LEGACY_EXTRACTION_API_MODEL as EXTRACTION_API_MODEL, get_db
     from baselayer.distillation.spend import CHARS_PER_TOKEN, RATES_AS_OF, RATES_SOURCE
 
     if not DATABASE_FILE.exists():
@@ -339,7 +340,10 @@ def cmd_extract(args):
 
     if config.EXTRACTION_BACKEND == "anthropic":
         _check_api_key()
-        print(f"Using Anthropic API ({config.EXTRACTION_API_MODEL}) for extraction")
+        from baselayer.extract_facts import path_extraction_model, _turn_contract_enabled
+        model = path_extraction_model(bool(getattr(args, "turn_contract", False))
+                                      or _turn_contract_enabled())
+        print(f"Using Anthropic API ({model}) for extraction")
     else:
         print(f"Using local Ollama ({config.LLM_MODEL}) for extraction")
 
