@@ -622,6 +622,15 @@ def run_submit(document_mode=False, skip_extracted=False, turn_contract=None):
     # has no ledger block id to fall back to, so there an over-long id is refused, not renamed.
     _check_custom_ids(requests)
 
+    # BASELAYER_SPEND_CEILING_USD, which the sequential path checks before every call. A batch
+    # cannot be stopped part way, so its whole worst case is checked here, before any client
+    # exists and before anything is sent.
+    from baselayer.extract_facts import check_batch_spend_ceiling
+    worst = check_batch_spend_ceiling(requests, active_extraction_model())
+    if worst is not None:
+        print(f"  Spend ceiling: batch worst case ${worst:.4f} is within "
+              f"BASELAYER_SPEND_CEILING_USD")
+
     client = _get_anthropic_client()
     print(f"\nSubmitting batch to Anthropic API...")
 
