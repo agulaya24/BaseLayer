@@ -3626,6 +3626,47 @@ def embed_fact(fact_id: str, fact_text: str, category: str, collection, model,
     )
 
 
+def _collection_ids(collection, page: int = 5000) -> set:
+    """Every id in a Chroma collection, paged so a large collection is not one response."""
+    out, offset = set(), 0
+    while True:
+        got = collection.get(include=[], limit=page, offset=offset)
+        ids = got.get("ids") or []
+        out.update(ids)
+        if len(ids) < page:
+            return out
+        offset += page
+
+
+def embed_missing_facts(conn, collection, model, batch_size: int = 64) -> int:
+    """Embed every ACTIVE fact (superseded_by IS NULL) whose id is not in the facts collection.
+    Returns the number added. Metadata matches embed_fact: turn_contract_version and grounding
+    are written only when set. A forgotten or superseded fact is never re-embedded, so this
+    cannot undo `forget`."""
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(memory_facts)")}
+    ver = "turn_contract_version" if "turn_contract_version" in cols else "NULL"
+    grd = "grounding" if "grounding" in cols else "NULL"
+    rows = conn.execute(
+        f"SELECT id, fact_text, category, {ver}, {grd} FROM memory_facts "
+        f"WHERE superseded_by IS NULL ORDER BY id").fetchall()
+    have = _collection_ids(collection)
+    todo = [r for r in rows if r[0] not in have]
+    for i in range(0, len(todo), batch_size):
+        part = todo[i:i + batch_size]
+        metas = []
+        for fid, _text, cat, cv, g in part:
+            meta = {"fact_id": fid, "category": cat or "unknown"}
+            if cv:
+                meta["turn_contract_version"] = cv
+            if g:
+                meta["grounding"] = g
+            metas.append(meta)
+        collection.add(ids=[r[0] for r in part],
+                       embeddings=model.encode([r[1] or "" for r in part]).tolist(),
+                       documents=[r[1] or "" for r in part], metadatas=metas)
+    return len(todo)
+
+
 # ---------------------------------------------------------------------------
 # Main Processing Pipeline
 # ---------------------------------------------------------------------------

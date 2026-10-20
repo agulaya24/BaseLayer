@@ -1380,30 +1380,42 @@ def _run_traceability():
     conn.commit()
     print(f"      {id_count} -> identity, {ctx_count} -> contextual")
 
-    # 5b: Embed facts into ChromaDB (if not already done)
-    print("  5b. Checking embeddings...")
+    # 5b: Make sure every active fact has a vector in `memory_facts`, which 5c queries.
+    # This used to call cmd_embed when fewer than 90% of fact rows had vectors; cmd_embed embeds
+    # MESSAGES into the `messages` collection, so it could never raise the fact-vector count, and
+    # its denominator counted forgotten and superseded rows too. Now the missing active facts
+    # are embedded by id, and nothing else is touched.
+    print("  5b. Checking fact embeddings...")
     try:
-        import chromadb
+        import chromadb  # noqa: F401  (presence check)
         from baselayer.config import get_chroma_client as _chroma_client_for
+        from baselayer.extract_facts import embed_missing_facts, _collection_ids
         client = _chroma_client_for(VECTORS_DIR)
-        try:
-            collection = client.get_collection("memory_facts")
-            db_count = conn.execute("SELECT COUNT(*) FROM memory_facts").fetchone()[0]
-            vec_count = collection.count()
-            if vec_count >= db_count * 0.9:
-                print(f"      {vec_count}/{db_count} facts already embedded. Skipping.")
+        collection = client.get_or_create_collection(
+            "memory_facts",
+            metadata={"description": "Extracted personal facts (AUDN pipeline)",
+                      "hnsw:space": "cosine"})
+        active = conn.execute(
+            "SELECT COUNT(*) FROM memory_facts WHERE superseded_by IS NULL").fetchone()[0]
+        active_ids = {r[0] for r in conn.execute(
+            "SELECT id FROM memory_facts WHERE superseded_by IS NULL")}
+        missing = len(active_ids - _collection_ids(collection))
+        if not missing:
+            print(f"      {active}/{active} active facts embedded. Skipping.")
+        else:
+            from baselayer.api_client import get_embedding_model
+            model = get_embedding_model()
+            if model is None:
+                print(f"      {missing} of {active} active facts have no vector, and "
+                      f"sentence-transformers is not available; provenance will not see them.")
             else:
-                print(f"      {vec_count}/{db_count} embedded. Running embed...")
-                conn.close()
-                cmd_embed(type('', (), {'batch_size': 64})())
-                conn = sqlite3.connect(str(DATABASE_FILE))
-        except Exception:
-            print(f"      No collection found. Running embed...")
-            conn.close()
-            cmd_embed(type('', (), {'batch_size': 64})())
-            conn = sqlite3.connect(str(DATABASE_FILE))
+                added = embed_missing_facts(conn, collection, model)
+                print(f"      {added} of {active} active facts had no vector; embedded them.")
     except ImportError:
         print("      chromadb not installed, skipping embeddings.")
+    except Exception as e:
+        print(f"      Fact embedding check failed ({type(e).__name__}: {e}); 5c may run on an "
+              f"incomplete index.")
 
     # 5c: Vector provenance (embedding similarity traces for each layer claim)
     print("  5c. Generating vector provenance...")
