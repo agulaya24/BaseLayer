@@ -47,7 +47,7 @@ from datetime import datetime
 from baselayer.config import (
     DATABASE_FILE, IDENTITY_LAYERS_DIR,
     ANCHORS_LAYER_FILE, CORE_LAYER_FILE, PREDICTIONS_LAYER_FILE,
-    AUTHORING_EXCLUSION_PATTERNS, LAYER_GENERATION_MODEL,
+    AUTHORING_EXCLUSION_PATTERNS, LAYER_GENERATION_MODEL, extraction_sampling_kwargs,
     AUTHORING_MAX_DOMAIN_PERCENT, AUTHORING_DOMAIN_KEYWORDS,
     get_db,
 )
@@ -1477,7 +1477,8 @@ def generate_layer_with_citations(layer_name, prompt_text, document_blocks,
         resp = client.messages.create(
             model=LAYER_GENERATION_MODEL,
             max_tokens=4096,
-            temperature=0,
+            # through the per-model filter: a 5-generation model returns 400 on temperature
+            **extraction_sampling_kwargs(LAYER_GENERATION_MODEL, 0),
             messages=[{"role": "user", "content": user_content}],
         )
 
@@ -1570,7 +1571,8 @@ def generate_layer_with_citations_multi_doc(layer_name, prompt_text, documents):
         resp = client.messages.create(
             model=LAYER_GENERATION_MODEL,
             max_tokens=4096,
-            temperature=0,
+            # through the per-model filter: a 5-generation model returns 400 on temperature
+            **extraction_sampling_kwargs(LAYER_GENERATION_MODEL, 0),
             messages=[{"role": "user", "content": user_content}],
         )
 

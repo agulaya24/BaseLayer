@@ -1,9 +1,11 @@
 """Dated price table and the estimate printed before any model step runs.
 
-Rates are first-party API list prices per million tokens, taken from the Anthropic
-model table as cached on 2026-06-24 (claude-api skill). They are DATED, not
-authoritative: re-check before quoting a number to anyone. Cache reads are 0.1x
-input. For `claude -p` the estimate is COUNTERFACTUAL (what the calls would cost at
+Rates are the distillation table (`baselayer.distillation.spend.RATES_PER_MTOK`), first-party
+API list prices per million tokens with the date they were read. This module used to carry its
+own copy, which went stale separately (it lacked Sonnet 5.5 and Haiku 5.5, and its CLI
+aliases priced older models). They are DATED, not authoritative: re-check before quoting a
+number to anyone. Cache reads are 0.1x input (0.05x on Opus 5.5 and Sonnet 5.5, so the CLI
+overhead here over-counts those two slightly). For `claude -p` the estimate is COUNTERFACTUAL (what the calls would cost at
 API rates); the subscription run itself bills nothing.
 
 Each `claude -p` call also carries the CLI's own system prompt, measured on this
@@ -12,14 +14,13 @@ call on the CLI route and is the reason a small prompt is not a cheap call.
 """
 from __future__ import annotations
 
-PRICES_AS_OF = "2026-06-24"
-PRICES = {  # model: (input, output) USD per million tokens
-    "claude-opus-5-5": (4.00, 20.00),
-    "claude-opus-5": (5.00, 25.00),
-    "claude-sonnet-5": (2.00, 10.00),
-    "claude-haiku-4-5": (1.00, 5.00),
-}
-ALIASES = {"opus": "claude-opus-5", "sonnet": "claude-sonnet-5", "haiku": "claude-haiku-4-5"}
+from baselayer.distillation.spend import RATES_AS_OF as PRICES_AS_OF
+from baselayer.distillation.spend import RATES_PER_MTOK as PRICES  # model: (input, output)
+from baselayer.config import _LATEST_MODELS
+
+# A `claude -p --model opus` alias resolves to whatever model the CLI chooses. It is priced as
+# the newest model of its family in the table, which is what the alias normally means.
+ALIASES = {family: _LATEST_MODELS[family] for family in ("opus", "sonnet", "haiku")}
 CACHE_READ_FACTOR = 0.10
 CLI_OVERHEAD_TOKENS = 28_000
 CHARS_PER_TOKEN = 3.5

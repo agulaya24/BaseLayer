@@ -741,17 +741,6 @@ CONTRADICTION_SIMILARITY_THRESHOLD = 0.50  # MiniLM similarity threshold for can
 
 
 # ==========================================================================
-# ARCHIVED — TIER RECLASSIFICATION (reclassify_tiers.py)
-# ==========================================================================
-# DEAD after pipeline simplification (S79: 14 steps → 4 steps).
-# Script moved to scripts/archive/dead_pipeline_steps/.
-# Constants kept to avoid breaking any remaining imports.
-
-RECLASSIFY_MODEL = "claude-sonnet-4-20250514"
-RECLASSIFY_BATCH_SIZE = 10
-
-
-# ==========================================================================
 # ARCHIVED — ENRICHMENT CONSOLIDATION (consolidate_enrichments.py)
 # ==========================================================================
 # DEAD after pipeline simplification (S79: 14 steps → 4 steps).
@@ -849,21 +838,40 @@ _LLM_DEFAULTS = {
     "contradiction": "claude-sonnet-4-6",              # Used by detect_contradictions.py (experimental)
 }
 
-# S98: Known latest model versions — used for freshness check
-_LATEST_MODELS = {
-    "haiku": "claude-haiku-5-5",
-    "sonnet": "claude-sonnet-4-6",
-    "opus": "claude-opus-4-6",
-}
+# Newest model per family, for the freshness check. Derived from the two dated rate tables
+# (SPEND_RATES_BY_MODEL here and distillation/spend.py RATES_PER_MTOK), so adding a model's
+# price is what makes it "latest". A hand-kept list here named Sonnet 4.6 and Opus 4.6 as the
+# newest long after the 5-generation models shipped, so the check could never flag the 4.6
+# defaults.
+def _model_version(model_id: str):
+    """('opus', (5, 5)) for claude-opus-5-5; ('haiku', (4, 5)) for claude-haiku-4-5-20251001."""
+    m = re.match(r"^claude-([a-z]+)-(\d+)(?:-(\d{1,2}))?(?:-\d{8})?$", (model_id or "").lower())
+    if not m:
+        return None, None
+    return m.group(1), (int(m.group(2)), int(m.group(3) or 0))
+
+
+def _latest_models():
+    from baselayer.distillation.spend import RATES_PER_MTOK
+    best = {}
+    for mid in list(SPEND_RATES_BY_MODEL) + list(RATES_PER_MTOK):
+        fam, ver = _model_version(mid)
+        if fam and (fam not in best or ver > best[fam][1]):
+            best[fam] = (mid, ver)
+    return {fam: mid for fam, (mid, _v) in best.items()}
+
+
+_LATEST_MODELS = _latest_models()
 
 
 def check_model_freshness():
     """Check if configured models are the latest available. Prints warnings for outdated models."""
     warnings = []
     for role, model_id in LLM_PROVIDER_CONFIG.items():
-        for family, latest in _LATEST_MODELS.items():
-            if family in model_id.lower() and model_id != latest:
-                warnings.append(f"  {role}: using {model_id}, latest is {latest}")
+        fam, ver = _model_version(model_id)
+        latest = _LATEST_MODELS.get(fam) if fam else None
+        if latest and ver < _model_version(latest)[1]:
+            warnings.append(f"  {role}: using {model_id}, latest is {latest}")
     if warnings:
         print("Model freshness warning — outdated models detected:")
         for w in warnings:
@@ -889,9 +897,7 @@ LLM_PROVIDER_CONFIG = {
 
 LAYER_GENERATION_MODEL = LLM_PROVIDER_CONFIG["authoring"]
 # LAYER_REVIEW_MODEL is actively used as the compose model in agent_pipeline.py.
-# LAYER_SELF_REVIEW_MODEL is imported by author_layers.py (legacy, collective review path).
 LAYER_REVIEW_MODEL = LLM_PROVIDER_CONFIG["review"]
-LAYER_SELF_REVIEW_MODEL = LLM_PROVIDER_CONFIG["authoring"]
 
 # ==========================================================================
 # ARCHIVED — COLLECTIVE REVIEW PIPELINE (author_layers.py)

@@ -11,14 +11,22 @@ Confirm with `--rates-confirmed <RATES_AS_OF>` (or BASELAYER_RATES_CONFIRMED), o
 """
 import os
 
-# Source: the claude-api skill's Current Models table (first-party API rates), cached
-# 2026-06-24, read on 2026-09-25. USD per million tokens, (input, output).
-RATES_AS_OF = "2026-06-24"
-RATES_READ_ON = "2026-09-25"
-RATES_SOURCE = "claude-api skill, Current Models table (first-party API rates)"
+# Source: the Claude API pricing page (first-party API rates), captured 2026-10-20. USD per
+# million tokens, (base input, output). The page wins over any cached model table. The
+# previous table (dated 2026-06-24, from the claude-api skill) predated Sonnet 5.5 and
+# Haiku 5.5; its four rows are unchanged on the page.
+RATES_AS_OF = "2026-10-20"
+RATES_READ_ON = "2026-10-20"
+RATES_SOURCE = "https://platform.claude.com/docs/en/about-claude/pricing (first-party API rates)"
 RATES_PER_MTOK = {
     "claude-haiku-4-5": (1.0, 5.0),
+    # Haiku 5.5 is priced by prompt length ($0.10 / $0.50 up to 100,000 prompt tokens, $0.50 /
+    # $2.50 over). A flat (input, output) row holds the UPPER card, so an estimate or a spend
+    # ceiling can over-count a Haiku 5.5 run and never under-count it. Pass --rate-in /
+    # --rate-out to price a short-prompt run exactly.
+    "claude-haiku-5-5": (0.50, 2.50),
     "claude-sonnet-5": (2.0, 10.0),
+    "claude-sonnet-5-5": (2.0, 10.0),
     "claude-opus-5": (5.0, 25.0),
     "claude-opus-5-5": (4.0, 20.0),
 }
