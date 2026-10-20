@@ -427,13 +427,14 @@ of any figure here.
 
 **Extraction on Claude Haiku 5.5.** The measured builds extracted on Claude Haiku 4.5, the default
 until 19 October 2026. Same-sample comparisons of the two models measured Claude Haiku 5.5 at
-effort medium at 0.21 of Claude Haiku 4.5's cost on essays and talk transcripts (40 documents),
-0.17 on list posts (25) and 0.19 on chat (25 conversations), at standard rates. The ratios include
+effort medium at 0.21 of Claude Haiku 4.5's cost on essays, talk transcripts and mailing-list
+posts (40 documents), 0.17 on weekly roundup posts (25) and 0.19 on chat (25 conversations), at
+standard rates. The ratios include
 its tokenizer (about 1.38 times the input tokens for the same text) and its thinking (about twice
 the output tokens per fact). Figures marked *derived* below multiply the measured Claude Haiku 4.5
 extraction cost by the ratio for the nearest kind of text. Fact counts are kept from the measured
-builds. On the comparison samples Claude Haiku 5.5 kept 12% more facts on essays and talks, 15%
-more on chat and 16% fewer on list posts; the leaf stage would move by about as much, and that is
+builds. On the comparison samples Claude Haiku 5.5 kept 12% more facts on essays, talks and mailing-list
+posts, 15% more on chat and 16% fewer on weekly roundup posts; the leaf stage would move by about as much, and that is
 not applied.
 
 **The batch setup (14.2), stage by stage, measured, with extraction on Claude Haiku 5.5 derived:**
