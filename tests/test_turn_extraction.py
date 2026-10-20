@@ -137,6 +137,11 @@ def env(tmp_path, monkeypatch):
     monkeypatch.setattr(cfg, "PROJECT_ROOT", tmp_path)
     FakeClient.collection = None
     monkeypatch.setitem(sys.modules, "chromadb", types.SimpleNamespace(PersistentClient=FakeClient))
+    # config.get_chroma_client also runs `from chromadb.config import Settings`. Without this
+    # entry that import only worked when an earlier test had loaded the real chromadb.config,
+    # so tests on this fixture passed in the full suite and failed run alone.
+    monkeypatch.setitem(sys.modules, "chromadb.config",
+                        types.SimpleNamespace(Settings=lambda **kw: kw))
     monkeypatch.setitem(sys.modules, "sentence_transformers",
                         types.SimpleNamespace(SentenceTransformer=FakeST))
     monkeypatch.delenv("BASELAYER_TURN_CONTRACT", raising=False)

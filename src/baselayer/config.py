@@ -677,11 +677,17 @@ def chromadb_dist_to_similarity(dist, space):
         # Chroma cosine distance is 1 - cos_sim.
         sim = 1.0 - dist
     elif space == "l2":
-        # Squared L2 on normalized vectors: cos_sim = 1 - d/2.
-        # For unnormalized L2 this is an approximation; embeddings here are normalized.
-        sim = 1.0 - (dist ** 2) / 2.0
+        # Chroma's l2 space returns the SQUARED euclidean distance (measured on chromadb 1.4.1:
+        # unit vectors 90 degrees apart return 2.0, not 1.414). On normalized vectors
+        # ||a - b||^2 = 2 - 2 cos, so cos_sim = 1 - d/2. The formula here used to be
+        # 1 - d**2/2, which treats d as the unsquared distance and inflates every similarity
+        # (30 degrees apart: true 0.866, reported 0.964). For unnormalized vectors this is an
+        # approximation; embeddings here are normalized.
+        sim = 1.0 - dist / 2.0
     else:  # ip
-        sim = dist
+        # Chroma's ip distance is 1 - dot (measured on chromadb 1.4.1), so on normalized
+        # vectors cos_sim = 1 - d. It used to return d itself, which inverts the ranking.
+        sim = 1.0 - dist
     return round(max(0.0, min(1.0, sim)), 4)
 
 
@@ -732,17 +738,6 @@ TEMPORAL_QUALIFIER_THRESHOLD_DAYS = 240  # ~8 months
 # detect_contradictions.py is not part of the 4-step pipeline but is not archived.
 
 CONTRADICTION_SIMILARITY_THRESHOLD = 0.50  # MiniLM similarity threshold for candidate pairs
-
-
-# ==========================================================================
-# ARCHIVED — TIER RECLASSIFICATION (reclassify_tiers.py)
-# ==========================================================================
-# DEAD after pipeline simplification (S79: 14 steps → 4 steps).
-# Script moved to scripts/archive/dead_pipeline_steps/.
-# Constants kept to avoid breaking any remaining imports.
-
-RECLASSIFY_MODEL = "claude-sonnet-4-20250514"
-RECLASSIFY_BATCH_SIZE = 10
 
 
 # ==========================================================================
@@ -843,21 +838,40 @@ _LLM_DEFAULTS = {
     "contradiction": "claude-sonnet-4-6",              # Used by detect_contradictions.py (experimental)
 }
 
-# S98: Known latest model versions — used for freshness check
-_LATEST_MODELS = {
-    "haiku": "claude-haiku-5-5",
-    "sonnet": "claude-sonnet-4-6",
-    "opus": "claude-opus-4-6",
-}
+# Newest model per family, for the freshness check. Derived from the two dated rate tables
+# (SPEND_RATES_BY_MODEL here and distillation/spend.py RATES_PER_MTOK), so adding a model's
+# price is what makes it "latest". A hand-kept list here named Sonnet 4.6 and Opus 4.6 as the
+# newest long after the 5-generation models shipped, so the check could never flag the 4.6
+# defaults.
+def _model_version(model_id: str):
+    """('opus', (5, 5)) for claude-opus-5-5; ('haiku', (4, 5)) for claude-haiku-4-5-20251001."""
+    m = re.match(r"^claude-([a-z]+)-(\d+)(?:-(\d{1,2}))?(?:-\d{8})?$", (model_id or "").lower())
+    if not m:
+        return None, None
+    return m.group(1), (int(m.group(2)), int(m.group(3) or 0))
+
+
+def _latest_models():
+    from baselayer.distillation.spend import RATES_PER_MTOK
+    best = {}
+    for mid in list(SPEND_RATES_BY_MODEL) + list(RATES_PER_MTOK):
+        fam, ver = _model_version(mid)
+        if fam and (fam not in best or ver > best[fam][1]):
+            best[fam] = (mid, ver)
+    return {fam: mid for fam, (mid, _v) in best.items()}
+
+
+_LATEST_MODELS = _latest_models()
 
 
 def check_model_freshness():
     """Check if configured models are the latest available. Prints warnings for outdated models."""
     warnings = []
     for role, model_id in LLM_PROVIDER_CONFIG.items():
-        for family, latest in _LATEST_MODELS.items():
-            if family in model_id.lower() and model_id != latest:
-                warnings.append(f"  {role}: using {model_id}, latest is {latest}")
+        fam, ver = _model_version(model_id)
+        latest = _LATEST_MODELS.get(fam) if fam else None
+        if latest and ver < _model_version(latest)[1]:
+            warnings.append(f"  {role}: using {model_id}, latest is {latest}")
     if warnings:
         print("Model freshness warning — outdated models detected:")
         for w in warnings:
@@ -883,9 +897,7 @@ LLM_PROVIDER_CONFIG = {
 
 LAYER_GENERATION_MODEL = LLM_PROVIDER_CONFIG["authoring"]
 # LAYER_REVIEW_MODEL is actively used as the compose model in agent_pipeline.py.
-# LAYER_SELF_REVIEW_MODEL is imported by author_layers.py (legacy, collective review path).
 LAYER_REVIEW_MODEL = LLM_PROVIDER_CONFIG["review"]
-LAYER_SELF_REVIEW_MODEL = LLM_PROVIDER_CONFIG["authoring"]
 
 # ==========================================================================
 # ARCHIVED — COLLECTIVE REVIEW PIPELINE (author_layers.py)

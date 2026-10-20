@@ -33,9 +33,41 @@ def test_cosine_space_uses_one_minus_distance():
     assert chromadb_dist_to_similarity(0.5477, "cosine") == pytest.approx(0.4523, abs=1e-4)
 
 
-def test_l2_space_keeps_the_squared_formula():
-    """The control. An l2 collection must still use the old formula, which was correct there."""
-    assert chromadb_dist_to_similarity(0.5477, "l2") == pytest.approx(0.8500, abs=1e-4)
+def test_l2_space_reads_the_distance_as_squared():
+    """Chroma's l2 distance is SQUARED euclidean, so on unit vectors cos = 1 - d/2.
+
+    The formula used to be 1 - d**2/2, which treats d as the unsquared distance. It passed a
+    test that asserted the formula against itself (0.5477 -> 0.85) and was never checked
+    against what Chroma returns. A squared distance of 0.2679 is two unit vectors 30 degrees
+    apart, cos 0.8660; the old formula reported 0.9641."""
+    assert chromadb_dist_to_similarity(0.2679, "l2") == pytest.approx(0.8660, abs=1e-3)
+    assert chromadb_dist_to_similarity(2.0, "l2") == 0.0            # orthogonal
+    assert chromadb_dist_to_similarity(1.0, "l2") == pytest.approx(0.5, abs=1e-4)
+
+
+@pytest.mark.parametrize("space", ["l2", "cosine", "ip"])
+@pytest.mark.parametrize("degrees", [15, 30, 60, 75])
+def test_similarity_matches_cosine_from_a_real_chroma_query(space, degrees):
+    """Ask the artifact: store a unit vector in a real in-memory Chroma collection of each
+    space, query with another unit vector at a known angle, and convert the distance Chroma
+    returns. The converter must give back the true cosine. A formula checked only against
+    itself cannot fail this way, which is how the l2 defect survived."""
+    import math
+    chromadb = pytest.importorskip("chromadb")
+    from chromadb.config import Settings
+    client = chromadb.EphemeralClient(settings=Settings(anonymized_telemetry=False))  # no telemetry
+    name = "probe_%s_%d" % (space, degrees)
+    try:
+        client.delete_collection(name)
+    except Exception:
+        pass
+    col = client.create_collection(name, metadata={"hnsw:space": space})
+    th = math.radians(degrees)
+    col.add(ids=["b"], embeddings=[[math.cos(th), math.sin(th), 0.0]])
+    got = col.query(query_embeddings=[[1.0, 0.0, 0.0]], n_results=1)
+    dist = got["distances"][0][0]
+    sim = chromadb_dist_to_similarity(dist, collection_space(col))
+    assert sim == pytest.approx(math.cos(th), abs=2e-3), (space, dist)
 
 
 def test_the_old_implementation_would_fail_the_cosine_case():

@@ -593,9 +593,11 @@ class TestChromaDBDistToSimilarity:
 
     def test_high_l2_distance(self):
         from baselayer.config import chromadb_dist_to_similarity
-        # L2 = sqrt(2) → cos_sim = 1 - 1 = 0 (orthogonal)
-        sim = chromadb_dist_to_similarity(1.414, "l2")
-        assert sim < 0.01
+        # Chroma's l2 distance is SQUARED: orthogonal unit vectors are d = 2.0 -> cos 0.
+        # d = 1.414 is the unsquared distance of orthogonal vectors; read as squared it is
+        # 45 degrees short of orthogonal, cos 0.293, and must not be reported as 0.
+        assert chromadb_dist_to_similarity(2.0, "l2") < 0.01
+        assert abs(chromadb_dist_to_similarity(1.414, "l2") - 0.293) < 0.01
 
     def test_very_high_distance_clamps_to_zero(self):
         from baselayer.config import chromadb_dist_to_similarity
@@ -604,9 +606,9 @@ class TestChromaDBDistToSimilarity:
 
     def test_small_l2_distance(self):
         from baselayer.config import chromadb_dist_to_similarity
-        # L2 = 0.5 → cos_sim = 1 - 0.125 = 0.875
+        # Squared L2 = 0.5 -> cos_sim = 1 - 0.5/2 = 0.75 (the old 1 - d**2/2 said 0.875)
         sim = chromadb_dist_to_similarity(0.5, "l2")
-        assert abs(sim - 0.875) < 0.01
+        assert abs(sim - 0.75) < 0.01
 
 
 # ============================================================

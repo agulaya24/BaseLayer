@@ -140,12 +140,23 @@ def main():
         bid = a.resume
         print("resuming batch %s" % bid, flush=True)
     else:
-        b = cl.messages.batches.create(requests=reqs)
+        # Retries off, as distill_batch.submit: a POST retried after the server accepted it
+        # bills a second batch. The batch id is on disk (atomically) before anything waits.
+        try:
+            b = cl.with_options(max_retries=0, timeout=600).messages.batches.create(
+                requests=reqs)
+        except Exception as e:
+            raise SystemExit(
+                "BATCH SUBMIT FAILED (%s: %s). The server may still have accepted it. Before "
+                "resubmitting, list recent batches (client.messages.batches.list) and, if one "
+                "matches, collect it with --resume <batch id>." % (type(e).__name__, e))
         bid = b.id
-        json.dump({"batch_id": bid, "runs": a.runs, "chunks": len(chunks),
-                   "layer": a.layer, "partition": a.partition, "model": a.model,
-                   "facts": len(rows), **exclude_info},
-                  open(os.path.join(a.out, "batch.json"), "w"), indent=1)
+        bpath = os.path.join(a.out, "batch.json")
+        with open(bpath + ".tmp", "w", encoding="utf-8") as fh:
+            json.dump({"batch_id": bid, "runs": a.runs, "chunks": len(chunks),
+                       "layer": a.layer, "partition": a.partition, "model": a.model,
+                       "facts": len(rows), **exclude_info}, fh, indent=1)
+        os.replace(bpath + ".tmp", bpath)
         print("submitted batch %s (%d requests)" % (bid, len(reqs)), flush=True)
 
     while True:

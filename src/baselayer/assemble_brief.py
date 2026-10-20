@@ -778,7 +778,7 @@ def get_theme_block(conn, user_message, embed_model, chroma_client):
             n_results=THEME_FACTS_TO_RETRIEVE,
         )
     except Exception as e:
-        print(f"  Warning: fact search failed: {e}")
+        print(f"  Warning: fact search failed: {e}", file=sys.stderr)
         return "", []
 
     if not fact_results or not fact_results["ids"] or not fact_results["ids"][0]:
@@ -998,7 +998,7 @@ def get_episode_block(conn, user_message, embed_model, chroma_client):
                 continue
 
         if summary_collection is None:
-            print("  Warning: No summary collection found in ChromaDB")
+            print("  Warning: No summary collection found in ChromaDB", file=sys.stderr)
             return ""
 
         summary_results = summary_collection.query(
@@ -1006,7 +1006,7 @@ def get_episode_block(conn, user_message, embed_model, chroma_client):
             n_results=10,
         )
     except Exception as e:
-        print(f"  Warning: summary search failed: {e}")
+        print(f"  Warning: summary search failed: {e}", file=sys.stderr)
         return ""
 
     if not summary_results or not summary_results["ids"] or not summary_results["ids"][0]:

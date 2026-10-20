@@ -588,7 +588,7 @@ def compose_unified_brief(run_dir=None, layer_texts=None, source_facts_text=None
     Returns:
         The composed brief text, or None on failure.
     """
-    from baselayer.config import LAYER_REVIEW_MODEL
+    from baselayer.config import LAYER_REVIEW_MODEL, extraction_sampling_kwargs
     from baselayer.api_client import get_anthropic_client, response_text
 
     # Read deployed layers if not provided
@@ -694,7 +694,7 @@ def compose_unified_brief(run_dir=None, layer_texts=None, source_facts_text=None
         response = client.messages.create(
             model=LAYER_REVIEW_MODEL,
             max_tokens=16384,
-            temperature=0,
+            **extraction_sampling_kwargs(LAYER_REVIEW_MODEL, 0),
             messages=[{"role": "user", "content": prompt}],
             timeout=httpx.Timeout(600.0, connect=30.0),
         )
@@ -744,7 +744,7 @@ def compose_unified_brief(run_dir=None, layer_texts=None, source_facts_text=None
                     response = client.messages.create(
                         model=LAYER_REVIEW_MODEL,
                         max_tokens=16384,
-                        temperature=0.1,
+                        **extraction_sampling_kwargs(LAYER_REVIEW_MODEL, 0.1),
                         messages=[{"role": "user", "content": decontam_prompt}],
                         timeout=httpx.Timeout(600.0, connect=30.0),
                     )

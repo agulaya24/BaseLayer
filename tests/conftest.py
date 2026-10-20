@@ -14,6 +14,29 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 
+def _assert_testing_this_checkout():
+    """Refuse to run the suite against another checkout's code. An editable install elsewhere
+    wins `import baselayer` unless this repo's src/ comes first (pyproject's pytest
+    `pythonpath`, or PYTHONPATH=src); the suite then passes or fails on code it never names."""
+    import baselayer
+    here = (Path(__file__).resolve().parents[1] / "src" / "baselayer").resolve()
+    got = Path(baselayer.__file__).resolve().parent
+    if got != here:
+        raise pytest.UsageError(
+            "tests would import baselayer from %s, not this checkout (%s). Run from the repo "
+            "root so pyproject's pythonpath applies, or set PYTHONPATH=src." % (got, here))
+
+
+_assert_testing_this_checkout()
+
+# pytest's `pythonpath` setting changes sys.path in this process only. A test that launches
+# `python -c ...` or `python -m baselayer...` without its own PYTHONPATH would import the
+# editable install's copy in the child (tests/test_cli.py did). Children inherit this.
+_SRC = str(Path(__file__).resolve().parents[1] / "src")
+if os.environ.get("PYTHONPATH", "").split(os.pathsep)[0] != _SRC:
+    os.environ["PYTHONPATH"] = os.pathsep.join(
+        [_SRC] + [x for x in os.environ.get("PYTHONPATH", "").split(os.pathsep) if x])
+
 
 @pytest.fixture
 def temp_db(tmp_path):

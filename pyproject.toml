@@ -64,6 +64,10 @@ baselayer = ["archive/*", "archive/**/*", "experiments/*", "experiments/**/*"]
 # the vendored data/external_datasets/ tree, which fail to import and produce
 # collection errors that mask an otherwise green suite. Run: `pytest` or `pytest tests/`.
 testpaths = ["tests"]
+# Import the package from THIS checkout's src/. Without it, `import baselayer` resolves to
+# whichever copy of the package is installed editable, which need not be this checkout,
+# so the suite can silently test other code. tests/conftest.py refuses to run if it still does.
+pythonpath = ["src"]
 markers = [
     "legacy: pins the legacy (pre-turn-contract) extraction path. Kept on purpose; deselect with -m 'not legacy'.",
 ]

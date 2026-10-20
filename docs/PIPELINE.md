@@ -421,8 +421,8 @@ authoring runs in July 2026, priced at the rates per million input / output toke
 2026: Claude Haiku 5.5 $0.10 / $0.50 (prompts up to 100,000 tokens), Claude Haiku 4.5 $1 / $5,
 Claude Sonnet 5 $2 / $10, Claude Opus 5 $5 / $25, Claude Opus
 5.5 $4 / $20, Claude Sonnet 4.6 $3 / $15; the Message Batches API at half these rates. The code
-prices its own runs from the table in `src/baselayer/distillation/spend.py` (dated 2026-06-24),
-which holds the first four at the same rates. These are estimates for planning, not
+prices its own runs from the table in `src/baselayer/distillation/spend.py` (read from the
+pricing page on 2026-10-20), which holds the first four at the same rates. These are estimates for planning, not
 quotes: cost tracks the number of facts more than the number of words, and facts per word vary by
 kind of text. `baselayer estimate` prices extraction only and has run low, so it is not the basis
 of any figure here.

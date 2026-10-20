@@ -77,3 +77,20 @@ def test_unreadable_span_data_is_skipped(tmp_path):
     conn.commit()
     out = _trace(conn)
     assert "They write the plan before the code." in out
+
+
+def test_a_forgotten_fact_is_not_served(tmp_path):
+    """`baselayer forget` sets superseded_by = 'user_forget' and leaves the claim's provenance
+    rows in place until the layers are regenerated. trace_claim used to hand the forgotten
+    fact's text, its quoted words and its source title to the model anyway. AUDN history
+    (a fact superseded by a newer one) is not hidden: only what the user forgot."""
+    conn = _db(tmp_path, with_spans=True)
+    conn.execute("ALTER TABLE memory_facts ADD COLUMN superseded_by TEXT")
+    conn.execute("UPDATE memory_facts SET superseded_by = 'user_forget' WHERE id = 'f2'")
+    conn.execute("UPDATE memory_facts SET superseded_by = 'f9' WHERE id = 'f3'")
+    conn.commit()
+    out = _trace(conn)
+    assert "dated backup" not in out and "f2 own words" not in out
+    assert "hidden: forgotten by the user" in out
+    assert "They ask for two options." in out          # superseded by AUDN: still shown
+    assert "They write the plan before the code." in out

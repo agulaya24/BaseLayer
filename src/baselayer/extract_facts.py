@@ -1125,6 +1125,45 @@ def check_spend_ceiling(prompt_chars: int, max_tokens: int):
             f"${worst:.4f} would pass it; stopping before the call")
 
 
+def _request_prompt_chars(params: dict) -> int:
+    def _len(c):
+        return len(c) if isinstance(c, str) else len(json.dumps(c))
+    system = params.get("system") or ""
+    return _len(system) + sum(_len(m.get("content") or "") for m in params.get("messages", []))
+
+
+def batch_worst_case_usd(requests, model: str) -> float:
+    """The most a batch of requests can cost: every prompt at the model's chars-per-token,
+    every request's max_tokens as output, priced per request (long-prompt tier included) at the
+    batch discount. Raises SpendCeilingExceeded for a model with no rate row."""
+    from baselayer.config import SPEND_BATCH_DISCOUNT, spend_rates_tier
+    rates = _rates_or_refuse(model)
+    total = 0.0
+    for req in requests:
+        p = req["params"]
+        tin = _request_prompt_chars(p) / rates["chars_per_token"]
+        r = spend_rates_tier(rates, tin)
+        total += (tin * r["input"] + (p.get("max_tokens") or 0) * r["output"]) / 1e6
+    return total * SPEND_BATCH_DISCOUNT
+
+
+def check_batch_spend_ceiling(requests, model: str):
+    """The batch path's ceiling check, made once before submit. A submitted batch cannot be
+    stopped part way the way the sequential loop can, so the bound that holds is the batch's
+    worst case. Returns that worst case, or None when no ceiling is set (as on the sequential
+    path, unset means no ceiling on extraction)."""
+    ceiling = spend_ceiling_usd()
+    if ceiling is None:
+        return None
+    worst = batch_worst_case_usd(requests, model)
+    if worst > ceiling:
+        raise SpendCeilingExceeded(
+            f"spend ceiling ${ceiling:.4f}: the batch worst case ${worst:.4f} ({len(requests)} "
+            f"requests, every prompt priced at its char estimate and every max_tokens as "
+            f"output, at the batch discount) would pass it; nothing was submitted")
+    return worst
+
+
 def usage_calls() -> list:
     return list(_USAGE_CALLS)
 
@@ -3624,6 +3663,47 @@ def embed_fact(fact_id: str, fact_text: str, category: str, collection, model,
         documents=[fact_text],
         metadatas=[meta],
     )
+
+
+def _collection_ids(collection, page: int = 5000) -> set:
+    """Every id in a Chroma collection, paged so a large collection is not one response."""
+    out, offset = set(), 0
+    while True:
+        got = collection.get(include=[], limit=page, offset=offset)
+        ids = got.get("ids") or []
+        out.update(ids)
+        if len(ids) < page:
+            return out
+        offset += page
+
+
+def embed_missing_facts(conn, collection, model, batch_size: int = 64) -> int:
+    """Embed every ACTIVE fact (superseded_by IS NULL) whose id is not in the facts collection.
+    Returns the number added. Metadata matches embed_fact: turn_contract_version and grounding
+    are written only when set. A forgotten or superseded fact is never re-embedded, so this
+    cannot undo `forget`."""
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(memory_facts)")}
+    ver = "turn_contract_version" if "turn_contract_version" in cols else "NULL"
+    grd = "grounding" if "grounding" in cols else "NULL"
+    rows = conn.execute(
+        f"SELECT id, fact_text, category, {ver}, {grd} FROM memory_facts "
+        f"WHERE superseded_by IS NULL ORDER BY id").fetchall()
+    have = _collection_ids(collection)
+    todo = [r for r in rows if r[0] not in have]
+    for i in range(0, len(todo), batch_size):
+        part = todo[i:i + batch_size]
+        metas = []
+        for fid, _text, cat, cv, g in part:
+            meta = {"fact_id": fid, "category": cat or "unknown"}
+            if cv:
+                meta["turn_contract_version"] = cv
+            if g:
+                meta["grounding"] = g
+            metas.append(meta)
+        collection.add(ids=[r[0] for r in part],
+                       embeddings=model.encode([r[1] or "" for r in part]).tolist(),
+                       documents=[r[1] or "" for r in part], metadatas=metas)
+    return len(todo)
 
 
 # ---------------------------------------------------------------------------
