@@ -1,0 +1,13 @@
+# Allowlist: the image is built from the package source only. Everything else
+# (data/, docs/, tests/, examples/, .git, local corpora) stays out of the build
+# context, so nothing personal can reach the image whatever lands in a checkout.
+*
+!pyproject.toml
+!README.md
+!LICENSE
+!src/
+src/baselayer/archive/
+src/baselayer/experiments/
+**/__pycache__/
+**/*.pyc
+**/*.egg-info/
