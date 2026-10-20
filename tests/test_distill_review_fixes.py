@@ -176,3 +176,33 @@ def test_a_state_file_from_before_the_hash_resumes_with_a_warning(batch_env, tmp
     p.write_text(json.dumps(state), encoding="utf-8")
     brun(batch_env, db, out, "--resume", "--max-facts", "3", layers="anchors")
     assert "predates the request hash" in capsys.readouterr().out
+
+
+# Stability review 2026-10-20: convergence submit -------------------------------------------
+def test_convergence_submits_with_retries_off_and_records_atomically(no_network, monkeypatch,
+                                                                     tmp_path):
+    """convergence.py posted the batch with the SDK's default retries. A timeout after the
+    server accepted the batch is retried, and the retry bills a second batch: the hazard
+    distill_batch.submit guards against with max_retries=0. A failed submit must stop with
+    the instruction to look for the batch first, and leave no batch.json behind."""
+    monkeypatch.delenv("BASELAYER_SRC", raising=False)
+    FakeBatches.created, FakeBatches.script, FakeBatches.retrieves = [], {}, 0
+    BatchClient.options = {}
+    monkeypatch.setattr("anthropic.Anthropic", BatchClient)
+    db = _db(tmp_path / "c")
+    out = tmp_path / "out"
+    monkeypatch.setattr(sys, "argv", ["convergence.py", "--db", str(db), "--out", str(out),
+                                      "--runs", "1", "--max-facts", "10"])
+    runpy.run_path(str(HERE / "convergence.py"), run_name="__main__")
+    assert BatchClient.options.get("max_retries") == 0
+    assert json.load(open(out / "batch.json", encoding="utf-8"))["batch_id"]
+
+    def boom(self, requests):
+        raise TimeoutError("read timed out")
+    monkeypatch.setattr(FakeBatches, "create", boom)
+    out2 = tmp_path / "out2"
+    monkeypatch.setattr(sys, "argv", ["convergence.py", "--db", str(db), "--out", str(out2),
+                                      "--runs", "1", "--max-facts", "10"])
+    with pytest.raises(SystemExit, match="may still have accepted"):
+        runpy.run_path(str(HERE / "convergence.py"), run_name="__main__")
+    assert not (out2 / "batch.json").exists()
