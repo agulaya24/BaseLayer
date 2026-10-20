@@ -466,7 +466,8 @@ def test_api_backend_reports_refusal_and_rate_limit():
     assert r.limit and r.text is None
 
 
-def test_api_backend_can_send_a_32k_request(monkeypatch):
+@pytest.mark.parametrize("effort", [None, "high"])   # output_config must pass through stream()
+def test_api_backend_can_send_a_32k_request(monkeypatch, effort):
     """grouper and categorize call complete(..., max_tokens=32000). A non-streaming
     messages.create at that size is refused by the SDK itself before anything is sent
     ("Streaming is required for operations that may take longer than 10 minutes"), so the
@@ -478,7 +479,7 @@ def test_api_backend_can_send_a_32k_request(monkeypatch):
     mk = lambda: anthropic.Anthropic(api_key="test-not-a-key", base_url="http://127.0.0.1:9",
                                      max_retries=0)
     b = be.ApiBackend("claude-opus-5", rates_confirmed=spend.RATES_AS_OF, confirm_spend=50.0,
-                      client_factory=mk)
+                      client_factory=mk, effort=effort)
     b.prepare([{"prompt_chars": 100, "max_tokens": 32000}])
     r = b.complete("x" * 100, 32000)
     assert r.text is None

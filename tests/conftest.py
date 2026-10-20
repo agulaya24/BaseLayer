@@ -29,6 +29,14 @@ def _assert_testing_this_checkout():
 
 _assert_testing_this_checkout()
 
+# pytest's `pythonpath` setting changes sys.path in this process only. A test that launches
+# `python -c ...` or `python -m baselayer...` without its own PYTHONPATH would import the other
+# checkout in the child (tests/test_cli.py did). Children inherit this.
+_SRC = str(Path(__file__).resolve().parents[1] / "src")
+if os.environ.get("PYTHONPATH", "").split(os.pathsep)[0] != _SRC:
+    os.environ["PYTHONPATH"] = os.pathsep.join(
+        [_SRC] + [x for x in os.environ.get("PYTHONPATH", "").split(os.pathsep) if x])
+
 
 @pytest.fixture
 def temp_db(tmp_path):
