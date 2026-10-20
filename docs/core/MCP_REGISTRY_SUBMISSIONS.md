@@ -1,88 +1,36 @@
-# MCP Registry Submissions
+# MCP registry and directory listings
 
-Registries where the Base Layer MCP server is listed, with the repo URL and
-submission payload for each. The payloads below describe the current server (two resources,
-eight tools); a listing submitted earlier may show an older tool list.
+Where the Base Layer MCP server is listed, what each registry requires, and what is still
+open. Checked 2026-10-19 and 2026-10-20 against each registry's API or page and against
+GitHub. Re-check before relying on any line: registries change their rules often.
 
----
+The server is the stdio command `baselayer-mcp`. It serves a `baselayer run` build: eight
+tools (`recall_memories`, `search_facts`, `trace_claim`, `verify_claims`, `get_brief`,
+`get_stats`, `get_call_log`, `get_help`) and two resources (`memory://specification`,
+`memory://identity`). A cited build is not served by it.
 
-## 1. Smithery (smithery.ai)
+## Status
 
-**URL:** https://smithery.ai (the submission path changes; follow the site's own instructions)
-**How:** Submit GitHub repo URL. Smithery auto-indexes from README + package metadata.
+| registry | listed | how listing works | what is needed |
+|---|---|---|---|
+| Official MCP Registry (registry.modelcontextprotocol.io) | No. The registry API returned 0 servers for `agulaya24`. | A `server.json` published with the `mcp-publisher` CLI under the `io.github.agulaya24/` namespace (GitHub login) or a DNS-verified namespace. Every entry must point at a package in a supported registry (npm, PyPI, NuGet, Cargo, OCI image or an MCPB bundle). There is no git-URL package type. | A package. Base Layer is not on PyPI, and the `baselayer` name there belongs to another project, so this needs a decision: PyPI under another name, an OCI image, or an MCPB bundle. |
+| Glama (glama.ai/mcp) | Crawled from GitHub, unclaimed, and marked as unable to deploy. Its text comes from an old README. | Glama builds the server from a Dockerfile in the repository, introspects it over MCP and scores it. A listing becomes discoverable only after a reproducible build succeeds. The owner claims it with a `glama.json` file or a GitHub login. | The `Dockerfile`, `.dockerignore` and `glama.json` in this repository. Then the owner claims the listing and starts a build on Glama. |
+| Smithery (smithery.ai) | No. | A hosted Streamable HTTP server, or a stdio server packaged as an MCPB bundle. | An MCPB bundle (it would also serve the official registry). |
+| PulseMCP | No. | Not accepting direct submissions. It picks up servers from the official registry. | An official registry entry. |
+| GitHub MCP registry | No. | Follows official registry entries. | An official registry entry. |
+| mcp.so | No. | A submission form for the repository URL. | The form, if wanted. |
 
-**Submit:**
-- Repository: `https://github.com/agulaya24/BaseLayer`
-- The repo already has AGENTS.md and MCP server docs in README
+## Lists
 
-**Notes:** Smithery has 7,300+ servers. Agents query it at runtime. High priority.
+| list | status |
+|---|---|
+| punkpeye/awesome-mcp-servers | PR #4402 was closed unmerged on 2026-05-27. Entries there carry a Glama score badge, so a new PR needs the Glama listing first. |
+| e2b-dev/awesome-ai-agents | PR #730 is open under the retired title "behavioral compression for AI agents". Update or close it. |
+| steven2358/awesome-generative-ai | PR #581 is open under the same retired title. Update or close it. |
 
----
+## Earlier versions of this file
 
-## 2. Glama (glama.ai/mcp)
-
-**URL:** https://glama.ai/mcp/servers (or auto-crawls GitHub)
-**How:** Submit GitHub repo URL or wait for auto-crawl.
-
-**Submit:**
-- Repository: `https://github.com/agulaya24/BaseLayer`
-- Glama auto-crawls repos with MCP server implementations
-- 19,000+ indexed servers
-
-**Notes:** May auto-discover from GitHub topics (`mcp`, `mcp-server` tags already set).
-
----
-
-## 3. Official MCP Registry (registry.modelcontextprotocol.io)
-
-**URL:** https://github.com/modelcontextprotocol/servers
-**How:** PR to the `servers` repo adding Base Layer.
-
-**PR content for `src/base-layer/`:**
-
-```json
-{
-  "name": "base-layer",
-  "description": "The interpretive layer above memory. Serves a portable behavioral specification via MCP: epistemic axioms, communication modes, behavioral predictions, and provenance-traced fact retrieval.",
-  "vendor": "Base Layer",
-  "sourceUrl": "https://github.com/agulaya24/BaseLayer",
-  "homepage": "https://www.base-layer.ai",
-  "license": "Apache-2.0",
-  "runtime": "python",
-  "transport": ["stdio"],
-  "install": {
-    "pip": "pip install git+https://github.com/agulaya24/BaseLayer.git",
-    "command": "baselayer-mcp",
-    "note": "Base Layer is not on PyPI; the baselayer name is held by an unrelated project. Install from the GitHub URL above."
-  },
-  "resources": ["memory://specification", "memory://identity"],
-  "tools": ["get_brief", "recall_memories", "search_facts", "trace_claim", "verify_claims",
-            "get_stats", "get_call_log", "get_help"],
-  "tags": ["memory", "personalization", "behavioral-specification", "interpretive-layer"]
-}
-```
-
-**Notes:** MCP donated to Linux Foundation Dec 2025. IDE integrations (Claude Desktop, Cursor, VS Code) query this registry natively. Highest impact for developer discovery.
-
----
-
-## 4. awesome-mcp-servers (GitHub)
-
-**URL:** https://github.com/punkpeye/awesome-mcp-servers
-**How:** PR adding Base Layer to the list.
-
-**Entry (add under "Memory / Knowledge" or similar section):**
-```markdown
-- [Base Layer](https://github.com/agulaya24/BaseLayer) - The interpretive layer above memory. Extracts behavioral patterns from text, writes a 3-layer specification (anchors, core, predictions), serves it via MCP. 46-predicate extraction vocabulary, provenance-traced, evaluated on 14 historical subjects.
-```
-
-**Notes:** Added under the "Memory / Knowledge" section.
-
----
-
-## Registry list
-
-- Smithery: https://smithery.ai (repo URL)
-- Glama: https://glama.ai/mcp/servers (repo URL; may auto-discover)
-- Official MCP Registry: https://github.com/modelcontextprotocol/servers (PR)
-- awesome-mcp-servers: https://github.com/punkpeye/awesome-mcp-servers (PR)
+Earlier versions described every registry above as listing Base Layer, gave the official
+registry route as a pull request to `modelcontextprotocol/servers`, said the punkpeye entry
+had been added, and repeated registry sizes and a "46-predicate extraction vocabulary"
+without sources. None of that is current.
