@@ -75,6 +75,13 @@ def build_requests(rows, layers, parts, seeds, max_facts, model, other_subjects,
     return reqs, meta, by_cfg
 
 
+def requests_sha256(reqs):
+    """sha256 of the batch's requests (custom ids and params, prompts included), key-sorted."""
+    import hashlib
+    blob = json.dumps(reqs, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(blob.encode("utf-8")).hexdigest()
+
+
 def submit(cl, reqs, outdir, info):
     """One POST with retries off; the batch id is on disk before this returns."""
     try:
@@ -212,6 +219,7 @@ def _main():
     print("SPEND CEILING: $%.4f (the batch estimate is checked before submit; every repair "
           "call is checked before it is sent)" % ceiling, flush=True)
 
+    req_hash = requests_sha256(reqs)
     cl = anthropic.Anthropic()
     if a.resume:
         state = json.load(open(state_path, encoding="utf-8"))
@@ -237,6 +245,20 @@ def _main():
             raise SystemExit("--resume: %s records %s; this invocation has %s. Resume with the "
                              "arguments that submitted it."
                              % (STATE, {k: state[k] for k in drift}, {k: now[k] for k in drift}))
+        # The requests themselves. --leaf-spans, --span-cap, the episode options, the subject
+        # and record-only filters and a changed corpus all change leaf PROMPTS while leaving the
+        # count and chunking equal, so the checks above pass and the batch's results would be
+        # validated and repaired under prompts the batch was never sent.
+        if "requests_sha256" not in state:
+            print("WARNING: %s predates the request hash, so this resume cannot check that the "
+                  "prompts match the batch. Resume with the byte-identical arguments that "
+                  "submitted it (including --leaf-spans and the episode options)." % STATE,
+                  flush=True)
+        elif state["requests_sha256"] != req_hash:
+            raise SystemExit("--resume: %s records requests sha256 %s; this invocation builds "
+                             "%s (a design flag, filter or the corpus differs). Resume with the "
+                             "arguments that submitted it."
+                             % (STATE, state["requests_sha256"], req_hash))
         print("RESUMING batch %s" % bid, flush=True)
     else:
         bid = submit(cl, reqs, a.outdir, {"n_requests": len(reqs), "model": a.model,
@@ -244,7 +266,8 @@ def _main():
                                           "seeds": seeds, "max_facts": a.max_facts,
                                           "estimate_usd": est, "ceiling_usd": ceiling,
                                           "exclude_ids_sha256":
-                                              F["exclude_info"]["exclude_ids_sha256"]})
+                                              F["exclude_info"]["exclude_ids_sha256"],
+                                          "requests_sha256": req_hash})
     res_path = os.path.join(a.outdir, RESULTS)
     fresh = not (a.resume and os.path.exists(res_path))
     if not fresh:

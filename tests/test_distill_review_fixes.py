@@ -131,3 +131,48 @@ def test_unreadable_exclude_files_are_refused_not_a_traceback(no_network, monkey
         got = e
     assert isinstance(got, SystemExit) and "exclude-ids" in str(got), repr(got)
     assert DistillClient.calls == []
+
+
+# Stability review 2026-10-20 ----------------------------------------------------------------
+@pytest.mark.parametrize("submit,resume", [
+    (("--leaf-spans",), ()),                               # spans on at submit, off at resume
+    ((), ("--leaf-spans",)),                               # and the reverse
+])
+def test_resume_refuses_a_changed_prompt_at_the_same_request_count(batch_env, tmp_path,
+                                                                   submit, resume):
+    """--leaf-spans, --span-cap and the episode options change every leaf PROMPT and leave the
+    request count and chunking unchanged, so the count/model/chunking checks all passed: the
+    batch's results were validated and repaired under prompts the batch was never sent, and
+    the leaf stamps named the wrong prompt hash. The resume now compares a hash of the
+    requests themselves."""
+    from tests.test_design_flags import _spans_db
+    db = _spans_db(tmp_path)
+    out = tmp_path / "out"
+    brun(batch_env, db, out, *submit, layers="anchors")
+    DistillClient.calls = []
+    with pytest.raises(SystemExit, match="Resume with the arguments that submitted it"):
+        brun(batch_env, db, out, "--resume", *resume, layers="anchors")
+    assert len(FakeBatches.created) == 1 and DistillClient.calls == []
+
+
+def test_resume_with_the_same_flags_still_resumes_and_records_the_hash(batch_env, tmp_path):
+    from tests.test_design_flags import _spans_db
+    db = _spans_db(tmp_path)
+    out = tmp_path / "out"
+    brun(batch_env, db, out, "--leaf-spans", layers="anchors")
+    state = json.loads((out / "batch_state.json").read_text(encoding="utf-8"))
+    assert len(state["requests_sha256"]) == 64
+    brun(batch_env, db, out, "--resume", "--leaf-spans", layers="anchors")
+    assert len(FakeBatches.created) == 1
+
+
+def test_a_state_file_from_before_the_hash_resumes_with_a_warning(batch_env, tmp_path, capsys):
+    db = _make_db(tmp_path / "c", FIVE)
+    out = tmp_path / "out"
+    brun(batch_env, db, out, "--max-facts", "3", layers="anchors")
+    p = out / "batch_state.json"
+    state = json.loads(p.read_text(encoding="utf-8"))
+    del state["requests_sha256"]
+    p.write_text(json.dumps(state), encoding="utf-8")
+    brun(batch_env, db, out, "--resume", "--max-facts", "3", layers="anchors")
+    assert "predates the request hash" in capsys.readouterr().out
