@@ -172,8 +172,9 @@ EXTRACTION_BACKEND = os.environ.get("BASELAYER_EXTRACTION_BACKEND", "anthropic")
 # BASELAYER_LLM_EXTRACTION is the documented per-role override (LLM_PROVIDER_CONFIG below).
 # Default claude-haiku-5-5 at effort medium since 2026-10-19 (maintainer decision), from Haiku 4.5: in blind
 # same-sample comparisons, judged in both orders against a same-model noise floor, Haiku 5.5
-# medium was preferred on essays and talks (31 / 1 / 8), list roundups (18 / 3 / 4) and chat
-# (17 / 2 / 6), at about one fifth of the cost; effort high was no better than medium. Haiku 4.5
+# medium was preferred on essays, talks and mailing-list posts (31 / 1 / 8), weekly roundup
+# posts (18 / 3 / 4) and chat (17 / 2 / 6), at about one fifth of the cost; effort high was no
+# better than medium. Haiku 4.5
 # stays selectable: BASELAYER_LLM_EXTRACTION=claude-haiku-4-5-20251001 (it then sends
 # temperature 0.1 and no effort, as before).
 DEFAULT_EXTRACTION_MODEL = "claude-haiku-5-5"
@@ -542,8 +543,8 @@ TURN_OUTPUT_TOKENS_FLOOR = 2000
 # A model that thinks by default (every 5-generation model; model_rejects_sampling below) spends
 # part of max_tokens on thinking, so it gets its own rate and floor, derived the same way.
 # Derivation (2026-10-19, Haiku 5.5 at effort medium, 98 turn-path extract calls over three
-# same-sample comparisons: essays and talks 41, list roundups 25, chat 32): the largest output
-# per citable char on a chunk of 600+ chars was 5.23 (a chat chunk, 863 chars, 4,515 tokens);
+# same-sample comparisons: essays, talks and mailing-list posts 41, weekly roundup posts 25,
+# chat 32): the largest output per citable char on a chunk of 600+ chars was 5.23 (a chat chunk, 863 chars, 4,515 tokens);
 # three times it is 15.7, rounded up to 16. Under 600 chars the largest output was 2,589 tokens
 # (432 chars, 94% of its budget), and one 313-char chat chunk stopped on its 2,004-token budget
 # and was re-chunked; three times 2,589 is 7,767, rounded up to 8,000. A larger max_tokens costs
