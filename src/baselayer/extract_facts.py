@@ -422,7 +422,9 @@ def _extraction_max_tokens(fact_count: int) -> int:
     path passes max_tokens=None and keeps that prompt-length heuristic untouched.
     """
     scaled = fact_count * EXTRACTION_TOKENS_PER_FACT + EXTRACTION_OUTPUT_BUFFER_TOKENS
-    return min(EXTRACTION_MAX_OUTPUT_TOKENS, max(2000, scaled))
+    from baselayer.config import thinking_output_budget
+    return thinking_output_budget(EXTRACTION_API_MODEL,
+                                  min(EXTRACTION_MAX_OUTPUT_TOKENS, max(2000, scaled)))
 
 
 def _get_extraction_caps(message_count: int, total_chars: int = 0,
@@ -1194,6 +1196,9 @@ def call_anthropic(prompt: str, schema: dict = None, retries: int = MAX_RETRIES,
         prompt_len = len(prompt)
         estimated_facts = min(50, max(10, prompt_len // 500))
         max_tokens = max(2000, estimated_facts * 200)
+        # sized for a model that does not think; scaled on one that does (config)
+        from baselayer.config import thinking_output_budget
+        max_tokens = thinking_output_budget(EXTRACTION_API_MODEL, max_tokens)
 
     for attempt in range(retries + 1):
         # Outside the try: a refusal here must stop the run, not be retried or swallowed.
@@ -2103,12 +2108,24 @@ def turn_output_budget(citable_chars: int) -> int:
     return min(EXTRACTION_MAX_OUTPUT_TOKENS, max(floor, scaled))
 
 
+def _hash_budget(chunk, plan: dict) -> int:
+    """turn_chunk_max_tokens as it is for a model that does not think: the budget term of
+    chunk_input_hash, so the hash does not depend on the extraction model."""
+    if uncounted_mode(plan.get("fact_count_mode")):
+        scaled = math.ceil(TURN_OUTPUT_TOKENS_PER_CITABLE_CHAR * max(0, chunk.citable_chars))
+        return min(EXTRACTION_MAX_OUTPUT_TOKENS, max(TURN_OUTPUT_TOKENS_FLOOR, scaled))
+    return plan["max_tokens"]
+
+
 def turn_chunk_max_tokens(chunk, plan: dict) -> int:
     """The output budget for one chunk: from the fact count when capped, from the chunk's
-    citable characters when the prompt carries no count."""
+    citable characters when the prompt carries no count. On a model that thinks, the capped
+    budget is scaled here, at call time (config.thinking_output_budget), so the plan and the
+    chunk hash keep the model-independent figure."""
     if uncounted_mode(plan.get("fact_count_mode")):
         return turn_output_budget(chunk.citable_chars)
-    return plan["max_tokens"]
+    from baselayer.config import thinking_output_budget
+    return thinking_output_budget(EXTRACTION_API_MODEL, plan["max_tokens"])
 
 
 def _abstract_noncitable_project_text(text: str) -> str:
@@ -2797,9 +2814,11 @@ def rebuild_chunk(turns, source: str, key: str, budget: int, upto: int):
 def chunk_input_hash(conv_title: str, ch, plan: dict, project_session: bool) -> str:
     """Hash of a chunk's exact call input: the prompt (title, section header, entity hints,
     mode, the rendered context and body) and its output budget. Identical on the sequential
-    and batch paths."""
+    and batch paths. The budget term is the model-independent one (the rate and floor of a
+    model that does not think), because the hash has never covered the model: a model switch
+    must not invalidate a done chunk and re-run it."""
     prompt = turn_chunk_prompt(conv_title, ch, plan, project_session)
-    raw = f"{prompt}\x00max_tokens={turn_chunk_max_tokens(ch, plan)}"
+    raw = f"{prompt}\x00max_tokens={_hash_budget(ch, plan)}"
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:32]
 
 

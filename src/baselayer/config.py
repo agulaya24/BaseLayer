@@ -195,6 +195,26 @@ def extraction_sampling_kwargs(model: str, temperature: float) -> dict:
     return {} if model_rejects_sampling(model) else {"temperature": temperature}
 
 
+# The legacy path's budgets (call_anthropic's prompt-length heuristic, the dynamic-cap
+# per-fact budget, the legacy batch BATCH_MAX_TOKENS) were sized for Haiku 4.5, which does not
+# think, and a legacy reply that stops on max_tokens is counted and dropped (no re-chunk there).
+# On a model that thinks by default each is multiplied by THINKING_OUTPUT_MULTIPLIER and floored
+# at TURN_OUTPUT_TOKENS_FLOOR_THINKING, clamped at EXTRACTION_MAX_OUTPUT_TOKENS. Basis
+# (2026-10-19, turn path, effort medium): Haiku 5.5 emitted 2.0 to 2.2 times Haiku 4.5's output
+# tokens per kept fact on three same-sample comparisons (335 to 345 against 156 to 169, thinking
+# included); 3 leaves about 1.4x headroom over the largest. Measured on the turn prompt, not the
+# legacy one, which asks for no quoted spans.
+THINKING_OUTPUT_MULTIPLIER = 3
+
+
+def thinking_output_budget(model: str, max_tokens: int) -> int:
+    """A legacy-path max_tokens for this model: unchanged for a model that does not think."""
+    if not model_rejects_sampling(model):
+        return max_tokens
+    return min(EXTRACTION_MAX_OUTPUT_TOKENS,
+               max(TURN_OUTPUT_TOKENS_FLOOR_THINKING, max_tokens * THINKING_OUTPUT_MULTIPLIER))
+
+
 def turn_output_budget_params(model: str) -> tuple:
     """(tokens per citable char, floor) for the turn-path output budget on this model."""
     if model_rejects_sampling(model):

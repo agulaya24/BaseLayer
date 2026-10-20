@@ -221,6 +221,8 @@ def test_legacy_stores_assistant_sourced_fact(env, monkeypatch):
 
 
 def test_turn_path_rejects_the_same_fact_and_keeps_grounded_ones(env, monkeypatch):
+    # the capped budget asserted below is the Haiku 4.5 figure (a model that does not think)
+    monkeypatch.setattr(env.ef, "EXTRACTION_API_MODEL", "claude-haiku-4-5-20251001")
     _seed(env)
     monkeypatch.setenv("BASELAYER_TURN_CONTRACT", "1")
     # The max_tokens assertion below is the capped budget; the uncounted modes' budget is
@@ -501,7 +503,9 @@ def test_accepted_runaway_is_reported_not_halted(env, monkeypatch):
 # tests/test_turn_defaults.py, which also pins that the legacy path still applies it.
 
 
-def test_turn_output_budget_is_sized_for_spans():
+def test_turn_output_budget_is_sized_for_spans(monkeypatch):
+    import baselayer.extract_facts as ef
+    monkeypatch.setattr(ef, "EXTRACTION_API_MODEL", "claude-haiku-4-5-20251001")  # no thinking
     from baselayer.extract_facts import _turn_extraction_max_tokens, _extraction_max_tokens
     assert _turn_extraction_max_tokens(100) > _extraction_max_tokens(100)
     assert _turn_extraction_max_tokens(100) >= 100 * 180

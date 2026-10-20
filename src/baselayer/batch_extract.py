@@ -164,6 +164,13 @@ BATCH_STATE_FILE = _get_batch_state_file()  # Default for direct CLI usage
 # 8192 max-output-token cap. Sync path (api_client.call_api) defaults to 4096,
 # which is why the sync smoke test on the same input succeeded.
 BATCH_MAX_TOKENS = 8000
+
+
+def legacy_batch_max_tokens(model: str) -> int:
+    """The legacy batch request's max_tokens: BATCH_MAX_TOKENS, scaled on a model that thinks
+    (config.thinking_output_budget; thinking shares max_tokens)."""
+    from baselayer.config import thinking_output_budget
+    return thinking_output_budget(model, BATCH_MAX_TOKENS)
 BATCH_TEMPERATURE = 0.1
 
 
@@ -566,7 +573,7 @@ def run_submit(document_mode=False, skip_extracted=False, turn_contract=None):
                 max_facts=caps["max_facts"],
                 prompt_builder=prompt_builder,
                 model=EXTRACTION_API_MODEL,
-                max_tokens=BATCH_MAX_TOKENS,
+                max_tokens=legacy_batch_max_tokens(EXTRACTION_API_MODEL),
                 temperature=BATCH_TEMPERATURE,
                 json_instruction=json_instruction,
                 chunk_map=chunk_map,

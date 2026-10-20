@@ -253,6 +253,8 @@ def test_batch_turn_mode_from_the_argument_applies_turn_defaults_and_resets(benv
     file, with the env var unset. The turn-mode defaults must still apply (dynamic cap
     on; no minimum message count), and must NOT outlive the call: a later legacy run
     in the same process keeps the legacy default."""
+    # the capped budget asserted below is the Haiku 4.5 figure (a model that does not think)
+    monkeypatch.setattr(benv.ef, "EXTRACTION_API_MODEL", "claude-haiku-4-5-20251001")
     import math
     from baselayer.config import CHARS_PER_FACT, MIN_MESSAGES_FOR_EXTRACTION
     monkeypatch.delenv("BASELAYER_TURN_CONTRACT", raising=False)
