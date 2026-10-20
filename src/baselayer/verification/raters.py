@@ -201,30 +201,66 @@ def run_probe(rater: Rater, canaries: list[str], out_path: Path) -> dict:
 
 
 # ---------------------------------------------------------------- API (explicit only)
+API_MAX_TOKENS = 16000
+
+
+class ApiSpendCapReached(SystemExit):
+    """The next API call's worst case would take this run past its USD cap. A SystemExit, so it
+    stops the run rather than being recorded as one failed reply."""
+
+
 class ApiRater(Rater):
     name = "anthropic_api"
     bills_api = True
 
-    def __init__(self, model: str, max_tokens: int = 16000):
+    def __init__(self, model: str, max_tokens: int = API_MAX_TOKENS, cap_usd: float | None = None):
         if not model:
             raise ValueError("the API rater needs an explicit --model")
+        import threading
         import anthropic
         self.client = anthropic.Anthropic()
         self.model = model
         self.max_tokens = max_tokens
+        self.cap_usd = cap_usd
+        self.spent_usd = 0.0          # measured from usage
+        self._reserved = 0.0          # worst cases of calls in flight (workers run in threads)
+        self._lock = threading.Lock()
+
+    def _worst_usd(self, prompt: str, rates) -> float:
+        from .pricing import CHARS_PER_TOKEN
+        return (len(prompt) / CHARS_PER_TOKEN * rates[0] + self.max_tokens * rates[1]) / 1e6
 
     def complete(self, prompt: str) -> Reply:
-        t = time.time()
-        try:
-            resp = self.client.messages.create(model=self.model, max_tokens=self.max_tokens,
-                                               messages=[{"role": "user", "content": prompt}])
-        except Exception as e:
-            return Reply(text=None, error=f"{type(e).__name__}: {e}", wall_s=round(time.time() - t, 1))
-        text = "".join(b.text for b in resp.content if getattr(b, "type", None) == "text")
-        u = resp.usage
         from .pricing import PRICES, resolve
         rates = PRICES.get(resolve(self.model))
-        cost = (u.input_tokens * rates[0] + u.output_tokens * rates[1]) / 1e6 if rates else None
+        worst = 0.0
+        if self.cap_usd is not None:
+            if rates is None:
+                raise ApiSpendCapReached(f"no dated price for {self.model!r}; the cap cannot be enforced")
+            worst = self._worst_usd(prompt, rates)
+            with self._lock:
+                if self.spent_usd + self._reserved + worst > self.cap_usd:
+                    raise ApiSpendCapReached(
+                        f"API spend cap ${self.cap_usd:.4f}: spent ${self.spent_usd:.4f}, in flight up "
+                        f"to ${self._reserved:.4f}, and this call's worst case ${worst:.4f} would pass it; "
+                        f"stopping before the call (replies so far are kept and reused on a rerun)")
+                self._reserved += worst
+        t = time.time()
+        cost = 0.0
+        try:
+            try:
+                resp = self.client.messages.create(model=self.model, max_tokens=self.max_tokens,
+                                                   messages=[{"role": "user", "content": prompt}])
+            except Exception as e:
+                return Reply(text=None, error=f"{type(e).__name__}: {e}", wall_s=round(time.time() - t, 1))
+            text = "".join(b.text for b in resp.content if getattr(b, "type", None) == "text")
+            u = resp.usage
+            cost = (u.input_tokens * rates[0] + u.output_tokens * rates[1]) / 1e6 if rates else None
+        finally:
+            if self.cap_usd is not None:
+                with self._lock:
+                    self._reserved -= worst
+                    self.spent_usd += cost if cost is not None else worst
         return Reply(text=text or None, model=resp.model, wall_s=round(time.time() - t, 1), cost_usd=cost,
                      error=None if resp.stop_reason != "refusal" else "refusal",
                      raw={"input_tokens": u.input_tokens, "output_tokens": u.output_tokens, "stop_reason": resp.stop_reason})

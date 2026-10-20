@@ -246,7 +246,8 @@ fidelity, cross, adjudicate) are built and priced but not sent.
   ran clean, which needs at least one `--probe-canary` (with none, the probe cannot come back
   clean).
 - `--rater api --model <id> --confirm-api-spend <usd>` bills API credits and refuses to start when
-  the upper estimate exceeds the cap.
+  the worst case (every call at max_tokens, every attempt) exceeds the cap or
+  `BASELAYER_SPEND_CEILING_USD`, whichever is lower; it also stops before any call that would pass it.
 
 Modular checks with their own inputs: `--corrections` (the person's corrections file),
 `--exclude-ids`, `--min-occasions`, `--backcheck-results` (reads an external back-check's results;

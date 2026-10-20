@@ -16,6 +16,7 @@ import collections
 import hashlib
 import json
 import math
+import os
 import shutil
 import sys
 import time
@@ -29,7 +30,16 @@ from .deterministic import (check_duplicates, check_existing, check_facts, check
                             finding, trigger_groups)
 from . import model_checks as mc
 from .pricing import DEFAULT_OUTPUT_TOKENS, estimate, format_estimate
-from .raters import ApiRater, ClaudeCliRater, Rater, run_probe
+from .raters import API_MAX_TOKENS, ApiRater, ClaudeCliRater, Rater, run_probe
+
+# run_tasks tries each task up to this many times; the API worst case prices every attempt.
+TASK_ATTEMPTS = 3
+
+
+def _spend_ceiling_usd():
+    """BASELAYER_SPEND_CEILING_USD, the same variable extraction honours; None when unset."""
+    raw = os.environ.get("BASELAYER_SPEND_CEILING_USD")
+    return float(raw) if raw not in (None, "") else None
 from .report import write_reports
 from .spec_io import load_spec
 from . import checks as modular
@@ -93,7 +103,7 @@ def _git_stamp(code_file=None) -> dict:
 
 
 # ---------------------------------------------------------------- task execution
-def run_tasks(tasks: list[dict], rater: Rater, raw_dir: Path, workers: int, attempts: int = 3) -> dict:
+def run_tasks(tasks: list[dict], rater: Rater, raw_dir: Path, workers: int, attempts: int = TASK_ATTEMPTS) -> dict:
     """Run each task, keeping every raw reply under raw_dir. A stored reply is reused only
     when it succeeded for the byte-identical prompt AND the same rater, so resuming an
     interrupted run is free and a changed prompt or rater is never answered from cache."""
@@ -157,7 +167,7 @@ def build_parser(p: argparse.ArgumentParser | None = None) -> argparse.ArgumentP
     p.add_argument("--rater", choices=["cli", "api"], default="cli", help="cli = claude -p on the subscription; api = API credits (explicit)")
     p.add_argument("--model", default=None, help="cli: alias or id (default sonnet); api: required model id")
     p.add_argument("--rater-cwd", default=None, help="cli: working directory for the child; must be outside every project tree")
-    p.add_argument("--confirm-api-spend", type=float, default=None, help="api: USD cap; the run refuses if the upper estimate exceeds it")
+    p.add_argument("--confirm-api-spend", type=float, default=None, help="api: USD cap; the run refuses if the worst case (every call at max_tokens, every attempt) exceeds it, and stops before any call that would pass it. BASELAYER_SPEND_CEILING_USD, when set and lower, is the cap")
     p.add_argument("--probe", action="store_true", help="run a context probe of the actual child first and store it beside the results")
     p.add_argument("--probe-canary", action="append", default=[], help="string whose presence in the probe answer means not blind (repeatable)")
     p.add_argument("--checks", default=None,
@@ -300,7 +310,9 @@ def execute(a: argparse.Namespace, rater: Rater | None = None) -> int:
         p2_expected = math.ceil(len(spec.claims) / mc.ADJ_BATCH) if "adjudicate" in checks else 0
         route = a.rater if rater is None else "fake"
         model_name = a.model or ("sonnet" if a.rater == "cli" else "")
-        est = estimate(tasks, model_name or "sonnet", "api" if a.rater == "api" else "cli", a.assume_output_tokens, p2_upper, p2_expected)
+        api = a.rater == "api"
+        est = estimate(tasks, model_name or "sonnet", "api" if api else "cli", a.assume_output_tokens, p2_upper, p2_expected,
+                       max_output_tokens=API_MAX_TOKENS if api else None, attempts=TASK_ATTEMPTS if api else 1)
         est_text = format_estimate(est)
         print(est_text)
 
@@ -315,9 +327,16 @@ def execute(a: argparse.Namespace, rater: Rater | None = None) -> int:
                         raise SystemExit("--rater api needs an explicit --model")
                     if a.confirm_api_spend is None:
                         raise SystemExit("--rater api bills API credits: pass --confirm-api-spend <usd cap> after reading the estimate")
-                    if "error" in est or est["total_upper_usd"] > a.confirm_api_spend:
-                        raise SystemExit(f"refusing: upper estimate ${est.get('total_upper_usd')} exceeds cap ${a.confirm_api_spend}")
-                    rater = ApiRater(a.model)
+                    # Gate on the WORST case (every call at max_tokens, every attempt): the
+                    # assumed-output "upper" estimate is not a bound on what the run can send.
+                    ceiling = _spend_ceiling_usd()
+                    cap = a.confirm_api_spend if ceiling is None else min(a.confirm_api_spend, ceiling)
+                    if "error" in est or est["total_worst_usd"] > cap:
+                        raise SystemExit(f"refusing: worst case ${est.get('total_worst_usd')} exceeds the cap ${cap} "
+                                         f"(--confirm-api-spend ${a.confirm_api_spend}"
+                                         + (f", BASELAYER_SPEND_CEILING_USD ${ceiling}" if ceiling is not None else "")
+                                         + ")")
+                    rater = ApiRater(a.model, cap_usd=cap)
                 else:
                     if not a.rater_cwd:
                         raise SystemExit("--rater cli needs --rater-cwd: a directory outside every project tree")

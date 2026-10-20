@@ -31,7 +31,9 @@ baselayer verify-spec <spec_dir> --label <label> --corpus <corpus dir or memory.
   continues, prints a warning, and records `safe_mode: false` in the report's rater provenance.
   Either way a run is recorded blind only when `--probe` ran and came back clean.
 - `--run-model --rater api --model <id> --confirm-api-spend <usd>` runs them on API credits. The run
-  refuses when the upper estimate exceeds the cap.
+  refuses when the worst case (every call at its 16K max_tokens, all three attempts, the phase-2
+  bound included) exceeds the cap, or `BASELAYER_SPEND_CEILING_USD` when that is lower, and the
+  rater stops before any single call whose worst case would pass it.
 
 ## Writes and reads
 
