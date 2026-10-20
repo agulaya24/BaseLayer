@@ -106,52 +106,51 @@ class TestResolveModel:
 # ============================================================
 
 class TestEstimateCost:
-    """Test cost estimation from model and token counts."""
+    """estimate_cost prices from config.SPEND_RATES_BY_MODEL, the one dated rate table the spend
+    ceiling uses. It used to read its own undated 2025-05 table (Haiku 4.5 at $0.80/$4.00
+    against config's $1/$5) and returned $0.00 for any model missing from it, including the
+    current default extraction model. A silent $0 is the defect; an unpriced model is None."""
 
-    def test_known_model_haiku(self):
+    def test_matches_the_dated_spend_table(self):
+        from baselayer.config import spend_rates_for
         from baselayer.llm_provider import estimate_cost
-        # Haiku: $0.80/MTok input, $4.00/MTok output
-        cost = estimate_cost("claude-haiku-4-5-20251001", 1_000_000, 1_000_000)
-        assert abs(cost - 4.80) < 0.01
+        for model in ("claude-haiku-4-5-20251001", "claude-haiku-4-5", "claude-haiku-5-5"):
+            r = spend_rates_for(model)       # 50K input: under Haiku 5.5's long-prompt tier
+            assert estimate_cost(model, 50_000, 1_000_000) == pytest.approx(
+                0.05 * r["input"] + r["output"]), model
 
-    def test_known_model_sonnet(self):
+    def test_long_prompt_tier_applies(self):
+        from baselayer.config import spend_rates_for
         from baselayer.llm_provider import estimate_cost
-        # Sonnet: $3.00/MTok input, $15.00/MTok output
-        cost = estimate_cost("claude-sonnet-4-20250514", 1_000_000, 1_000_000)
-        assert abs(cost - 18.00) < 0.01
+        long = spend_rates_for("claude-haiku-5-5")["long"]
+        assert estimate_cost("claude-haiku-5-5", 200_000, 0) == pytest.approx(
+            0.2 * long["input"])
 
-    def test_known_model_opus(self):
+    def test_current_default_extraction_model_is_priced(self):
+        from baselayer.config import EXTRACTION_API_MODEL
         from baselayer.llm_provider import estimate_cost
-        # Opus: $15.00/MTok input, $75.00/MTok output
-        cost = estimate_cost("claude-opus-4-20250514", 1_000_000, 1_000_000)
-        assert abs(cost - 90.00) < 0.01
+        cost = estimate_cost(EXTRACTION_API_MODEL, 1_000_000, 1_000_000)
+        assert cost is not None and cost > 0
 
-    def test_unknown_model_returns_zero(self):
+    def test_a_model_with_no_dated_rate_is_none_not_zero(self):
         from baselayer.llm_provider import estimate_cost
-        cost = estimate_cost("ollama:qwen2.5", 10000, 5000)
-        assert cost == 0.0
+        for model in ("claude-sonnet-4-20250514", "gpt-4o", "gemini-2.0-flash"):
+            assert estimate_cost(model, 1_000_000, 1_000_000) is None, model
+
+    def test_local_ollama_model_costs_nothing(self):
+        from baselayer.llm_provider import estimate_cost
+        assert estimate_cost("ollama:qwen2.5", 10000, 5000) == 0.0
 
     def test_zero_tokens(self):
         from baselayer.llm_provider import estimate_cost
-        cost = estimate_cost("claude-haiku-4-5-20251001", 0, 0)
-        assert cost == 0.0
+        assert estimate_cost("claude-haiku-4-5-20251001", 0, 0) == 0.0
 
     def test_small_token_count(self):
+        from baselayer.config import spend_rates_for
         from baselayer.llm_provider import estimate_cost
-        # 100 input tokens, 50 output tokens at Haiku rates
-        cost = estimate_cost("claude-haiku-4-5-20251001", 100, 50)
-        expected = (100 / 1e6) * 0.80 + (50 / 1e6) * 4.00
-        assert abs(cost - expected) < 0.0001
-
-    def test_openai_model(self):
-        from baselayer.llm_provider import estimate_cost
-        cost = estimate_cost("gpt-4o", 1_000_000, 1_000_000)
-        assert cost > 0
-
-    def test_gemini_model(self):
-        from baselayer.llm_provider import estimate_cost
-        cost = estimate_cost("gemini-2.0-flash", 1_000_000, 1_000_000)
-        assert cost > 0
+        r = spend_rates_for("claude-haiku-4-5")
+        expected = (100 / 1e6) * r["input"] + (50 / 1e6) * r["output"]
+        assert estimate_cost("claude-haiku-4-5-20251001", 100, 50) == pytest.approx(expected)
 
 
 # ============================================================
@@ -213,19 +212,9 @@ class TestGetProviderInfo:
 # ============================================================
 
 class TestPricing:
-    """Test the PRICING reference table structure."""
+    """The undated PRICING table is gone; there is one rate table (config.SPEND_RATES_BY_MODEL)."""
 
-    def test_all_entries_have_input_and_output(self):
-        from baselayer.llm_provider import PRICING
-        for model, rates in PRICING.items():
-            assert "input" in rates, f"Missing input rate for {model}"
-            assert "output" in rates, f"Missing output rate for {model}"
-            assert rates["input"] > 0, f"Zero input rate for {model}"
-            assert rates["output"] > 0, f"Zero output rate for {model}"
+    def test_no_second_rate_table(self):
+        import baselayer.llm_provider as lp
+        assert not hasattr(lp, "PRICING")
 
-    def test_haiku_is_cheapest_anthropic(self):
-        from baselayer.llm_provider import PRICING
-        haiku = PRICING["claude-haiku-4-5-20251001"]
-        sonnet = PRICING["claude-sonnet-4-20250514"]
-        assert haiku["input"] < sonnet["input"]
-        assert haiku["output"] < sonnet["output"]

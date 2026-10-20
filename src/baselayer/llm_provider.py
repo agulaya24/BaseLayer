@@ -370,39 +370,22 @@ def get_provider_info(model: str = None, role: str = None) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Pricing reference (for cost estimation in eval scripts)
+# Cost estimate
 # ---------------------------------------------------------------------------
 
-# Approximate pricing per 1M tokens as of 2025-05.
-# Used for cost tracking in eval runs — not billing-critical.
-PRICING = {
-    # Anthropic
-    "claude-haiku-4-5-20251001": {"input": 0.80, "output": 4.00},
-    "claude-sonnet-4-20250514": {"input": 3.00, "output": 15.00},
-    "claude-sonnet-4-6": {"input": 3.00, "output": 15.00},
-    "claude-opus-4-20250514": {"input": 15.00, "output": 75.00},
-    "claude-opus-4-6": {"input": 15.00, "output": 75.00},
-    # OpenAI
-    "gpt-4o": {"input": 2.50, "output": 10.00},
-    "gpt-4o-mini": {"input": 0.15, "output": 0.60},
-    "gpt-4.1": {"input": 2.00, "output": 8.00},
-    "gpt-4.1-mini": {"input": 0.40, "output": 1.60},
-    "gpt-4.1-nano": {"input": 0.10, "output": 0.40},
-    "o3-mini": {"input": 1.10, "output": 4.40},
-    # Google
-    "gemini-2.0-flash": {"input": 0.10, "output": 0.40},
-    "gemini-2.0-pro": {"input": 1.25, "output": 10.00},
-    "gemini-2.5-flash-preview-04-17": {"input": 0.15, "output": 0.60},
-    "gemini-2.5-pro-preview-05-06": {"input": 1.25, "output": 10.00},
-}
+def estimate_cost(model: str, input_tokens: int, output_tokens: int):
+    """Estimated cost in USD at the dated first-party rates in config.SPEND_RATES_BY_MODEL,
+    the table the spend ceiling reads. 0.0 for a local ollama model. None for a model with no
+    dated rate there: an unpriced model is never reported as free.
 
-
-def estimate_cost(model: str, input_tokens: int, output_tokens: int) -> float:
-    """Estimate cost in USD for a given model and token counts.
-    Returns 0.0 if model not in pricing table (e.g. ollama)."""
-    rates = PRICING.get(model, {})
-    if not rates:
+    This module used to carry its own undated PRICING table ("as of 2025-05"), which
+    contradicted config (Haiku 4.5 at $0.80/$4.00 against $1/$5) and returned 0.0 for every
+    model it lacked, including the default extraction model."""
+    if model.startswith("ollama:"):
         return 0.0
-    input_cost = (input_tokens / 1e6) * rates["input"]
-    output_cost = (output_tokens / 1e6) * rates["output"]
-    return input_cost + output_cost
+    from baselayer.config import spend_rates_for, spend_rates_tier
+    rates = spend_rates_for(model)
+    if rates is None:
+        return None
+    r = spend_rates_tier(rates, input_tokens)
+    return (input_tokens / 1e6) * r["input"] + (output_tokens / 1e6) * r["output"]
