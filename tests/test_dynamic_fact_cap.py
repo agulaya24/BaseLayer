@@ -228,6 +228,14 @@ class TestExtractPathFlagOn:
 # ask. The DOC-level cap stays density-scaled and aggregates across chunks.
 
 class TestExtractionMaxTokens:
+    """Haiku 4.5's budget (a model that does not think); the thinking scaling is tested in
+    test_legacy_budget_thinking.py."""
+
+    @pytest.fixture(autouse=True)
+    def _haiku_45(self, monkeypatch):
+        import baselayer.extract_facts as ef
+        monkeypatch.setattr(ef, "EXTRACTION_API_MODEL", "claude-haiku-4-5-20251001")
+
     def test_fits_100_fact_ask(self):
         from baselayer.extract_facts import _extraction_max_tokens
         from baselayer import config

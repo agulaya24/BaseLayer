@@ -136,7 +136,10 @@ extracted under the turn contract. Detail: [TURN_CONTRACT.md](TURN_CONTRACT.md) 
 `turn_contract.py` (turn chunking, the gate, stamps), `chunk_ledger.py` (per-chunk checkpoints),
 `batch_extract.py` (Message Batches API).
 
-Model: Claude Haiku 4.5 (`config.EXTRACTION_API_MODEL`, `claude-haiku-4-5-20251001`), or a local
+Model: turn-contract extraction on Claude Haiku 5.5 at effort medium (`config.EXTRACTION_API_MODEL`,
+`claude-haiku-5-5`); legacy extraction, and so `baselayer run`, on Claude Haiku 4.5
+(`config.LEGACY_EXTRACTION_API_MODEL`, `claude-haiku-4-5-20251001`): on published text the newer model would not credit the writing to the person on the legacy prompt; a legacy comparison is pending.
+`BASELAYER_LLM_EXTRACTION` sets both, `BASELAYER_EXTRACTION_EFFORT` the effort. Or a local
 model through Ollama when `BASELAYER_EXTRACTION_BACKEND=ollama` (`config.LLM_MODEL`,
 `qwen2.5:14b`; authoring still needs the Claude API).
 
@@ -464,10 +467,11 @@ gate whose true value was about 0.45.
 
 | step | model | where it is set |
 |---|---|---|
-| extract (both paths) | Claude Haiku 4.5, `claude-haiku-4-5-20251001`; or Ollama `qwen2.5:14b` | `config.EXTRACTION_API_MODEL`, `config.LLM_MODEL` |
+| extract, turn contract (the cited build) | Claude Haiku 5.5, `claude-haiku-5-5`, effort medium | `config.EXTRACTION_API_MODEL` (override `BASELAYER_LLM_EXTRACTION`) |
+| extract, legacy (`run`) | Claude Haiku 4.5, `claude-haiku-4-5-20251001`; or Ollama `qwen2.5:14b` | `config.LEGACY_EXTRACTION_API_MODEL` (override `BASELAYER_LLM_EXTRACTION`), `config.LLM_MODEL` |
 | static `author` | Claude Sonnet 4.6, `claude-sonnet-4-6` | `config._LLM_DEFAULTS["authoring"]` (override `BASELAYER_LLM_AUTHORING`) |
 | `compose` (optional brief, static path) | Claude Opus 4.6, `claude-opus-4-6` | `config._LLM_DEFAULTS["review"]` (override `BASELAYER_LLM_REVIEW`) |
-| tension check in `run` | Claude Haiku 4.5 | `detect_contradictions.classify_pair_haiku` uses `config.EXTRACTION_API_MODEL` |
+| tension check in `run` | Claude Haiku 4.5, `claude-haiku-4-5-20251001` | `detect_contradictions.CONTRADICTION_CLASSIFIER_MODEL`, pinned; it does not follow the extraction model |
 | embeddings | `all-MiniLM-L6-v2`, local | `config.EMBEDDING_MODEL` |
 | `distill` leaves (and `distill_batch`) | Claude Sonnet 5, `claude-sonnet-5` | `--model` default |
 | `author-from-package` (layers and optional brief) | Claude Opus 5, `claude-opus-5`, effort `high` | `--model`, `--effort` defaults |

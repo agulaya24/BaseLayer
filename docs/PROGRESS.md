@@ -47,7 +47,7 @@ the module exists under `src/baselayer/`, and the CHANGELOG entry names it.
 
 | part | status | where to check |
 |---|---|---|
-| Turn-contract extraction: every fact must quote the person's own words, checked by a gate in code | experimental command (`extract --turn-contract`, or `BASELAYER_TURN_CONTRACT=1`) | `turn_contract.py`; [core/TURN_CONTRACT.md](core/TURN_CONTRACT.md); decision D-108 |
+| Turn-contract extraction on Claude Haiku 5.5: every fact must quote the person's own words, checked by a gate in code | experimental command (`extract --turn-contract`, or `BASELAYER_TURN_CONTRACT=1`) | `turn_contract.py`; [core/TURN_CONTRACT.md](core/TURN_CONTRACT.md); decision D-108 |
 | Chunk ledger: every extraction chunk is a checkpoint. Failed chunks retry, chunks that keep failing on their content are set aside, and gaps are written beside every artifact | runs on the turn-contract paths | `chunk_ledger.py`; `baselayer chunks --help` |
 | Batch extraction through the Message Batches API | runs (`baselayer batch-extract`) | [PIPELINE.md](PIPELINE.md) section 5 |
 | Distill: each chunk of facts yields themes, one-off facts kept word for word (singularities), contradictions kept unresolved, and one verdict per fact | experimental command | `distillation/distill.py`; [core/DISTILLATION.md](core/DISTILLATION.md) |

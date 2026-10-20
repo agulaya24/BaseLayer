@@ -30,7 +30,7 @@ The Specification is generated from raw text along one of two paths. The cited p
 `baselayer run` (one command):
 
 1. **Import.** Multi-source ingest (ChatGPT, Claude, journals, text).
-2. **Extract.** Haiku 4.5, 46 constrained predicates. AUDN lifecycle (add, update, delete, noop).
+2. **Extract.** Haiku 4.5, 46 constrained predicates (the cited build extracts on Haiku 5.5; on published text the newer model would not credit the writing to the person on this prompt, comparison pending). AUDN lifecycle (add, update, delete, noop).
 3. **Author.** Sonnet 4.6 generates the three layers independently from different fact subsets.
 4. **Traceability.** MiniLM-L6-v2 local embeddings (ChromaDB), vector provenance and a tension check between facts (Haiku 4.5).
 

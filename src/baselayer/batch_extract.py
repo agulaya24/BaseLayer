@@ -34,6 +34,7 @@ from datetime import datetime
 from baselayer.config import (
     PROJECT_ROOT, DATABASE_FILE, VECTORS_DIR, EMBEDDING_MODEL,
     EXTRACTION_API_MODEL, EXTRACTION_BACKEND,
+    extraction_sampling_kwargs, extraction_effort_kwargs, extraction_effort,
     CONSTRAINED_PREDICATES,
     SCOPE_SOURCE_MAPPING, DEFAULT_SCOPE, is_claude_code_source,
     MIN_MESSAGES_FOR_EXTRACTION,
@@ -84,6 +85,9 @@ from baselayer.extract_facts import (
     turn_stamps,
     check_turn_versions,
     _TURN_MODE_ACTIVE,
+    _PATH_MODEL,
+    active_extraction_model,
+    path_extraction_model,
     mark_turn_conversation_extracted,
     _turn_conversations_to_process,
     reset_usage,
@@ -116,8 +120,13 @@ def _batch_usage(result, conv_id, custom_id, meta=None):
     extra = {}
     if meta and meta.get("citable_chars") is not None:
         extra = {"chunk": meta.get("chunk_idx"), "citable_chars": meta["citable_chars"]}
+    blocks = getattr(msg, "content", None) or []
     return _tc.usage_entry(getattr(msg, "usage", None), purpose="extract", model=getattr(msg, "model", None),
-                           batch=True, conversation_id=conv_id, custom_id=custom_id, **extra)
+                           requested_model=active_extraction_model(), batch=True,
+                           stop_reason=getattr(msg, "stop_reason", None),
+                           refusal_category=getattr(getattr(msg, "stop_details", None), "category", None),
+                           thinking_blocks=sum(1 for b in blocks if getattr(b, "type", None) == "thinking"),
+                           conversation_id=conv_id, custom_id=custom_id, **extra)
 
 
 def _scoped_turn_mode(fn):
@@ -129,9 +138,11 @@ def _scoped_turn_mode(fn):
     @functools.wraps(fn)
     def wrapper(*args, **kwargs):
         token = _TURN_MODE_ACTIVE.set(_TURN_MODE_ACTIVE.get())
+        model_token = _PATH_MODEL.set(_PATH_MODEL.get())   # the path model, likewise
         try:
             return fn(*args, **kwargs)
         finally:
+            _PATH_MODEL.reset(model_token)
             _TURN_MODE_ACTIVE.reset(token)
     return wrapper
 from baselayer import turn_contract as _tc
@@ -158,6 +169,13 @@ BATCH_STATE_FILE = _get_batch_state_file()  # Default for direct CLI usage
 # 8192 max-output-token cap. Sync path (api_client.call_api) defaults to 4096,
 # which is why the sync smoke test on the same input succeeded.
 BATCH_MAX_TOKENS = 8000
+
+
+def legacy_batch_max_tokens(model: str) -> int:
+    """The legacy batch request's max_tokens: BATCH_MAX_TOKENS, scaled on a model that thinks
+    (config.thinking_output_budget; thinking shares max_tokens)."""
+    from baselayer.config import thinking_output_budget
+    return thinking_output_budget(model, BATCH_MAX_TOKENS)
 BATCH_TEMPERATURE = 0.1
 
 
@@ -245,7 +263,9 @@ def _build_request_for_conv(custom_id, prompt, model, max_tokens, temperature, j
         "params": {
             "model": model,
             "max_tokens": max_tokens,
-            "temperature": temperature,
+            # omitted on a model that 400s on sampling parameters (5-generation)
+            **extraction_sampling_kwargs(model, temperature),
+            **extraction_effort_kwargs(model),
             "messages": [
                 {"role": "user", "content": json_instruction + prompt}
             ],
@@ -407,6 +427,7 @@ def run_submit(document_mode=False, skip_extracted=False, turn_contract=None):
     """
     turn_mode = _turn_contract_enabled() if turn_contract is None else bool(turn_contract)
     _TURN_MODE_ACTIVE.set(turn_mode)
+    _PATH_MODEL.set(path_extraction_model(turn_mode))
     mode_label = "Document Corpus" if document_mode else "Re-extraction"
     if turn_mode:
         mode_label += f" under {TURN_CONTRACT_VERSION}"
@@ -508,7 +529,7 @@ def run_submit(document_mode=False, skip_extracted=False, turn_contract=None):
             if turn_mode:
                 built = _turn_requests_for_conversation(
                     conn, conv_id, conv_title, source, stamps=stamps,
-                    model=EXTRACTION_API_MODEL, temperature=BATCH_TEMPERATURE,
+                    model=active_extraction_model(), temperature=BATCH_TEMPERATURE,
                     json_instruction=json_instruction, chunk_map=chunk_map,
                     fresh=not skip_extracted)
                 if built is None:
@@ -557,8 +578,8 @@ def run_submit(document_mode=False, skip_extracted=False, turn_contract=None):
                 input_char_budget=caps["input_char_budget"],
                 max_facts=caps["max_facts"],
                 prompt_builder=prompt_builder,
-                model=EXTRACTION_API_MODEL,
-                max_tokens=BATCH_MAX_TOKENS,
+                model=active_extraction_model(),
+                max_tokens=legacy_batch_max_tokens(active_extraction_model()),
                 temperature=BATCH_TEMPERATURE,
                 json_instruction=json_instruction,
                 chunk_map=chunk_map,
@@ -618,7 +639,8 @@ def run_submit(document_mode=False, skip_extracted=False, turn_contract=None):
         "total_requests": len(requests),
         "conversation_ids": list(chunk_counts.keys()),
         "chunk_map": chunk_map,  # custom_id → {parent_conv_id, chunk_idx, total_chunks, source}
-        "model": EXTRACTION_API_MODEL,
+        "model": active_extraction_model(),
+        "effort": extraction_effort(active_extraction_model()),
         "status": "submitted",
         "mode": "turn" if turn_mode else "legacy",
         # An incremental batch covers only part of the corpus, so the resetting --process
@@ -1066,6 +1088,8 @@ def run_process(resume=False):
     chunk_map = state.get("chunk_map", {})
     turn_mode = state.get("mode") == "turn"
     _TURN_MODE_ACTIVE.set(turn_mode)
+    # synchronous re-chunks and AUDN calls run on the model the batch was submitted with
+    _PATH_MODEL.set(state.get("model") or path_extraction_model(turn_mode))
     client = _get_anthropic_client()
 
     # Verify batch is complete

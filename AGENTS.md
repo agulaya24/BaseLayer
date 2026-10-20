@@ -72,7 +72,7 @@ baselayer run <file>              # the older, quicker pipeline; far fewer check
 Step-by-step:
 
 ```bash
-baselayer extract                 # Haiku 4.5, 46 constrained predicates, AUDN lifecycle
+baselayer extract                 # Haiku 4.5 (--turn-contract: Haiku 5.5), 46 constrained predicates, AUDN lifecycle
 baselayer embed                   # optional: messages -> ChromaDB, for `baselayer search`
 baselayer author --layer all      # Sonnet 4.6, three-layer authoring (static path)
 baselayer compose                 # optional: Opus 4.6, a prose brief from the layers (static path)

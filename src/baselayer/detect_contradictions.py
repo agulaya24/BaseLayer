@@ -199,6 +199,13 @@ def find_candidate_pairs(facts, embeddings, threshold=0.45):
     return candidates
 
 
+# Pinned, not EXTRACTION_API_MODEL: extraction moved to Haiku 5.5 on 2026-10-19 on evidence about
+# extraction only. This classifier's 300-token budget is sized for a model that does not think,
+# and any failure below returns CONSISTENT, so following the extraction default would change
+# `baselayer run` step 5d without a measurement. Move it as its own decision.
+CONTRADICTION_CLASSIFIER_MODEL = "claude-haiku-4-5-20251001"
+
+
 def classify_pair_haiku(fact_a_text, fact_b_text, pred_a, pred_b):
     """Classify a fact pair using Haiku API via api_client.call_api."""
     from baselayer.api_client import call_api, response_text
@@ -222,7 +229,7 @@ Return ONLY a JSON object:
 
     try:
         response = call_api(
-            model=EXTRACTION_API_MODEL,
+            model=CONTRADICTION_CLASSIFIER_MODEL,
             messages=[{"role": "user", "content": prompt}],
             max_tokens=300,
             temperature=0,

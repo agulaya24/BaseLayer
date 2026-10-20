@@ -15,6 +15,7 @@ Organization:
 
 import contextlib
 import os
+import re
 import sqlite3
 from pathlib import Path
 
@@ -168,7 +169,83 @@ LLM_MODEL = "qwen2.5:14b"
 # Set via BASELAYER_EXTRACTION_BACKEND env var or change default here.
 
 EXTRACTION_BACKEND = os.environ.get("BASELAYER_EXTRACTION_BACKEND", "anthropic")
-EXTRACTION_API_MODEL = "claude-haiku-4-5-20251001"  # Fast + cheap for extraction
+# BASELAYER_LLM_EXTRACTION is the documented per-role override (LLM_PROVIDER_CONFIG below).
+# Default claude-haiku-5-5 at effort medium since 2026-10-19 (maintainer decision), from Haiku 4.5: in blind
+# same-sample comparisons, judged in both orders against a same-model noise floor, Haiku 5.5
+# medium was preferred on essays, talks and mailing-list posts (31 / 1 / 8), weekly roundup
+# posts (18 / 3 / 4) and chat (17 / 2 / 6), at about one fifth of the cost; effort high was no
+# better than medium. Haiku 4.5
+# stays selectable: BASELAYER_LLM_EXTRACTION=claude-haiku-4-5-20251001 (it then sends
+# temperature 0.1 and no effort, as before).
+DEFAULT_EXTRACTION_MODEL = "claude-haiku-5-5"
+DEFAULT_EXTRACTION_EFFORT = "medium"
+# The comparisons ran on the turn-contract path only, so the default follows the path
+# (decision A, 2026-10-19): turn-contract extraction, sequential and batch, uses
+# EXTRACTION_API_MODEL; the legacy path (`extract` without --turn-contract, and so
+# `baselayer run`) uses LEGACY_EXTRACTION_API_MODEL, Haiku 4.5, until a legacy comparison is
+# done. On the legacy prompt's first live test, given a published autobiography as a text file,
+# Haiku 5.5 would not credit the writing to the person (3 facts against Haiku 4.5's 24); on
+# unrecognisable first-person prose the two matched (15 and 17). BASELAYER_LLM_EXTRACTION, when
+# set, is the model on both paths.
+DEFAULT_LEGACY_EXTRACTION_MODEL = "claude-haiku-4-5-20251001"
+_EXTRACTION_OVERRIDE = os.environ.get("BASELAYER_LLM_EXTRACTION") or None
+EXTRACTION_API_MODEL = _EXTRACTION_OVERRIDE or DEFAULT_EXTRACTION_MODEL
+LEGACY_EXTRACTION_API_MODEL = _EXTRACTION_OVERRIDE or DEFAULT_LEGACY_EXTRACTION_MODEL
+
+# Models that reject non-default sampling parameters with a 400 (temperature/top_p/top_k):
+# every 5-generation model, Fable and Mythos, and Opus 4.7 / 4.8. Matched on the id prefix.
+_SAMPLING_REJECTED = re.compile(
+    r"^claude-(?:(?:haiku|sonnet|opus)-5(?:-\d+)?(?:$|[^\d])|opus-4-[78](?:$|[^\d])|fable-|mythos-)")
+
+
+def model_rejects_sampling(model: str) -> bool:
+    return bool(_SAMPLING_REJECTED.match((model or "").lower()))
+
+
+def extraction_sampling_kwargs(model: str, temperature: float) -> dict:
+    """{"temperature": t} for a model that takes it, {} for one that 400s on it."""
+    return {} if model_rejects_sampling(model) else {"temperature": temperature}
+
+
+# The legacy path's budgets (call_anthropic's prompt-length heuristic, the dynamic-cap
+# per-fact budget, the legacy batch BATCH_MAX_TOKENS) were sized for Haiku 4.5, which does not
+# think, and a legacy reply that stops on max_tokens is counted and dropped (no re-chunk there).
+# On a model that thinks by default each is multiplied by THINKING_OUTPUT_MULTIPLIER and floored
+# at TURN_OUTPUT_TOKENS_FLOOR_THINKING, clamped at EXTRACTION_MAX_OUTPUT_TOKENS. Basis
+# (2026-10-19, turn path, effort medium): Haiku 5.5 emitted 2.0 to 2.2 times Haiku 4.5's output
+# tokens per kept fact on three same-sample comparisons (335 to 345 against 156 to 169, thinking
+# included); 3 leaves about 1.4x headroom over the largest. Measured on the turn prompt, not the
+# legacy one, which asks for no quoted spans.
+THINKING_OUTPUT_MULTIPLIER = 3
+
+
+def thinking_output_budget(model: str, max_tokens: int) -> int:
+    """A legacy-path max_tokens for this model: unchanged for a model that does not think."""
+    if not model_rejects_sampling(model):
+        return max_tokens
+    return min(EXTRACTION_MAX_OUTPUT_TOKENS,
+               max(TURN_OUTPUT_TOKENS_FLOOR_THINKING, max_tokens * THINKING_OUTPUT_MULTIPLIER))
+
+
+def turn_output_budget_params(model: str) -> tuple:
+    """(tokens per citable char, floor) for the turn-path output budget on this model."""
+    if model_rejects_sampling(model):
+        return TURN_OUTPUT_TOKENS_PER_CITABLE_CHAR_THINKING, TURN_OUTPUT_TOKENS_FLOOR_THINKING
+    return TURN_OUTPUT_TOKENS_PER_CITABLE_CHAR, TURN_OUTPUT_TOKENS_FLOOR
+
+
+def extraction_effort(model: str):
+    """The effort an extraction call on this model sends: BASELAYER_EXTRACTION_EFFORT, default
+    DEFAULT_EXTRACTION_EFFORT (medium, what was measured), only for models that take effort (the
+    same set that rejects sampling; Haiku 4.5 400s on effort). Set it empty to send nothing and
+    take the model's own default. None when nothing is sent."""
+    effort = os.environ.get("BASELAYER_EXTRACTION_EFFORT", DEFAULT_EXTRACTION_EFFORT)
+    return effort if effort and model_rejects_sampling(model) else None
+
+
+def extraction_effort_kwargs(model: str) -> dict:
+    effort = extraction_effort(model)
+    return {"output_config": {"effort": effort}} if effort else {}
 
 
 # ==========================================================================
@@ -215,7 +292,7 @@ def compute_source_fingerprint(source_dir, extraction_model=None):
             h.update(str(f.stat().st_size).encode())
 
     # Extraction model
-    model = extraction_model or EXTRACTION_API_MODEL
+    model = extraction_model or LEGACY_EXTRACTION_API_MODEL   # `run` extracts on the legacy path
     h.update(model.encode())
 
     # Extraction caps (ceiling + budget)
@@ -388,7 +465,8 @@ OUTPUT_SAFE_CHUNK_CAP = 100
 # cover the requested fact count, so the ceiling tracks the ask instead of a
 # fixed value. ~EXTRACTION_TOKENS_PER_FACT tokens/fact + a JSON-wrapping buffer,
 # clamped to the extraction model's documented max output tokens.
-# Haiku 4.5 (claude-haiku-4-5-20251001) max output = 64000 tokens.
+# Haiku 4.5 (claude-haiku-4-5-20251001) max output = 64000 tokens; Haiku 5.5 = 128000, so the
+# 64000 clamp holds on both.
 EXTRACTION_TOKENS_PER_FACT = 90
 EXTRACTION_OUTPUT_BUFFER_TOKENS = 2000
 EXTRACTION_MAX_OUTPUT_TOKENS = 64000
@@ -473,16 +551,68 @@ TURN_FACT_COUNT_MODE = "coverage"
 # stops on max_tokens is re-chunked, never dropped (extract_facts).
 TURN_OUTPUT_TOKENS_PER_CITABLE_CHAR = 6.4
 TURN_OUTPUT_TOKENS_FLOOR = 2000
+# A model that thinks by default (every 5-generation model; model_rejects_sampling below) spends
+# part of max_tokens on thinking, so it gets its own rate and floor, derived the same way.
+# Derivation (2026-10-19, Haiku 5.5 at effort medium, 98 turn-path extract calls over three
+# same-sample comparisons: essays, talks and mailing-list posts 41, weekly roundup posts 25,
+# chat 32): the largest output per citable char on a chunk of 600+ chars was 5.23 (a chat chunk, 863 chars, 4,515 tokens);
+# three times it is 15.7, rounded up to 16. Under 600 chars the largest output was 2,589 tokens
+# (432 chars, 94% of its budget), and one 313-char chat chunk stopped on its 2,004-token budget
+# and was re-chunked; three times 2,589 is 7,767, rounded up to 8,000. A larger max_tokens costs
+# nothing unless used; it only raises the spend ceiling's worst case, which on Haiku 5.5 is
+# $0.004 at the floor and $0.032 at the 64,000-token clamp. Effort high produced up to 3.09
+# per char on roundups, inside the same rate.
+TURN_OUTPUT_TOKENS_PER_CITABLE_CHAR_THINKING = 16
+TURN_OUTPUT_TOKENS_FLOOR_THINKING = 8000
 # Run-wide spend ceiling (the runaway guard that replaced the fact-count halt on the turn
 # path). Set per run with BASELAYER_SPEND_CEILING_USD; unset means no ceiling. Checked
 # before every sequential model call: measured spend so far (every call's usage, AUDN
 # included) plus the call's worst case (prompt chars / SPEND_CHARS_PER_TOKEN input, plus
 # max_tokens output) must stay at or under the ceiling, or the run stops.
-# Rates are USD per million tokens for the extraction model, Claude Haiku 4.5, published
-# first-party rates (input 1, output 5; cache read 0.1x and cache write 1.25x input).
+# Rates: each call is priced at the published rate of the model that ANSWERED it (its usage
+# entry's `model`, else the requested model), from SPEND_RATES_BY_MODEL. A model with no row is
+# refused when a ceiling is set, never priced at another model's rate.
+# USD per million tokens, first-party API, read on SPEND_RATES_AS_OF from SPEND_RATES_SOURCE.
 # Confirm them against the current price list before relying on the ceiling.
-SPEND_RATES_PER_MTOK = {"input": 1.0, "output": 5.0, "cache_read": 0.10, "cache_write": 1.25}
-SPEND_CHARS_PER_TOKEN = 3.5   # conservative: the pilot measured 3.77 prompt chars per token
+#   - cache_write is the 1-hour write rate (2x input), the dearer of the two write rates, so a
+#     write is never under-counted (extraction sends no cache_control today).
+#   - Claude Haiku 5.5 is priced by prompt length: a request whose prompt (input + cache reads +
+#     cache writes) is over `long_prompt_tokens` pays the `long` rates on every token of it.
+#   - Message Batches bill SPEND_BATCH_DISCOUNT of the standard rate.
+#   - chars_per_token converts a prompt's characters to tokens for the worst case before a call.
+#     Haiku 4.5: the pilot measured 3.77, rounded down to 3.5. Haiku 5.5's newer tokenizer
+#     counted 1.375x and 1.39x the input tokens of Haiku 4.5 on identical prompts (two
+#     same-sample comparisons, 2026-10-19), about 2.7 chars per token, rounded down to 2.5.
+SPEND_RATES_AS_OF = "2026-10-19"
+SPEND_RATES_SOURCE = "https://platform.claude.com/docs/en/about-claude/pricing"
+SPEND_BATCH_DISCOUNT = 0.5
+SPEND_RATES_BY_MODEL = {
+    "claude-haiku-4-5": {"input": 1.0, "output": 5.0, "cache_read": 0.10, "cache_write": 2.0,
+                         "chars_per_token": 3.5},
+    "claude-haiku-5-5": {"input": 0.10, "output": 0.50, "cache_read": 0.01, "cache_write": 0.20,
+                         "chars_per_token": 2.5, "long_prompt_tokens": 100_000,
+                         "long": {"input": 0.50, "output": 2.50, "cache_read": 0.05,
+                                  "cache_write": 1.0}},
+}
+# Haiku 4.5's row, under the name older readers import.
+SPEND_RATES_PER_MTOK = SPEND_RATES_BY_MODEL["claude-haiku-4-5"]
+SPEND_CHARS_PER_TOKEN = SPEND_RATES_PER_MTOK["chars_per_token"]
+
+
+def spend_rates_for(model):
+    """The SPEND_RATES_BY_MODEL row for a model id, a dated snapshot id (claude-haiku-4-5-20251001)
+    resolving to its alias's row. None for a model with no published rate in the table."""
+    m = re.sub(r"-\d{8}$", "", (model or "").strip().lower())
+    return SPEND_RATES_BY_MODEL.get(m)
+
+
+def spend_rates_tier(rates: dict, prompt_tokens: float) -> dict:
+    """The rate card one request pays: the `long` card when its prompt is over the model's
+    long-prompt threshold, else the standard one."""
+    limit = rates.get("long_prompt_tokens")
+    if limit is not None and prompt_tokens > limit:
+        return rates["long"]
+    return rates
 
 
 # ==========================================================================
@@ -705,8 +835,8 @@ AGENT_RUNS_DIR = IDENTITY_LAYERS_DIR / "runs"
 #   pip install google-generativeai # For gemini-*
 
 _LLM_DEFAULTS = {
-    "extraction": "claude-haiku-4-5-20251001",
-    "classification": "claude-haiku-4-5-20251001",   # LEGACY — classification removed in S79
+    "extraction": DEFAULT_EXTRACTION_MODEL,          # same default as EXTRACTION_API_MODEL
+    "classification": DEFAULT_EXTRACTION_MODEL,      # LEGACY: classification removed in S79
     "tiering": "claude-sonnet-4-6",                    # LEGACY — tiering removed in S79
     "authoring": "claude-sonnet-4-6",                  # S98: updated from claude-sonnet-4-20250514
     "review": "claude-opus-4-6",                       # S98: updated from claude-opus-4-20250514 (3x cheaper)
@@ -715,7 +845,7 @@ _LLM_DEFAULTS = {
 
 # S98: Known latest model versions — used for freshness check
 _LATEST_MODELS = {
-    "haiku": "claude-haiku-4-5-20251001",
+    "haiku": "claude-haiku-5-5",
     "sonnet": "claude-sonnet-4-6",
     "opus": "claude-opus-4-6",
 }

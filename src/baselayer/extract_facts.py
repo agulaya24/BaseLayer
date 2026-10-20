@@ -48,7 +48,8 @@ from baselayer.config import (
     SIMILARITY_THRESHOLD, MAX_RETRIES, MIN_FACT_LENGTH,
     MAX_FACTS_PER_CONVERSATION, MIN_MESSAGES_FOR_EXTRACTION,
     VALID_CATEGORIES, VALID_FACT_CLASSES,
-    EXTRACTION_BACKEND, EXTRACTION_API_MODEL,
+    EXTRACTION_BACKEND, EXTRACTION_API_MODEL, LEGACY_EXTRACTION_API_MODEL,
+    extraction_sampling_kwargs, extraction_effort_kwargs,
     SCOPE_SOURCE_MAPPING, DEFAULT_SCOPE, CLAUDE_CODE_SOURCES, is_claude_code_source, source_family,
     CONSTRAINED_PREDICATES,
     EXTRACTION_CAPS,
@@ -386,6 +387,21 @@ def _get_known_entities_for_prompt():
 # file or an explicit argument). Read only by _dynamic_cap_enabled.
 _TURN_MODE_ACTIVE = contextvars.ContextVar("baselayer_turn_mode_active", default=False)
 
+# The model of the extraction run in progress: set by run_extraction and the batch entry
+# points from the path they run (config: EXTRACTION_API_MODEL on the turn-contract path,
+# LEGACY_EXTRACTION_API_MODEL on the legacy one), reset when they return. Outside a run (a
+# direct call) it is EXTRACTION_API_MODEL.
+_PATH_MODEL = contextvars.ContextVar("baselayer_extraction_path_model", default=None)
+
+
+def active_extraction_model() -> str:
+    return _PATH_MODEL.get() or EXTRACTION_API_MODEL
+
+
+def path_extraction_model(turn_mode: bool) -> str:
+    """The model a run on this path uses (BASELAYER_LLM_EXTRACTION, when set, on both)."""
+    return EXTRACTION_API_MODEL if turn_mode else LEGACY_EXTRACTION_API_MODEL
+
 
 def _dynamic_cap_enabled() -> bool:
     """B-halt dynamic fact cap gate (default OFF on the legacy path, ON in turn mode).
@@ -421,7 +437,9 @@ def _extraction_max_tokens(fact_count: int) -> int:
     path passes max_tokens=None and keeps that prompt-length heuristic untouched.
     """
     scaled = fact_count * EXTRACTION_TOKENS_PER_FACT + EXTRACTION_OUTPUT_BUFFER_TOKENS
-    return min(EXTRACTION_MAX_OUTPUT_TOKENS, max(2000, scaled))
+    from baselayer.config import thinking_output_budget
+    return thinking_output_budget(active_extraction_model(),
+                                  min(EXTRACTION_MAX_OUTPUT_TOKENS, max(2000, scaled)))
 
 
 def _get_extraction_caps(message_count: int, total_chars: int = 0,
@@ -1052,12 +1070,42 @@ def spend_ceiling_usd():
     return float(raw) if raw not in (None, "") else None
 
 
+def _rates_or_refuse(model: str) -> dict:
+    from baselayer.config import SPEND_RATES_AS_OF, spend_rates_for
+    rates = spend_rates_for(model)
+    if rates is None:
+        raise SpendCeilingExceeded(
+            f"no published rate for {model!r} in config.SPEND_RATES_BY_MODEL (read "
+            f"{SPEND_RATES_AS_OF}), so the spend ceiling cannot be enforced on it; add its "
+            f"row or unset BASELAYER_SPEND_CEILING_USD. Stopping before the call")
+    return rates
+
+
+def _spend_rates_as_of() -> str:
+    from baselayer.config import SPEND_RATES_AS_OF
+    return SPEND_RATES_AS_OF
+
+
+def call_cost_usd(c: dict) -> float:
+    """One usage entry priced at its own model's rates: the model that answered, else the one
+    requested, else the configured one. Tiered per request (Haiku 5.5 over 100K prompt tokens
+    pays the long-prompt card on the whole call); a batch entry at the batch discount."""
+    from baselayer.config import SPEND_BATCH_DISCOUNT, spend_rates_for, spend_rates_tier
+    model = c.get("model") or c.get("requested_model") or active_extraction_model()
+    if spend_rates_for(model) is None and c.get("requested_model"):
+        model = c["requested_model"]
+    rates = _rates_or_refuse(model)
+    tin = c.get("input_tokens", 0) or 0
+    cr = c.get("cache_read_input_tokens", 0) or 0
+    cw = c.get("cache_creation_input_tokens", 0) or 0
+    r = spend_rates_tier(rates, tin + cr + cw)
+    usd = (tin * r["input"] + (c.get("output_tokens", 0) or 0) * r["output"]
+           + cr * r["cache_read"] + cw * r["cache_write"]) / 1e6
+    return usd * (SPEND_BATCH_DISCOUNT if c.get("batch") else 1.0)
+
+
 def measured_spend_usd(calls=None) -> float:
-    from baselayer.config import SPEND_RATES_PER_MTOK as R
-    t = _tc.usage_totals(_USAGE_CALLS if calls is None else calls)
-    return (t["input_tokens"] * R["input"] + t["output_tokens"] * R["output"]
-            + t["cache_read_input_tokens"] * R["cache_read"]
-            + t["cache_creation_input_tokens"] * R["cache_write"]) / 1e6
+    return sum(call_cost_usd(c) for c in (_USAGE_CALLS if calls is None else calls))
 
 
 def check_spend_ceiling(prompt_chars: int, max_tokens: int):
@@ -1065,9 +1113,12 @@ def check_spend_ceiling(prompt_chars: int, max_tokens: int):
     ceiling = spend_ceiling_usd()
     if ceiling is None:
         return
-    from baselayer.config import SPEND_CHARS_PER_TOKEN, SPEND_RATES_PER_MTOK as R
+    from baselayer.config import spend_rates_tier
+    rates = _rates_or_refuse(active_extraction_model())
     spent = measured_spend_usd()
-    worst = (prompt_chars / SPEND_CHARS_PER_TOKEN * R["input"] + max_tokens * R["output"]) / 1e6
+    tin = prompt_chars / rates["chars_per_token"]
+    r = spend_rates_tier(rates, tin)
+    worst = (tin * r["input"] + max_tokens * r["output"]) / 1e6
     if spent + worst > ceiling:
         raise SpendCeilingExceeded(
             f"spend ceiling ${ceiling:.4f}: measured ${spent:.4f} plus this call's worst case "
@@ -1080,8 +1131,16 @@ def usage_calls() -> list:
 
 def _record_usage(response, purpose: str):
     chunk = _CURRENT_CHUNK.get() if purpose == "extract" else None
+    # `model` is the model that ANSWERED (the reply's own field), so the run record cannot
+    # merely echo the setting; `requested_model` is what was configured.
+    blocks = getattr(response, "content", None) or []
     _USAGE_CALLS.append(_tc.usage_entry(
-        getattr(response, "usage", None), purpose=purpose, model=EXTRACTION_API_MODEL, batch=False,
+        getattr(response, "usage", None), purpose=purpose,
+        model=getattr(response, "model", None) or active_extraction_model(),
+        requested_model=active_extraction_model(), batch=False,
+        stop_reason=getattr(response, "stop_reason", None),
+        refusal_category=getattr(getattr(response, "stop_details", None), "category", None),
+        thinking_blocks=sum(1 for b in blocks if getattr(b, "type", None) == "thinking"),
         conversation_id=_CURRENT_CONVERSATION.get(), at=time.time(), **(chunk or {})))
 
 
@@ -1152,16 +1211,21 @@ def call_anthropic(prompt: str, schema: dict = None, retries: int = MAX_RETRIES,
         prompt_len = len(prompt)
         estimated_facts = min(50, max(10, prompt_len // 500))
         max_tokens = max(2000, estimated_facts * 200)
+        # sized for a model that does not think; scaled on one that does (config)
+        from baselayer.config import thinking_output_budget
+        max_tokens = thinking_output_budget(active_extraction_model(), max_tokens)
 
     for attempt in range(retries + 1):
         # Outside the try: a refusal here must stop the run, not be retried or swallowed.
         check_spend_ceiling(len(json_instruction) + len(prompt), max_tokens)
         try:
             response = client.messages.create(
-                model=EXTRACTION_API_MODEL,
+                model=active_extraction_model(),
                 max_tokens=max_tokens,
-                temperature=0.1,
                 messages=[{"role": "user", "content": json_instruction + prompt}],
+                # temperature 0.1 where the model takes it; omitted where it 400s (5-generation)
+                **extraction_sampling_kwargs(active_extraction_model(), 0.1),
+                **extraction_effort_kwargs(active_extraction_model()),
             )
             _record_usage(response, "audn" if schema is AUDN_SCHEMA else "extract")
             raw = _strip_json_fences(response_text(response))
@@ -1197,6 +1261,7 @@ def call_anthropic(prompt: str, schema: dict = None, retries: int = MAX_RETRIES,
                 print(f"  ERROR: Anthropic API call failed: {e}")
                 if _RAISE_CALL_ERRORS.get():
                     raise                   # the turn path classifies it (content or access)
+                _count_response_failure("api_error")   # swallowed into None: count it
                 return None
 
     return None
@@ -2050,17 +2115,32 @@ def _turn_extraction_max_tokens(fact_count: int) -> int:
 
 def turn_output_budget(citable_chars: int) -> int:
     """max_tokens for one chunk in fact_count_mode `none`, from its citable characters
-    (config TURN_OUTPUT_TOKENS_PER_CITABLE_CHAR, where the derivation is written)."""
-    scaled = math.ceil(TURN_OUTPUT_TOKENS_PER_CITABLE_CHAR * max(0, citable_chars))
-    return min(EXTRACTION_MAX_OUTPUT_TOKENS, max(TURN_OUTPUT_TOKENS_FLOOR, scaled))
+    (config TURN_OUTPUT_TOKENS_PER_CITABLE_CHAR, where the derivation is written; a model that
+    thinks by default uses the _THINKING rate and floor, config.turn_output_budget_params)."""
+    from baselayer.config import turn_output_budget_params
+    per_char, floor = turn_output_budget_params(active_extraction_model())
+    scaled = math.ceil(per_char * max(0, citable_chars))
+    return min(EXTRACTION_MAX_OUTPUT_TOKENS, max(floor, scaled))
+
+
+def _hash_budget(chunk, plan: dict) -> int:
+    """turn_chunk_max_tokens as it is for a model that does not think: the budget term of
+    chunk_input_hash, so the hash does not depend on the extraction model."""
+    if uncounted_mode(plan.get("fact_count_mode")):
+        scaled = math.ceil(TURN_OUTPUT_TOKENS_PER_CITABLE_CHAR * max(0, chunk.citable_chars))
+        return min(EXTRACTION_MAX_OUTPUT_TOKENS, max(TURN_OUTPUT_TOKENS_FLOOR, scaled))
+    return plan["max_tokens"]
 
 
 def turn_chunk_max_tokens(chunk, plan: dict) -> int:
     """The output budget for one chunk: from the fact count when capped, from the chunk's
-    citable characters when the prompt carries no count."""
+    citable characters when the prompt carries no count. On a model that thinks, the capped
+    budget is scaled here, at call time (config.thinking_output_budget), so the plan and the
+    chunk hash keep the model-independent figure."""
     if uncounted_mode(plan.get("fact_count_mode")):
         return turn_output_budget(chunk.citable_chars)
-    return plan["max_tokens"]
+    from baselayer.config import thinking_output_budget
+    return thinking_output_budget(active_extraction_model(), plan["max_tokens"])
 
 
 def _abstract_noncitable_project_text(text: str) -> str:
@@ -2218,7 +2298,7 @@ def legacy_prompt_hash(builder, schema=None) -> str:
 
 
 def _extraction_model_name() -> str:
-    return EXTRACTION_API_MODEL if EXTRACTION_BACKEND == "anthropic" else LLM_MODEL
+    return active_extraction_model() if EXTRACTION_BACKEND == "anthropic" else LLM_MODEL
 
 
 def turn_stamps() -> dict:
@@ -2640,6 +2720,16 @@ def assert_legacy_allowed(conn):
             f"(BASELAYER_TURN_CONTRACT=1), not the legacy path.")
 
 
+def _effort():
+    from baselayer.config import extraction_effort
+    return extraction_effort(active_extraction_model())
+
+
+def _budget_params() -> tuple:
+    from baselayer.config import turn_output_budget_params
+    return turn_output_budget_params(active_extraction_model())
+
+
 def turn_run_settings() -> dict:
     """Every cap and switch that shapes a turn-contract run, for the header and
     the per-run record (no hidden caps)."""
@@ -2648,8 +2738,10 @@ def turn_run_settings() -> dict:
         "turn_table": _tc.TURN_TABLE,
         "fact_count_mode": turn_fact_count_mode(),
         "spend_ceiling_usd": spend_ceiling_usd(),
-        "output_tokens_per_citable_char": TURN_OUTPUT_TOKENS_PER_CITABLE_CHAR,
-        "output_tokens_floor": TURN_OUTPUT_TOKENS_FLOOR,
+        "spend_rates_as_of": _spend_rates_as_of(),
+        "extraction_effort": _effort(),
+        "output_tokens_per_citable_char": _budget_params()[0],
+        "output_tokens_floor": _budget_params()[1],
         "output_tokens_ceiling": EXTRACTION_MAX_OUTPUT_TOKENS,
         "dynamic_cap": _dynamic_cap_enabled(),
         "skip_coverage_gate": bool(os.environ.get("BASELAYER_SKIP_COVERAGE_GATE")),
@@ -2737,9 +2829,11 @@ def rebuild_chunk(turns, source: str, key: str, budget: int, upto: int):
 def chunk_input_hash(conv_title: str, ch, plan: dict, project_session: bool) -> str:
     """Hash of a chunk's exact call input: the prompt (title, section header, entity hints,
     mode, the rendered context and body) and its output budget. Identical on the sequential
-    and batch paths."""
+    and batch paths. The budget term is the model-independent one (the rate and floor of a
+    model that does not think), because the hash has never covered the model: a model switch
+    must not invalidate a done chunk and re-run it."""
     prompt = turn_chunk_prompt(conv_title, ch, plan, project_session)
-    raw = f"{prompt}\x00max_tokens={turn_chunk_max_tokens(ch, plan)}"
+    raw = f"{prompt}\x00max_tokens={_hash_budget(ch, plan)}"
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:32]
 
 
@@ -3321,6 +3415,20 @@ Is this a duplicate? Reply with JSON: action=NOOP if duplicate, ADD if genuinely
             if result["action"] == "UPDATE" and not result.get("updated_fact"):
                 result["updated_fact"] = candidate_fact
             return result
+
+        # The adjudication failed (None: an API error, refusal or unparseable reply; or a
+        # reply with no action). This used to fall through to the moderate-similarity ADD
+        # below, storing a likely duplicate with nothing in the run record. Count it and say
+        # so; the fact is still kept, because a missed dedup is visible and repairable and a
+        # dropped fact is not.
+        _count_response_failure("audn_no_decision")
+        return {
+            "action": "ADD",
+            "reasoning": f"AUDN call failed at similarity {max_similarity:.0%}; stored unadjudicated",
+            "updated_fact": candidate_fact,
+            "confidence": 0.6,
+            "audn_failed": True,
+        }
 
     # Moderate similarity (0.3-0.85) — treat as new, skip LLM to save time
     # These can be reviewed later if needed
@@ -3905,7 +4013,17 @@ def _should_warn_low_fact_count(total_facts: int, errors: int, *, total_chars: i
             and total_facts < LOW_YIELD_WARN_PER_10K * total_chars / 10_000)
 
 
-def run_extraction(limit: int = None, conv_id: str = None,
+def run_extraction(*args, **kwargs):
+    """Main extraction pipeline (_run_extraction), on the path's model: EXTRACTION_API_MODEL
+    under the turn contract, LEGACY_EXTRACTION_API_MODEL on the legacy path (config)."""
+    token = _PATH_MODEL.set(path_extraction_model(_turn_contract_enabled()))
+    try:
+        return _run_extraction(*args, **kwargs)
+    finally:
+        _PATH_MODEL.reset(token)
+
+
+def _run_extraction(limit: int = None, conv_id: str = None,
                     identity_only: bool = False, source_filter: str = None,
                     retry_errors: bool = False, document_mode: bool = False,
                     conv_ids: list = None, review_reason: str = None):
@@ -3926,7 +4044,7 @@ def run_extraction(limit: int = None, conv_id: str = None,
         mode_label = "Fact Extraction (AUDN Pipeline)"
     print("=" * 60)
     print(f"Step 2: Extract — {mode_label}")
-    model_display = EXTRACTION_API_MODEL if EXTRACTION_BACKEND == "anthropic" else LLM_MODEL
+    model_display = active_extraction_model() if EXTRACTION_BACKEND == "anthropic" else LLM_MODEL
     print(f"Model: {model_display}")
     print(f"Similarity threshold: {SIMILARITY_THRESHOLD}")
     if source_filter:

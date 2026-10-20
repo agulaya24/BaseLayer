@@ -19,11 +19,12 @@ What it does, in order:
 4. Runs only with --confirm-spend USD at or above the estimate. The cap gates the ESTIMATE;
    nothing stops the run part-way if the estimate was low.
 
-Rates are arguments. The defaults are the published first-party rates for Claude Haiku 4.5
-($1 input / $5 output per million tokens, as listed by the claude-api skill's model table cached
-2026-06-24). They are defaults to be CONFIRMED, not constants to trust: running with them
-requires --rates-confirmed, and a configured extraction model other than Haiku 4.5 requires the
-rates to be passed explicitly.
+Rates are arguments. The defaults are the published first-party rates for the configured
+extraction model, from the extraction spend table (config.SPEND_RATES_BY_MODEL: Claude Haiku 5.5
+$0.10 / $0.50 and Claude Haiku 4.5 $1 / $5 per million tokens, read 2026-10-19 from Anthropic's
+pricing page). They are defaults to be CONFIRMED, not constants to trust: running with them
+requires --rates-confirmed, and a model with no row requires the rates to be passed explicitly.
+The chars-per-token and tokens-per-fact assumptions also default per model (PILOT_ASSUMPTIONS).
 
 Not in the estimate: AUDN adjudication calls (made only above the similarity threshold), retries
 of failed or unparseable calls, and the embedding model (local). The estimate is for the
@@ -37,15 +38,23 @@ import json
 import math
 import os
 import random
+import re
 import sys
 import time
 from collections import defaultdict
 from pathlib import Path
 
-PUBLISHED_HAIKU_45 = {"input": 1.0, "output": 5.0,
-                      "source": "claude-api skill model table, cached 2026-06-24"}
 DEFAULT_CHARS_PER_TOKEN = 4.0
 DEFAULT_TOKENS_PER_FACT = 180
+# (chars per token, output tokens per fact) per model, the two printed ASSUMPTIONs.
+# Haiku 4.5: the defaults above. Haiku 5.5 (2026-10-19 same-sample comparisons): its tokenizer
+# counted 1.375x and 1.39x Haiku 4.5's input tokens on identical prompts (4.0 / 1.39 = 2.9), and
+# it spent 335 to 345 output tokens per kept fact, thinking included, against 166 to 169 on
+# Haiku 4.5 (rounded up the way 180 rounds up 169: 360).
+PILOT_ASSUMPTIONS = {
+    "claude-haiku-4-5": (DEFAULT_CHARS_PER_TOKEN, DEFAULT_TOKENS_PER_FACT),
+    "claude-haiku-5-5": (2.9, 360),
+}
 
 
 class PilotRefused(SystemExit):
@@ -220,15 +229,17 @@ def main(argv=None, runner=None) -> dict:
     ap.add_argument("--sample", type=int, required=True)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--input-rate", type=float, default=None,
-                    help="USD per million input tokens (default %.2f, Haiku 4.5, to confirm)"
-                         % PUBLISHED_HAIKU_45["input"])
+                    help="USD per million input tokens (default: the configured extraction "
+                         "model's published rate, to confirm)")
     ap.add_argument("--output-rate", type=float, default=None,
-                    help="USD per million output tokens (default %.2f, Haiku 4.5, to confirm)"
-                         % PUBLISHED_HAIKU_45["output"])
+                    help="USD per million output tokens (default: the configured extraction "
+                         "model's published rate, to confirm)")
     ap.add_argument("--rates-confirmed", action="store_true",
                     help="the default rates were checked against the current published price")
-    ap.add_argument("--chars-per-token", type=float, default=DEFAULT_CHARS_PER_TOKEN)
-    ap.add_argument("--tokens-per-fact", type=int, default=DEFAULT_TOKENS_PER_FACT)
+    ap.add_argument("--chars-per-token", type=float, default=None,
+                    help="default per model (PILOT_ASSUMPTIONS), else %g" % DEFAULT_CHARS_PER_TOKEN)
+    ap.add_argument("--tokens-per-fact", type=int, default=None,
+                    help="default per model (PILOT_ASSUMPTIONS), else %d" % DEFAULT_TOKENS_PER_FACT)
     ap.add_argument("--planted-manifest", default=None,
                     help="planted_manifest.json from turn_contract_fixtures; its sessions "
                          "(already imported) are added to the sample and checked")
@@ -246,11 +257,19 @@ def main(argv=None, runner=None) -> dict:
     import baselayer.config as cfg
     model = cfg.EXTRACTION_API_MODEL
     explicit = a.input_rate is not None and a.output_rate is not None
-    if not explicit and not str(model).startswith("claude-haiku-4-5"):
-        raise PilotRefused(f"extraction model is {model}, not Haiku 4.5: pass --input-rate and "
-                           f"--output-rate for it.")
-    rin = a.input_rate if a.input_rate is not None else PUBLISHED_HAIKU_45["input"]
-    rout = a.output_rate if a.output_rate is not None else PUBLISHED_HAIKU_45["output"]
+    published = cfg.spend_rates_for(model)
+    if not explicit and published is None:
+        raise PilotRefused(f"extraction model is {model}, which has no published rate in "
+                           f"config.SPEND_RATES_BY_MODEL: pass --input-rate and --output-rate.")
+    rin = a.input_rate if a.input_rate is not None else published["input"]
+    rout = a.output_rate if a.output_rate is not None else published["output"]
+    rates_source = f"{cfg.SPEND_RATES_SOURCE}, read {cfg.SPEND_RATES_AS_OF}"
+    cpt, tpf = PILOT_ASSUMPTIONS.get(re.sub(r"-\d{8}$", "", str(model).lower()),
+                                     (DEFAULT_CHARS_PER_TOKEN, DEFAULT_TOKENS_PER_FACT))
+    if a.chars_per_token is None:
+        a.chars_per_token = cpt
+    if a.tokens_per_fact is None:
+        a.tokens_per_fact = tpf
 
     pool = citable_conversations(conn, F.PLANTED_PREFIX)
     sample = stratified_sample(pool, a.sample, a.seed)
@@ -289,7 +308,7 @@ def main(argv=None, runner=None) -> dict:
     print(f"  ASSUMPTION {a.tokens_per_fact} output tokens per fact -> "
           f"{est['output_tokens_ceiling']:,} output tokens (ceiling)")
     print(f"  rates ${rin:g} / ${rout:g} per MTok "
-          f"({'passed explicitly' if explicit else PUBLISHED_HAIKU_45['source'] + ', TO CONFIRM'})")
+          f"({'passed explicitly' if explicit else rates_source + ', TO CONFIRM'})")
     print(f"  ESTIMATE ${est['usd']:.2f} (sequential; excludes {est['assumptions']['excluded']})")
 
     record = {"created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),

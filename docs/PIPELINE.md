@@ -83,7 +83,11 @@ Detail: [core/TURN_CONTRACT.md](core/TURN_CONTRACT.md) sections 1 and 2.
 
 ## 5. Extract
 
-Model: Claude Haiku 4.5 (`claude-haiku-4-5-20251001`). Facts are subject, predicate, object
+Model: own-words extraction (`--turn-contract`, the cited build) runs on Claude Haiku 5.5
+(`claude-haiku-5-5`) at effort medium, the default since 19 October 2026. Legacy extraction
+(`baselayer extract` without `--turn-contract`, and so `baselayer run`) stays on Claude Haiku 4.5
+(`claude-haiku-4-5-20251001`): on published text the newer model would not credit the writing to the person on the legacy prompt; a legacy comparison is pending. `BASELAYER_LLM_EXTRACTION` sets
+the model on both paths, and `BASELAYER_EXTRACTION_EFFORT` the effort. Facts are subject, predicate, object
 statements, using a list of 46 predicates (`CONSTRAINED_PREDICATES` in `config.py`). New facts
 pass through AUDN (add, update, delete as supersession, no-op) against the facts already stored.
 
@@ -414,7 +418,8 @@ essay build). That check is not in this package.
 2026 on a development version of this code with the same stages, and from three `baselayer run`
 authoring runs in July 2026, priced at the rates per million input / output tokens on Anthropic's
 [pricing page](https://platform.claude.com/docs/en/about-claude/pricing) as read on 19 October
-2026: Claude Haiku 4.5 $1 / $5, Claude Sonnet 5 $2 / $10, Claude Opus 5 $5 / $25, Claude Opus
+2026: Claude Haiku 5.5 $0.10 / $0.50 (prompts up to 100,000 tokens), Claude Haiku 4.5 $1 / $5,
+Claude Sonnet 5 $2 / $10, Claude Opus 5 $5 / $25, Claude Opus
 5.5 $4 / $20, Claude Sonnet 4.6 $3 / $15; the Message Batches API at half these rates. The code
 prices its own runs from the table in `src/baselayer/distillation/spend.py` (dated 2026-06-24),
 which holds the first four at the same rates. These are estimates for planning, not
@@ -422,50 +427,67 @@ quotes: cost tracks the number of facts more than the number of words, and facts
 kind of text. `baselayer estimate` prices extraction only and has run low, so it is not the basis
 of any figure here.
 
-**The batch setup (14.2), stage by stage, measured:**
+**Extraction on Claude Haiku 5.5.** The measured builds extracted on Claude Haiku 4.5, the default
+until 19 October 2026. Same-sample comparisons of the two models measured Claude Haiku 5.5 at
+effort medium at 0.21 of Claude Haiku 4.5's cost on essays, talk transcripts and mailing-list
+posts (40 documents), 0.17 on weekly roundup posts (25) and 0.19 on chat (25 conversations), at
+standard rates. The ratios include
+its tokenizer (about 1.38 times the input tokens for the same text) and its thinking (about twice
+the output tokens per fact). Figures marked *derived* below multiply the measured Claude Haiku 4.5
+extraction cost by the ratio for the nearest kind of text. Fact counts are kept from the measured
+builds. On the comparison samples Claude Haiku 5.5 kept 12% more facts on essays, talks and mailing-list
+posts, 15% more on chat and 16% fewer on weekly roundup posts; the leaf stage would move by about as much, and that is
+not applied.
+
+**The batch setup (14.2), stage by stage, measured, with extraction on Claude Haiku 5.5 derived:**
 
 | stage | model | about 300,000 words of long essays | a chat history, about 1.4 million words from the person |
 |---|---|---|---|
 | facts extracted / distilled (after exclusions) | | about 5,000 / about 5,000 | about 22,000 / about 21,000 |
-| extract (batch; a few sequential calls at full rate) | Claude Haiku 4.5 | $2.97 ($0.57 per 1,000 facts extracted) | $25.01 ($1.12) |
+| extract (batch; a few sequential calls at full rate), measured | Claude Haiku 4.5 | $2.97 ($0.57 per 1,000 facts extracted) | $25.01 ($1.12) |
+| extract, derived (0.21 and 0.19 of the row above) | Claude Haiku 5.5, effort medium | about $0.61 ($0.12 per 1,000 facts) | about $4.73 ($0.21) |
 | distill: leaves (batch, own-word spans; repairs at full rate) | Claude Sonnet 5 | $23.84 ($4.71 per 1,000 facts distilled) | $77.06 ($3.74) |
 | author (quote gate) | Claude Opus 5.5, effort high | $3.46 | $10.25 (7 shard calls) |
 | assemble, consolidate, mechanical verify | none | $0 | $0 |
-| **total** | | **$30.27** | **$112.32** |
+| **total, measured (Claude Haiku 4.5 extraction)** | | **$30.27** | **$112.32** |
+| **total, derived (Claude Haiku 5.5 extraction)** | | **about $27.91** | **about $92.04** |
 
 Chat costs more to extract per fact because every chunk carries the other side of the
 conversation as read-only context. The leaf stage is about two thirds of the chat build and four
-fifths of the essay build. Two smaller records agree: a corpus of about 150,000 words of posts
-and talk transcripts extracted at $0.63 per 1,000 facts (batch), and a second build on the essays
+fifths of the essay build as measured, and about five sixths of both with extraction on Claude Haiku 5.5. Two smaller records agree: a corpus of about 150,000 words of posts
+and talk transcripts extracted at $0.63 per 1,000 facts (batch, Claude Haiku 4.5), and a second build on the essays
 plus about 30,000 words of other writing cost $4.67 per 1,000 distilled facts for its leaves and
 $3.77 for authoring.
 
 **The commands in 14.1, at full rate (derived, not run).** Each figure reprices the same tokens:
 the batch part of extraction at twice its rate, with the sequential part unchanged ($5.80 and
-$46.78 for the two builds above); the batch part of the leaves at twice its rate, plus the same
+$46.78 for the two builds above on Claude Haiku 4.5; about $1.19 and $8.84 on Claude Haiku 5.5); the batch part of the leaves at twice its rate, plus the same
 repairs ($43.59 and $148.34); authoring on Claude Opus 5, the default, at 1.25 times Opus 5.5 ($4.33
-and $12.81). Totals: about $54 and about $208. The 14.1 leaves run without own-word spans, which
+and $12.81). Totals: about $54 and about $208 with Claude Haiku 4.5 extraction, about $49 and about $170 with
+Claude Haiku 5.5. The 14.1 leaves run without own-word spans, which
 shortens their output; that saving is not subtracted, so these figures lean high.
 
 **By corpus size.** *Projected* cells take 17 to 23 facts per 1,000 words of the person's own
 writing (the range measured on the essays and on the posts and talk transcripts) and add:
-extraction at $0.57 to $0.63 per 1,000 facts (batch) or $1.12 to $1.18 (full rate); leaves at
+extraction on Claude Haiku 5.5 at $0.11 to $0.12 per 1,000 facts (batch) or $0.20 to $0.23 (full
+rate), which is the Claude Haiku 4.5 figures of $0.57 to $0.63 and $1.12 to $1.18 times the cost
+ratios above; leaves at
 $4.71 per 1,000 facts (batch) or $8.61 (full rate); authoring at about 136 input tokens per fact
 plus about 35,000 output tokens per build, priced at the author's rates (both from the essay
 build). They assume no facts are excluded.
 
 | corpus | facts | `baselayer run` | cited build, batch setup (14.2) | cited build, commands in 14.1 |
 |---|---|---|---|---|
-| about 50,000 words of essays or posts | about 850 to 1,150 | $1 to $2, projected | $6 to $8, projected | $10 to $13, projected |
-| about 150,000 words of posts and talk transcripts | about 3,000 | $3 to $4, projected | about $18, projected | about $32, projected |
-| about 300,000 words of long essays | about 5,000 | about $6, projected | $30.27, measured | about $54, derived |
-| a chat history of about 1.4 million words from the person | about 22,000 | about $47, projected | $112.32, measured | about $208, derived |
+| about 50,000 words of essays or posts | about 850 to 1,150 | $1 to $2, projected | $5 to $7, projected | $9 to $12, projected |
+| about 150,000 words of posts and talk transcripts | about 3,000 | $3 to $4, projected | about $17, projected | about $29, projected |
+| about 300,000 words of long essays | about 5,000 | about $6, projected | about $28, derived ($30.27 measured on Claude Haiku 4.5) | about $49, derived |
+| a chat history of about 1.4 million words from the person | about 22,000 | about $47, projected | about $92, derived ($112.32 measured on Claude Haiku 4.5) | about $170, derived |
 
-**`baselayer run`.** Extraction is nearly all of its cost, and its extractor (legacy, sequential)
-has not been priced on a recorded run. The column above projects it from the own-words
-extractor's measured token counts at full rate: about $1.90 to $2.70 per 100,000 words of the
-person's writing, and $46.78 on the chat history, whose chunks carry both sides of each
-conversation. The legacy extractor reads whole conversations and asks for no quotes, so treat the
+**`baselayer run`.** Extraction is nearly all of its cost, and its extractor (legacy, sequential,
+on Claude Haiku 4.5) has not been priced on a recorded run. The column above projects it from
+the own-words extractor's measured Claude Haiku 4.5 token counts at full rate: about $1.90 to
+$2.70 per 100,000 words of the person's writing, and $46.78 on the chat history, whose chunks
+carry both sides of each conversation. The legacy extractor reads whole conversations and asks for no quotes, so treat the
 projection as an order of magnitude. Writing the three layers on Claude Sonnet 4.6 measured $0.116
 to $0.121 on three corpora of about 600 to several thousand facts; it does not grow with the
 corpus, because each layer reads a selection of facts capped in size (the measured calls read
