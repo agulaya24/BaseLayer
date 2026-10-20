@@ -51,6 +51,28 @@ def test_a_sync_call_after_the_batch_sees_the_batch_spend(benv, monkeypatch):
         _run(benv, monkeypatch, ceiling=0.50, input_tokens=1_000_000)
 
 
+def test_an_unpriceable_batch_refuses_before_the_reset(benv, monkeypatch):
+    """Pricing the batch can refuse (a model with no rate row). That refusal must come while
+    the prior corpus is intact: --process deletes every extracted fact before storing."""
+    from baselayer.extract_facts import SpendCeilingExceeded
+    _seed(benv, with_turns=False)
+    c = benv.get_db()
+    c.execute("INSERT INTO memory_facts (id, fact_text, source) VALUES ('old', 'kept', 'extraction')")
+    c.commit()
+    c.close()
+    benv.be.run_submit()
+    benv.batches.results_for = lambda ids: [_billed(_result(i, LEGACY_FACTS), 1000) for i in ids]
+    monkeypatch.setattr("baselayer.config.spend_rates_for", lambda model: None)
+    monkeypatch.setenv("BASELAYER_SPEND_CEILING_USD", "5")
+    with pytest.raises(SpendCeilingExceeded):
+        benv.be.run_process()
+    c = benv.get_db()
+    try:
+        assert c.execute("SELECT COUNT(*) FROM memory_facts WHERE id = 'old'").fetchone()[0] == 1
+    finally:
+        c.close()
+
+
 def test_under_the_ceiling_the_run_still_goes_through(benv, monkeypatch):
     seen = _run(benv, monkeypatch, ceiling=5.0, input_tokens=1_000_000)
     assert seen, "the synchronous call ran"

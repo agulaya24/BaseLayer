@@ -1175,6 +1175,20 @@ def run_process(resume=False):
                 raise TurnContractViolation(
                     f"result {result.custom_id} has no chunk_map entry; cannot gate it")
 
+    # With a ceiling set, the synchronous calls below are checked against it WITH what the
+    # batch itself billed: every succeeded result, including any consumed by an earlier
+    # --resume of this batch. Priced here, before the reset, because pricing can refuse (a
+    # model with no rate row) and a refusal must leave the prior corpus intact.
+    batch_billed = None
+    if spend_ceiling_usd() is not None:
+        batch_billed = sum(call_cost_usd(_batch_usage(r, None, r.custom_id)) for r in results
+                           if getattr(r.result, "type", None) == "succeeded")
+        print(f"  Spend ceiling ${spend_ceiling_usd():.4f}: the batch billed ${batch_billed:.4f}; "
+              f"synchronous calls are checked against the remainder.")
+        if batch_billed >= spend_ceiling_usd():
+            print("  The batch alone has reached the ceiling, so any synchronous AUDN or re-chunk "
+                  "call will be refused; raise the ceiling and run --process --resume to finish.")
+
     # Build set of already-processed chunks (for resume).
     # 2026-05-17: Resume granularity is per-chunk (custom_id), not per-conv.
     # A multi-day session may have some chunks done and some pending.
@@ -1289,14 +1303,8 @@ def run_process(resume=False):
     tally = {"facts": 0, "errors": 0, "noops": 0, "processed": 0}
     record = None
     reset_usage()      # AUDN calls made while storing go through call_anthropic
-    # ...and are checked against the ceiling WITH what the batch itself billed: every
-    # succeeded result, including any consumed by an earlier --resume of this batch.
-    if spend_ceiling_usd() is not None:
-        billed = sum(call_cost_usd(_batch_usage(r, None, r.custom_id)) for r in results
-                     if getattr(r.result, "type", None) == "succeeded")
-        set_spend_baseline(billed)
-        print(f"  Spend ceiling ${spend_ceiling_usd():.4f}: the batch billed ${billed:.4f}; "
-              f"synchronous calls below are checked against the remainder.")
+    if batch_billed is not None:
+        set_spend_baseline(batch_billed)      # after reset_usage, which clears it
 
     with contextlib.closing(get_db()) as conn:
         _ensure_structured_columns(conn)
