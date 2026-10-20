@@ -91,6 +91,9 @@ from baselayer.extract_facts import (
     mark_turn_conversation_extracted,
     _turn_conversations_to_process,
     reset_usage,
+    set_spend_baseline,
+    spend_ceiling_usd,
+    call_cost_usd,
     usage_calls,
     reset_response_failures,
     response_failures,
@@ -1280,6 +1283,14 @@ def run_process(resume=False):
     tally = {"facts": 0, "errors": 0, "noops": 0, "processed": 0}
     record = None
     reset_usage()      # AUDN calls made while storing go through call_anthropic
+    # ...and are checked against the ceiling WITH what the batch itself billed: every
+    # succeeded result, including any consumed by an earlier --resume of this batch.
+    if spend_ceiling_usd() is not None:
+        billed = sum(call_cost_usd(_batch_usage(r, None, r.custom_id)) for r in results
+                     if getattr(r.result, "type", None) == "succeeded")
+        set_spend_baseline(billed)
+        print(f"  Spend ceiling ${spend_ceiling_usd():.4f}: the batch billed ${billed:.4f}; "
+              f"synchronous calls below are checked against the remainder.")
 
     with contextlib.closing(get_db()) as conn:
         _ensure_structured_columns(conn)

@@ -1055,8 +1055,20 @@ def classify_batch_failure(result) -> tuple:
     return "unclassified", f"unclassified: batch result {rtype} (no error type given)"
 
 
+# Spend already billed outside _USAGE_CALLS that the ceiling must still count: a Message
+# Batch's results, before batch --process makes its synchronous AUDN and re-chunk calls. Kept
+# apart from _USAGE_CALLS so the run's usage record does not count the batch twice.
+_SPEND_BASELINE_USD = [0.0]
+
+
 def reset_usage():
     _USAGE_CALLS.clear()
+    _SPEND_BASELINE_USD[0] = 0.0
+
+
+def set_spend_baseline(usd: float):
+    """Count `usd` (spend billed before this process's sequential calls) toward the ceiling."""
+    _SPEND_BASELINE_USD[0] = float(usd or 0.0)
 
 
 class ExtractionCallFailed(Exception):
@@ -1124,14 +1136,16 @@ def check_spend_ceiling(prompt_chars: int, max_tokens: int):
         return
     from baselayer.config import spend_rates_tier
     rates = _rates_or_refuse(active_extraction_model())
-    spent = measured_spend_usd()
+    baseline = _SPEND_BASELINE_USD[0]
+    spent = measured_spend_usd() + baseline
     tin = prompt_chars / rates["chars_per_token"]
     r = spend_rates_tier(rates, tin)
     worst = (tin * r["input"] + max_tokens * r["output"]) / 1e6
     if spent + worst > ceiling:
+        of_which = f" (of which ${baseline:.4f} billed by the batch)" if baseline else ""
         raise SpendCeilingExceeded(
-            f"spend ceiling ${ceiling:.4f}: measured ${spent:.4f} plus this call's worst case "
-            f"${worst:.4f} would pass it; stopping before the call")
+            f"spend ceiling ${ceiling:.4f}: measured ${spent:.4f}{of_which} plus this call's "
+            f"worst case ${worst:.4f} would pass it; stopping before the call")
 
 
 def _request_prompt_chars(params: dict) -> int:
