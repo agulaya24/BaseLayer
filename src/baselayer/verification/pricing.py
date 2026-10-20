@@ -36,7 +36,13 @@ def resolve(model: str) -> str:
 
 def estimate(tasks_by_kind: dict[str, list[dict]], model: str, route: str,
              output_tokens: int = DEFAULT_OUTPUT_TOKENS, phase2_bound: int = 0, phase2_expected: int = 0,
-             phase2_mean_chars: int = 6000) -> dict:
+             phase2_mean_chars: int = 6000, max_output_tokens: int | None = None,
+             attempts: int = 1) -> dict:
+    """Expected and upper costs at the assumed output per call, plus, when max_output_tokens is
+    given, the WORST case: every call at its max_tokens, every one of `attempts` tries, the
+    phase-2 bound included. Only the worst case bounds what a billed run can send; the API
+    route gates on it. Phase-2 input is an assumed mean, so the rater also enforces the cap
+    per call."""
     m = resolve(model)
     if m not in PRICES:
         return {"model": m, "error": f"no dated price for {m!r}; known: {sorted(PRICES)}"}
@@ -55,6 +61,14 @@ def estimate(tasks_by_kind: dict[str, list[dict]], model: str, route: str,
         rows.append({"kind": kind, "calls": len(ts), "prompt_chars": chars, "usd": round(c, 2)})
         total_calls += len(ts)
         total += c
+    worst = None
+    if max_output_tokens is not None:
+        def worst_cost(n_calls, chars):
+            return attempts * (chars / CHARS_PER_TOKEN * pin + n_calls * max_output_tokens * pout) / 1e6
+        worst = sum(worst_cost(len(ts), sum(len(t["prompt"]) for t in ts))
+                    for ts in tasks_by_kind.values())
+        if phase2_bound:
+            worst += worst_cost(phase2_bound, phase2_bound * phase2_mean_chars)
     p2 = cost(phase2_bound, phase2_bound * phase2_mean_chars) if phase2_bound else 0.0
     p2e = cost(phase2_expected, phase2_expected * phase2_mean_chars) if phase2_expected else 0.0
     rows.append({"kind": "adjudicate (phase 2, expected)", "calls": phase2_expected, "prompt_chars": phase2_expected * phase2_mean_chars,
@@ -66,6 +80,8 @@ def estimate(tasks_by_kind: dict[str, list[dict]], model: str, route: str,
             "cli_overhead_tokens_per_call": CLI_OVERHEAD_TOKENS if route == "cli" else 0,
             "rows": rows, "phase1_calls": total_calls, "phase1_usd": round(total, 2),
             "total_expected_usd": round(total + p2e, 2), "total_upper_usd": round(total + p2, 2),
+            **({"total_worst_usd": round(worst, 4), "max_output_tokens_per_call": max_output_tokens,
+                "attempts_per_call": attempts} if worst is not None else {}),
             "billing": ("counterfactual only: claude -p on the subscription bills nothing" if route == "cli"
                         else "API credits: this is real spend")}
 
@@ -78,6 +94,10 @@ def format_estimate(e: dict) -> str:
         lines.append(f"  {r['kind']:<36} {r['calls']:>5} calls  ~${r['usd']:.2f}")
     lines.append(f"  phase 1: {e['phase1_calls']} calls ~${e['phase1_usd']:.2f}; with expected phase 2 ~${e['total_expected_usd']:.2f}; "
                  f"with the phase-2 upper bound ~${e['total_upper_usd']:.2f}")
+    if "total_worst_usd" in e:
+        lines.append(f"  worst case ${e['total_worst_usd']:.2f}: every call at max_tokens "
+                     f"{e['max_output_tokens_per_call']}, {e['attempts_per_call']} attempts each, the "
+                     f"phase-2 bound included (the API run is gated on this)")
     lines.append(f"  assumes {e['assumed_output_tokens_per_call']} output tokens per call"
                  + (f" and {e['cli_overhead_tokens_per_call']} CLI system-prompt tokens per call" if e["cli_overhead_tokens_per_call"] else ""))
     return "\n".join(lines)

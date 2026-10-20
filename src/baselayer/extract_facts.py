@@ -1055,8 +1055,29 @@ def classify_batch_failure(result) -> tuple:
     return "unclassified", f"unclassified: batch result {rtype} (no error type given)"
 
 
+# Spend already billed outside _USAGE_CALLS that the ceiling must still count: a Message
+# Batch's results, before batch --process makes its synchronous AUDN and re-chunk calls. Kept
+# apart from _USAGE_CALLS so the run's usage record does not count the batch twice.
+_SPEND_BASELINE_USD = [0.0]
+
+
 def reset_usage():
     _USAGE_CALLS.clear()
+    _SPEND_BASELINE_USD[0] = 0.0
+
+
+def set_spend_baseline(usd: float):
+    """Count `usd` (spend billed before this process's sequential calls) toward the ceiling."""
+    _SPEND_BASELINE_USD[0] = float(usd or 0.0)
+
+
+class ExtractionCallFailed(Exception):
+    """A legacy-path extraction call failed after its retries (call_llm returned None or a
+    reply with no facts list). Raised instead of treating the failure as "no facts", so the
+    conversation is logged -1 by the run loop's handler (and re-selected by --retry-errors)
+    rather than logged as extracted. Raised before anything is stored for the conversation,
+    so a partly extracted conversation is never half kept. An Exception, not a SystemExit:
+    one failed conversation does not stop the run."""
 
 
 class SpendCeilingExceeded(SystemExit):
@@ -1115,14 +1136,16 @@ def check_spend_ceiling(prompt_chars: int, max_tokens: int):
         return
     from baselayer.config import spend_rates_tier
     rates = _rates_or_refuse(active_extraction_model())
-    spent = measured_spend_usd()
+    baseline = _SPEND_BASELINE_USD[0]
+    spent = measured_spend_usd() + baseline
     tin = prompt_chars / rates["chars_per_token"]
     r = spend_rates_tier(rates, tin)
     worst = (tin * r["input"] + max_tokens * r["output"]) / 1e6
     if spent + worst > ceiling:
+        of_which = f" (of which ${baseline:.4f} billed by the batch)" if baseline else ""
         raise SpendCeilingExceeded(
-            f"spend ceiling ${ceiling:.4f}: measured ${spent:.4f} plus this call's worst case "
-            f"${worst:.4f} would pass it; stopping before the call")
+            f"spend ceiling ${ceiling:.4f}: measured ${spent:.4f}{of_which} plus this call's "
+            f"worst case ${worst:.4f} would pass it; stopping before the call")
 
 
 def _request_prompt_chars(params: dict) -> int:
@@ -1855,6 +1878,9 @@ def extract_facts_from_conversation(conv_id: str, conv_title: str, messages: lis
                 print(f" -> {len(validated)} facts", flush=True)
             else:
                 print(f" -> FAILED (result={type(result).__name__}: {str(result)[:100]})", flush=True)
+                raise ExtractionCallFailed(
+                    f"chunk {i + 1} of {len(chunks)} of '{conv_title}': the extraction call "
+                    f"returned no facts list ({type(result).__name__})")
 
         # S97: Coverage report — detect underextraction before truncating
         if len(all_facts) > max_facts:
@@ -1918,7 +1944,9 @@ def extract_facts_from_conversation(conv_id: str, conv_title: str, messages: lis
     result = call_llm(prompt, schema=schema)
 
     if not result or "facts" not in result:
-        return []
+        raise ExtractionCallFailed(
+            f"'{conv_title}': the extraction call returned no facts list "
+            f"({type(result).__name__})")
 
     return validate_structured_response(result["facts"], len(messages), max_facts=max_facts)
 
@@ -2037,11 +2065,14 @@ def extract_identity_from_project_conversation(conv_id: str, conv_title: str,
                 conv_title, chunk, max_facts=per_chunk_cap, chunk_info=chunk_info
             )
             result = call_llm(prompt, schema=schema, max_tokens=chunk_max_tokens)
-            if result and "facts" in result:
-                validated = validate_structured_response(
-                    result["facts"], len(messages), identity_only=True, max_facts=per_chunk_cap
-                )
-                all_facts.extend(validated)
+            if not result or "facts" not in result:
+                raise ExtractionCallFailed(
+                    f"chunk {i + 1} of {len(chunks)} of '{conv_title}': the identity extraction "
+                    f"call returned no facts list ({type(result).__name__})")
+            validated = validate_structured_response(
+                result["facts"], len(messages), identity_only=True, max_facts=per_chunk_cap
+            )
+            all_facts.extend(validated)
 
         # B-halt (flag ON): mirror path 1 — a hard coverage gate on breach instead
         # of a silent confidence-sort trim. This path has NO gate today; without
@@ -2071,7 +2102,9 @@ def extract_identity_from_project_conversation(conv_id: str, conv_title: str,
     result = call_llm(prompt, schema=schema)
 
     if not result or "facts" not in result:
-        return []
+        raise ExtractionCallFailed(
+            f"'{conv_title}': the identity extraction call returned no facts list "
+            f"({type(result).__name__})")
 
     return validate_structured_response(result["facts"], len(messages), identity_only=True,
                                         max_facts=max_facts)
@@ -4361,6 +4394,9 @@ def _run_extraction(limit: int = None, conv_id: str = None,
         print(f"Conversations processed: {total}")
         print(f"Facts stored: {total_facts}")
         print(f"Errors: {errors}")
+        if errors and not turn_mode:
+            print(f"  {errors} conversation(s) logged as errored (-1); re-run with --retry-errors "
+                  f"to extract them again.")
         print(_tc.usage_line(_tc.usage_totals(usage_calls())))
         print(f"Time: {total_time:.1f}s ({total_time/60:.1f} min)")
         if total > 0:

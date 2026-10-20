@@ -1608,49 +1608,7 @@ def cmd_pipeline(args):
 
     # Step 2: Extract (batch API: 50% cheaper, ~1hr turnaround)
     print(f"\n  Step 2: Extracting facts (batch API)...")
-    import baselayer.batch_extract as batch_extract
-
-    # Submit batch
-    batch_extract.run_submit(document_mode=doc_mode, skip_extracted=True)
-
-    # Poll until complete
-    import time as _time
-    while True:
-        state = batch_extract._load_batch_state()
-        if not state or state.get("status") in ("completed", "failed", "expired", "ended"):
-            break
-        if state.get("batch_id"):
-            try:
-                from baselayer.api_client import get_anthropic_client
-                client = get_anthropic_client()
-                batch = client.messages.batches.retrieve(state["batch_id"])
-                status = batch.processing_status
-                counts = batch.request_counts
-                processing = getattr(counts, 'processing', 0)
-                succeeded = getattr(counts, 'succeeded', 0)
-                total = state.get("total_requests", 0)
-                print(f"  Batch: {status}: {succeeded}/{total} succeeded, {processing} processing")
-                if status == "ended":
-                    state["status"] = "ended"
-                    batch_extract._save_batch_state(state)
-                    break
-            except Exception as e:
-                print(f"  Status check error: {e}")
-        _time.sleep(30)
-
-    # Process results
-    if state and state.get("status") in ("ended", "completed"):
-        print(f"\n  Processing batch results...")
-        batch_extract.run_process(resume=True)
-    elif state and state.get("total_requests", 0) == 0:
-        # No conversations to extract (all already done)
-        print(f"  No new conversations to extract.")
-    else:
-        print(f"  Batch extraction did not complete. Status: {state.get('status') if state else 'unknown'}")
-        # --resume, never a bare --process: this batch was submitted incrementally, and a bare
-        # --process first deletes every extracted fact (batch_extract refuses it).
-        print(f"  Run 'baselayer batch-extract --status' to check, then "
-              f"'baselayer batch-extract --process --resume' when ready.")
+    _pipeline_batch_extract(doc_mode)
 
     # Gates before authoring
     print(f"\n  Checking gates...")
@@ -1721,6 +1679,57 @@ def _specification_complete():
     import baselayer.config as cfg
     return all(f.exists() for f in (cfg.ANCHORS_LAYER_FILE, cfg.CORE_LAYER_FILE,
                                     cfg.PREDICTIONS_LAYER_FILE, cfg.UNIFIED_BRIEF_FILE))
+
+
+def _pipeline_batch_extract(doc_mode, poll_seconds=30):
+    """pipeline step 2: submit an incremental batch, wait for THAT batch, process it.
+
+    run_submit returns the id it submitted, None when there was nothing to submit, and exits
+    non-zero on a refusal or a failed submission. The wait and the process are keyed on the
+    returned id: this step used to poll whatever batch_state.json held, so with nothing new to
+    submit it found the previous batch (status completed) and processed it again."""
+    import time as _time
+    import baselayer.batch_extract as batch_extract
+
+    batch_id = batch_extract.run_submit(document_mode=doc_mode, skip_extracted=True)
+    if batch_id is None:
+        print(f"  No new conversations to extract.")
+        return
+
+    while True:
+        state = batch_extract._load_batch_state()
+        if not state or state.get("batch_id") != batch_id:
+            print(f"  Batch state no longer names batch {batch_id}; not processing anything.")
+            return
+        if state.get("status") in ("completed", "failed", "expired", "ended"):
+            break
+        try:
+            from baselayer.api_client import get_anthropic_client
+            client = get_anthropic_client()
+            batch = client.messages.batches.retrieve(batch_id)
+            status = batch.processing_status
+            counts = batch.request_counts
+            processing = getattr(counts, 'processing', 0)
+            succeeded = getattr(counts, 'succeeded', 0)
+            total = state.get("total_requests", 0)
+            print(f"  Batch: {status}: {succeeded}/{total} succeeded, {processing} processing")
+            if status == "ended":
+                state["status"] = "ended"
+                batch_extract._save_batch_state(state)
+                break
+        except Exception as e:
+            print(f"  Status check error: {e}")
+        _time.sleep(poll_seconds)
+
+    if state.get("status") in ("ended", "completed"):
+        print(f"\n  Processing batch results...")
+        batch_extract.run_process(resume=True)
+    else:
+        print(f"  Batch extraction did not complete. Status: {state.get('status')}")
+        # --resume, never a bare --process: this batch was submitted incrementally, and a bare
+        # --process first deletes every extracted fact (batch_extract refuses it).
+        print(f"  Run 'baselayer batch-extract --status' to check, then "
+              f"'baselayer batch-extract --process --resume' when ready.")
 
 
 def _should_continue_after_import(new, pending, total, source_label, reauthor, rerun_hint):

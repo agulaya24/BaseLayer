@@ -137,7 +137,7 @@ def build_claude_code_context(files, config: ImportConfig) -> ClaudeCodeContext:
     for p in files:
         p = Path(p)
         try:
-            fh = open(p, encoding="utf-8")
+            fh = open(p, encoding="utf-8", errors="replace")
         except OSError:
             continue
         with fh:
@@ -515,7 +515,7 @@ def load_history_sessions(paths) -> dict:
     """sessionId -> [entry], unioned across copies on (timestamp, display), time-ordered."""
     sessions = collections.defaultdict(dict)
     for p in paths:
-        with open(p, encoding="utf-8") as fh:
+        with open(p, encoding="utf-8", errors="replace") as fh:
             for line in fh:
                 try:
                     o = json.loads(line)
