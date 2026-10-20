@@ -457,8 +457,9 @@ Collections need not share a distance space, so read it before converting a dist
 created with `hnsw:space=cosine` (similarity `1 - d`). Creation does not change a collection that
 already exists, and a collection with no `hnsw:space` (one created outside the package, such as a
 conversation-summary collection) is at Chroma's l2 default, which `collection_space()` reports as
-`l2`. Call `collection_space()` and pass the result to `chromadb_dist_to_similarity()`, which
-requires it. Applying the l2 formula to a cosine collection was a live defect: it passed a 0.85
+`l2`. Chroma's l2 distance is the squared euclidean distance, so on unit vectors similarity is
+`1 - d/2`; its ip distance is `1 - dot`. Call `collection_space()` and pass the result to
+`chromadb_dist_to_similarity()`, which requires it, rather than converting a distance in place. Applying the l2 formula to a cosine collection was a live defect: it passed a 0.85
 gate whose true value was about 0.45.
 
 ---

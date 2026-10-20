@@ -12,6 +12,8 @@ from datetime import datetime
 from baselayer.config import (
     VECTORS_DIR,
     MESSAGES_COLLECTION_NAME as COLLECTION_NAME,
+    chromadb_dist_to_similarity,
+    collection_space,
     get_db,
 )
 
@@ -163,7 +165,10 @@ def search_conversations(query: str, n_results: int = 10) -> list[dict]:
                 "conversation_id": conv_id,
                 "title": match["conversation_title"],
                 "best_match": match,
-                "relevance": 1 - match["distance"]  # Convert distance to similarity
+                # Convert with the collection's own space: `1 - d` is right only for cosine,
+                # and the messages collection is l2 (squared distance) on older stores.
+                "relevance": chromadb_dist_to_similarity(match["distance"],
+                                                         collection_space(get_collection())),
             })
 
             if len(conversations) >= n_results:
@@ -185,7 +190,6 @@ def print_results(matches: list[dict], show_full: bool = False):
         title = match.get("conversation_title", "")[:40]
         role = match.get("role", "?")
         date = format_timestamp(match.get("created_at"))
-        from baselayer.config import chromadb_dist_to_similarity, collection_space
         distance = match.get("distance", 0)
         # Read the space off the collection rather than hardcoding it. The message collection
         # is cosine when built by current code (embed.py:76) and l2 on stores created before
