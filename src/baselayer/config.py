@@ -677,11 +677,17 @@ def chromadb_dist_to_similarity(dist, space):
         # Chroma cosine distance is 1 - cos_sim.
         sim = 1.0 - dist
     elif space == "l2":
-        # Squared L2 on normalized vectors: cos_sim = 1 - d/2.
-        # For unnormalized L2 this is an approximation; embeddings here are normalized.
-        sim = 1.0 - (dist ** 2) / 2.0
+        # Chroma's l2 space returns the SQUARED euclidean distance (measured on chromadb 1.4.1:
+        # unit vectors 90 degrees apart return 2.0, not 1.414). On normalized vectors
+        # ||a - b||^2 = 2 - 2 cos, so cos_sim = 1 - d/2. The formula here used to be
+        # 1 - d**2/2, which treats d as the unsquared distance and inflates every similarity
+        # (30 degrees apart: true 0.866, reported 0.964). For unnormalized vectors this is an
+        # approximation; embeddings here are normalized.
+        sim = 1.0 - dist / 2.0
     else:  # ip
-        sim = dist
+        # Chroma's ip distance is 1 - dot (measured on chromadb 1.4.1), so on normalized
+        # vectors cos_sim = 1 - d. It used to return d itself, which inverts the ranking.
+        sim = 1.0 - dist
     return round(max(0.0, min(1.0, sim)), 4)
 
 
