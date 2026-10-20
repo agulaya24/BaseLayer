@@ -758,12 +758,18 @@ def _upsert_extraction_log(conn, parent_conv_id, facts_extracted, processed_at):
     A chunked conversation produces multiple results; this accumulates their
     facts_extracted into a single conv-level row instead of overwriting.
     The conversation_id column is the PK (INSERT OR REPLACE relied on it).
+
+    -1 marks a conversation with a failed chunk, and it is sticky: a sibling summed in
+    before or after cannot turn it back into a count, so the conversation never reads as
+    extracted with part of it missing (the sequential path's --retry-errors re-selects -1).
     """
     conn.execute("""
         INSERT INTO extraction_log (conversation_id, facts_extracted, processed_at)
         VALUES (?, ?, ?)
         ON CONFLICT(conversation_id) DO UPDATE SET
-            facts_extracted = facts_extracted + excluded.facts_extracted,
+            facts_extracted = CASE
+                WHEN facts_extracted < 0 OR excluded.facts_extracted < 0 THEN -1
+                ELSE facts_extracted + excluded.facts_extracted END,
             processed_at = excluded.processed_at
     """, (parent_conv_id, facts_extracted, processed_at))
 
@@ -802,32 +808,25 @@ def _process_legacy_result(conn, result, custom_id, chunk_meta, batch_id, *, col
     """One LEGACY batch result (no turn contract), unchanged in behaviour."""
     conv_id = chunk_meta["parent_conv_id"] if chunk_meta else custom_id
 
-    if result.result.type == "errored":
+    def failed():
+        # The chunk is consumed (resume does not re-read the same reply) and its conversation
+        # is logged -1, sticky against its siblings' counts, so it does not read as extracted.
         counts["errors"] += 1
-        # Mark chunk as processed-with-error so resume doesn't retry it.
-        # Don't pollute extraction_log sum with -1 (skip log).
         _mark_chunk(conn, custom_id, batch_id, conv_id, -1)
+        _upsert_extraction_log(conn, conv_id, -1, time.time())
         conn.commit()
-        return
-    if result.result.type != "succeeded":
-        counts["errors"] += 1
-        return
+
+    if result.result.type != "succeeded":       # errored, expired, canceled
+        return failed()
     counts.setdefault("usage", []).append(_batch_usage(result, conv_id, custom_id))
 
     try:
         parsed = _parse_batch_message(result.result.message)
     except (json.JSONDecodeError, ExtractionResponseError, IndexError, AttributeError):
-        counts["errors"] += 1
-        _mark_chunk(conn, custom_id, batch_id, conv_id, -1)
-        conn.commit()
-        return
+        return failed()
 
-    if "facts" not in parsed:
-        _upsert_extraction_log(conn, conv_id, 0, time.time())
-        _mark_chunk(conn, custom_id, batch_id, conv_id, 0)
-        conn.commit()
-        counts["processed"] += 1
-        return
+    if not isinstance(parsed, dict) or not isinstance(parsed.get("facts"), list):
+        return failed()                          # a reply with no facts list, as sequentially
 
     # Get message count for confidence computation
     msg_count_row = conn.execute(
