@@ -48,7 +48,7 @@ examples/               # Sample specifications for 8 subjects
 
 There are two paths. `baselayer run`: **Import → Extract → Author**, then embedding and provenance; a prose brief (`compose`) is optional. The cited path: **Import → Extract (turn contract) → Distill → Assemble → Author from package → Verify → Consolidate.** Every step: `docs/PIPELINE.md`.
 
-- `config.py` is the single source of truth for all constants, paths, and the 46 constrained predicates (45 behavioral plus an `unknown` fallback).
+- `config.py` is the single source of truth for all constants, paths, and the suggested list of 46 predicates (45 behavioral plus an `unknown` fallback). The extractor can add others.
 - Every other module imports from `config.py`. The dependency graph is acyclic.
 - See `docs/core/ARCHITECTURE.md` for the full pipeline diagram.
 - See `docs/core/DECISIONS.md` for the catalog of design decisions with reasoning.
