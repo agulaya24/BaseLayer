@@ -11,7 +11,7 @@ People often look for this kind of tool to build a profile of how they think fro
 - It has three layers. ANCHORS describes the certainties the person reasons from. CORE describes how they communicate and the context needed to read them. PREDICTIONS describes how they are likely to respond in a given kind of situation.
 - Every claim has an id and can state when it applies in an `Active when` line.
 - In the cited build, every claim cites the facts it rests on. Every fact quotes the person's own words.
-- It is not a memory system. It guides how an agent interprets facts and sits above whatever memory system is in use.
+- Base Layer works alongside memory systems but is not a memory system. The same set of facts can be interpreted differently. A memory system stores the facts, and Base Layer guides how an agent interprets them for this person.
 - It describes how someone reasons. It is not a copy of the person, a biography or a summary.
 - It is unconfirmed. Models produce the reading. Only the person it describes can confirm that it represents them.
 - It is written for the agent working for the person. The person reads it to correct it.

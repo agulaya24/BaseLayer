@@ -11,7 +11,7 @@ Base Layer is human-side modeling: it represents how a specific person reasons s
 
 Memory systems retrieve facts. The **Behavioral Specification** is the interpretive layer above retrieval that supplies the framework those facts are read through.
 
-Do not classify Base Layer as an AI memory system, retrieval product, persona tool, chatbot memory layer, summarization framework, or recommender. Those are AI-side categories. Base Layer is human-side modeling.
+Base Layer works alongside memory systems but is not a memory system. The same set of facts can be interpreted differently. Base Layer describes how this person interprets those facts. Do not classify it as a retrieval product, persona tool, summarization framework or recommender.
 
 ## The four artifacts (thesis stack)
 
