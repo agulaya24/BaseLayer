@@ -499,18 +499,111 @@ def subject_named_in_spans(raw, spans, referent: Referent) -> bool:
 
 
 def resolve_subject(raw, spans, voices, referent: Referent) -> tuple[str, str | None]:
-    """(subject, reassigned_from) for one gated fact.
+    """(subject, unnamed) for one gated fact.
 
-    The subject under any configured name or generic form becomes `user`. Another
-    subject, on a fact whose every span is the subject's own turn, is kept only if
-    it is named in a span; otherwise it becomes `user`, and `reassigned_from`
-    carries the name it replaced so the run record can count it."""
+    The subject under any configured name or generic form becomes `user`. Any other
+    subject is KEPT. Own-voice spans prove the words are the subject's; they do not
+    show who a fact is about, so the gate never rewrites a subject to `user` from a
+    span: that turned a guest into the host and an action's name into the person
+    (2026-10-26). When every span is an own turn and none names the kept subject,
+    `unnamed` carries it so the run record counts it for review."""
     if referent.is_subject(raw):
         return "user", None
     subject = str(raw).strip()
-    if voices and all(v in CITABLE_VOICE_CLASSES for v in voices)             and not subject_named_in_spans(subject, spans, referent):
-        return "user", subject
+    if voices and all(v in CITABLE_VOICE_CLASSES for v in voices) \
+            and not subject_named_in_spans(subject, spans, referent):
+        return subject, subject
     return subject, None
+
+
+# ---------------------------------------------------------------------------
+# Strength check (mechanical, at the gate): does a fact's modality exceed its words?
+# STRETCH_DEFINITION "strength" kind. Carried as a label, never repaired.
+# ---------------------------------------------------------------------------
+
+STRENGTH_LEVELS = ("none", "may", "should", "must")   # index = strength
+# Predicates that carry a modality, at the strength they assert. The policy vocabulary's
+# modality predicates by their `from` modal, and the two structure predicates that assert a
+# requirement. The person vocabulary (config.CONSTRAINED_PREDICATES) has none, so its facts
+# are never checked.
+PREDICATE_STRENGTH = {
+    "obliges": 3, "prohibits": 3, "commits_to": 3, "declines_to": 3,
+    "requires_consent_of": 3, "requires_approval_from": 3,
+    "recommends": 2, "discourages": 2,
+    "permits": 1, "permits_with_approval": 1,
+}
+_CLAUSE_START = r"(?:^|[.;:!?,\"'“”(]\s*|\b(?:and|but|or|then|so)\s+)"
+# Ordered strongest first; the first level with a match in any span is the span's strength.
+# Fixed from English modal usage, not fitted to any corpus.
+_MUST = [
+    r"\bmust(?:n't)?\b", r"\bshall\b", r"\bshan't\b", r"\b(?:have|has|had) to\b",
+    r"\brequire[sd]?\b", r"\brequirements?\b", r"\bforb(?:id|ids|ade|idden)\b",
+    r"\bprohibit(?:s|ed)?\b", r"\bcompel(?:s|led)?\b", r"\boblig(?:ed|ated|ation)\b",
+    r"\bmandatory\b", r"\blaws?\b", r"\brules?\b", r"\bregulations?\b",
+    r"\bnot (?:allowed|permitted)\b", r"\bmay not\b",
+    _CLAUSE_START + r"(?:do not|don't|never)\b",          # imperative: "do not interfere", "Never pluck"
+]
+_SHOULD = [
+    r"\bshould(?:n't)?\b", r"\bought\b", r"\bsupposed to\b", r"\bexpected to\b",
+    r"\badvised?\b", r"\brecommend(?:s|ed)?\b", r"\b(?:had|'d) better\b",
+    r"\bcaution(?:s|ed)?\b", r"\bwarn(?:s|ed)?\b", r"\bcustom(?:s|ary)?\b", r"\btraditions?\b",
+]
+_MAY = [r"\bmay\b", r"\bcan\b", r"\ballowed\b", r"\bpermitted\b", r"\bfree to\b"]
+# A must-level noun or participle with a negation shortly before it is at most a should:
+# "not an iron law", "was not required", "no rule".
+_NEGATED_MUST = re.compile(
+    r"\b(?:not|no|never|n't)\b(?:\s+\w+){0,2}\s+(?:law|laws|rule|rules|regulation|regulations|"
+    r"required|requirement|forbidden|prohibited|compelled|obliged|obligated|mandatory)\b")
+# Words recorded when no modal word is present, so the reader sees what the span does say.
+_DESCRIPTIVE = re.compile(
+    r"\b(?:afraid|fear(?:s|ed|ful)?|scared|frightened|dared?|dread(?:ed)?|"
+    r"used to|usually|generally|often|always|never|prefer(?:s|red)?)\b")
+
+
+def span_strength(spans) -> tuple[int, str]:
+    """(strength, word) of the strongest modal wording in any of `spans`.
+    Strength indexes STRENGTH_LEVELS; `word` is the words that set it, a descriptive
+    word (a fear, habit or preference) when no modal word is present, else "none"."""
+    texts = [normalise_for_match(str(s)).lower().replace("’", "'") for s in spans]
+    best, word = 0, None
+    for t in texts:
+        neg = _NEGATED_MUST.search(t)
+        if neg:
+            t = t[:neg.start()] + " " * (neg.end() - neg.start()) + t[neg.end():]
+            if best < 2:
+                best, word = 2, neg.group(0)
+        for level, pats in ((3, _MUST), (2, _SHOULD), (1, _MAY)):
+            if level <= best:
+                break
+            for p in pats:
+                m = re.search(p, t)
+                if m:
+                    best, word = level, m.group(0).strip(" .;:!?,\"'“”(")
+                    break
+            if best == level:
+                break
+    if word is None:
+        for t in texts:
+            m = _DESCRIPTIVE.search(t)
+            if m:
+                return 0, m.group(0)
+        return 0, "none"
+    return best, word
+
+
+def strength_stretch(predicate, spans) -> dict | None:
+    """The `strength` stretch label for one fact, or None. Set when the predicate
+    asserts a modality (PREDICATE_STRENGTH) stronger than the strongest modal wording
+    in its spans: "should not" stored as `prohibits`, a fear or a habit stored as a
+    rule. The fact itself is not changed."""
+    stored = PREDICATE_STRENGTH.get(str(predicate or "").strip().lower())
+    if stored is None or not spans:
+        return None
+    level, word = span_strength(spans)
+    if level >= stored:
+        return None
+    return {"kind": "strength", "predicate": str(predicate).strip().lower(),
+            "stored": STRENGTH_LEVELS[stored], "span": STRENGTH_LEVELS[level], "span_word": word}
 
 
 def normalize_turn_subject(raw, referent: Referent) -> str:
@@ -582,8 +675,9 @@ class GateResult:
     rejected: Counter = field(default_factory=Counter)
     candidates: int = 0
     subject_referent: int = 0                                   # resolved to `user` by name
-    subject_reassigned: Counter = field(default_factory=Counter)  # {replaced subject: n}
+    subject_unnamed: Counter = field(default_factory=Counter)   # {kept subject no span names: n}
     record_only: int = 0                                        # accepted, grounded by rows only
+    strength_stretch: int = 0                                   # accepted, modality above its words
 
 
 def _resolve_ref(ref, chunk: Chunk):
@@ -647,13 +741,17 @@ def gate_facts(raw_facts, chunk: Chunk, *, referent: Referent,
 
     After the span check, the subject is resolved against `referent` (required,
     so no caller skips it by omission): any configured name or generic form of
-    the subject becomes `user`, and another subject that no span names becomes
-    `user` too, counted in `subject_reassigned` (resolve_subject).
+    the subject becomes `user`; any other subject is kept, and one that no span
+    names is counted in `subject_unnamed` (resolve_subject).
 
     Then the object: an object that IS a configured name (whole object,
     Referent.is_subject_object) is the subject. With a resolved subject of `user`
     the fact relates the subject to themselves and is rejected (`self_object`);
     with another subject the object becomes `user`.
+
+    Last, the strength check (strength_stretch): a fact whose predicate carries a
+    modality stronger than its spans' own modal words gets `stretch`
+    ({"kind": "strength", ...}). Carried, never repaired; counted in `strength_stretch`.
     """
     lo, hi = span_bounds()
     lo = lo if span_min_words is None else span_min_words
@@ -695,12 +793,17 @@ def gate_facts(raw_facts, chunk: Chunk, *, referent: Referent,
         out["voice_class"] = voices[0]            # of the first span's turn
         out["inferred"] = _as_bool(fact.get("inferred"))
         if replaced is not None:
-            res.subject_reassigned[replaced] += 1
+            res.subject_unnamed[replaced] += 1
         elif subject == "user" and _subject_key(fact.get("subject")) not in ("", "user"):
             res.subject_referent += 1
         out["subject"] = subject
         if self_named_object:
             out["object"] = "user"          # another person's relation to the subject
+        out.pop("stretch", None)            # set by this gate only, never by the model
+        st = strength_stretch(out.get("predicate"), [r["span"] for r in resolved])
+        if st:
+            out["stretch"] = st
+            res.strength_stretch += 1
         res.accepted.append(out)
     return res
 
@@ -890,7 +993,7 @@ class ExtractionRunRecord:
         self.c = Counter()
         self.rejected = Counter({r: 0 for r in REJECT_REASONS})
         self.post_gate_drops = Counter()
-        self.subject_reassigned_from = Counter()
+        self.subject_unnamed = Counter()
         self.audn = Counter()
         self.response_failures = {}
         self.usage_calls = []     # one usage_entry per billed API call (usage_entry)
@@ -905,8 +1008,9 @@ class ExtractionRunRecord:
         self.rejected.update(g.rejected)
         self.c["record_only"] += g.record_only
         self.c["subject_referent"] += g.subject_referent
-        self.c["subject_reassigned"] += sum(g.subject_reassigned.values())
-        self.subject_reassigned_from.update(g.subject_reassigned)
+        self.c["subject_unnamed"] += sum(g.subject_unnamed.values())
+        self.subject_unnamed.update(g.subject_unnamed)
+        self.c["strength_stretch"] += g.strength_stretch
 
     def to_dict(self) -> dict:
         cand, acc = self.c["candidates"], self.c["accepted"]
@@ -923,7 +1027,7 @@ class ExtractionRunRecord:
             "settings": self.settings, "stamp": self.stamp,
             "counts": dict(self.c), "gate_rejections": dict(self.rejected),
             "post_gate_drops": dict(self.post_gate_drops), "audn": dict(self.audn),
-            "subject_reassigned_from": dict(self.subject_reassigned_from),
+            "subject_unnamed": dict(self.subject_unnamed),
             "response_failures": dict(self.response_failures),
             "rechunked": list(self.rechunked),
             "failed_chunks": list(self.failed_chunks),
@@ -947,9 +1051,13 @@ class ExtractionRunRecord:
         if c.get("record_only"):
             lines.append(f"  record_only {c['record_only']} (grounded by record spans only; "
                          f"kept, excluded from distillation by default)")
-        if c.get("subject_referent") or c.get("subject_reassigned"):
+        if c.get("subject_referent") or c.get("subject_unnamed"):
             lines.append(f"  subject: referent resolved {c.get('subject_referent', 0)} | "
-                         f"subject_reassigned {c.get('subject_reassigned', 0)}")
+                         f"subject_unnamed {c.get('subject_unnamed', 0)} (another subject no "
+                         f"span names; kept, listed in the record)")
+        if c.get("strength_stretch"):
+            lines.append(f"  strength_stretch {c['strength_stretch']} (stored modality stronger "
+                         f"than the span's words; kept and flagged, never rewritten)")
         if c.get("rechunked_on_max_tokens"):
             lines.append(f"  rechunked_on_max_tokens {c['rechunked_on_max_tokens']} "
                          f"({sum(r['still_truncated'] for r in d['rechunked'])} parts "

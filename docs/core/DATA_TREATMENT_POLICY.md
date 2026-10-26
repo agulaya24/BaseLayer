@@ -361,8 +361,8 @@ the subject. A fact with the subject in its object slot and as its subject is re
 - **Default**: turn-mode extraction refuses to start with no names configured.
 - **Switch**: `subject_names`.
 - **Who might change it**: every subject; list every form the extractor may emit.
-- **Verify**: the run record's `subject_referent`, `subject_reassigned`,
-  `subject_reassigned_from` and `self_object` counts.
+- **Verify**: the run record's `subject_referent`, `subject_unnamed` (count and list)
+  and `self_object` counts.
 
 ## 11. Redaction, exclusions and canaries
 
