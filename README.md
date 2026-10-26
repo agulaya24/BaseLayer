@@ -206,7 +206,7 @@ A later test, separate from the paper, examined where the difference appears. It
 
 Specifications changed how decisions were argued in every situation tested. They changed the decision itself in some situations.
 
-An analysis plan was locked partway through the study, after most data had been collected. It is not a preregistration of the full study. It names a seven-judge panel; the primary results use five ([ANALYSIS_PLAN_LOCK.md](https://github.com/agulaya24/beyond-recall/blob/master/docs/ANALYSIS_PLAN_LOCK.md)).
+The study's evaluation design and pre-registered analysis plan, including later deviations, are documented in the [Beyond Recall repository](https://github.com/agulaya24/beyond-recall).
 
 Methods and results are in the [paper](https://arxiv.org/abs/2605.28969), the [research page](https://www.base-layer.ai/research), and the [study code and data](https://github.com/agulaya24/beyond-recall). The paper used this version.
 
