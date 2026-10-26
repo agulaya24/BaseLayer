@@ -113,6 +113,7 @@ def init_database(db_path=None):
             code_path TEXT,               -- repo-relative, never absolute
             practice TEXT,                -- practice the cited turns are bounded to (turns.practice)
             grounding TEXT,               -- prose | record_only (turn contract §5)
+            stretch TEXT,                 -- JSON stretch label set by the gate, e.g. {"kind": "strength", ...}
             FOREIGN KEY (source_conversation_id) REFERENCES conversations(id)
         );
 

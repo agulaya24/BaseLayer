@@ -146,6 +146,7 @@ TURN_CONTRACT_COLUMNS = (
     ("code_path", "TEXT"),
     ("practice", "TEXT"),
     ("grounding", "TEXT"),
+    ("stretch", "TEXT"),
 )
 
 
@@ -1690,7 +1691,8 @@ def validate_structured_response(raw_facts: list[dict], message_count: int,
             "qualifier": qualifier,
         })
         # Turn-contract grounding, present only on facts that passed the gate.
-        for key in ("source_turn_id", "evidence_spans", "voice_class", "inferred", "grounding"):
+        for key in ("source_turn_id", "evidence_spans", "voice_class", "inferred", "grounding",
+                    "stretch"):
             if key in fact:
                 valid_facts[-1][key] = fact[key]
 
@@ -2701,7 +2703,8 @@ def store_turn_facts(conn, conv_id: str, facts: list[dict], fact_collection, emb
                          source_turn_id=f["source_turn_id"],
                          evidence_spans=f["evidence_spans"], inferred=f.get("inferred"),
                          voice_class=f.get("voice_class"), stamp=stamp,
-                         grounding=f.get("grounding"), record=record)
+                         grounding=f.get("grounding"), stretch=f.get("stretch"),
+                         record=record)
         if embed_model and fact_collection:
             embed_fact(fid, text, f["category"], fact_collection, embed_model,
                        contract_version=version, grounding=f.get("grounding"))
@@ -3533,6 +3536,7 @@ def store_fact(conn, fact_text: str, category: str, confidence: float,
                voice_class: str = None,
                stamp: dict = None,
                grounding: str = None,
+               stretch: dict = None,
                record=None) -> str:
     """Store a fact in memory_facts and return its ID.
     D-022: Now stores subject, intent, temporal_state, and raw_llm_confidence.
@@ -3551,6 +3555,8 @@ def store_fact(conn, fact_text: str, category: str, confidence: float,
         evidence_spans = json.dumps(evidence_spans, ensure_ascii=False)
     if inferred is not None:
         inferred = 1 if inferred else 0
+    if stretch is not None and not isinstance(stretch, str):
+        stretch = json.dumps(stretch, ensure_ascii=False, sort_keys=True)
 
     conn.execute("""
         INSERT INTO memory_facts
@@ -3561,9 +3567,9 @@ def store_fact(conn, fact_text: str, category: str, confidence: float,
          predicate, object_text, qualifier,
          source_turn_id, evidence_spans, inferred, voice_class,
          turn_contract_version, extraction_model, extraction_prompt_hash,
-         git_commit, code_path, practice, grounding)
+         git_commit, code_path, practice, grounding, stretch)
         VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 'extraction', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (fact_id, fact_text, category, confidence, conv_id, now, now,
           subject, intent, temporal, raw_llm_confidence, fact_class,
           knowledge_tier, tiered_by, scope,
@@ -3571,7 +3577,7 @@ def store_fact(conn, fact_text: str, category: str, confidence: float,
           source_turn_id, evidence_spans, inferred, voice_class,
           stamp.get("turn_contract_version"), stamp.get("extraction_model"),
           stamp.get("extraction_prompt_hash"), stamp.get("git_commit"),
-          stamp.get("code_path"), practice, grounding))
+          stamp.get("code_path"), practice, grounding, stretch))
 
     # If this supersedes another fact, mark the old one. A set superseded_by is
     # never overwritten: that re-points a dead fact and orphans its first

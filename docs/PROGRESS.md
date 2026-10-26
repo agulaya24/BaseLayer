@@ -124,17 +124,15 @@ findings that changed the code or the docs:
 
 ## Known open issues
 
-The full list, with evidence, is [PIPELINE_ISSUES.md](PIPELINE_ISSUES.md). Two found in recent runs
-are not yet entered there:
+The full list, with evidence, is [PIPELINE_ISSUES.md](PIPELINE_ISSUES.md). One found in recent runs
+is not yet entered there:
 
-- **A fact about someone else can be assigned to the person.** The gate's subject resolution
-  (`turn_contract.resolve_subject`) gives a fact to the person when every quoted span is the
-  person's own turn and the other subject is not named in the span. Text in which the person
-  describes what someone else did, when the quoted words do not contain the word the extractor
-  used for that person, can then yield a fact about that other person stored as a fact about the
-  person: "she moved abroad last year" extracted with the other person's name as its subject, for
-  example. Each reassignment is counted in the run
-  record (`subject_reassigned`). Not yet fixed.
+- **Fixed 2026-10-26: a fact about someone else could be assigned to the person.** The gate's
+  subject resolution (`turn_contract.resolve_subject`) gave a fact to the person when every quoted
+  span was the person's own turn and the other subject was not named in the span. It now keeps
+  any subject that is not the configured referent, and counts one no span names
+  (`subject_unnamed` in the run record). The rewrite had turned a guest into the host on a policy
+  extraction of Zitkala-Ša's essays ([core/TURN_CONTRACT.md](core/TURN_CONTRACT.md) §5).
 - **The predicate list is a suggestion, not enforced.** `normalize_predicate()` keeps a verb
   that is not on the 46-item list, by design. So a small share of facts carries other predicates, and some of
   those facts are cited by claims. Open decision: map them to listed predicates, extend the list,
@@ -148,8 +146,7 @@ Consistent with [ROADMAP.md](../ROADMAP.md):
    and let the agent pull claims by id. Designed and tested outside this repository; not yet in
    the package.
 2. **One command for the cited build**, so it no longer takes eight steps and several modules.
-3. **Fix the two open issues above**, starting with subject reassignment, since it puts other
-   people's actions into a person's specification.
+3. **Settle the open predicate-list issue above.**
 4. **A trigger grouper stable enough to ship.** Two runs of the grouper still agree less than two
    runs of the duplicate judge do. ([core/CONSOLIDATION.md](core/CONSOLIDATION.md))
 5. **Confirmation by the person.** The checks in this package establish that evidence is real

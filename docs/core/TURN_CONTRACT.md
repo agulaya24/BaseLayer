@@ -157,23 +157,38 @@ re-keys facts already stored on legacy corpora under AUDN. The run record carrie
 of configured names, never the names.
 
 **Subject check (mechanical).** The span check proves grounding, not reference: the subject's
-own words can come back with another person as the subject (for example a meeting participant
-named for the subject's description of their own work). So, when every span of a gated fact is
-an own-voice turn and its subject is not `user`, the other subject is kept only if its name
-appears literally, as whole words and case-insensitive, in at least one span. The name is looked
-for with a leading determiner or possessive stripped ("the user's wife" as "wife", "The
-company" as "company"), as any parenthetical name, as the given name alone (a missing surname
-is tolerated), and as any alias the entity map configures for that person. Otherwise the subject
-becomes `user`. Nothing is silent: the run record counts `subject_reassigned` and lists each
-replaced subject under `subject_reassigned_from`, and counts `subject_referent` (configured
-names and generic forms resolved to `user`). A role subject whose word does not appear in the
-span (a span saying "my wife" under the subject "spouse") is reassigned; the list shows it.
+own words can come back with another subject (another person, a group, or, on a policy
+extraction, the name of a rule's action). A subject that is not a configured name or generic
+form is **kept**. The gate never rewrites it to `user` from a span: own-voice words do not show
+who a fact is about. Until 2026-10-26 such a subject became `user` when no span named it; on a
+policy extraction of Zitkala-Ša's essays that rewrote 9 of 31 subjects, replaced actions'
+names with `user`, and turned a guest into the host. A wrong subject that is not `user` stays
+out of the person's specification; a wrong `user` goes into it. When every span of a gated
+fact is an own-voice turn and its kept subject is not named in any span, it is counted for
+review. The name is looked for literally, as whole words and case-insensitive, with a leading
+determiner or possessive stripped ("the user's wife" as "wife", "The company" as "company"),
+as any parenthetical name, as the given name alone (a missing surname is tolerated), and as
+any alias the entity map configures for that person. Nothing is silent: the run record counts
+`subject_unnamed` and lists each such subject under `subject_unnamed`, and counts
+`subject_referent` (configured names and generic forms resolved to `user`).
+
+**Strength check (mechanical, at the gate).** A fact whose predicate asserts a modality
+(`turn_contract.PREDICATE_STRENGTH`: `obliges`, `prohibits`, `requires_consent_of` and the
+other policy modality predicates; the person vocabulary has none) is compared with the
+strongest modal wording in its spans (must > should > may > none, `span_strength`). When the
+stored strength exceeds the words, for example "should not" stored as `prohibits`, or "I was
+afraid to go" stored as a prohibition, the accepted fact carries
+`stretch = {"kind": "strength", "predicate", "stored", "span", "span_word"}`, stored as JSON
+in `memory_facts.stretch` and counted in the run record as `strength_stretch`. The fact itself
+is not changed: a stretch label is carried, never repaired (STRETCH_DEFINITION, kind
+"strength"). Only the gate sets it; a `stretch` key from the model is discarded. Known limits:
+an imperative without a modal word ("Wait a moment before you invite any one") reads as
+"none" and is flagged; a slot fact (`conditioned_on`) carries no modality and is not checked.
 
 **Object check (mechanical, after the subject check).** The extractor can also put the subject
 in a fact's OBJECT ("user collaborates with <subject name>"). An object that, as a whole and
 after the same case, whitespace and quote-mark normalisation, equals a configured name is the
-subject. When the resolved subject is `user` (including a subject just reassigned to `user`),
-the fact relates the subject to themselves: it is rejected with reason `self_object`, before
+subject. When the resolved subject is `user`, the fact relates the subject to themselves: it is rejected with reason `self_object`, before
 any accepted-side count moves. It is rejected, not rewritten, because almost no predicate has
 a meaningful reflexive reading, and the one that does (the subject's own name) is already in
 the import config. When the subject is another person, the object becomes `user`. Only
@@ -307,8 +322,8 @@ and a row in the corpus database's `extraction_runs` table. The record holds:
 - the settings, including every cap and both span bounds;
 - the stamps;
 - the gate rejections by reason;
-- the subject resolution counts (`subject_referent`, `subject_reassigned`, and
-  `subject_reassigned_from`) and the `record_only` count;
+- the subject resolution counts (`subject_referent`, `subject_unnamed`, and the
+  `subject_unnamed` list), the `strength_stretch` count and the `record_only` count;
 - the drops after the gate;
 - the AUDN actions and any unusable responses;
 - the MEASURED API usage (`api_usage`): input, output, cache-read and cache-write tokens for every billed call (extraction and AUDN, sequential and batch, each call labelled with its conversation and whether it was a batch call), and totals with separate batch and sequential subtotals. A call is recorded the moment its response exists, before parsing, so a billed but unusable response still counts. The run output prints the totals; the legacy path prints them too, though it writes no run record;

@@ -52,15 +52,17 @@ def test_subject_related_to_their_own_name_is_rejected(subject, obj):
     g = _gate(_fact(subject, obj))
     assert g.accepted == []
     assert g.rejected == {"self_object": 1}
-    assert g.subject_referent == 0 and not g.subject_reassigned
+    assert g.subject_referent == 0 and not g.subject_unnamed
 
 
-def test_reassigned_subject_with_the_name_as_object_is_rejected_not_counted_as_reassigned():
-    """'Sam Ortiz collaborates with Dana' on a span that never names Sam: the
-    subject becomes `user`, so the fact relates the subject to themselves."""
+def test_unnamed_other_subject_with_the_name_as_object_is_kept_and_counted():
+    """'Sam Ortiz collaborates with Dana' on a span that never names Sam: the subject
+    is kept (the gate no longer rewrites it to `user`, 2026-10-26), so the object
+    becomes `user`, and the unnamed subject is counted for review."""
     g = _gate(_fact("Sam Ortiz", "Dana Reyes"))
-    assert g.accepted == [] and g.rejected == {"self_object": 1}
-    assert not g.subject_reassigned
+    assert [(a["subject"], a["object"]) for a in g.accepted] == [("Sam Ortiz", "user")]
+    assert sum(g.rejected.values()) == 0
+    assert g.subject_unnamed == {"Sam Ortiz": 1}
 
 
 def test_other_person_named_in_the_span_keeps_the_fact_and_the_object_becomes_user():
